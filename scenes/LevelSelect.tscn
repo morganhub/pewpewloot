@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://pebxr1nq4upw"]
+
+[ext_resource type="Script" uid="uid://cx0gswqxpel11" path="res://scenes/LevelSelect.gd" id="1_dbyaq"]
+
+[node name="LevelSelect" type="Control" unique_id=1456247120]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dbyaq")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=650250721]
+layout_mode = 1
+offset_right = 720.0
+offset_bottom = 1280.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=400220197]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=676171284]
+layout_mode = 2
+text = "Niveaux"
+
+[node name="LevelList" type="ItemList" parent="MarginContainer/VBoxContainer" unique_id=791832499]
+custom_minimum_size = Vector2(250, 450)
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1400993201]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=2021886415]
+layout_mode = 2
+text = "Retour mondes"
+
+[node name="PlayButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=737455500]
+layout_mode = 2
+text = "Jouer"

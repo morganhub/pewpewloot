@@ -1,0 +1,26 @@
+{
+    "missiles": [
+        {
+            "id": "missile_default",
+            "name": "Default Missile",
+            "type": "basic",
+            "visual": {
+                "color": "#FFFF00",
+                "shape": "circle",
+                "size": 8,
+                "asset": ""
+            }
+        },
+        {
+            "id": "missile_car",
+            "name": "Car Missile",
+            "type": "basic",
+            "visual": {
+                "color": "#FF0000",
+                "shape": "circle",
+                "size": 10,
+                "asset": "res://assets/missiles/car_missile.png"
+            }
+        }
+    ]
+}

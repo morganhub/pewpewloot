@@ -1,0 +1,171 @@
+[gd_scene format=3 uid="uid://tdlm3oh0rn8v"]
+
+[ext_resource type="Script" uid="uid://crak88emxmj0x" path="res://scenes/ShipMenu.gd" id="1_ship"]
+
+[node name="ShipMenu" type="Control" unique_id=166129176]
+custom_minimum_size = Vector2(720, 1280)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_ship")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1596423788]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer" unique_id=1372423997]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="MarginContainer/ScrollContainer" unique_id=613686770]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=1529315383]
+layout_mode = 2
+text = "VAISSEAU & ÉQUIPEMENT"
+horizontal_alignment = 1
+
+[node name="CrystalLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=222333444]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 1, 1)
+text = "💎 0"
+horizontal_alignment = 1
+
+[node name="HSeparator1" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=404221208]
+layout_mode = 2
+
+[node name="ShipSection" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=153905137]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="ShipLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/ShipSection" unique_id=89015533]
+layout_mode = 2
+text = "Vaisseau:"
+
+[node name="ShipOptionList" type="ItemList" parent="MarginContainer/ScrollContainer/Content/ShipSection" unique_id=1996137187]
+custom_minimum_size = Vector2(180, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+max_columns = 2
+same_column_width = true
+
+[node name="ShipInfoLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/ShipSection" unique_id=273625265]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sélectionnez un vaisseau"
+autowrap_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=783316875]
+layout_mode = 2
+
+[node name="SlotsLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=1697753615]
+layout_mode = 2
+text = "Équipement (8 slots):"
+
+[node name="SlotsGrid" type="GridContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=285666015]
+layout_mode = 2
+columns = 4
+
+[node name="HSeparator3" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1650344574]
+layout_mode = 2
+
+[node name="InventoryLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=123172954]
+layout_mode = 2
+text = "Inventaire:"
+
+[node name="InventoryGrid" type="GridContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=1253760393]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 8
+
+[node name="HSeparator4" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=159819114]
+layout_mode = 2
+
+[node name="DebugSection" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=911426589]
+layout_mode = 2
+alignment = 1
+
+[node name="GenerateItemButton" type="Button" parent="MarginContainer/ScrollContainer/Content/DebugSection" unique_id=1013446788]
+layout_mode = 2
+text = "🎲 Générer item (debug)"
+
+[node name="HSeparator5" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1485797321]
+layout_mode = 2
+
+[node name="NavButtons" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=2082689266]
+layout_mode = 2
+alignment = 1
+
+[node name="BackButton" type="Button" parent="MarginContainer/ScrollContainer/Content/NavButtons" unique_id=1459743722]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "← Retour à l'accueil"
+
+[node name="ItemPopup" type="PanelContainer" parent="." unique_id=2143014382]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -120.0
+offset_right = 150.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="ItemPopup" unique_id=1076754995]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PopupTitle" type="Label" parent="ItemPopup/VBox" unique_id=1484375859]
+layout_mode = 2
+text = "Détails de l'objet"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ItemPopup/VBox" unique_id=395825628]
+layout_mode = 2
+
+[node name="ItemName" type="Label" parent="ItemPopup/VBox" unique_id=884679970]
+layout_mode = 2
+text = "[Rareté] Nom de l'item"
+horizontal_alignment = 1
+
+[node name="StatsLabel" type="Label" parent="ItemPopup/VBox" unique_id=546300397]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Statistiques:
+  +10 Power
+  +5 Speed"
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="ItemPopup/VBox" unique_id=514703266]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="EquipButton" type="Button" parent="ItemPopup/VBox/Buttons" unique_id=985900167]
+custom_minimum_size = Vector2(100, 35)
+layout_mode = 2
+text = "Équiper"
+
+[node name="CancelButton" type="Button" parent="ItemPopup/VBox/Buttons" unique_id=1859861644]
+custom_minimum_size = Vector2(100, 35)
+layout_mode = 2
+text = "Annuler"

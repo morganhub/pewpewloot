@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://bnfjmwq614evp"]
+
+[ext_resource type="Script" uid="uid://dy8kuq456d4rq" path="res://scenes/WorldSelect.gd" id="1_3bfae"]
+
+[node name="WorldSelect" type="Control" unique_id=1481804337]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_3bfae")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=953418584]
+custom_minimum_size = Vector2(720, 1280)
+layout_mode = 1
+offset_right = 205.0
+offset_bottom = 657.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1449228404]
+layout_mode = 2
+
+[node name="WorldList" type="ItemList" parent="MarginContainer/VBoxContainer" unique_id=765580375]
+custom_minimum_size = Vector2(0, 600)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1696335179]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=225194004]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=738341516]
+layout_mode = 2
+text = "Retour"
+
+[node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1416744285]
+layout_mode = 2
+disabled = true
+text = "Choisir niveau"

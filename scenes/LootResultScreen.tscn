@@ -1,0 +1,114 @@
+[gd_scene format=3 uid="uid://xidmvitbffrb"]
+
+[ext_resource type="Script" uid="uid://cp342oj2efc1p" path="res://scenes/LootResultScreen.gd" id="1_loot"]
+
+[node name="LootResultScreen" type="Control" unique_id=2035183221]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_loot")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1018799003]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.862745)
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1025210087]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -220.0
+offset_bottom = -787.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer" unique_id=466667875]
+custom_minimum_size = Vector2(500, 400)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer" unique_id=760801156]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 30
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer" unique_id=789634338]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1196250240]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "BOSS LOOT!"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=38924169]
+layout_mode = 2
+
+[node name="ItemNameLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=885455228]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Super Weapon"
+horizontal_alignment = 1
+
+[node name="ItemTypeLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=696863965]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Primary - Lv.5"
+horizontal_alignment = 1
+
+[node name="Panel" type="Panel" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=2144879789]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Panel" unique_id=1237312690]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Stats..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=572640404]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1777458914]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="KeepButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1642955269]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Garder"
+
+[node name="EquipButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1387234964]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Équiper"
+
+[node name="DisassembleButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=679131834]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "♻️ Recycler (+5 💎)"
+
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/KeepButton" to="." method="_on_keep_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/EquipButton" to="." method="_on_equip_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/DisassembleButton" to="." method="_on_disassemble_pressed"]

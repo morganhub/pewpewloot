@@ -1,0 +1,220 @@
+{
+  "id": "world_1",
+  "name": "Ceinture d'astéroïdes",
+  "description": "Un champ d'astéroïdes aux confins du système solaire, peuplé de pirates et de drones autonomes.",
+  "order": 1,
+  "theme": {
+	"background": "res://assets/backgrounds/asteroids.png",
+	"music": "res://assets/music/world_1.ogg",
+	"color_palette": "#3a4f6f"
+  },
+  "levels": [
+	{
+	  "index": 0,
+	  "id": "world_1_lvl_0",
+	  "name": "Avant-poste",
+	  "type": "normal",
+	  "duration_sec": 120,
+	  "backgrounds": {
+		"far_layer": "res://assets/backgrounds/sea.jpg",
+		"mid_layer": [
+		  [
+			"res://assets/backgrounds/layer_2/clouds.png" 
+		  ]
+		],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 2.0,
+		  "enemy_id": "scout_basic",
+		  "count": 5,
+		  "interval": 1.0,
+		  "pattern_id": "straight_down"
+		},
+		{
+		  "time": 15.0,
+		  "enemy_id": "scout_basic",
+		  "count": 4,
+		  "interval": 1.0,
+		  "pattern_id": "diagonal_left"
+		}
+	  ],
+	  "events": []
+	},
+	{
+	  "index": 1,
+	  "id": "world_1_lvl_1",
+	  "name": "Couloir de débris",
+	  "type": "normal",
+	  "duration_sec": 140,
+	  "backgrounds": {
+		"far_layer": "res://assets/backgrounds/sea.jpg",
+		"mid_layer": [
+		  [
+            "res://assets/backgrounds/layer_2/clouds.png"
+		  ]
+		],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 2.0,
+		  "enemy_id": "scout_basic",
+		  "count": 6,
+		  "interval": 0.8,
+		  "pattern_id": "zigzag_horizontal"
+		},
+		{
+		  "time": 10.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 3,
+		  "interval": 1.5,
+		  "pattern_id": "diagonal_right"
+		}
+	  ],
+	  "events": []
+	},
+	{
+	  "index": 2,
+	  "id": "world_1_lvl_2",
+	  "name": "Zone minée",
+	  "type": "normal",
+	  "duration_sec": 150,
+	  "backgrounds": {
+		"far_layer": "res://assets/backgrounds/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 3.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 4,
+		  "interval": 1.0,
+		  "pattern_id": "straight_down"
+		},
+		{
+		  "time": 15.0,
+		  "enemy_id": "bomber_heavy",
+		  "count": 2,
+		  "interval": 2.0,
+		  "pattern_id": "straight_down"
+		}
+	  ],
+	  "events": [
+		{
+		  "type": "minefield",
+		  "trigger_time": 60
+		}
+	  ]
+	},
+	{
+	  "index": 3,
+	  "id": "world_1_lvl_3",
+	  "name": "Embuscade",
+	  "type": "normal",
+	  "duration_sec": 160,
+	  "backgrounds": {
+		"far_layer": "res://assets/backgrounds/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 5.0,
+		  "enemy_id": "scout_basic",
+		  "count": 8,
+		  "interval": 0.5,
+		  "pattern_id": "rush_player"
+		},
+		{
+		  "time": 20.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 5,
+		  "interval": 1.0,
+		  "pattern_id": "circle_clockwise"
+		},
+		{
+		  "time": 40.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 1,
+		  "interval": 0,
+		  "pattern_id": "stationary"
+		}
+	  ],
+	  "events": []
+	},
+	{
+	  "index": 4,
+	  "id": "world_1_lvl_4",
+	  "name": "La Forteresse",
+	  "type": "normal",
+	  "duration_sec": 180,
+	  "backgrounds": {
+		"far_layer": "res://assets/backgrounds/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 2.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 6,
+		  "interval": 0.8,
+		  "pattern_id": "wave_horizontal"
+		},
+		{
+		  "time": 12.0,
+		  "enemy_id": "bomber_heavy",
+		  "count": 3,
+		  "interval": 2.0,
+		  "pattern_id": "straight_down"
+		},
+		{
+		  "time": 30.0,
+		  "enemy_id": "interceptor_diagonal",
+		  "count": 2,
+		  "interval": 1.5,
+		  "pattern_id": "diagonal_right"
+		}
+	  ],
+	  "events": [
+		{
+		  "type": "laser_grid",
+		  "trigger_time": 90
+		}
+	  ]
+	},
+	{
+	  "index": 5,
+	  "id": "world_1_lvl_5",
+	  "name": "Le Gardien",
+	  "type": "boss",
+	  "boss_id": "boss_world1",
+	  "backgrounds": {
+		"far_layer": "res://assets/backgrounds/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "phases": [
+		{
+		  "hp_percent": 100,
+		  "pattern": "phase_1_basic"
+		},
+		{
+		  "hp_percent": 60,
+		  "pattern": "phase_2_missiles"
+		},
+		{
+		  "hp_percent": 30,
+		  "pattern": "phase_3_enraged"
+		}
+	  ],
+	  "loot_table": "boss_world_1"
+	}
+  ],
+  "unlock_condition": {
+	"type": "initial"
+  }
+}

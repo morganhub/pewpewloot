@@ -1,0 +1,131 @@
+[gd_scene format=3 uid="uid://cfbrjr2juw0fn"]
+
+[ext_resource type="Script" path="res://scenes/Loadout.gd" id="1_loadout"]
+
+[node name="Loadout" type="Control" unique_id=539524073]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_loadout")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=219582167]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=213227413]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1851574739]
+layout_mode = 2
+text = "LOADOUT"
+horizontal_alignment = 1
+
+[node name="HSeparator1" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1905586857]
+layout_mode = 2
+
+[node name="ShipSection" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1662128231]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="ShipLabel" type="Label" parent="MarginContainer/VBoxContainer/ShipSection" unique_id=155131348]
+layout_mode = 2
+text = "Vaisseau:"
+
+[node name="ShipOptionList" type="ItemList" parent="MarginContainer/VBoxContainer/ShipSection" unique_id=2066866080]
+custom_minimum_size = Vector2(200, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+max_columns = 2
+same_column_width = true
+
+[node name="ShipInfoLabel" type="Label" parent="MarginContainer/VBoxContainer/ShipSection" unique_id=784660543]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sélectionnez un vaisseau"
+autowrap_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=946733949]
+layout_mode = 2
+
+[node name="SlotsLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=308161947]
+layout_mode = 2
+text = "Équipement (8 slots):"
+
+[node name="SlotsGrid" type="GridContainer" parent="MarginContainer/VBoxContainer" unique_id=1638318570]
+layout_mode = 2
+columns = 4
+
+[node name="HSeparator3" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=747707368]
+layout_mode = 2
+
+[node name="InventorySection" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=559728485]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InventoryTitle" type="Label" parent="MarginContainer/VBoxContainer/InventorySection" unique_id=162053473]
+layout_mode = 2
+text = "Inventaire:"
+
+[node name="InventoryList" type="ItemList" parent="MarginContainer/VBoxContainer/InventorySection" unique_id=193159657]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HSeparator4" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1247408653]
+layout_mode = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1796092722]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="EquipButton" type="Button" parent="MarginContainer/VBoxContainer/ActionButtons" unique_id=297901626]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+disabled = true
+text = "Équiper"
+
+[node name="UnequipButton" type="Button" parent="MarginContainer/VBoxContainer/ActionButtons" unique_id=2028193652]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+disabled = true
+text = "Retirer"
+
+[node name="DebugSection" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1850310646]
+layout_mode = 2
+alignment = 1
+
+[node name="GenerateItemButton" type="Button" parent="MarginContainer/VBoxContainer/DebugSection" unique_id=489928850]
+layout_mode = 2
+text = "🎲 Générer item (debug)"
+
+[node name="HSeparator5" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=671690377]
+layout_mode = 2
+
+[node name="NavButtons" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=2141975748]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/NavButtons" unique_id=279037494]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "← Retour"
+
+[node name="LaunchButton" type="Button" parent="MarginContainer/VBoxContainer/NavButtons" unique_id=180119218]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Lancer mission →"

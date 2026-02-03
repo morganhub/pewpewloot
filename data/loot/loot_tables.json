@@ -1,0 +1,167 @@
+{
+    "boss_world_1": {
+        "name": "Gardien d'Astéroïdes",
+        "guaranteed_drops": 2,
+        "bonus_drops": {
+            "chance": 0.25,
+            "count": 1
+        },
+        "rarity_weights": {
+            "common": 20,
+            "uncommon": 40,
+            "rare": 30,
+            "legendary": 8,
+            "unique": 2
+        },
+        "unique_pool": [
+            "unique_asteroid_core",
+            "unique_guardian_shield"
+        ],
+        "material_drops": [
+            {
+                "id": "asteroid_fragment",
+                "count_min": 2,
+                "count_max": 5
+            },
+            {
+                "id": "core_shard",
+                "count_min": 1,
+                "count_max": 2
+            }
+        ]
+    },
+    "boss_world_2": {
+        "name": "Overlord de la Nécropole",
+        "guaranteed_drops": 2,
+        "bonus_drops": {
+            "chance": 0.30,
+            "count": 1
+        },
+        "rarity_weights": {
+            "common": 15,
+            "uncommon": 35,
+            "rare": 35,
+            "legendary": 12,
+            "unique": 3
+        },
+        "unique_pool": [
+            "unique_spectral_reactor",
+            "unique_ghost_engine",
+            "unique_curse_targeting"
+        ],
+        "material_drops": [
+            {
+                "id": "ectoplasm",
+                "count_min": 3,
+                "count_max": 6
+            },
+            {
+                "id": "corrupted_chip",
+                "count_min": 1,
+                "count_max": 3
+            }
+        ]
+    },
+    "boss_world_3": {
+        "name": "L'Éclipse",
+        "guaranteed_drops": 3,
+        "bonus_drops": {
+            "chance": 0.35,
+            "count": 1
+        },
+        "rarity_weights": {
+            "common": 10,
+            "uncommon": 30,
+            "rare": 40,
+            "legendary": 15,
+            "unique": 5
+        },
+        "unique_pool": [
+            "unique_void_primary",
+            "unique_gravity_missiles",
+            "unique_solar_armor"
+        ],
+        "material_drops": [
+            {
+                "id": "dark_matter",
+                "count_min": 2,
+                "count_max": 4
+            },
+            {
+                "id": "solar_essence",
+                "count_min": 1,
+                "count_max": 2
+            }
+        ]
+    },
+    "boss_world_4": {
+        "name": "L'Amiral Pirate",
+        "guaranteed_drops": 3,
+        "bonus_drops": {
+            "chance": 0.40,
+            "count": 2
+        },
+        "rarity_weights": {
+            "common": 5,
+            "uncommon": 25,
+            "rare": 45,
+            "legendary": 18,
+            "unique": 7
+        },
+        "unique_pool": [
+            "unique_admiral_cannon",
+            "unique_smuggler_engine",
+            "unique_fleet_utility"
+        ],
+        "material_drops": [
+            {
+                "id": "pirate_treasure",
+                "count_min": 3,
+                "count_max": 7
+            },
+            {
+                "id": "corp_tech",
+                "count_min": 2,
+                "count_max": 4
+            }
+        ]
+    },
+    "boss_world_5": {
+        "name": "L'Architecte",
+        "guaranteed_drops": 4,
+        "bonus_drops": {
+            "chance": 0.50,
+            "count": 2
+        },
+        "rarity_weights": {
+            "common": 0,
+            "uncommon": 15,
+            "rare": 45,
+            "legendary": 30,
+            "unique": 10
+        },
+        "unique_pool": [
+            "unique_architect_reactor",
+            "unique_dimension_shield",
+            "unique_time_targeting",
+            "unique_nexus_primary"
+        ],
+        "material_drops": [
+            {
+                "id": "nexus_crystal",
+                "count_min": 3,
+                "count_max": 5
+            },
+            {
+                "id": "reality_shard",
+                "count_min": 2,
+                "count_max": 4
+            },
+            {
+                "id": "architect_blueprint",
+                "count_min": 0,
+                "count_max": 1
+            }
+        ]
+    }
+}

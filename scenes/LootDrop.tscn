@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://loot_drop"]
+
+[ext_resource type="Script" path="res://scenes/LootDrop.gd" id="1"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_loot"]
+radius = 15.0
+
+[node name="LootDrop" type="Area2D"]
+collision_layer = 8
+collision_mask = 1
+script = ExtResource("1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_loot")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(1, 1, 0, 1)
+polygon = PackedVector2Array(0, -15, 15, 0, 0, 15, -15, 0)

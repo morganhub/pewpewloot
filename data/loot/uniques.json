@@ -1,0 +1,113 @@
+{
+    "uniques": [
+        {
+            "id": "unique_asteroid_core",
+            "name": "Cœur d'Astéroïde",
+            "slot": "reactor",
+            "source_boss": "asteroid_guardian",
+            "sprite": "res://assets/items/unique_asteroid_core.png",
+            "description": "Le noyau pulsant du Gardien. Génère de l'énergie quand vous êtes touché.",
+            "stats": {
+                "energy_regen": 5,
+                "cooldown_reduction": 10
+            },
+            "unique_effect": {
+                "id": "core_pulse",
+                "name": "Pulse du Noyau",
+                "description": "Quand vous subissez des dégâts, récupérez 15% de votre énergie max.",
+                "trigger": "on_hit_received"
+            }
+        },
+        {
+            "id": "unique_guardian_shield",
+            "name": "Bouclier du Gardien",
+            "slot": "shield",
+            "source_boss": "asteroid_guardian",
+            "sprite": "res://assets/items/unique_guardian_shield.png",
+            "description": "Un fragment du blindage impénétrable du Gardien.",
+            "stats": {
+                "shield_capacity": 80,
+                "damage_reduction": 8
+            },
+            "unique_effect": {
+                "id": "rock_solid",
+                "name": "Solide comme le Roc",
+                "description": "Tant que votre bouclier est actif, vous ne pouvez pas être repoussé et ignorez les effets de ralentissement.",
+                "trigger": "passive"
+            }
+        },
+        {
+            "id": "unique_spectral_reactor",
+            "name": "Réacteur Spectral",
+            "slot": "reactor",
+            "source_boss": "necropolis_overlord",
+            "sprite": "res://assets/items/unique_spectral_reactor.png",
+            "description": "Alimenté par les âmes perdues de la Nécropole.",
+            "stats": {
+                "energy_regen": 8,
+                "cooldown_reduction": 15
+            },
+            "unique_effect": {
+                "id": "soul_harvest",
+                "name": "Récolte d'Âmes",
+                "description": "Chaque ennemi tué réduit le cooldown de votre spécial de 0.5s.",
+                "trigger": "on_enemy_kill"
+            }
+        },
+        {
+            "id": "unique_ghost_engine",
+            "name": "Moteur Fantôme",
+            "slot": "engine",
+            "source_boss": "necropolis_overlord",
+            "sprite": "res://assets/items/unique_ghost_engine.png",
+            "description": "Permet des déplacements entre les dimensions.",
+            "stats": {
+                "move_speed": 20,
+                "dash_charges": 1
+            },
+            "unique_effect": {
+                "id": "phase_walk",
+                "name": "Marche Spectrale",
+                "description": "Votre dash vous rend invulnérable et traverse les projectiles ennemis.",
+                "trigger": "on_dash"
+            }
+        },
+        {
+            "id": "unique_void_primary",
+            "name": "Canon du Vide",
+            "slot": "primary",
+            "source_boss": "eclipse_entity",
+            "sprite": "res://assets/items/unique_void_primary.png",
+            "description": "Tire des projectiles qui absorbent la lumière.",
+            "stats": {
+                "damage": 12,
+                "fire_rate": 10
+            },
+            "unique_effect": {
+                "id": "void_consumption",
+                "name": "Consommation du Vide",
+                "description": "Vos projectiles grossissent en traversant les projectiles ennemis, les détruisant et gagnant +5% dégâts par absorption (max 50%).",
+                "trigger": "on_projectile_hit"
+            }
+        },
+        {
+            "id": "unique_architect_reactor",
+            "name": "Cœur de l'Architecte",
+            "slot": "reactor",
+            "source_boss": "the_architect",
+            "sprite": "res://assets/items/unique_architect_reactor.png",
+            "description": "Le noyau de calcul qui contrôlait le Nexus entier.",
+            "stats": {
+                "energy_regen": 15,
+                "cooldown_reduction": 25,
+                "damage": 10
+            },
+            "unique_effect": {
+                "id": "reality_overwrite",
+                "name": "Réécriture de la Réalité",
+                "description": "Une fois par niveau, quand vous devriez mourir, annulez tous les dégâts et devenez invulnérable pendant 3s. Cooldown reset au changement de niveau.",
+                "trigger": "on_lethal_damage"
+            }
+        }
+    ]
+}

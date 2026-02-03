@@ -1,0 +1,589 @@
+{
+    "slots": [
+        {
+            "id": "reactor",
+            "name": "Réacteur",
+            "icon": "res://assets/icons/slot_reactor.png",
+            "description": "Énergie, régénération, réduction de cooldown"
+        },
+        {
+            "id": "engine",
+            "name": "Moteur",
+            "icon": "res://assets/icons/slot_engine.png",
+            "description": "Vitesse, dash, maniabilité"
+        },
+        {
+            "id": "armor",
+            "name": "Blindage",
+            "icon": "res://assets/icons/slot_armor.png",
+            "description": "Points de vie, réduction de dégâts"
+        },
+        {
+            "id": "shield",
+            "name": "Bouclier",
+            "icon": "res://assets/icons/slot_shield.png",
+            "description": "Bouclier, régénération, résistances"
+        },
+        {
+            "id": "primary",
+            "name": "Arme Principale",
+            "icon": "res://assets/icons/slot_primary.png",
+            "description": "Modifie les tirs principaux"
+        },
+        {
+            "id": "missiles",
+            "name": "Missiles",
+            "icon": "res://assets/icons/slot_missiles.png",
+            "description": "Type de missiles, verrouillage, salves"
+        },
+        {
+            "id": "targeting",
+            "name": "Ciblage",
+            "icon": "res://assets/icons/slot_targeting.png",
+            "description": "Critique, marque, effets on-hit"
+        },
+        {
+            "id": "utility",
+            "name": "Utilitaire",
+            "icon": "res://assets/icons/slot_utility.png",
+            "description": "Drone, aimant loot, contre-mesures"
+        }
+    ],
+    "rarities": [
+        {
+            "id": "common",
+            "name": "Commun",
+            "color": "#AAAAAA",
+            "affix_count": 1,
+            "weight": 60
+        },
+        {
+            "id": "uncommon",
+            "name": "Peu Commun",
+            "color": "#1EFF00",
+            "affix_count": 2,
+            "weight": 25
+        },
+        {
+            "id": "rare",
+            "name": "Rare",
+            "color": "#0070FF",
+            "affix_count": 3,
+            "weight": 10
+        },
+        {
+            "id": "legendary",
+            "name": "Légendaire",
+            "color": "#FF8000",
+            "affix_count": 4,
+            "weight": 4
+        },
+        {
+            "id": "unique",
+            "name": "Unique",
+            "color": "#FFD700",
+            "affix_count": 0,
+            "weight": 1
+        }
+    ],
+    "affixes": {
+        "global": [
+            {
+                "id": "flat_damage",
+                "name": "Dégâts",
+                "stat": "damage",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        1,
+                        3
+                    ],
+                    "uncommon": [
+                        3,
+                        6
+                    ],
+                    "rare": [
+                        5,
+                        10
+                    ],
+                    "legendary": [
+                        8,
+                        15
+                    ]
+                }
+            },
+            {
+                "id": "crit_chance",
+                "name": "Chance Critique",
+                "stat": "crit_chance",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        1,
+                        2
+                    ],
+                    "uncommon": [
+                        2,
+                        4
+                    ],
+                    "rare": [
+                        3,
+                        6
+                    ],
+                    "legendary": [
+                        5,
+                        10
+                    ]
+                }
+            },
+            {
+                "id": "crit_damage",
+                "name": "Dégâts Critiques",
+                "stat": "crit_damage",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        5,
+                        10
+                    ],
+                    "uncommon": [
+                        10,
+                        20
+                    ],
+                    "rare": [
+                        15,
+                        30
+                    ],
+                    "legendary": [
+                        25,
+                        50
+                    ]
+                }
+            },
+            {
+                "id": "luck",
+                "name": "Chance",
+                "stat": "luck",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        1,
+                        2
+                    ],
+                    "uncommon": [
+                        2,
+                        4
+                    ],
+                    "rare": [
+                        3,
+                        6
+                    ],
+                    "legendary": [
+                        5,
+                        10
+                    ]
+                }
+            }
+        ],
+        "reactor": [
+            {
+                "id": "energy_regen",
+                "name": "Régénération Énergie",
+                "stat": "energy_regen",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        1,
+                        2
+                    ],
+                    "uncommon": [
+                        2,
+                        4
+                    ],
+                    "rare": [
+                        3,
+                        6
+                    ],
+                    "legendary": [
+                        5,
+                        10
+                    ]
+                }
+            },
+            {
+                "id": "cooldown_reduction",
+                "name": "Réduction Cooldown",
+                "stat": "cooldown_reduction",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        2,
+                        5
+                    ],
+                    "uncommon": [
+                        5,
+                        10
+                    ],
+                    "rare": [
+                        8,
+                        15
+                    ],
+                    "legendary": [
+                        12,
+                        25
+                    ]
+                }
+            }
+        ],
+        "engine": [
+            {
+                "id": "move_speed",
+                "name": "Vitesse",
+                "stat": "move_speed",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        3,
+                        5
+                    ],
+                    "uncommon": [
+                        5,
+                        10
+                    ],
+                    "rare": [
+                        8,
+                        15
+                    ],
+                    "legendary": [
+                        12,
+                        25
+                    ]
+                }
+            },
+            {
+                "id": "dash_charges",
+                "name": "Charges Dash",
+                "stat": "dash_charges",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        0,
+                        0
+                    ],
+                    "uncommon": [
+                        0,
+                        1
+                    ],
+                    "rare": [
+                        1,
+                        1
+                    ],
+                    "legendary": [
+                        1,
+                        2
+                    ]
+                }
+            }
+        ],
+        "armor": [
+            {
+                "id": "max_hp",
+                "name": "Points de Vie",
+                "stat": "max_hp",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        5,
+                        10
+                    ],
+                    "uncommon": [
+                        10,
+                        20
+                    ],
+                    "rare": [
+                        15,
+                        30
+                    ],
+                    "legendary": [
+                        25,
+                        50
+                    ]
+                }
+            },
+            {
+                "id": "damage_reduction",
+                "name": "Réduction Dégâts",
+                "stat": "damage_reduction",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        1,
+                        3
+                    ],
+                    "uncommon": [
+                        3,
+                        6
+                    ],
+                    "rare": [
+                        5,
+                        10
+                    ],
+                    "legendary": [
+                        8,
+                        15
+                    ]
+                }
+            }
+        ],
+        "shield": [
+            {
+                "id": "shield_capacity",
+                "name": "Capacité Bouclier",
+                "stat": "shield_capacity",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        10,
+                        20
+                    ],
+                    "uncommon": [
+                        20,
+                        40
+                    ],
+                    "rare": [
+                        35,
+                        60
+                    ],
+                    "legendary": [
+                        50,
+                        100
+                    ]
+                }
+            },
+            {
+                "id": "shield_regen",
+                "name": "Régén. Bouclier",
+                "stat": "shield_regen",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        1,
+                        2
+                    ],
+                    "uncommon": [
+                        2,
+                        4
+                    ],
+                    "rare": [
+                        3,
+                        6
+                    ],
+                    "legendary": [
+                        5,
+                        10
+                    ]
+                }
+            }
+        ],
+        "primary": [
+            {
+                "id": "fire_rate",
+                "name": "Cadence de Tir",
+                "stat": "fire_rate",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        3,
+                        5
+                    ],
+                    "uncommon": [
+                        5,
+                        10
+                    ],
+                    "rare": [
+                        8,
+                        15
+                    ],
+                    "legendary": [
+                        12,
+                        25
+                    ]
+                }
+            },
+            {
+                "id": "projectile_count",
+                "name": "Projectiles",
+                "stat": "projectile_count",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        0,
+                        0
+                    ],
+                    "uncommon": [
+                        0,
+                        1
+                    ],
+                    "rare": [
+                        1,
+                        1
+                    ],
+                    "legendary": [
+                        1,
+                        2
+                    ]
+                }
+            }
+        ],
+        "missiles": [
+            {
+                "id": "missile_damage",
+                "name": "Dégâts Missiles",
+                "stat": "missile_damage",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        5,
+                        10
+                    ],
+                    "uncommon": [
+                        10,
+                        20
+                    ],
+                    "rare": [
+                        15,
+                        30
+                    ],
+                    "legendary": [
+                        25,
+                        50
+                    ]
+                }
+            },
+            {
+                "id": "missile_count",
+                "name": "Missiles Simultanés",
+                "stat": "missile_count",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        0,
+                        0
+                    ],
+                    "uncommon": [
+                        0,
+                        1
+                    ],
+                    "rare": [
+                        1,
+                        1
+                    ],
+                    "legendary": [
+                        1,
+                        2
+                    ]
+                }
+            }
+        ],
+        "targeting": [
+            {
+                "id": "mark_damage",
+                "name": "Dégâts sur Marqué",
+                "stat": "mark_damage_bonus",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        5,
+                        10
+                    ],
+                    "uncommon": [
+                        10,
+                        15
+                    ],
+                    "rare": [
+                        15,
+                        25
+                    ],
+                    "legendary": [
+                        20,
+                        40
+                    ]
+                }
+            },
+            {
+                "id": "pierce",
+                "name": "Pénétration",
+                "stat": "pierce_count",
+                "type": "flat",
+                "range": {
+                    "common": [
+                        0,
+                        0
+                    ],
+                    "uncommon": [
+                        0,
+                        1
+                    ],
+                    "rare": [
+                        1,
+                        1
+                    ],
+                    "legendary": [
+                        1,
+                        2
+                    ]
+                }
+            }
+        ],
+        "utility": [
+            {
+                "id": "loot_magnet",
+                "name": "Aimant Loot",
+                "stat": "loot_radius",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        10,
+                        20
+                    ],
+                    "uncommon": [
+                        20,
+                        40
+                    ],
+                    "rare": [
+                        35,
+                        60
+                    ],
+                    "legendary": [
+                        50,
+                        100
+                    ]
+                }
+            },
+            {
+                "id": "xp_bonus",
+                "name": "Bonus XP",
+                "stat": "xp_multiplier",
+                "type": "percent",
+                "range": {
+                    "common": [
+                        3,
+                        5
+                    ],
+                    "uncommon": [
+                        5,
+                        10
+                    ],
+                    "rare": [
+                        8,
+                        15
+                    ],
+                    "legendary": [
+                        12,
+                        25
+                    ]
+                }
+            }
+        ]
+    }
+}

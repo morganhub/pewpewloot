@@ -1,0 +1,14 @@
+# Normalize EOL for all files that Git considers text files.
+* text=auto eol=lf  
+
+# S'assurer que les scripts et scènes Godot restent propres
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.json text eol=lf
+
+# Les fichiers binaires ne doivent pas être touchés
+*.png binary
+*.jpg binary
+*.wav binary
+*.pck binary

@@ -1,0 +1,142 @@
+{
+    "enemies": [
+        {
+            "id": "scout",
+            "name": "Éclaireur",
+            "description": "Unité de base, rapide mais fragile.",
+            "sprite": "res://assets/enemies/scout.png",
+            "type": "normal",
+            "stats": {
+                "hp": 10,
+                "power": 2,
+                "speed": 80
+            },
+            "pattern": "straight_down",
+            "fire_rate": 1.5,
+            "projectile_type": "enemy_basic",
+            "loot_chance": 0.05
+        },
+        {
+            "id": "fighter",
+            "name": "Chasseur",
+            "description": "Combattant équilibré avec des tirs doubles.",
+            "sprite": "res://assets/enemies/fighter.png",
+            "type": "normal",
+            "stats": {
+                "hp": 25,
+                "power": 5,
+                "speed": 60
+            },
+            "pattern": "zigzag",
+            "fire_rate": 1.0,
+            "projectile_type": "enemy_double",
+            "loot_chance": 0.10
+        },
+        {
+            "id": "bomber",
+            "name": "Bombardier",
+            "description": "Lent mais dévastateur, lâche des bombes explosives.",
+            "sprite": "res://assets/enemies/bomber.png",
+            "type": "normal",
+            "stats": {
+                "hp": 40,
+                "power": 12,
+                "speed": 35
+            },
+            "pattern": "hover_drop",
+            "fire_rate": 2.5,
+            "projectile_type": "bomb",
+            "loot_chance": 0.15
+        },
+        {
+            "id": "elite_fighter",
+            "name": "As du Ciel",
+            "description": "Pilote d'élite avec des manœuvres imprévisibles.",
+            "sprite": "res://assets/enemies/elite_fighter.png",
+            "type": "elite",
+            "stats": {
+                "hp": 80,
+                "power": 8,
+                "speed": 100
+            },
+            "pattern": "erratic",
+            "fire_rate": 0.6,
+            "projectile_type": "enemy_burst",
+            "loot_chance": 0.30
+        },
+        {
+            "id": "asteroid_guardian",
+            "name": "Gardien d'Astéroïdes",
+            "description": "Un colosse mécanique qui protège la ceinture d'astéroïdes.",
+            "sprite": "res://assets/enemies/boss_asteroid.png",
+            "type": "boss",
+            "stats": {
+                "hp": 500,
+                "power": 15,
+                "speed": 20
+            },
+            "phases": [
+                {
+                    "hp_percent": 100,
+                    "pattern": "phase_1_basic",
+                    "attacks": [
+                        "spread_shot",
+                        "charge"
+                    ]
+                },
+                {
+                    "hp_percent": 60,
+                    "pattern": "phase_2_missiles",
+                    "attacks": [
+                        "spread_shot",
+                        "homing_missiles",
+                        "summon_scouts"
+                    ]
+                },
+                {
+                    "hp_percent": 30,
+                    "pattern": "phase_3_enraged",
+                    "attacks": [
+                        "rapid_fire",
+                        "mega_charge",
+                        "asteroid_rain"
+                    ]
+                }
+            ],
+            "loot_table": "boss_world_1"
+        },
+        {
+            "id": "corrupted_scout",
+            "name": "Éclaireur Corrompu",
+            "description": "Un scout infecté par le virus de la nécropole.",
+            "sprite": "res://assets/enemies/corrupted_scout.png",
+            "type": "normal",
+            "stats": {
+                "hp": 15,
+                "power": 3,
+                "speed": 70
+            },
+            "pattern": "haunting",
+            "fire_rate": 1.2,
+            "projectile_type": "corruption_bolt",
+            "loot_chance": 0.08
+        },
+        {
+            "id": "ghost_drone",
+            "name": "Drone Fantôme",
+            "description": "Apparaît et disparaît de manière imprévisible.",
+            "sprite": "res://assets/enemies/ghost_drone.png",
+            "type": "normal",
+            "stats": {
+                "hp": 20,
+                "power": 4,
+                "speed": 50
+            },
+            "pattern": "phase_shift",
+            "fire_rate": 1.8,
+            "projectile_type": "spectral_shot",
+            "special_ability": "phase_through",
+            "loot_chance": 0.12
+        }
+    ]
+}

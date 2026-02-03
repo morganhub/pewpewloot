@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://de1j4fstvvd6v"]
+
+[ext_resource type="Script" uid="uid://b1ukxmka4phxm" path="res://scenes/SceneSwitcher.gd" id="1_ssicv"]
+
+[node name="SceneSwitcher" type="Control" unique_id=1916112396]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ssicv")
+
+[node name="ScreenRoot" type="MarginContainer" parent="." unique_id=350826608]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Fade" type="ColorRect" parent="." unique_id=1870568242]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)

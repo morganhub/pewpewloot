@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://dy26mvgsd2bc8"]
+
+[ext_resource type="Script" uid="uid://bpa6xve1o88mu" path="res://scenes/GamePlaceholder.gd" id="1_kvmwp"]
+
+[node name="GamePlaceholder" type="Control" unique_id=1400736156]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_kvmwp")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=2021276599]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="CenterContainer" unique_id=1566636306]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="CenterContainer/Box" unique_id=1939712729]
+layout_mode = 2
+text = "GAME PLACEHOLDER"
+
+[node name="CompleteButton" type="Button" parent="CenterContainer/Box" unique_id=1891160725]
+layout_mode = 2
+text = "Niveau terminé"
+
+[node name="BackButton" type="Button" parent="CenterContainer/Box" unique_id=315076539]
+layout_mode = 2
+text = "Retour menu"

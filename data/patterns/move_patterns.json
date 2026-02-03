@@ -1,0 +1,126 @@
+{
+    "patterns": [
+        {
+            "id": "straight_down",
+            "name": "Descente directe",
+            "type": "linear",
+            "direction": {
+                "x": 0,
+                "y": 1
+            },
+            "speed": 75,
+            "description": "Descend tout droit vers le bas"
+        },
+        {
+            "id": "zigzag_horizontal",
+            "name": "Zigzag horizontal",
+            "type": "zigzag",
+            "direction": {
+                "x": 1,
+                "y": 0.5
+            },
+            "speed": 60,
+            "amplitude": 50,
+            "frequency": 2.0,
+            "description": "Se déplace en zigzag horizontal"
+        },
+        {
+            "id": "circle_clockwise",
+            "name": "Cercle horaire",
+            "type": "circular",
+            "direction": {
+                "x": 0,
+                "y": 0
+            },
+            "speed": 45,
+            "radius": 80,
+            "angular_speed": 2.0,
+            "clockwise": true,
+            "description": "Tourne en cercle (sens horaire)"
+        },
+        {
+            "id": "circle_counterclockwise",
+            "name": "Cercle anti-horaire",
+            "type": "circular",
+            "direction": {
+                "x": 0,
+                "y": 0
+            },
+            "speed": 45,
+            "radius": 80,
+            "angular_speed": 2.0,
+            "clockwise": false,
+            "description": "Tourne en cercle (sens anti-horaire)"
+        },
+        {
+            "id": "wave_horizontal",
+            "name": "Vague horizontale",
+            "type": "sine_wave",
+            "direction": {
+                "x": 0,
+                "y": 1
+            },
+            "speed": 52.5,
+            "amplitude": 100,
+            "frequency": 1.5,
+            "description": "Descend en faisant des vagues"
+        },
+        {
+            "id": "diagonal_left",
+            "name": "Diagonale gauche",
+            "type": "linear",
+            "direction": {
+                "x": -0.7,
+                "y": 1
+            },
+            "speed": 67.5,
+            "description": "Descend en diagonale vers la gauche"
+        },
+        {
+            "id": "diagonal_right",
+            "name": "Diagonale droite",
+            "type": "linear",
+            "direction": {
+                "x": 0.7,
+                "y": 1
+            },
+            "speed": 67.5,
+            "description": "Descend en diagonale vers la droite"
+        },
+        {
+            "id": "stationary",
+            "name": "Stationnaire",
+            "type": "static",
+            "direction": {
+                "x": 0,
+                "y": 0
+            },
+            "speed": 0,
+            "description": "Ne bouge pas"
+        },
+        {
+            "id": "rush_player",
+            "name": "Rush vers joueur",
+            "type": "homing",
+            "direction": {
+                "x": 0,
+                "y": 1
+            },
+            "speed": 112.5,
+            "turn_rate": 3.0,
+            "description": "Fonce vers le joueur"
+        },
+        {
+            "id": "bounce_horizontal",
+            "name": "Rebond horizontal",
+            "type": "bounce",
+            "direction": {
+                "x": 1,
+                "y": 0.3
+            },
+            "speed": 75,
+            "bounce_on_edges": true,
+            "description": "Rebondit sur les bords"
+        }
+    ]
+}

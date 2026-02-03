@@ -1,0 +1,90 @@
+[
+	{
+		"id": "ship_car",
+		"name": "The Car",
+		"description": "High power, slow missiles. Paint attack.",
+		"type": "car",
+		"stats": {
+			"max_hp": 150,
+			"move_speed": 180,
+			"power": 80,
+			"fire_rate": 0.5,
+			"crit_chance": 0.07,
+			"dodge_chance": 0.02,
+			"missile_speed_pct": 0.4,
+			"special_cd": 20.0
+		},
+		"visual": {
+			"color": "#FF4444",
+			"shape": "rectangle",
+			"asset": "res://assets/ships/car.png"
+		},
+		"missile_id": "missile_car"
+	},
+	{
+		"id": "ship_plane",
+		"name": "The Plane",
+		"description": "Balanced, fast missiles. Looping attack.",
+		"type": "plane",
+		"stats": {
+			"max_hp": 100,
+			"move_speed": 220,
+			"power": 50,
+			"fire_rate": 0.3,
+			"crit_chance": 0.10,
+			"dodge_chance": 0.10,
+			"missile_speed_pct": 1.0,
+			"special_cd": 10.0
+		},
+		"visual": {
+			"color": "#4444FF",
+			"shape": "triangle",
+			"asset": ""
+		},
+		"missile_id": "missile_default"
+	},
+	{
+		"id": "ship_witch",
+		"name": "The Witch",
+		"description": "Balanced. Cone burst attack.",
+		"type": "witch",
+		"stats": {
+			"max_hp": 120,
+			"move_speed": 200,
+			"power": 50,
+			"fire_rate": 0.4,
+			"crit_chance": 0.10,
+			"dodge_chance": 0.05,
+			"missile_speed_pct": 0.8,
+			"special_cd": 30.0
+		},
+		"visual": {
+			"color": "#AA44FF",
+			"shape": "circle",
+			"asset": ""
+		},
+		"missile_id": "missile_default"
+	},
+	{
+		"id": "ship_supercar",
+		"name": "The Supercar",
+		"description": "Low power, very fast missiles. Homing attack.",
+		"type": "supercar",
+		"stats": {
+			"max_hp": 80,
+			"move_speed": 250,
+			"power": 20,
+			"fire_rate": 0.2,
+			"crit_chance": 0.10,
+			"dodge_chance": 0.02,
+			"missile_speed_pct": 1.5,
+			"special_cd": 10.0
+		},
+		"visual": {
+			"color": "#FFFF44",
+			"shape": "diamond",
+			"asset": ""
+		},
+		"missile_id": "missile_default"
+	}
+]

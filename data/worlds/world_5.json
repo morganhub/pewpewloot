@@ -1,0 +1,152 @@
+{
+    "id": "world_5",
+    "name": "Le Nexus",
+    "description": "Le cœur du réseau ennemi, une dimension artificielle où convergent toutes les menaces.",
+    "order": 5,
+    "theme": {
+        "background": "res://assets/backgrounds/nexus.png",
+        "music": "res://assets/music/world_5.ogg",
+        "color_palette": "#5a1a5a"
+    },
+    "levels": [
+        {
+            "index": 0,
+            "name": "Porte dimensionnelle",
+            "type": "normal",
+            "duration_sec": 180,
+            "waves": [
+                {
+                    "enemy_id": "nexus_drone",
+                    "count": 10,
+                    "delay": 1.0
+                },
+                {
+                    "enemy_id": "dimension_shifter",
+                    "count": 4,
+                    "delay": 10.0
+                }
+            ],
+            "events": []
+        },
+        {
+            "index": 1,
+            "name": "Les Couloirs du temps",
+            "type": "normal",
+            "duration_sec": 200,
+            "waves": [
+                {
+                    "enemy_id": "dimension_shifter",
+                    "count": 6,
+                    "delay": 3.0
+                },
+                {
+                    "enemy_id": "time_echo",
+                    "count": 4,
+                    "delay": 12.0
+                }
+            ],
+            "events": [
+                {
+                    "type": "time_distortion",
+                    "trigger_time": 100
+                }
+            ]
+        },
+        {
+            "index": 2,
+            "name": "Matrice de données",
+            "type": "normal",
+            "duration_sec": 210,
+            "waves": [
+                {
+                    "enemy_id": "nexus_drone",
+                    "count": 12,
+                    "delay": 0.8
+                },
+                {
+                    "enemy_id": "data_construct",
+                    "count": 5,
+                    "delay": 15.0
+                }
+            ],
+            "events": []
+        },
+        {
+            "index": 3,
+            "name": "Noyau central",
+            "type": "normal",
+            "duration_sec": 220,
+            "waves": [
+                {
+                    "enemy_id": "data_construct",
+                    "count": 6,
+                    "delay": 4.0
+                },
+                {
+                    "enemy_id": "nexus_elite",
+                    "count": 3,
+                    "delay": 20.0
+                },
+                {
+                    "enemy_id": "time_echo",
+                    "count": 5,
+                    "delay": 30.0
+                }
+            ],
+            "events": []
+        },
+        {
+            "index": 4,
+            "name": "La Singularité",
+            "type": "normal",
+            "duration_sec": 240,
+            "waves": [
+                {
+                    "enemy_id": "nexus_elite",
+                    "count": 5,
+                    "delay": 6.0
+                },
+                {
+                    "enemy_id": "dimension_shifter",
+                    "count": 8,
+                    "delay": 15.0
+                }
+            ],
+            "events": [
+                {
+                    "type": "reality_collapse",
+                    "trigger_time": 150
+                }
+            ]
+        },
+        {
+            "index": 5,
+            "name": "L'Architecte",
+            "type": "boss",
+            "boss_id": "the_architect",
+            "phases": [
+                {
+                    "hp_percent": 100,
+                    "pattern": "phase_1_creation"
+                },
+                {
+                    "hp_percent": 70,
+                    "pattern": "phase_2_dimension_shift"
+                },
+                {
+                    "hp_percent": 40,
+                    "pattern": "phase_3_time_loop"
+                },
+                {
+                    "hp_percent": 15,
+                    "pattern": "phase_4_annihilation"
+                }
+            ],
+            "loot_table": "boss_world_5"
+        }
+    ],
+    "unlock_condition": {
+        "type": "boss_kill",
+        "boss_id": "pirate_admiral"
+    }
+}

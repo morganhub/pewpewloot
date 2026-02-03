@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://cpdiur1ogalil"]
+
+[ext_resource type="Script" uid="uid://dow86xj5g3qqq" path="res://scenes/ProfileSelect.gd" id="1_q8f7v"]
+
+[node name="ProfileSelect" type="Control" unique_id=448820440]
+custom_minimum_size = Vector2(720, 1280)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_q8f7v")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1592575044]
+custom_minimum_size = Vector2(720, 1280)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1558591347]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1887081044]
+layout_mode = 2
+text = "Choisir un profil"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1963671556]
+layout_mode = 2
+
+[node name="ProfileList" type="ItemList" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=681473967]
+custom_minimum_size = Vector2(400, 500)
+layout_mode = 2
+auto_width = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1926715686]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=285071684]
+layout_mode = 2
+
+[node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1952184650]
+layout_mode = 2
+
+[node name="PortraitOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=2080011772]
+layout_mode = 2
+
+[node name="CreateButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=259551134]
+layout_mode = 2
+text = "Créer"
+
+[node name="SelectButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=95370227]
+layout_mode = 2
+text = "Sélectionner"
+
+[node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=862620665]
+layout_mode = 2
+text = "Supprimer"
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=518037596]
+layout_mode = 2
+text = "Retour"
