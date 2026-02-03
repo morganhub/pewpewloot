@@ -15,6 +15,7 @@
             "id": "missile_car",
             "name": "Car Missile",
             "type": "basic",
+            "speed": 600,
             "visual": {
                 "color": "#FF0000",
                 "shape": "circle",

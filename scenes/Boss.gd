@@ -38,6 +38,13 @@ var _fire_timer: float = 0.0
 var _move_time: float = 0.0
 var _start_position: Vector2 = Vector2.ZERO
 
+# Special Power
+var special_power_id: String = ""
+var special_power_interval: float = 10.0
+var _special_timer: float = 0.0
+var is_invincible: bool = false
+var _is_executing_power: bool = false
+
 # Visual
 @onready var visual_container: Node2D = $Visual
 @onready var shape_visual: Polygon2D = $Visual/Shape
@@ -106,7 +113,7 @@ func _setup_visual(boss_data: Dictionary) -> void:
 			# Redimensionner l'image pour qu'elle corresponde à la taille définie
 			var tex_size = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
-				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y)
+				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y) * 1.2 # Scale +20%
 	
 	if not use_asset:
 		var color := Color(boss_data.get("color", "#AA44FF"))
@@ -119,21 +126,61 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		
 		shape_visual.visible = true
 		shape_visual.color = color
-		shape_visual.polygon = _create_shape_polygon(shape_type, width, height)
+		shape_visual.polygon = _create_shape_polygon(shape_type, width * 1.2, height * 1.2) # Scale +20%
 	
 	# Collision
 	var circle_shape := CircleShape2D.new()
-	circle_shape.radius = max(width, height) / 2.0
+	circle_shape.radius = (max(width, height) / 2.0) * 1.2 # Scale +20%
 	collision.shape = circle_shape
+
+	# Physics Layer Setup
+	collision_layer = 4 # Layer 3: Enemy
+	collision_mask = 1 + 8 # World + PlayerProjectiles (No Player)
+
+func get_contact_damage() -> int:
+	# Dégâts de contact du boss (assez élevés)
+	var dmg: int = 20
+	if not _missile_pattern_data.is_empty():
+		dmg = int(_missile_pattern_data.get("damage", 20))
+	return dmg
 
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
 
 func _process(delta: float) -> void:
-	_update_movement(delta)
+	# Si en train d'exécuter un pouvoir (cinématique), on skip le mouvement standard ?
+	# PowerManager gère les mouvements si besoin via Tweens.
+	# On garde le mouvement standard sauf si le power lock le boss.
+	# Pour l'instant on laisse tourner en parallèle.
+	
+	if not _is_executing_power:
+		_update_movement(delta)
+	
 	_update_shooting(delta)
+	_update_special_power(delta)
 	_check_phase_transition()
+
+func _update_special_power(delta: float) -> void:
+	if special_power_id == "": return
+	
+	_special_timer -= delta
+	if _special_timer <= 0:
+		_trigger_special_power()
+		_special_timer = special_power_interval
+
+func _trigger_special_power() -> void:
+	print("[Boss] Triggering Special Power: ", special_power_id)
+	PowerManager.execute_power(special_power_id, self)
+
+func set_invincible(state: bool) -> void:
+	is_invincible = state
+	if is_invincible:
+		modulate.a = 0.7
+		# VFX shield ?
+		VFXManager.spawn_floating_text(global_position, "SHIELD UP!", Color.CYAN, get_parent())
+	else:
+		modulate.a = 1.0
 
 # =============================================================================
 # PHASES
@@ -169,8 +216,12 @@ func _apply_phase(phase_index: int) -> void:
 			missile_id = str(phase_dict.get("missile_id", "missile_default"))
 		fire_rate = float(phase_dict.get("fire_rate", 2.0))
 		
-		_move_pattern_data = DataManager.get_move_pattern(move_pattern_id)
 		_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
+		
+		# Load special power settings
+		special_power_id = str(phase_dict.get("special_power_id", ""))
+		special_power_interval = float(phase_dict.get("special_power_interval", 10.0))
+		_special_timer = special_power_interval # Reset timer on phase change
 		
 		print("[Boss] Phase ", current_phase + 1, " activated!")
 		phase_changed.emit(current_phase + 1)
@@ -284,6 +335,10 @@ func _fire() -> void:
 # =============================================================================
 
 func take_damage(amount: int, is_critical: bool = false) -> void:
+	if is_invincible:
+		VFXManager.spawn_floating_text(global_position, "IMMUNE", Color.GRAY, get_parent())
+		return
+
 	current_hp -= amount
 	current_hp = maxi(0, current_hp)
 	

@@ -15,6 +15,7 @@ extends Node2D
 var player: CharacterBody2D = null
 var hud: CanvasLayer = null
 var boss_hud: Control = null
+var pause_menu: Control = null
 
 var enemies_killed: int = 0
 var boss_spawned: bool = false
@@ -25,10 +26,11 @@ var current_world_id: String = "world_1" # Par défaut, peut être change par Wo
 # BACKGROUND
 # =============================================================================
 
-var _bg_scroll_speed: float = 50.0
-var _bg_offset: float = 0.0
-
 func _ready() -> void:
+	# Load session data
+	current_world_id = App.current_world_id
+	current_level_index = App.current_level_index
+	
 	_setup_background()
 	_setup_camera()
 	_setup_hud()
@@ -98,7 +100,7 @@ func _flatten_layers(data: Variant) -> Array:
 		result.append(data)
 	return result
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	# Le background se gère tout seul via ScrollingLayer._process
 	_update_hud()
 
@@ -120,9 +122,23 @@ func _setup_hud() -> void:
 	hud = hud_scene.instantiate()
 	hud_container.add_child(hud)
 	
+	# Connect pause signal
+	hud.pause_requested.connect(_show_pause_menu)
+	
+	# Load and setup PauseMenu
+	var pause_scene := load("res://scenes/PauseMenu.tscn")
+	pause_menu = pause_scene.instantiate()
+	hud_container.add_child(pause_menu)
+	pause_menu.restart_requested.connect(_on_restart_requested)
+	pause_menu.level_select_requested.connect(_on_level_select_requested)
+	pause_menu.quit_requested.connect(_on_quit_requested)
+	
 	# Initialiser la barre de vie
 	if player:
 		hud.set_player_max_hp(player.max_hp)
+	
+	hud.special_requested.connect(func(): if player: player.use_special())
+	hud.unique_requested.connect(func(): if player: player.use_unique())
 
 func _update_hud() -> void:
 	if player and hud:
@@ -143,11 +159,29 @@ func _spawn_player() -> void:
 
 func _on_player_died() -> void:
 	print("[Game] Player died! Game Over.")
-	# TODO: Transition vers écran Game Over
-	await get_tree().create_timer(2.0).timeout
-	var switcher := get_tree().current_scene
-	if switcher.has_method("goto_screen"):
-		switcher.goto_screen("res://scenes/HomeScreen.tscn")
+	
+	# Show Game Over Overlay
+	var overlay_scene := load("res://scenes/ui/GameOverOverlay.tscn")
+	var overlay: Control = overlay_scene.instantiate()
+	hud_container.add_child(overlay)
+	
+	# Connect to animation finished
+	if overlay.has_signal("animation_finished"):
+		overlay.animation_finished.connect(func():
+			# Wait a bit more ?
+			await get_tree().create_timer(1.0).timeout
+			
+			# Open Pause Menu
+			if pause_menu:
+				pause_menu.set_continue_enabled(false)
+				pause_menu.show_menu()
+		)
+	else:
+		# Fallback if no script/signal
+		await get_tree().create_timer(2.0).timeout
+		if pause_menu:
+			pause_menu.set_continue_enabled(false)
+			pause_menu.show_menu()
 
 # =============================================================================
 # PROJECTILES
@@ -299,3 +333,24 @@ func _return_to_home() -> void:
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+# =============================================================================
+# PAUSE MENU
+# =============================================================================
+
+func _show_pause_menu() -> void:
+	if pause_menu:
+		pause_menu.show_menu()
+
+func _on_restart_requested() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _on_level_select_requested() -> void:
+	get_tree().paused = false
+	var switcher := get_tree().current_scene
+	if switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/LevelSelect.tscn")
+
+func _on_quit_requested() -> void:
+	_return_to_home()

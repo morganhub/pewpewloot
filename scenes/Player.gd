@@ -20,6 +20,11 @@ var dodge_chance: float = 0.02
 var missile_speed_pct: float = 1.0
 var special_cd: float = 10.0
 var current_missile_id: String = "missile_default"
+var special_power_id: String = ""
+var unique_power_id: String = ""
+
+# Status
+var is_invincible: bool = false
 
 # =============================================================================
 # STATE
@@ -31,14 +36,61 @@ var _can_shoot: bool = true
 var visual_container: Node2D = null
 var shape_visual: Polygon2D = null
 
+# =============================================================================
+# INPUT STATE (Virtual Joystick)
+# =============================================================================
+
+var _is_touch_active: bool = false
+var _touch_start_pos: Vector2 = Vector2.ZERO
+var _touch_current_offset: Vector2 = Vector2.ZERO
+var _use_touch_input: bool = false  # True when last input was touch
+const JOYSTICK_MAX_RADIUS: float = 150.0  # Max distance for full-speed
+
 # TODO: Remplacer par le vrai sprite du vaisseau
 # Placeholder: Triangle vert via Polygon2D dans la scène
 
+# Contact Damage
+var _contact_timer: float = 0.0
+var _contact_enemies: Array[Node2D] = []
+@onready var hitbox: Area2D = null
+
 func _ready() -> void:
 	_init_visual_nodes()
+	_setup_collision_layers()
+	_setup_hitbox()
 	_load_stats_from_loadout()
 	_setup_visual()
 	position = Vector2(get_viewport_rect().size.x / 2, get_viewport_rect().size.y - 100)
+
+func _setup_collision_layers() -> void:
+	# Layer 2: Player
+	collision_layer = 2
+	# Mask 1: World only (ignore Enemies for physics movement to prevent pushing)
+	collision_mask = 1
+
+func _setup_hitbox() -> void:
+	# Créer une Area2D pour détecter les dégâts de contact sans collision physique
+	hitbox = Area2D.new()
+	hitbox.name = "Hitbox"
+	# Layer: None (don't act as a wall)
+	hitbox.collision_layer = 0
+	# Mask 3: Enemy (detect enemies)
+	hitbox.collision_mask = 4 # Assuming Enemy is Layer 3 (Value 4 = 2^2) -> Wait.
+	# Godot Layers are bitmasks. Layer 1=1, Layer 2=2, Layer 3=4. 
+	# Let's enforce: Enemy on Layer 3 (4).
+	hitbox.collision_mask = 4 
+	
+	add_child(hitbox)
+	
+	# Setup shape (same as physics shape)
+	var col_shape := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 20.0 # Default
+	col_shape.shape = shape
+	hitbox.add_child(col_shape)
+	
+	hitbox.body_entered.connect(_on_hitbox_body_entered)
+	hitbox.body_exited.connect(_on_hitbox_body_exited)
 
 func _init_visual_nodes() -> void:
 	# Créer un conteneur visuel s'il n'existe pas
@@ -58,11 +110,16 @@ func _init_visual_nodes() -> void:
 
 func _setup_visual() -> void:
 	var ship_id := ProfileManager.get_active_ship_id()
+	print("[Player] Active Ship ID: ", ship_id)
+	
 	var ship := DataManager.get_ship(ship_id)
+	print("[Player] Ship Data Keys: ", ship.keys())
+	
 	var visual_data: Variant = ship.get("visual", {})
 	if not visual_data is Dictionary:
 		visual_data = {}
 	var visual_dict := visual_data as Dictionary
+	print("[Player] Visual Dict: ", visual_dict)
 	
 	# Gestion de l'asset vs shape
 	var asset_path: String = str(visual_dict.get("asset", ""))
@@ -91,12 +148,16 @@ func _setup_visual() -> void:
 			sprite.visible = true
 			sprite.texture = texture
 			
-			# Scale
+			# Scale (Contain)
 			var tex_size = texture.get_size()
 			print("[Player] Texture size: ", tex_size)
 			if tex_size.x > 0 and tex_size.y > 0:
-				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y)
-				print("[Player] Sprite scale: ", sprite.scale)
+				var scale_x = width / tex_size.x
+				var scale_y = height / tex_size.y
+				var final_scale = min(scale_x, scale_y)
+				# 100% increase => x2.0
+				sprite.scale = Vector2(final_scale * 2.0, final_scale * 2.0)
+				print("[Player] Sprite scale (uniform): ", sprite.scale)
 	
 	if not use_asset:
 		var color := Color(visual_dict.get("color", "#CCCCCC"))
@@ -108,7 +169,8 @@ func _setup_visual() -> void:
 			
 		shape_visual.visible = true
 		shape_visual.color = color
-		shape_visual.polygon = _create_shape_polygon(shape_type, width, height)
+		# 100% increase => width/height * 2
+		shape_visual.polygon = _create_shape_polygon(shape_type, width * 2.0, height * 2.0)
 
 func _load_stats_from_loadout() -> void:
 	# Récupérer le vaisseau actif
@@ -147,23 +209,112 @@ func _load_stats_from_loadout() -> void:
 	print("  Crit: ", crit_chance * 100, "%")
 	print("  Dodge: ", dodge_chance * 100, "%")
 	print("  Spd%: ", missile_speed_pct * 100, "%")
+	
+	# Charger le Special Power ID depuis les données du ship
+	special_power_id = str(ship.get("special_power_id", ""))
+	print("[Player] Assigned Special Power: ", special_power_id)
+
+func set_invincible(state: bool) -> void:
+	is_invincible = state
+	if is_invincible:
+		modulate.a = 0.5 # Ghost effect
+	else:
+		modulate.a = 1.0
+
+func use_special() -> void:
+	if special_power_id != "":
+		PowerManager.execute_power(special_power_id, self)
+
+func use_unique() -> void:
+	# Uniquement si un item UNIQUE est équipé
+	# Pour le test, on force un pouvoir unique
+	unique_power_id = "unique_meteor_storm"
+	PowerManager.execute_power(unique_power_id, self)
 
 func _process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_shooting(delta)
+	_handle_contact_damage(delta)
+
+func _handle_contact_damage(delta: float) -> void:
+	if _contact_enemies.is_empty():
+		_contact_timer = 0.0
+		return
+	
+	# Si on vient d'entrer en contact ou si le timer tick
+	if _contact_timer <= 0.0:
+		_apply_contact_damage()
+		_contact_timer = 1.0 # Reset timer to 1s
+	else:
+		_contact_timer -= delta
+
+func _apply_contact_damage() -> void:
+	# Appliquer les dégâts du premier ennemi dans la liste (ou tous ?)
+	# Pour simplifier et éviter le spam massif, on prend le plus fort ou juste le premier.
+	# "Tick de damage toutes les secondes", disons qu'on prend le max des contacts.
+	var max_dmg := 0
+	for enemy in _contact_enemies:
+		if enemy.has_method("get_contact_damage"):
+			max_dmg = max(max_dmg, enemy.get_contact_damage())
+		else:
+			# Fallback default damage
+			max_dmg = max(max_dmg, 10)
+	
+	if max_dmg > 0:
+		take_damage(max_dmg)
+
+func _on_hitbox_body_entered(body: Node2D) -> void:
+	if body.is_in_group("enemies"):
+		if not _contact_enemies.has(body):
+			_contact_enemies.append(body)
+			# Trigger damage immediately on first touch if timer wasn't running
+			if _contact_enemies.size() == 1:
+				_contact_timer = 0.0
+
+func _on_hitbox_body_exited(body: Node2D) -> void:
+	if _contact_enemies.has(body):
+		_contact_enemies.erase(body)
+
+func _input(event: InputEvent) -> void:
+	# Detect touch input for virtual joystick
+	if event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if touch_event.pressed:
+			# Start touch - set origin
+			_is_touch_active = true
+			_use_touch_input = true
+			_touch_start_pos = touch_event.position
+			_touch_current_offset = Vector2.ZERO
+		else:
+			# End touch - stop moving
+			_is_touch_active = false
+			_touch_current_offset = Vector2.ZERO
+	
+	elif event is InputEventScreenDrag:
+		if _is_touch_active:
+			var drag_event := event as InputEventScreenDrag
+			_touch_current_offset = drag_event.position - _touch_start_pos
+	
+	elif event is InputEventMouseMotion:
+		# Mouse movement detected - switch to mouse mode
+		_use_touch_input = false
 
 func _handle_movement(delta: float) -> void:
-	# Déplacement via position de la souris/touch
-	var mouse_pos := get_global_mouse_position()
-	var direction := (mouse_pos - global_position).normalized()
-	
-	# Smooth movement vers la souris
-	var distance := global_position.distance_to(mouse_pos)
-	if distance > 5:  # Dead zone
-		# Interpolation directe de la position
-		position = position.lerp(mouse_pos, delta * 15.0)
+	if _use_touch_input:
+		# Virtual Joystick mode (Touch/Mobile)
+		if _is_touch_active and _touch_current_offset.length() > 5.0:
+			var direction := _touch_current_offset.normalized()
+			var intensity := clampf(_touch_current_offset.length() / JOYSTICK_MAX_RADIUS, 0.0, 1.0)
+			var movement := direction * move_speed * intensity * delta
+			position += movement
 	else:
-		velocity = Vector2.ZERO
+		# Mouse Follow mode (Desktop)
+		var mouse_pos := get_global_mouse_position()
+		var distance := global_position.distance_to(mouse_pos)
+		if distance > 5:  # Dead zone
+			position = position.lerp(mouse_pos, delta * 15.0)
+		else:
+			velocity = Vector2.ZERO
 	
 	move_and_slide()
 	
@@ -218,12 +369,18 @@ func _spawn_projectile(direction: Vector2, speed: float, damage: int) -> void:
 		"color": "#44FF44"
 	}
 	
-	# Injecter les visuels du missile
+	# Injecter les visuels du missile et la vitesse
 	var missile_data := DataManager.get_missile(current_missile_id)
 	var visual_data: Dictionary = missile_data.get("visual", {})
 	if not visual_data.is_empty():
 		pattern_data["visual_data"] = visual_data
 	
+	# Override speed if defined in missile
+	var missile_speed: float = float(missile_data.get("speed", 0))
+	if missile_speed > 0:
+		speed = missile_speed
+		pattern_data["speed"] = speed # Pass it to pattern too just in case
+
 	ProjectileManager.spawn_player_projectile(
 		global_position + Vector2(0, -20),
 		direction,
@@ -237,6 +394,9 @@ func take_damage(amount: int) -> void:
 	# Dodge check
 	if randf() <= dodge_chance:
 		VFXManager.spawn_floating_text(global_position, "DODGE", Color.CYAN, get_parent())
+		return
+	
+	if is_invincible:
 		return
 	
 	current_hp -= amount

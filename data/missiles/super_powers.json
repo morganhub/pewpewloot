@@ -1,0 +1,56 @@
+{
+    "powers": [
+        {
+            "id": "power_paint_sweep",
+            "name": "Paint Sweep",
+            "description": "A massive wave of paint splashes across the screen.",
+            "duration": 2.0,
+            "invincibility": true,
+            "ship_movement": {
+                "type": "horizontal_sweep",
+                "distance_pct": 100,
+                "speed": 500
+            },
+            "projectile": {
+                "count": 20,
+                "trajectory": "radial",
+                "size": 40,
+                "waves": 3,
+                "wave_delay": 0.3,
+                "color": "#FF00FF"
+            }
+        },
+        {
+            "id": "power_barrel_roll",
+            "name": "Barrel Roll",
+            "description": "Dodge everything with a quick roll.",
+            "duration": 1.0,
+            "invincibility": true,
+            "ship_movement": {
+                "type": "horizontal_dodge",
+                "distance_pct": 50,
+                "speed": 800
+            },
+            "projectile": null
+        },
+        {
+            "id": "power_witch_circle",
+            "name": "Witch Circle",
+            "description": "Spinning burst of magic.",
+            "duration": 3.0,
+            "invincibility": true,
+            "ship_movement": {
+                "type": "spin_center",
+                "speed": 300
+            },
+            "projectile": {
+                "count": 12,
+                "trajectory": "spiral",
+                "size": 25,
+                "waves": 5,
+                "wave_delay": 0.5,
+                "color": "#AA44FF"
+            }
+        }
+    ]
+}

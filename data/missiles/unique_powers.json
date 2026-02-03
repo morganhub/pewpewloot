@@ -1,0 +1,36 @@
+{
+    "powers": [
+        {
+            "id": "unique_meteor_storm",
+            "name": "Meteor Storm",
+            "description": "Summons a devastating meteor shower.",
+            "duration": 3.0,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 50,
+                "trajectory": "rain_down",
+                "size": 60,
+                "waves": 5,
+                "wave_delay": 0.5,
+                "color": "#FF5500"
+            }
+        },
+        {
+            "id": "unique_laser_beam",
+            "name": "Orbital Laser",
+            "description": "Fires a massive laser beam.",
+            "duration": 2.0,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 1,
+                "trajectory": "beam",
+                "size": 100,
+                "waves": 1,
+                "wave_delay": 0.0,
+                "color": "#00FFFF"
+            }
+        }
+    ]
+}

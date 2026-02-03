@@ -4,6 +4,9 @@ extends Node
 ## Délègue à DataManager pour les données (mondes, vaisseaux, etc.)
 ## Gère les métadonnées de session (selected_world_id, selected_level_index, etc.)
 
+var current_world_id: String = "world_1"
+var current_level_index: int = 0
+
 # =============================================================================
 # ACCESSEURS DONNÉES (délégation à DataManager)
 # =============================================================================

@@ -2,6 +2,10 @@ extends CanvasLayer
 
 ## GameHUD — Interface de jeu avec barre de vie et infos joueur.
 
+signal pause_requested
+signal special_requested
+signal unique_requested
+
 # =============================================================================
 # REFERENCES
 # =============================================================================
@@ -10,9 +14,12 @@ extends CanvasLayer
 @onready var hp_bar: ProgressBar = $TopLeft/HPBar
 @onready var hp_label: Label = $TopLeft/HPLabel
 @onready var score_label: Label = $TopRight/ScoreLabel
+@onready var burger_button: Button = $TopRight/BurgerButton
 @onready var boss_container: Control = $BossHealthContainer
 @onready var boss_name_label: Label = $BossHealthContainer/BossNameLabel
 @onready var boss_hp_bar: ProgressBar = $BossHealthContainer/BossHPBar
+@onready var special_button: Button = $BottomRight/SpecialButton
+@onready var unique_button: Button = $BottomRight/UniqueButton
 
 var current_score: int = 0
 
@@ -23,14 +30,35 @@ var current_score: int = 0
 func _ready() -> void:
 	if boss_container:
 		boss_container.visible = false
-	# Style pour le boss (fond noir)
+		# Décaler la barre de vie du boss vers le bas
+		boss_container.position.y += 40
+		
+	# Style pour le boss (fond noir, arrondi)
 	var sb_bg := StyleBoxFlat.new()
 	sb_bg.bg_color = Color.BLACK
+	sb_bg.corner_radius_top_left = 5
+	sb_bg.corner_radius_top_right = 5
+	sb_bg.corner_radius_bottom_left = 5
+	sb_bg.corner_radius_bottom_right = 5
+	
 	if boss_hp_bar:
 		boss_hp_bar.add_theme_stylebox_override("background", sb_bg)
 
+	if burger_button:
+		burger_button.pressed.connect(_on_burger_pressed)
+		
+	if unique_button:
+		unique_button.hide()
+		unique_button.pressed.connect(func(): unique_requested.emit())
+		
+	if special_button:
+		special_button.pressed.connect(func(): special_requested.emit())
+
 	_update_profile_info()
 	_update_score()
+
+func _on_burger_pressed() -> void:
+	pause_requested.emit()
 
 # =============================================================================
 # BOSS HEALTH
@@ -57,6 +85,11 @@ func update_boss_health(current_hp: int, max_hp: int) -> void:
 
 func _update_boss_bar_color(percent: float) -> void:
 	var sb_fill := StyleBoxFlat.new()
+	sb_fill.corner_radius_top_left = 5
+	sb_fill.corner_radius_top_right = 5
+	sb_fill.corner_radius_bottom_left = 5
+	sb_fill.corner_radius_bottom_right = 5
+	
 	if percent > 0.6:
 		sb_fill.bg_color = Color.GREEN
 	elif percent > 0.3:

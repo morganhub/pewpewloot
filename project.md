@@ -75,16 +75,16 @@ Chaque vaisseau = une **classe**:
 
 ### 4.2 Exemples d’archétypes initiaux
 1) **Car**  
-   - high power, mid special attack cooldown, low missile speed, mid crit chance (7%), low dodge chance (2%)
+   - high power (base 80 damage), mid special attack cooldown (20s), low missile speed (40% max speed), mid crit chance (7%), low dodge chance (2%)
    - spécial: paint attack      
 2) **Plane**  
-   - mid power, low special attack cooldown, high missile speed, low crit chance (10%), high dodge chance (10%)
+   - mid power (base 50 damage), low special attack cooldown (10s), high missile speed (100% max speed), low crit chance (10%), high dodge chance (10%)
    - spécial: extreme looping (autocontrol full screen damage) 
 3) **Witch**  
-   - mid power, high special attack cooldown, mid missile speed, high crit chance (10%), mid dodge chance (5%)
+   - mid power (base 50 damage), high special attack cooldown (30s), mid missile speed (80% max speed), high crit chance (10%), mid dodge chance (5%)
    - spécial: front cone burst full screen
 4) **Supercar**  
-   - low power, low special attack cooldown, very high missile speed, high crit chance (10%), low dodge chance (2%)
+   - low power (base 20 damage), low special attack cooldown (10s), very high missile speed (150% max speed), high crit chance (10%), low dodge chance (2%)
    - spécial: homing multi missiles (high damage)
 
 ---

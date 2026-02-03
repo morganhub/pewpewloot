@@ -109,7 +109,7 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 			# Redimensionner l'image pour qu'elle corresponde à la taille définie
 			var tex_size = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
-				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y)
+				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y) * 1.2 # Scale +20%
 	
 	if not use_asset:
 		# Fallback: Forme géométrique
@@ -123,12 +123,26 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 			
 		shape_visual.visible = true
 		shape_visual.color = color
-		shape_visual.polygon = _create_shape_polygon(shape_type, width, height)
+		shape_visual.polygon = _create_shape_polygon(shape_type, width * 1.2, height * 1.2) # Scale +20%
 	
 	# Collision (toujours basée sur la taille)
 	var circle_shape := CircleShape2D.new()
-	circle_shape.radius = max(width, height) / 2.0
+	circle_shape.radius = (max(width, height) / 2.0) * 1.2 # Scale +20%
 	collision.shape = circle_shape
+
+	# Physics Layer Setup
+	# Layer 3 (Value 4) = Enemies
+	collision_layer = 4
+	# Mask: World(1) + PlayerProjectiles(8)
+	# Removed Player(2) to prevent physical pushing
+	collision_mask = 1 + 8 
+
+func get_contact_damage() -> int:
+	# Retourne les dégâts de collision (similaire à un missile par défaut)
+	var dmg: int = 10
+	if not _missile_pattern_data.is_empty():
+		dmg = int(_missile_pattern_data.get("damage", 10))
+	return int(dmg * _stat_multiplier)
 
 func _setup_health_bar() -> void:
 	health_bar.max_value = max_hp
@@ -279,11 +293,15 @@ func _fire() -> void:
 	var base_damage: int = int(_missile_pattern_data.get("damage", 10))
 	var damage: int = int(base_damage * _stat_multiplier)
 
-	# Injecter les data visuelles du missile
+	# Injecter les data visuelles du missile et override speed
 	var missile_data := DataManager.get_missile(missile_id)
 	var visual_data: Dictionary = missile_data.get("visual", {})
 	if not visual_data.is_empty():
 		_missile_pattern_data["visual_data"] = visual_data
+	
+	var missile_speed_override: float = float(missile_data.get("speed", 0))
+	if missile_speed_override > 0:
+		speed = missile_speed_override
 	
 	# Direction de base (vers le bas, ou aimed vers le joueur)
 	var base_direction := Vector2.DOWN

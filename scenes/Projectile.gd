@@ -52,6 +52,18 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	is_active = true
 	is_critical = is_crit
 	
+	# Setup Collision Layer/Mask Dynamically
+	if is_player_projectile:
+		# Layer: PlayerProjectile (8)
+		collision_layer = 8
+		# Mask: Enemy (4) + World (1)
+		collision_mask = 4 + 1
+	else:
+		# Layer: EnemyProjectile (16)
+		collision_layer = 16
+		# Mask: Player (2) + World (1)
+		collision_mask = 2 + 1
+
 	# Appliquer le pattern
 	_trajectory_type = str(pattern_data.get("trajectory", "straight"))
 	
@@ -76,7 +88,7 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	set_process(true)
 
 func _setup_visual(visual_data: Dictionary) -> void:
-	var size: float = float(visual_data.get("size", 8))
+	var size: float = float(visual_data.get("size", 8)) * 1.5 # Scale +50%
 	if is_critical:
 		size *= 1.5
 	

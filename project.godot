@@ -24,6 +24,7 @@ ProfileManager="*res://autoload/ProfileManager.gd"
 SaveManager="*res://autoload/SaveManager.gd"
 ProjectileManager="*res://autoload/ProjectileManager.gd"
 VFXManager="*res://autoload/VFXManager.gd"
+PowerManager="*res://autoload/PowerManager.gd"
 
 [display]
 

@@ -2,78 +2,35 @@
     "bosses": [
         {
             "id": "boss_world1",
-            "name": "Destructeur Mk-I",
-            "hp": 500,
-            "size": {
-                "width": 100,
-                "height": 100
-            },
-            "color": "#AA44FF",
+            "name": "The Tank Lord",
+            "hp": 2000,
+            "score": 5000,
+            "loot_unique_chance": 0.25,
+            "color": "#880000",
             "shape": "hexagon",
-            "asset": "",
-            "phases": [
-                {
-                    "phase": 1,
-                    "hp_threshold": 100,
-                    "move_pattern_id": "stationary",
-                    "missile_pattern_id": "circle_8",
-                    "missile_id": "missile_default",
-                    "fire_rate": 2.0
-                },
-                {
-                    "phase": 2,
-                    "hp_threshold": 50,
-                    "move_pattern_id": "circle_counterclockwise",
-                    "missile_pattern_id": "spiral_continuous",
-                    "fire_rate": 1.0
-                },
-                {
-                    "phase": 3,
-                    "hp_threshold": 0,
-                    "move_pattern_id": "wave_horizontal",
-                    "missile_pattern_id": "rapid_burst",
-                    "fire_rate": 0.8
-                }
-            ],
-            "score": 1000,
-            "loot_unique_chance": 0.15
-        },
-        {
-            "id": "boss_world2",
-            "name": "Titan Céleste",
-            "hp": 800,
             "size": {
                 "width": 120,
-                "height": 110
+                "height": 120
             },
-            "color": "#8844FF",
-            "shape": "circle",
-            "asset": "",
+            "missile_id": "missile_boss_heavy",
             "phases": [
                 {
-                    "phase": 1,
                     "hp_threshold": 100,
-                    "move_pattern_id": "circle_clockwise",
-                    "missile_pattern_id": "cone_forward",
-                    "fire_rate": 1.5
+                    "move_pattern_id": "boss_hover",
+                    "missile_pattern_id": "circle_8",
+                    "fire_rate": 1.5,
+                    "special_power_id": "power_boss_storm",
+                    "special_power_interval": 10.0
                 },
                 {
-                    "phase": 2,
                     "hp_threshold": 50,
-                    "move_pattern_id": "circle_counterclockwise",
-                    "missile_pattern_id": "aimed_player",
-                    "fire_rate": 1.2
-                },
-                {
-                    "phase": 3,
-                    "hp_threshold": 0,
-                    "move_pattern_id": "rush_player",
-                    "missile_pattern_id": "burst_5",
-                    "fire_rate": 0.5
+                    "move_pattern_id": "boss_rage",
+                    "missile_pattern_id": "spiral_fast",
+                    "fire_rate": 0.8,
+                    "special_power_id": "power_boss_storm",
+                    "special_power_interval": 5.0
                 }
-            ],
-            "score": 1500,
-            "loot_unique_chance": 0.2
+            ]
         }
     ]
 }

@@ -1,0 +1,24 @@
+{
+    "powers": [
+        {
+            "id": "power_boss_storm",
+            "name": "Boss Storm",
+            "description": "Boss specific storm attack with safe zones.",
+            "duration": 4.0,
+            "invincibility": false,
+            "ship_movement": null,
+            "projectile": {
+                "count": 24,
+                "trajectory": "radial",
+                "size": 30,
+                "waves": 4,
+                "wave_delay": 1.0,
+                "color": "#FF0000",
+                "safe_zones": {
+                    "count": 3,
+                    "width_degrees": 20
+                }
+            }
+        }
+    ]
+}

@@ -18,6 +18,9 @@ var _affixes: Dictionary = {}
 var _loot_tables: Dictionary = {}
 var _uniques: Array = []
 var _uniques_by_id: Dictionary = {} # unique_id -> data
+var _super_powers: Dictionary = {} # power_id -> data
+var _unique_powers: Dictionary = {} # power_id -> data
+var _boss_powers: Dictionary = {} # power_id -> data
 
 var _default_unlocked_ships: Array = []
 
@@ -28,7 +31,8 @@ func _load_all_data() -> void:
 	_load_worlds()
 	_load_ships()
 	_load_patterns()
-	_load_missiles() # New
+	_load_missiles()
+	_load_powers() # New
 	_load_enemies()
 	_load_bosses()
 	_load_loot_data()
@@ -217,6 +221,61 @@ func _load_missiles() -> void:
 ## Retourne un missile par son ID
 func get_missile(missile_id: String) -> Dictionary:
 	return _missiles.get(missile_id, {})
+
+# =============================================================================
+# POWERS (Super & Unique)
+# =============================================================================
+
+func _load_powers() -> void:
+	_super_powers.clear()
+	_unique_powers.clear()
+	_boss_powers.clear()
+	
+	# Super Powers
+	var super_data := _load_json("res://data/missiles/super_powers.json")
+	var raw_super: Variant = super_data.get("powers", [])
+	if raw_super is Array:
+		for p in raw_super:
+			if p is Dictionary:
+				var p_dict := p as Dictionary
+				var p_id: String = str(p_dict.get("id", ""))
+				if p_id != "":
+					_super_powers[p_id] = p_dict
+	
+	# Unique Powers
+	var unique_data := _load_json("res://data/missiles/unique_powers.json")
+	var raw_unique: Variant = unique_data.get("powers", [])
+	if raw_unique is Array:
+		for p in raw_unique:
+			if p is Dictionary:
+				var p_dict := p as Dictionary
+				var p_id: String = str(p_dict.get("id", ""))
+				if p_id != "":
+					_unique_powers[p_id] = p_dict
+	
+	# Boss Powers
+	var boss_data := _load_json("res://data/missiles/boss_powers.json")
+	var raw_boss: Variant = boss_data.get("powers", [])
+	if raw_boss is Array:
+		for p in raw_boss:
+			if p is Dictionary:
+				var p_dict := p as Dictionary
+				var p_id: String = str(p_dict.get("id", ""))
+				if p_id != "":
+					_boss_powers[p_id] = p_dict
+
+func get_super_power(power_id: String) -> Dictionary:
+	return _super_powers.get(power_id, {})
+
+func get_unique_power(power_id: String) -> Dictionary:
+	return _unique_powers.get(power_id, {})
+
+func get_power(power_id: String) -> Dictionary:
+	if _super_powers.has(power_id):
+		return _super_powers[power_id]
+	if _boss_powers.has(power_id):
+		return _boss_powers[power_id]
+	return _unique_powers.get(power_id, {})
 
 
 # =============================================================================

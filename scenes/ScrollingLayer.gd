@@ -8,7 +8,7 @@ var _speed: float = 0.0
 var _texture_height: float = 0.0
 var _offset_y: float = 0.0
 
-func setup(texture: Texture2D, scroll_speed: float, viewport_size: Vector2) -> void:
+func setup(texture: Texture2D, scroll_speed: float, _viewport_size: Vector2) -> void:
 	_speed = scroll_speed
 	
 	if texture:
@@ -36,8 +36,8 @@ func _process(delta: float) -> void:
 	_offset_y += _speed * delta
 	
 	if _texture_height > 0:
-		if _offset_y > _texture_height:
-			_offset_y = 0.0
+		if _offset_y >= _texture_height:
+			_offset_y -= _texture_height
 	
 	# Appliquer le décalage localement
 	position.y = _offset_y
