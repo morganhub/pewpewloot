@@ -1,148 +1,148 @@
 {
-    "id": "world_2",
-    "name": "Nécropole orbitale",
-    "description": "Une station abandonnée, hantée par des drones corrompus et des spectres mécaniques.",
-    "order": 2,
-    "theme": {
-        "background": "res://assets/backgrounds/necropolis.png",
-        "music": "res://assets/music/world_2.ogg",
-        "color_palette": "#4a2a5a"
-    },
-    "levels": [
-        {
-            "index": 0,
-            "name": "Hangar désaffecté",
-            "type": "normal",
-            "duration_sec": 130,
-            "waves": [
-                {
-                    "enemy_id": "corrupted_scout",
-                    "count": 6,
-                    "delay": 2.0
-                },
-                {
-                    "enemy_id": "ghost_drone",
-                    "count": 3,
-                    "delay": 10.0
-                }
-            ],
-            "events": []
-        },
-        {
-            "index": 1,
-            "name": "Couloirs sombres",
-            "type": "normal",
-            "duration_sec": 150,
-            "waves": [
-                {
-                    "enemy_id": "ghost_drone",
-                    "count": 5,
-                    "delay": 3.0
-                },
-                {
-                    "enemy_id": "corrupted_fighter",
-                    "count": 4,
-                    "delay": 8.0
-                }
-            ],
-            "events": []
-        },
-        {
-            "index": 2,
-            "name": "Salle des machines",
-            "type": "normal",
-            "duration_sec": 160,
-            "waves": [
-                {
-                    "enemy_id": "corrupted_fighter",
-                    "count": 6,
-                    "delay": 2.5
-                },
-                {
-                    "enemy_id": "spectral_bomber",
-                    "count": 3,
-                    "delay": 12.0
-                }
-            ],
-            "events": [
-                {
-                    "type": "darkness",
-                    "trigger_time": 45
-                }
-            ]
-        },
-        {
-            "index": 3,
-            "name": "Le Sanctuaire",
-            "type": "normal",
-            "duration_sec": 170,
-            "waves": [
-                {
-                    "enemy_id": "ghost_drone",
-                    "count": 8,
-                    "delay": 1.5
-                },
-                {
-                    "enemy_id": "corrupted_fighter",
-                    "count": 5,
-                    "delay": 6.0
-                },
-                {
-                    "enemy_id": "elite_specter",
-                    "count": 2,
-                    "delay": 18.0
-                }
-            ],
-            "events": []
-        },
-        {
-            "index": 4,
-            "name": "Cœur corrompu",
-            "type": "normal",
-            "duration_sec": 190,
-            "waves": [
-                {
-                    "enemy_id": "spectral_bomber",
-                    "count": 4,
-                    "delay": 3.0
-                },
-                {
-                    "enemy_id": "elite_specter",
-                    "count": 3,
-                    "delay": 15.0
-                }
-            ],
-            "events": [
-                {
-                    "type": "corruption_wave",
-                    "trigger_time": 100
-                }
-            ]
-        },
-        {
-            "index": 5,
-            "name": "L'Overlord",
-            "type": "boss",
-            "boss_id": "necropolis_overlord",
-            "phases": [
-                {
-                    "hp_percent": 100,
-                    "pattern": "phase_1_summons"
-                },
-                {
-                    "hp_percent": 50,
-                    "pattern": "phase_2_darkness"
-                },
-                {
-                    "hp_percent": 25,
-                    "pattern": "phase_3_berserk"
-                }
-            ],
-            "loot_table": "boss_world_2"
-        }
-    ],
-    "unlock_condition": {
-        "type": "boss_kill",
-        "boss_id": "asteroid_guardian"
-    }
+	"id": "world_2",
+	"name": "Nécropole orbitale",
+	"description": "Une station abandonnée, hantée par des drones corrompus et des spectres mécaniques.",
+	"order": 2,
+	"theme": {
+		"background": "res://assets/backgrounds/necropolis.png",
+		"music": "res://assets/music/starlight.ogg",
+		"color_palette": "#4a2a5a"
+	},
+	"levels": [
+		{
+			"index": 0,
+			"name": "Hangar désaffecté",
+			"type": "normal",
+			"duration_sec": 130,
+			"waves": [
+				{
+					"enemy_id": "corrupted_scout",
+					"count": 6,
+					"delay": 2.0
+				},
+				{
+					"enemy_id": "ghost_drone",
+					"count": 3,
+					"delay": 10.0
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 1,
+			"name": "Couloirs sombres",
+			"type": "normal",
+			"duration_sec": 150,
+			"waves": [
+				{
+					"enemy_id": "ghost_drone",
+					"count": 5,
+					"delay": 3.0
+				},
+				{
+					"enemy_id": "corrupted_fighter",
+					"count": 4,
+					"delay": 8.0
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 2,
+			"name": "Salle des machines",
+			"type": "normal",
+			"duration_sec": 160,
+			"waves": [
+				{
+					"enemy_id": "corrupted_fighter",
+					"count": 6,
+					"delay": 2.5
+				},
+				{
+					"enemy_id": "spectral_bomber",
+					"count": 3,
+					"delay": 12.0
+				}
+			],
+			"events": [
+				{
+					"type": "darkness",
+					"trigger_time": 45
+				}
+			]
+		},
+		{
+			"index": 3,
+			"name": "Le Sanctuaire",
+			"type": "normal",
+			"duration_sec": 170,
+			"waves": [
+				{
+					"enemy_id": "ghost_drone",
+					"count": 8,
+					"delay": 1.5
+				},
+				{
+					"enemy_id": "corrupted_fighter",
+					"count": 5,
+					"delay": 6.0
+				},
+				{
+					"enemy_id": "elite_specter",
+					"count": 2,
+					"delay": 18.0
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 4,
+			"name": "Cœur corrompu",
+			"type": "normal",
+			"duration_sec": 190,
+			"waves": [
+				{
+					"enemy_id": "spectral_bomber",
+					"count": 4,
+					"delay": 3.0
+				},
+				{
+					"enemy_id": "elite_specter",
+					"count": 3,
+					"delay": 15.0
+				}
+			],
+			"events": [
+				{
+					"type": "corruption_wave",
+					"trigger_time": 100
+				}
+			]
+		},
+		{
+			"index": 5,
+			"name": "L'Overlord",
+			"type": "boss",
+			"boss_id": "necropolis_overlord",
+			"phases": [
+				{
+					"hp_percent": 100,
+					"pattern": "phase_1_summons"
+				},
+				{
+					"hp_percent": 50,
+					"pattern": "phase_2_darkness"
+				},
+				{
+					"hp_percent": 25,
+					"pattern": "phase_3_berserk"
+				}
+			],
+			"loot_table": "boss_world_2"
+		}
+	],
+	"unlock_condition": {
+		"type": "boss_kill",
+		"boss_id": "asteroid_guardian"
+	}
 }

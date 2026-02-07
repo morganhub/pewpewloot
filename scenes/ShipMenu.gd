@@ -142,12 +142,48 @@ func _ready() -> void:
 	
 	# Appliquer les traductions
 	_apply_translations()
+	App.play_menu_music()
 	
 	_load_game_config()
-	_apply_popup_style()
+	_setup_visuals()
 	
-	# Initialisation
 	_load_ships()
+
+func _setup_visuals() -> void:
+	# 1. Backgrounds
+	var ship_config: Dictionary = _game_config.get("ship_menu", {})
+	var main_config: Dictionary = _game_config.get("main_menu", {})
+	var bg_path: String = str(ship_config.get("inventory_background", main_config.get("background", "")))
+	
+	if bg_path != "" and ResourceLoader.exists(bg_path):
+		var tex = load(bg_path)
+		var bg = get_node_or_null("Background")
+		if not bg:
+			bg = TextureRect.new()
+			bg.name = "Background"
+			bg.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(bg)
+			move_child(bg, 0)
+		bg.texture = tex
+	
+	# 2. Popup Background
+	var popup_bg: String = str(ship_config.get("popup_background", ""))
+	if popup_bg != "" and ResourceLoader.exists(popup_bg):
+		var style = StyleBoxTexture.new()
+		style.texture = load(popup_bg)
+		if item_popup: item_popup.add_theme_stylebox_override("panel", style)
+		if unlock_popup: unlock_popup.add_theme_stylebox_override("panel", style)
+		if unique_popup: unique_popup.add_theme_stylebox_override("panel", style)
+		
+	# 3. Back Button
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+	var back_icon_path: String = str(ui_icons.get("back_button", ""))
+	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
+		back_button.icon = load(back_icon_path)
+		back_button.text = ""
 	_create_slot_buttons()
 	_update_slot_buttons()
 	_update_inventory_grid()

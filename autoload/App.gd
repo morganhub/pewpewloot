@@ -7,6 +7,21 @@ extends Node
 var current_world_id: String = "world_1"
 var current_level_index: int = 0
 
+func _ready() -> void:
+	pass
+
+func play_music(path: String, fade_duration: float = 1.0) -> void:
+	var am = get_node_or_null("/root/AudioManager")
+	if am and am.has_method("play_music"):
+		am.play_music(path, fade_duration)
+
+func play_menu_music() -> void:
+	var config = DataManager.get_game_config()
+	var main_menu = config.get("main_menu", {})
+	var music_path = str(main_menu.get("music", ""))
+	if music_path != "":
+		play_music(music_path, 1.0)
+
 # =============================================================================
 # ACCESSEURS DONNÉES (délégation à DataManager)
 # =============================================================================

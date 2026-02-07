@@ -23,7 +23,7 @@
 				"asset_anim": ""
 			},
 			"missile_id": "missile_car",
-			"missile_pattern_id": "circle_8",
+			"missile_pattern_id": "single_straight",
 			"special_power_id": "power_paint_sweep"
 		},
 		{
@@ -48,8 +48,8 @@
 				"asset": "",
 				"asset_anim": ""
 			},
-			"missile_id": "missile_car",
-			"missile_pattern_id": "double_side",
+			"missile_id": "missile_default",
+			"missile_pattern_id": "single_straight",
 			"special_power_id": "power_barrel_roll"
 		},
 		{
@@ -101,7 +101,7 @@
 				"asset_anim": ""
 			},
 			"missile_id": "missile_car",
-			"missile_pattern_id": "triple_spread",
+			"missile_pattern_id": "screen_bottom_wave",
 			"special_power_id": "power_barrel_roll"
 		}
 	],

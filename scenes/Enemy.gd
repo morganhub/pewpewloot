@@ -40,6 +40,11 @@ var fire_rate: float = 2.0
 var _fire_timer: float = 0.0
 var _missile_pattern_data: Dictionary = {}
 
+# Lifetime
+var _lifetime_timer: float = 0.0
+var _is_leaving: bool = false
+const MAX_LIFETIME: float = 12.0
+
 # Visual
 @onready var visual_container: Node2D = $Visual
 @onready var shape_visual: Polygon2D = $Visual/Shape
@@ -216,6 +221,13 @@ func _setup_health_bar() -> void:
 # =============================================================================
 
 func _process(delta: float) -> void:
+	# Lifetime Management (Except Bosses)
+	if not _is_leaving and not enemy_id.begins_with("boss_"): 
+		# Note: Better check might be group "bosses" but enemy_id prefix is safe enough if group not set
+		_lifetime_timer += delta
+		if _lifetime_timer >= MAX_LIFETIME:
+			_is_leaving = true
+			
 	_update_movement(delta)
 	_update_shooting(delta)
 	
@@ -249,6 +261,10 @@ func _update_wave_firing(delta: float) -> void:
 # =============================================================================
 
 func _update_movement(delta: float) -> void:
+	if _is_leaving:
+		_move_leave_screen(delta)
+		return
+
 	_move_time += delta
 	
 	var pattern_type := str(_move_pattern_data.get("type", "linear"))
@@ -329,14 +345,39 @@ func _move_sine_wave(delta: float) -> void:
 	velocity = base_dir.normalized() * move_speed + wave_offset * 10
 	move_and_slide()
 
-func _move_circular(_delta: float) -> void:
+func _move_circular(delta: float) -> void:
 	var radius: float = float(_move_pattern_data.get("radius", 80))
 	var angular_speed: float = float(_move_pattern_data.get("angular_speed", 2.0))
 	var clockwise: bool = bool(_move_pattern_data.get("clockwise", true))
 	
+	# Direction moves the center of rotation
+	var dir_data: Variant = _move_pattern_data.get("direction", {"x": 0, "y": 0.5})
+	var move_dir := Vector2.ZERO
+	if dir_data is Dictionary:
+		var d_dict := dir_data as Dictionary
+		move_dir = Vector2(float(d_dict.get("x", 0)), float(d_dict.get("y", 0.5)))
+	
+	# Current center moves over time
+	var center_pos := _start_position + (move_dir.normalized() * move_speed * _move_time)
+	
 	var angle := _move_time * angular_speed * (1 if clockwise else -1)
 	var offset := Vector2(cos(angle), sin(angle)) * radius
-	global_position = _start_position + offset
+	global_position = center_pos + offset
+
+func _move_leave_screen(delta: float) -> void:
+	# Move towards y = 1.5 * viewport (+50%)
+	# Standard leave direction: DOWN
+	var direction := Vector2(0, 1)
+	velocity = direction * move_speed
+	
+	# Override if specific leave direction needed? No, standard down is fine.
+	# Or follow current trajectory? User asked for "y = 1.5"
+	var viewport_h := get_viewport_rect().size.y
+	var target_y := viewport_h * 1.5
+	
+	# Accelerate slightly when leaving?
+	velocity = direction * (move_speed * 1.5)
+	move_and_slide()
 
 func _move_homing(delta: float) -> void:
 	# Chercher le joueur
@@ -556,7 +597,7 @@ func _fire() -> void:
 		_is_firing_waves = true
 		_current_wave = 0
 		_wave_timer = 0.0
-		set_process(true)  # Ensure we're processing to handle wave timer
+		set_process(true)
 	
 	_fire_single_wave()
 	
@@ -564,7 +605,6 @@ func _fire_single_wave() -> void:
 	if _missile_pattern_data.is_empty():
 		return
 
-	
 	var projectile_count: int = int(_missile_pattern_data.get("projectile_count", 1))
 	var spread_angle: float = float(_missile_pattern_data.get("spread_angle", 0))
 	var trajectory := str(_missile_pattern_data.get("trajectory", "straight"))

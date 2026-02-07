@@ -8,29 +8,29 @@ var _speed: float = 0.0
 var _texture_height: float = 0.0
 var _offset_y: float = 0.0
 
-func setup(texture: Texture2D, scroll_speed: float, _viewport_size: Vector2) -> void:
+func setup(texture: Texture2D, scroll_speed: float, viewport_size: Vector2) -> void:
 	_speed = scroll_speed
 	
 	if texture:
 		_texture_height = texture.get_height()
 		
-		# Créer 2 sprites pour le tiling vertical infini
-		# Instance 1 : Position de base
-		var s1 := Sprite2D.new()
-		s1.texture = texture
-		s1.centered = false
-		add_child(s1)
+		# Calculer combien de tuiles sont nécessaires pour couvrir l'écran + buffer
+		# On a besoin de couvrir de -_texture_height jusqu'à viewport_size.y
+		# car l'offset va faire bouger le tout.
 		
-		# Instance 2 : Juste au-dessus (pour scroller vers le bas)
-		var s2 := Sprite2D.new()
-		s2.texture = texture
-		s2.centered = false
-		s2.position.y = -_texture_height
-		add_child(s2)
+		var needed_height = viewport_size.y + _texture_height * 2
+		var current_y = -_texture_height # Commencer un cran au-dessus
 		
-		# Start layer off-screen (above viewport) to prevent "popping"
-		# Layers will smoothly scroll down into view
-		position.y = -_texture_height
+		while current_y < needed_height:
+			var s := Sprite2D.new()
+			s.texture = texture
+			s.centered = false
+			s.position.y = current_y
+			add_child(s)
+			current_y += _texture_height
+		
+		# Position initiale (offset 0)
+		position.y = 0.0
 
 func _process(delta: float) -> void:
 	# Algorithme de défilement demandé :

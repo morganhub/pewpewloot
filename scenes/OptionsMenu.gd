@@ -28,6 +28,13 @@ func _ready() -> void:
 	# Connect signals
 	back_button.pressed.connect(_on_back_pressed)
 	language_dropdown.item_selected.connect(_on_language_selected)
+	
+	# Setup Back Button Icon
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+	var back_icon_path: String = str(ui_icons.get("back_button", ""))
+	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
+		back_button.icon = load(back_icon_path)
+		back_button.text = ""
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
@@ -39,8 +46,12 @@ func _load_game_config() -> void:
 			_game_config = json.data
 
 func _setup_background() -> void:
+	var options_config: Dictionary = _game_config.get("options_menu", {})
 	var menu_config: Dictionary = _game_config.get("main_menu", {})
-	var bg_path: String = str(menu_config.get("background", ""))
+	
+	var bg_path: String = str(options_config.get("background", ""))
+	if bg_path == "":
+		bg_path = str(menu_config.get("background", ""))
 	
 	if bg_path != "" and ResourceLoader.exists(bg_path):
 		var tex = load(bg_path)
@@ -67,7 +78,11 @@ func _setup_language_dropdown() -> void:
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
 	language_label.text = LocaleManager.translate("options_language")
-	back_button.text = LocaleManager.translate("options_back")
+	
+	if back_button.icon == null:
+		back_button.text = LocaleManager.translate("options_back")
+	else:
+		back_button.text = ""
 
 # =============================================================================
 # CALLBACKS

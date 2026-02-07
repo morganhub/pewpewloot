@@ -24,12 +24,21 @@ var world_id: String = ""
 
 func _ready() -> void:
 	_load_game_config()
+	App.play_menu_music()
 	back_button.pressed.connect(_on_back_pressed)
 	
 	world_id = App.current_world_id
 	
 	_update_header()
+	_setup_background()
 	_load_levels()
+	
+	# Back Button Icon
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+	var back_icon_path: String = str(ui_icons.get("back_button", ""))
+	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
+		back_button.icon = load(back_icon_path)
+		back_button.text = ""
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
@@ -39,6 +48,16 @@ func _load_game_config() -> void:
 		file.close()
 		if err == OK and json.data is Dictionary:
 			_game_config = json.data
+
+func _setup_background() -> void:
+	var world := App.get_world(world_id)
+	var theme: Dictionary = world.get("theme", {})
+	var bg_path: String = str(theme.get("background", ""))
+	
+	if bg_path != "" and ResourceLoader.exists(bg_path):
+		var bg_node = get_node_or_null("Background")
+		if bg_node and bg_node is TextureRect:
+			bg_node.texture = load(bg_path)
 
 func _update_header() -> void:
 	var world := App.get_world(world_id)

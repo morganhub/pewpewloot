@@ -1,8 +1,8 @@
 {
 	"main_menu": {
-		"background": "res://assets/backgrounds/main_menu_bg.png",
+		"background": "res://assets/ui/main_menu_bg.jpg",
 		"background_anim": "",
-		"music": "res://assets/music/main_menu.ogg",
+		"music": "res://assets/music/neon.ogg",
 		"logo": "res://assets/logo/logo_ppl.png",
 		"logo_anim": "",
 		"logo_width_pct": 0.7,
@@ -14,43 +14,60 @@
 		"button_destroy": "res://assets/ui/btn_destroy.png"
 	},
 	"ship_menu": {
-		"slot_background": "res://assets/ui/slot_bg.png",
+		"slot_background": "res://assets/ui/main_menu_bg.jpg",
 		"popup_background": "res://assets/ui/popup_bg.png",
-		"inventory_background": "res://assets/ui/inventory_bg.png"
+		"inventory_background": "res://assets/ui/main_menu_bg.jpg"
+	},
+	"options_menu": {
+		"background": "res://assets/ui/main_menu_bg.jpg"
+	},
+	"world_select": {
+		"background": "res://assets/ui/main_menu_bg.jpg"
 	},
 	"popups": {
 		"default_background": "res://assets/ui/popup_bg.png"
 	},
 	"ui_icons": {
 		"burger_menu": "res://assets/ui/burger_menu.png",
-		"super_power_placeholder": "res://assets/ui/icon_sp_placeholder.png",
-		"unique_power_placeholder": "res://assets/ui/icon_up_placeholder.png"
+		"super_power_placeholder": "res://assets/ui/super_power.png",
+		"unique_power_placeholder": "res://assets/ui/icon_up_placeholder.png",
+		"back_button": "res://assets/ui/button_back.png"
 	},
 	"buttons": {
 		"play": {
-			"asset": "res://assets/ui/btn_play.png",
+			"asset": "res://assets/ui/button.png",
 			"asset_anim": "",
-			"show_text": true
+			"show_text": true,
+			"text_color": "#000000",
+			"letter_spacing": 15
 		},
 		"ship": {
-			"asset": "res://assets/ui/btn_ship.png",
+			"asset": "res://assets/ui/button.png",
 			"asset_anim": "",
-			"show_text": true
+			"show_text": true,
+			"text_color": "#000000",
+			"letter_spacing": 15
 		},
 		"options": {
-			"asset": "res://assets/ui/btn_options.png",
+			"asset": "res://assets/ui/button.png",
 			"asset_anim": "",
-			"show_text": true
+			"show_text": true,
+			"text_color": "#000000",
+			"letter_spacing": 15
 		},
 		"quit": {
-			"asset": "res://assets/ui/btn_quit.png",
+			"asset": "res://assets/ui/button.png",
 			"asset_anim": "",
-			"show_text": true
+			"show_text": true,
+			"text_color": "#000000",
+			"letter_spacing": 15
 		},
 		"change_profile": {
-			"asset": "res://assets/ui/btn_profile.png",
+			"asset": "res://assets/ui/button.png",
 			"asset_anim": "",
-			"show_text": true
+			"show_text": true,
+			"text_color": "#000000",
+			"letter_spacing": 4
 		}
 	},
 	"default_card_colors": [

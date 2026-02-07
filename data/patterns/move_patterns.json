@@ -48,7 +48,7 @@
 			"type": "circular",
 			"direction": {
 				"x": 0,
-				"y": 0
+				"y": 0.5
 			},
 			"speed": 45,
 			"radius": 80,
@@ -62,7 +62,7 @@
 			"type": "circular",
 			"direction": {
 				"x": 0,
-				"y": 0
+				"y": 0.5
 			},
 			"speed": 45,
 			"radius": 80,

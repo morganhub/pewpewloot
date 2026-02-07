@@ -76,7 +76,7 @@
 				"width_pct": 0.025,
 				"height_pct": 0.025,
 				"asset": "",
-				"asset_anim": ""
+				"asset_anim": "res://assets/missiles/sacred_missile.tres"
 			},
 			"explosion": {}
 		}

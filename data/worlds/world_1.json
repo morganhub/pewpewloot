@@ -5,7 +5,7 @@
 	"order": 1,
 	"theme": {
 		"background": "res://assets/backgrounds/asteroids.png",
-		"music": "res://assets/music/world_1.ogg",
+		"music": "res://assets/music/acceleration.ogg",
 		"color_palette": "#3a4f6f"
 	},
 	"levels": [
@@ -17,7 +17,7 @@
 			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/level_cards/world1_lvl0.png",
-				"far_layer": "res://assets/backgrounds/sea.jpg",
+				"far_layer": "res://assets/backgrounds/far_layer/canyon.jpg",
 				"mid_layer": [
 					[
 						"res://assets/backgrounds/layer_2/clouds.png"
@@ -29,16 +29,16 @@
 				{
 					"time": 2.0,
 					"enemy_id": "scout_basic",
-					"count": 15,
+					"count": 20,
 					"interval": 1.5,
 					"pattern_id": "circle_clockwise",
 					"origin_x": "40%",
 					"origin_y": -300
 				},
 				{
-					"time": 15.0,
+					"time": 115.0,
 					"enemy_id": "scout_basic",
-					"count": 15,
+					"count": 1,
 					"interval": 1.5,
 					"pattern_id": "figure_eight",
 					"origin_x": "30%",
@@ -56,7 +56,7 @@
 			"duration_sec": 140,
 			"backgrounds": {
 				"card": "",
-				"far_layer": "res://assets/backgrounds/sea.jpg",
+				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
 				"mid_layer": [
 					[
 						"res://assets/backgrounds/layer_2/clouds.png"
@@ -94,7 +94,7 @@
 			"duration_sec": 150,
 			"backgrounds": {
 				"card": "",
-				"far_layer": "res://assets/backgrounds/sea.jpg",
+				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
 				"mid_layer": [],
 				"near_layer": []
 			},
@@ -130,7 +130,7 @@
 			"duration_sec": 160,
 			"backgrounds": {
 				"card": "",
-				"far_layer": "res://assets/backgrounds/sea.jpg",
+				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
 				"mid_layer": [],
 				"near_layer": []
 			},
@@ -169,7 +169,7 @@
 			"duration_sec": 180,
 			"backgrounds": {
 				"card": "",
-				"far_layer": "res://assets/backgrounds/sea.jpg",
+				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
 				"mid_layer": [],
 				"near_layer": []
 			},
@@ -211,7 +211,7 @@
 			"boss_id": "boss_world1",
 			"backgrounds": {
 				"card": "",
-				"far_layer": "res://assets/backgrounds/sea.jpg",
+				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
 				"mid_layer": [],
 				"near_layer": []
 			},

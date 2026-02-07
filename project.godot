@@ -25,6 +25,7 @@ SaveManager="*res://autoload/SaveManager.gd"
 ProjectileManager="*res://autoload/ProjectileManager.gd"
 VFXManager="*res://autoload/VFXManager.gd"
 PowerManager="*res://autoload/PowerManager.gd"
+AudioManager="*res://autoload/AudioManager.gd"
 
 [display]
 
@@ -33,7 +34,32 @@ window/size/viewport_height=1280
 window/size/window_width_override=450
 window/size/window_height_override=800
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 window/handheld/orientation=1
+window/display/window_per_pixel_transparency=true
+
+[display/window/size]
+
+window/size/initial_position_type=0
+window/size/initial_screen=0
+window/size/initial_position=Vector2(0, 0)
+window/size/initial_size=Vector2(720, 1280)
+window/size/resizable=true
+window/size/borderless=false
+window/size/fullscreen=false
+window/size/always_on_top=false
+window/size/no_focus=false
+window/size/window_width_override=0
+window/size/window_height_override=0
+window/size/initial_position_type_override=0
+window/size/initial_screen_override=0
+window/size/initial_position_override=Vector2(0, 0)
+window/size/initial_size_override=Vector2(0, 0)
+
+[display/window/stretch]
+
+mode="canvas_items"
+aspect="expand"
 
 [gui]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ba1c0jdbkf53l"
-path="res://.godot/imported/sea.jpg-eaa805b026e59092887fd59fb23b00c8.ctex"
+uid="uid://be56nah3cihy2"
+path="res://.godot/imported/burger_menu.png-ddc96f05388c8ab6be77cdbdc71b6b75.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/backgrounds/sea.jpg"
-dest_files=["res://.godot/imported/sea.jpg-eaa805b026e59092887fd59fb23b00c8.ctex"]
+source_file="res://assets/ui/burger_menu.png"
+dest_files=["res://.godot/imported/burger_menu.png-ddc96f05388c8ab6be77cdbdc71b6b75.ctex"]
 
 [params]
 

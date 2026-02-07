@@ -30,7 +30,17 @@ func _ready() -> void:
 	# Load session data
 	current_world_id = App.current_world_id
 	current_level_index = App.current_level_index
+	current_level_index = App.current_level_index
 	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
+	
+	# Music
+	var world = App.get_world(current_world_id)
+	var theme = world.get("theme", {})
+	var music = str(theme.get("music", ""))
+	if music != "":
+		App.play_music(music)
+	else:
+		App.play_menu_music() # Enforce menu music if no override
 	
 	_setup_background()
 	_setup_camera()
@@ -176,6 +186,11 @@ func _on_player_died() -> void:
 	var overlay_scene := load("res://scenes/ui/GameOverOverlay.tscn")
 	var overlay: Control = overlay_scene.instantiate()
 	hud_container.add_child(overlay)
+	# Assurer que l'overlay est derrière le menu de pause / HUD interactif si besoin
+	# Mais l'overlay "DEFEAT" doit être visible...
+	# Le problème est que le bouton "Recommencer" est sans doute DANS le PauseMenu qui est SOUS l'Overlay si on l'ajoute après.
+	# On va mettre l'Overlay en PREMIER enfant du container pour qu'il soit derrière les menus qui s'ouvriront par dessus.
+	hud_container.move_child(overlay, 0)
 	
 	# Connect to animation finished
 	if overlay.has_signal("animation_finished"):
@@ -357,6 +372,7 @@ func _handle_victory_screen() -> void:
 	# get_tree().paused = true
 
 func _return_to_home() -> void:
+	App.play_menu_music()
 	get_tree().paused = false
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
@@ -373,9 +389,19 @@ func _show_pause_menu() -> void:
 func _on_restart_requested() -> void:
 	print("[Game] Restart requested for Level: ", current_world_id, " | Index: ", current_level_index)
 	get_tree().paused = false
-	get_tree().reload_current_scene()
+	
+	# Recharger la scène de jeu avec les paramètres actuels
+	# On passe par le SceneSwitcher s'il est disponible pour faire propre
+	var switcher := get_tree().current_scene
+	if switcher.has_method("goto_screen"):
+		# App.current_level_index est déjà set
+		switcher.goto_screen("res://scenes/Game.tscn")
+	else:
+		# Fallback classique
+		get_tree().reload_current_scene()
 
 func _on_level_select_requested() -> void:
+	App.play_menu_music()
 	get_tree().paused = false
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):

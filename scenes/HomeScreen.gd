@@ -34,6 +34,7 @@ var _game_config: Dictionary = {}
 
 func _ready() -> void:
 	_load_game_config()
+	App.play_menu_music()
 	_setup_layout()
 	_setup_background()
 	_setup_logo()
@@ -174,21 +175,95 @@ func _setup_buttons() -> void:
 
 func _setup_single_button(button: Button, config: Dictionary, translation_key: String) -> void:
 	var asset_path: String = str(config.get("asset", ""))
-	var _asset_anim: String = str(config.get("asset_anim", ""))
+	var asset_anim: String = str(config.get("asset_anim", ""))
 	var show_text: bool = bool(config.get("show_text", true))
+	var text_color_hex: String = str(config.get("text_color", "#FFFFFF"))
 	
-	# Set button icon if asset available
-	if asset_path != "" and ResourceLoader.exists(asset_path):
+	var letter_spacing: int = int(config.get("letter_spacing", 0))
+	
+	# Reset state
+	button.icon = null
+	# Clear existing children that might be anims (if reused) or specific nodes
+	for child in button.get_children():
+		if child.name == "BgAnim": child.queue_free()
+	
+	var has_visual_bg: bool = false
+	
+	# 1. GESTION ASSET ANIMÉ (Priorité 1)
+	if asset_anim != "" and ResourceLoader.exists(asset_anim):
+		var frames = load(asset_anim)
+		if frames is SpriteFrames:
+			has_visual_bg = true
+			# Style transparent pour le bouton (plus de cadre gris)
+			var style_empty = StyleBoxEmpty.new()
+			_apply_style_override(button, style_empty)
+			
+			# Ajouter AnimatedSprite2D
+			var anim = AnimatedSprite2D.new()
+			anim.name = "BgAnim"
+			anim.sprite_frames = frames
+			anim.play("default")
+			anim.show_behind_parent = true 
+			button.add_child(anim)
+			
+			# Centrage initial et connexion signal
+			_center_child_sprite(button, anim)
+			if not button.resized.is_connected(_center_child_sprite.bind(button, anim)):
+				button.resized.connect(_center_child_sprite.bind(button, anim))
+				
+			# Scale logic (simple fit)
+			var tex = frames.get_frame_texture("default", 0)
+			if tex:
+				var s = button.size / tex.get_size()
+				# anim.scale = s # Scale to fit button? Or keep aspect? user didn't specify, default to centered
+	
+	# 2. GESTION ASSET STATIQUE (Priorité 2)
+	elif asset_path != "" and ResourceLoader.exists(asset_path):
 		var tex = load(asset_path)
 		if tex:
-			button.icon = tex
-			button.expand_icon = true
+			has_visual_bg = true
+			var style = StyleBoxTexture.new()
+			style.texture = tex
+			# On garde la couleur originale
+			
+			_apply_style_override(button, style)
 	
-	# Show/hide text
-	if not show_text:
-		button.text = ""
-	else:
+	# 3. TEXTE
+	if show_text:
 		button.text = LocaleManager.t(translation_key)
+		
+		# Appliquer la couleur personnalisée
+		var col := Color(text_color_hex)
+		button.add_theme_color_override("font_color", col)
+		button.add_theme_color_override("font_pressed_color", col)
+		button.add_theme_color_override("font_hover_color", col)
+		button.add_theme_color_override("font_focus_color", col)
+		
+		# Appliquer l'espacement des lettres (letter_spacing)
+		if letter_spacing != 0:
+			var current_font = button.get_theme_font("font")
+			if current_font:
+				var fv = FontVariation.new()
+				fv.base_font = current_font
+				fv.spacing_glyph = letter_spacing
+				button.add_theme_font_override("font", fv)
+		
+		if has_visual_bg:
+			# Améliorer la lisibilité du texte sur une image
+			button.add_theme_constant_override("outline_size", 4)
+			button.add_theme_color_override("font_outline_color", Color.BLACK)
+	else:
+		button.text = ""
+
+func _apply_style_override(btn: Button, style: StyleBox) -> void:
+	btn.add_theme_stylebox_override("normal", style)
+	btn.add_theme_stylebox_override("hover", style)
+	btn.add_theme_stylebox_override("pressed", style)
+	btn.add_theme_stylebox_override("focus", style)
+	# btn.add_theme_stylebox_override("disabled", style) 
+
+func _center_child_sprite(btn: Control, sprite: Node2D) -> void:
+	sprite.position = btn.size / 2
 
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.t("app_title")

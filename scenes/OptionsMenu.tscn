@@ -1,8 +1,8 @@
-[gd_scene format=3 uid="uid://options_menu"]
+[gd_scene format=3 uid="uid://dryi2lffa523i"]
 
-[ext_resource type="Script" path="res://scenes/OptionsMenu.gd" id="1_options"]
+[ext_resource type="Script" uid="uid://bu1ywck4kx5ny" path="res://scenes/OptionsMenu.gd" id="1_options"]
 
-[node name="OptionsMenu" type="Control"]
+[node name="OptionsMenu" type="Control" unique_id=1396723102]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_options")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=370514989]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,7 +21,7 @@ grow_vertical = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=596072179]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,20 +33,20 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=546317079]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1315470960]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header" unique_id=1830793467]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 text = "←"
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/Header" unique_id=765244509]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
@@ -54,32 +54,32 @@ text = "OPTIONS"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1175700195]
 layout_mode = 2
 
-[node name="LanguageSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="LanguageSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=781572249]
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_constants/separation = 15
 
-[node name="LanguageLabel" type="Label" parent="MarginContainer/VBoxContainer/LanguageSection"]
+[node name="LanguageLabel" type="Label" parent="MarginContainer/VBoxContainer/LanguageSection" unique_id=1224506948]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Langue / Language"
 horizontal_alignment = 1
 
-[node name="LanguageDropdown" type="OptionButton" parent="MarginContainer/VBoxContainer/LanguageSection"]
+[node name="LanguageDropdown" type="OptionButton" parent="MarginContainer/VBoxContainer/LanguageSection" unique_id=1835564060]
 custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 20
-item_count = 2
 selected = 0
+item_count = 2
 popup/item_0/text = "Français"
 popup/item_0/id = 0
 popup/item_1/text = "English"
 popup/item_1/id = 1
 
-[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1608799950]
 layout_mode = 2
 size_flags_vertical = 3

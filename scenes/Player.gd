@@ -52,6 +52,15 @@ var _contact_timer: float = 0.0
 var _contact_enemies: Array[Node2D] = []
 @onready var hitbox: Area2D = null
 
+# --- DEBUG PATTERN ROTATION - START ---
+var _debug_pattern_rotation_enabled: bool = false # Set to false to disable
+var _debug_pattern_index: int = 0
+var _debug_rotation_timer: float = 0.0
+var _debug_rotation_interval: float = 10.0 # Seconds between pattern changes
+var _debug_pattern_list: Array = []
+var _debug_has_fired_current_pattern: bool = false
+# --- DEBUG PATTERN ROTATION - END ---
+
 func _ready() -> void:
 	_init_visual_nodes()
 	_setup_collision_layers()
@@ -63,6 +72,15 @@ func _ready() -> void:
 	var ship_size := 84.0  # Approximate ship height
 	var bottom_margin := 50.0
 	position = Vector2(viewport_size.x / 2, viewport_size.y - ship_size - bottom_margin)
+	
+	# --- DEBUG PATTERN ROTATION - START ---
+	if _debug_pattern_rotation_enabled:
+		var all_patterns = DataManager.get_all_missile_patterns()
+		for pattern in all_patterns:
+			if pattern.has("id"):
+				_debug_pattern_list.append(str(pattern["id"]))
+		print("[DEBUG ROTATION] Enabled. Loaded ", _debug_pattern_list.size(), " patterns: ", _debug_pattern_list)
+	# --- DEBUG PATTERN ROTATION - END ---
 
 func _setup_collision_layers() -> void:
 	collision_layer = 2
@@ -345,18 +363,50 @@ func _handle_movement(delta: float) -> void:
 	global_position.y = clampf(global_position.y, 20, viewport_size.y - 20)
 
 func _handle_shooting(delta: float) -> void:
+	# --- DEBUG PATTERN ROTATION - START ---
+	if _debug_pattern_rotation_enabled and not _debug_pattern_list.is_empty():
+		_debug_rotation_timer += delta
+		if _debug_rotation_timer >= _debug_rotation_interval:
+			_debug_rotation_timer = 0.0
+			_debug_pattern_index = (_debug_pattern_index + 1) % _debug_pattern_list.size()
+			_debug_has_fired_current_pattern = false
+			print("\n[DEBUG ROTATION] ═══ Switching to pattern #", _debug_pattern_index, ": ", _debug_pattern_list[_debug_pattern_index], " ═══\n")
+	# --- DEBUG PATTERN ROTATION - END ---
+	
 	_fire_timer -= delta
 	
 	if _fire_timer <= 0 and _can_shoot:
 		_fire()
-		_fire_timer = fire_rate
+		# _fire_timer est maintenant défini dans _fire() selon le pattern et le burst
 
 func _fire() -> void:
-	# Récupérer le vaisseau actif et son pattern de tir
-	var ship_id := ProfileManager.get_active_ship_id()
-	var ship := DataManager.get_ship(ship_id)
-	var missile_pattern_id := str(ship.get("missile_pattern_id", "single_straight"))
+	# --- DEBUG PATTERN ROTATION - START ---
+	var missile_pattern_id: String
+	if _debug_pattern_rotation_enabled and not _debug_pattern_list.is_empty():
+		# Skip if already fired this pattern (only fire once per rotation)
+		if _debug_has_fired_current_pattern:
+			return
+		missile_pattern_id = _debug_pattern_list[_debug_pattern_index]
+		_debug_has_fired_current_pattern = true
+	else:
+		# Normal mode: use ship's pattern
+		var ship_id := ProfileManager.get_active_ship_id()
+		var ship := DataManager.get_ship(ship_id)
+		missile_pattern_id = str(ship.get("missile_pattern_id", "single_straight"))
+	# --- DEBUG PATTERN ROTATION - END ---
+	
 	var pattern_data := DataManager.get_missile_pattern(missile_pattern_id).duplicate()
+	
+	# --- DEBUG PATTERN ROTATION - START ---
+	if _debug_pattern_rotation_enabled:
+		print("[DEBUG FIRE] Pattern: ", missile_pattern_id)
+		print("[DEBUG FIRE]   projectile_count=", pattern_data.get("projectile_count", "?"))
+		print("[DEBUG FIRE]   spread_angle=", pattern_data.get("spread_angle", "?"))
+		print("[DEBUG FIRE]   spawn_width=", pattern_data.get("spawn_width", "?"))
+		print("[DEBUG FIRE]   spawn_strategy=", pattern_data.get("spawn_strategy", "?"))
+		print("[DEBUG FIRE]   burst_count=", pattern_data.get("burst_count", "?"))
+		print("[DEBUG FIRE]   Player pos: ", global_position)
+	# --- DEBUG PATTERN ROTATION - END ---
 	
 	if pattern_data.is_empty():
 		# Fallback to default
@@ -370,75 +420,163 @@ func _fire() -> void:
 			"color": "#44FF44"
 		}
 	
-	var projectile_count: int = int(pattern_data.get("projectile_count", 1))
-	var spread_angle: float = float(pattern_data.get("spread_angle", 0))
-	var trajectory := str(pattern_data.get("trajectory", "straight"))
-	var speed: float = float(pattern_data.get("speed", 400))
+	# --- Pattern Parameters ---
+	var base_speed: float = float(pattern_data.get("speed", 400))
 	var pattern_damage: int = int(pattern_data.get("damage", 10))
 	
-	# Apply player bonuses
-	var final_damage: int = int((base_damage + pattern_damage) * damage_multiplier)
-	speed = speed * missile_speed_pct
+	# Burst & Cooldown Logic
+	var burst_count: int = int(pattern_data.get("burst_count", 1))
+	var burst_interval: float = float(pattern_data.get("burst_interval", 0.0))
+	var reload_time: float = float(pattern_data.get("cooldown", 1.0))
 	
-	# Injecter les visuels du missile actuel
+	# --- DEBUG PATTERN ROTATION - START ---
+	# Limit to single burst in debug mode
+	if _debug_pattern_rotation_enabled and burst_count > 1:
+		print("[DEBUG FIRE]   Original burst_count=", burst_count, " → Limiting to 1 for debug")
+		burst_count = 1
+	# --- DEBUG PATTERN ROTATION - END ---
+	
+	# Apply Ship Stats / Bonuses
+	var final_damage: int = int((base_damage + pattern_damage) * damage_multiplier)
+	var final_speed: float = base_speed * missile_speed_pct
+	
+	# Cooldown calculation: (Duration of burst) + (Reload time)
+	# Ship fire_rate acts as a multiplier on reload time (higher rate = lower reload)
+	var reload_modified: float = reload_time 
+	if fire_rate > 0.0:
+		reload_modified = reload_time / fire_rate
+	
+	var total_sequence_time: float = max(0.0, (burst_count - 1) * burst_interval) + reload_modified
+	_fire_timer = total_sequence_time
+	
+	# Inject Visuals & Mechanics
+	_inject_missile_properties(pattern_data)
+	
+	# Execute Burst Sequence
+	_execute_burst_sequence(pattern_data, burst_count, burst_interval, final_speed, final_damage)
+
+func _inject_missile_properties(pattern_data: Dictionary) -> void:
 	var missile_data := DataManager.get_missile(current_missile_id)
+	
+	# Visuals
 	var visual_data: Dictionary = missile_data.get("visual", {})
 	if not visual_data.is_empty():
 		pattern_data["visual_data"] = visual_data
 	
-	# Inject acceleration from missile
-	var acceleration: float = float(missile_data.get("acceleration", 0.0))
-	pattern_data["acceleration"] = acceleration
+	# Acceleration
+	pattern_data["acceleration"] = float(missile_data.get("acceleration", 0.0))
 	
-	# Inject explosion data from missile
+	# Explosion
 	var missile_explosion: Dictionary = missile_data.get("explosion", {})
 	if not missile_explosion.is_empty():
 		pattern_data["explosion_data"] = missile_explosion
-	
-	# Override speed if defined in missile
+		
+	# Speed Override
 	var missile_speed: float = float(missile_data.get("speed", 0))
 	if missile_speed > 0:
-		speed = missile_speed * missile_speed_pct
+		pattern_data["speed"] = missile_speed * missile_speed_pct
+
+func _execute_burst_sequence(pattern_data: Dictionary, count: int, interval: float, speed: float, damage: int) -> void:
+	for i in range(count):
+		if not is_instance_valid(self): return
+		
+		# Spawn one "salvo" (can be multiple projectiles if count > 1 in pattern)
+		_spawn_salvo(pattern_data, speed, damage)
+		
+		if count > 1 and i < count - 1:
+			await get_tree().create_timer(interval).timeout
+
+func _spawn_salvo(pattern_data: Dictionary, speed: float, damage: int) -> void:
+	var projectile_count: int = int(pattern_data.get("projectile_count", 1))
+	var spread_angle: float = float(pattern_data.get("spread_angle", 0))
+	var spawn_width: float = float(pattern_data.get("spawn_width", 0))
+	var trajectory: String = str(pattern_data.get("trajectory", "straight"))
+	var spawn_strategy: String = str(pattern_data.get("spawn_strategy", "shooter"))
 	
-	# Base direction
-	var base_direction := Vector2.UP
+	# Determine Base Position and Direction
+	var base_pos: Vector2 = global_position + Vector2(0, -20)
+	var base_dir: Vector2 = Vector2.UP
+	var viewport_rect := get_viewport_rect()
 	
-	# Aim Target Logic
+	# --- DEBUG PATTERN ROTATION - START ---
+	if _debug_pattern_rotation_enabled:
+		print("[DEBUG SPAWN] Initial: base_pos=", base_pos, " | base_dir=", base_dir)
+		print("[DEBUG SPAWN]   spawn_width=", spawn_width, " | spawn_strategy=", spawn_strategy)
+	# --- DEBUG PATTERN ROTATION - END ---
+	
+	# Handle Special Strategies (Screen edges)
+	if spawn_strategy == "screen_bottom":
+		var p_size: float = float(pattern_data.get("size", 20.0))
+		var y_pos = viewport_rect.size.y + p_size # Start below screen
+		base_pos = Vector2(viewport_rect.size.x / 2, y_pos)
+		base_dir = Vector2.UP
+		if spawn_width <= 0: spawn_width = viewport_rect.size.x # FULL WIDTH
+		if _debug_pattern_rotation_enabled:
+			print("[DEBUG SPAWN] screen_bottom → base_pos=", base_pos, " | spawn_width=", spawn_width)
+		
+	elif spawn_strategy == "screen_top":
+		var p_size: float = float(pattern_data.get("size", 32.0))
+		# Spawn bien au-dessus de l'écran (taille + marge de sécurité)
+		base_pos = Vector2(viewport_rect.size.x / 2, -p_size - 50.0) 
+		base_dir = Vector2.DOWN
+		if spawn_width <= 0: spawn_width = viewport_rect.size.x # FULL WIDTH
+		if _debug_pattern_rotation_enabled:
+			print("[DEBUG SPAWN] screen_top → base_pos=", base_pos, " | spawn_width=", spawn_width)
+
+	# Aim Target Logic (override direction if aimed)
 	var is_aimed := (trajectory == "aimed") or bool(pattern_data.get("aim_target", false))
 	if is_aimed:
 		var target := _find_nearest_enemy()
 		if target:
-			base_direction = (target.global_position - global_position).normalized()
-	
-	# Spawn projectiles with spread
-	if projectile_count == 1:
-		var is_critical := randf() <= crit_chance
-		var dmg := final_damage * (2 if is_critical else 1)
-		ProjectileManager.spawn_player_projectile(
-			global_position + Vector2(0, -20),
-			base_direction,
-			speed,
-			dmg,
-			pattern_data,
-			is_critical
-		)
-	else:
-		var angle_step: float = deg_to_rad(spread_angle) / max(1, projectile_count - 1)
-		var start_angle: float = -deg_to_rad(spread_angle) / 2.0
-		
+			base_dir = (target.global_position - base_pos).normalized()
+
+	# Spawn Logic: Spread Width vs Spread Angle
+	if spawn_width > 0:
+		# --- LINEAR SPREAD (Spread from X) ---
+		var start_x: float = -spawn_width / 2.0
+		var step_x: float = 0.0
+		if projectile_count > 1:
+			step_x = spawn_width / float(projectile_count - 1)
+		else:
+			start_x = 0 # Single projectile centered
+			
 		for i in range(projectile_count):
-			var angle: float = start_angle + angle_step * i
-			var direction := base_direction.rotated(angle)
-			var is_critical := randf() <= crit_chance
-			var dmg := final_damage * (2 if is_critical else 1)
-			ProjectileManager.spawn_player_projectile(
-				global_position + Vector2(0, -20),
-				direction,
-				speed,
-				dmg,
-				pattern_data,
-				is_critical
-			)
+			var offset_x: float = start_x + (step_x * i)
+			# Calculate offset relative to direction (perpendicular)
+			var perpendicular: Vector2 = base_dir.rotated(PI/2)
+			var spawn_pos: Vector2 = base_pos + (perpendicular * offset_x)
+			
+			_spawn_single_projectile(spawn_pos, base_dir, speed, damage, pattern_data)
+			
+	else:
+		# --- ANGULAR SPREAD (Standard) ---
+		if projectile_count == 1:
+			_spawn_single_projectile(base_pos, base_dir, speed, damage, pattern_data)
+		else:
+			var angle_step: float = deg_to_rad(spread_angle) / max(1, projectile_count - 1)
+			var start_angle: float = -deg_to_rad(spread_angle) / 2.0
+			
+			for i in range(projectile_count):
+				var angle: float = start_angle + angle_step * i
+				var direction := base_dir.rotated(angle)
+				_spawn_single_projectile(base_pos, direction, speed, damage, pattern_data)
+
+func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int, pattern_data: Dictionary) -> void:
+	var is_critical := randf() <= crit_chance
+	var final_dmg := dmg * (2 if is_critical else 1)
+	
+	# Clamp position roughly
+	# Warning: clamp might screw up off-screen spawning (screen_bottom/screen_top)
+	# So only clamp if standard shooter
+	
+	ProjectileManager.spawn_player_projectile(
+		pos,
+		dir,
+		speed,
+		final_dmg,
+		pattern_data,
+		is_critical
+	)
 
 func take_damage(amount: int) -> void:
 	# Dodge check

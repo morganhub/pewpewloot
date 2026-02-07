@@ -48,7 +48,7 @@ func _ready() -> void:
 	area_entered.connect(_on_area_entered)
 	deactivate()
 
-func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Dictionary = {}, is_crit: bool = false) -> void:
+func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Dictionary = {}, is_crit: bool = false, viewport_size_arg: Vector2 = Vector2.ZERO) -> void:
 	global_position = pos
 	direction = dir.normalized()
 	speed = spd
@@ -57,6 +57,10 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	_time_alive = 0.0
 	is_active = true
 	is_critical = is_crit
+	
+	var viewport_size = viewport_size_arg
+	
+	print("[Projectile] ✅ ACTIVATED at ", pos, " | Speed: ", speed)
 	
 	# Setup Collision Layer/Mask Dynamically
 	if is_player_projectile:
@@ -90,6 +94,7 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	# On s'attend à recevoir soit data complète, soit on fallback sur le pattern_data (legacy)
 	var visual_data: Dictionary = pattern_data.get("visual_data", {})
 	if visual_data.is_empty():
+		print("[Projectile] ⚠️ No visual_data provided, using fallback")
 		# Fallback legacy: use pattern_data as visual source
 		visual_data = {
 			"color": pattern_data.get("color", "#FFFF00"),
@@ -98,17 +103,22 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 			"asset": "" 
 		}
 
-	_setup_visual(visual_data)
+	_setup_visual(visual_data, viewport_size)
 	
-	# Rotation initiale
+	# Initial rotation
 	rotation = direction.angle() + PI / 2
 	
 	show()
 	set_process(true)
 
-func _setup_visual(visual_data: Dictionary) -> void:
+func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	# Calculate size based on percentage of screen height (if provided) or legacy pixel size
-	var viewport_height: float = get_viewport_rect().size.y
+	# Use passed viewport size if available (safer during spawn), else fallback
+	var viewport_height: float = 1280.0 # Default fallback
+	if viewport_size_arg != Vector2.ZERO:
+		viewport_height = viewport_size_arg.y
+	elif is_inside_tree():
+		viewport_height = get_viewport_rect().size.y
 	var width_pct: float = float(visual_data.get("width_pct", 0.0))
 	var height_pct: float = float(visual_data.get("height_pct", 0.0))
 	
@@ -128,6 +138,8 @@ func _setup_visual(visual_data: Dictionary) -> void:
 	var asset_path: String = str(visual_data.get("asset", ""))
 	var asset_anim: String = str(visual_data.get("asset_anim", ""))
 	var use_asset: bool = false
+	
+	print("[Projectile] 🎨 Visual Setup: Size=", Vector2(final_width, final_height), " | Asset=", asset_path, " | Anim=", asset_anim)
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
@@ -151,6 +163,7 @@ func _setup_visual(visual_data: Dictionary) -> void:
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				anim_sprite.scale = Vector2(final_width / f_size.x, final_height / f_size.y)
+				print("[Projectile]   -> AnimatedSprite scaled to ", anim_sprite.scale)
 			
 			# Hide static sprite if exists
 			var static_sprite: Sprite2D = get_node_or_null("Sprite2D")
@@ -180,6 +193,7 @@ func _setup_visual(visual_data: Dictionary) -> void:
 			var tex_size = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
 				sprite.scale = Vector2(final_width / tex_size.x, final_height / tex_size.y)
+				print("[Projectile]   -> Sprite2D scaled to ", sprite.scale)
 	
 	# Priority 3: Fallback Polygon2D shape
 	if not use_asset:
@@ -199,13 +213,14 @@ func _setup_visual(visual_data: Dictionary) -> void:
 		# Generate shape polygon
 		var shape_type: String = str(visual_data.get("shape", "circle"))
 		visual.polygon = _create_shape_polygon(shape_type, final_width, final_height)
+		print("[Projectile]   -> Polygon2D shape: ", shape_type, " | Color: ", shape_color)
 	
 	# Collision - use average of width/height
 	var avg_size: float = (final_width + final_height) / 2.0
 	var col_shape := collision.shape as CircleShape2D
 	if col_shape:
 		col_shape.radius = avg_size / 2.0
-	
+
 	# Initial rotation
 	rotation = direction.angle() + PI / 2
 	
@@ -240,6 +255,11 @@ func _create_shape_polygon(shape_type: String, width: float, height: float) -> P
 			return _create_circle_polygon(max(width, height) / 2.0)
 
 func deactivate() -> void:
+	print("[Projectile] ❌ DEACTIVATED. Lifetime: ", _time_alive)
+	# Remove debug
+	var debug = get_node_or_null("DEBUG_SQUARE")
+	if debug: debug.queue_free()
+	
 	is_active = false
 	hide()
 	set_process(false)

@@ -29,6 +29,7 @@ var _game_config: Dictionary = {}
 # =============================================================================
 
 func _ready() -> void:
+	App.play_menu_music()
 	_load_game_config()
 	_setup_background()
 	
@@ -91,9 +92,20 @@ func _update_buttons() -> void:
 	delete_button.disabled = not has_selection
 	
 	# Back button text
+	# Back button text/icon
 	if ProfileManager.active_profile_id != "":
-		back_button.text = "← Retour"
+		# Mode Back
+		var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+		var back_icon = str(ui_icons.get("back_button", ""))
+		if back_icon != "" and ResourceLoader.exists(back_icon):
+			back_button.icon = load(back_icon)
+			back_button.text = ""
+		else:
+			back_button.icon = null
+			back_button.text = "← Retour"
 	else:
+		# Mode Quit
+		back_button.icon = null
 		back_button.text = "🚪 Quitter"
 
 func _on_profile_selected(index: int) -> void:

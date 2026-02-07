@@ -22,6 +22,7 @@ var _super_powers: Dictionary = {} # power_id -> data
 var _unique_powers: Dictionary = {} # power_id -> data
 var _boss_powers: Dictionary = {} # power_id -> data
 var _effects: Dictionary = {} # effect_id -> data
+var _game_config: Dictionary = {} # game.json data
 
 var _default_unlocked_ships: Array = []
 
@@ -29,6 +30,7 @@ func _ready() -> void:
 	_load_all_data()
 
 func _load_all_data() -> void:
+	_load_game_config() # Load generic game config first
 	_load_worlds()
 	_load_ships()
 	_load_patterns()
@@ -51,6 +53,15 @@ func _load_all_data() -> void:
 	print("[DataManager] Uniques: ", _uniques.size())
 
 
+# =============================================================================
+# GAME CONFIG (game.json)
+# =============================================================================
+
+func _load_game_config() -> void:
+	_game_config = _load_json("res://data/game.json")
+
+func get_game_config() -> Dictionary:
+	return _game_config
 
 # =============================================================================
 # WORLDS & LEVELS
@@ -177,11 +188,22 @@ func _load_patterns() -> void:
 				if p_id != "":
 					_move_patterns[p_id] = p_dict
 	
-	# Missile patterns
-	var missile_data := _load_json("res://data/patterns/missile_patterns.json")
-	var raw_missile: Variant = missile_data.get("patterns", [])
-	if raw_missile is Array:
-		for pattern in raw_missile:
+	# Missile patterns - PLAYER
+	var missile_player_data := _load_json("res://data/patterns/missile_patterns_player.json")
+	var raw_missile_player: Variant = missile_player_data.get("patterns", [])
+	if raw_missile_player is Array:
+		for pattern in raw_missile_player:
+			if pattern is Dictionary:
+				var p_dict := pattern as Dictionary
+				var p_id: String = str(p_dict.get("id", ""))
+				if p_id != "":
+					_missile_patterns[p_id] = p_dict
+	
+	# Missile patterns - ENEMY
+	var missile_enemy_data := _load_json("res://data/patterns/missile_patterns_enemy.json")
+	var raw_missile_enemy: Variant = missile_enemy_data.get("patterns", [])
+	if raw_missile_enemy is Array:
+		for pattern in raw_missile_enemy:
 			if pattern is Dictionary:
 				var p_dict := pattern as Dictionary
 				var p_id: String = str(p_dict.get("id", ""))

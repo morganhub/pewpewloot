@@ -108,7 +108,7 @@ layout_mode = 2
 size_flags_horizontal = 4
 custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
-disabled = true
+disabled = false
 text = "⚙️ Options"
 
 [node name="QuitButton" type="Button" parent="BottomSection"]

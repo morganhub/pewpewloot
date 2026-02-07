@@ -4,9 +4,22 @@ extends Control
 @onready var complete_button: Button = $CenterContainer/Box/CompleteButton
 @onready var back_button: Button = $CenterContainer/Box/BackButton
 
+var _game_config: Dictionary = {}
+
 func _ready() -> void:
+	_load_game_config()
+	App.play_menu_music()
+	
 	complete_button.pressed.connect(_on_complete_pressed)
 	back_button.pressed.connect(_on_back_pressed)
+	
+	# Back Button Icon
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+	var back_icon_path: String = str(ui_icons.get("back_button", ""))
+	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
+		back_button.icon = load(back_icon_path)
+		back_button.text = ""
+		
 	_refresh_info()
 
 func _refresh_info() -> void:
@@ -43,3 +56,12 @@ func _on_complete_pressed() -> void:
 func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
 	switcher.goto_screen("res://scenes/LevelSelect.tscn")
+
+func _load_game_config() -> void:
+	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		var err := json.parse(file.get_as_text())
+		file.close()
+		if err == OK and json.data is Dictionary:
+			_game_config = json.data
