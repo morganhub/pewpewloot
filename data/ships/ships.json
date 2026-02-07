@@ -2,6 +2,7 @@
 	"ships": [
 		{
 			"id": "ship_car",
+			"crystal_price": 0,
 			"name": "The Car",
 			"description": "High power, slow missiles. Paint attack.",
 			"type": "car",
@@ -18,13 +19,16 @@
 			"visual": {
 				"color": "#FF4444",
 				"shape": "rectangle",
-				"asset": "res://assets/ships/car.png"
+				"asset": "res://assets/ships/car.png",
+				"asset_anim": ""
 			},
 			"missile_id": "missile_car",
+			"missile_pattern_id": "circle_8",
 			"special_power_id": "power_paint_sweep"
 		},
 		{
 			"id": "ship_plane",
+			"crystal_price": 500,
 			"name": "The Plane",
 			"description": "Balanced, fast missiles. Looping attack.",
 			"type": "plane",
@@ -41,13 +45,16 @@
 			"visual": {
 				"color": "#4444FF",
 				"shape": "triangle",
-				"asset": ""
+				"asset": "",
+				"asset_anim": ""
 			},
-			"missile_id": "missile_default",
+			"missile_id": "rapid_burst",
+			"missile_pattern_id": "random_chaos",
 			"special_power_id": "power_barrel_roll"
 		},
 		{
 			"id": "ship_witch",
+			"crystal_price": 1200,
 			"name": "The Witch",
 			"description": "Balanced. Cone burst attack.",
 			"type": "witch",
@@ -64,21 +71,24 @@
 			"visual": {
 				"color": "#AA44FF",
 				"shape": "circle",
-				"asset": ""
+				"asset": "",
+				"asset_anim": ""
 			},
 			"missile_id": "missile_default",
+			"missile_pattern_id": "burst_5",
 			"special_power_id": "power_witch_circle"
 		},
 		{
 			"id": "ship_supercar",
-			"name": "The Supercar",
+			"crystal_price": 10,
+			"name": "Ecraseur",
 			"description": "Low power, very fast missiles. Homing attack.",
 			"type": "supercar",
 			"stats": {
 				"max_hp": 80,
 				"move_speed": 250,
 				"power": 20,
-				"fire_rate": 0.2,
+				"fire_rate": 0.5,
 				"crit_chance": 0.10,
 				"dodge_chance": 0.02,
 				"missile_speed_pct": 1.5,
@@ -87,9 +97,11 @@
 			"visual": {
 				"color": "#FFFF44",
 				"shape": "diamond",
-				"asset": ""
+				"asset": "res://assets/ships/ecraseur.png",
+				"asset_anim": ""
 			},
-			"missile_id": "missile_default",
+			"missile_id": "missile_car",
+			"missile_pattern_id": "triple_spread",
 			"special_power_id": "power_barrel_roll"
 		}
 	],

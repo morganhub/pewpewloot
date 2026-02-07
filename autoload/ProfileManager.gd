@@ -256,16 +256,34 @@ func get_inventory() -> Array:
 		return inv as Array
 	return []
 
+## Constante: Limite d'inventaire (10 pages × 16 items)
+const MAX_INVENTORY_SIZE := 160
+
 ## Ajoute un item à l'inventaire
-func add_item_to_inventory(item: Dictionary) -> void:
+func add_item_to_inventory(item: Dictionary) -> bool:
 	var profile := get_active_profile()
 	var inv: Variant = profile.get("inventory", [])
 	var inv_array: Array = []
 	if inv is Array:
 		inv_array = (inv as Array).duplicate()
 	
-	inv_array.append(item)
+	# Vérifier la limite
+	if inv_array.size() >= MAX_INVENTORY_SIZE:
+		push_warning("[ProfileManager] Inventory full! Cannot add item.")
+		return false
+	
+	# Initialiser le level si absent
+	var item_copy := item.duplicate()
+	if not item_copy.has("level"):
+		item_copy["level"] = 1
+	
+	inv_array.append(item_copy)
 	_update_active_profile("inventory", inv_array)
+	return true
+
+## Vérifie si l'inventaire est plein
+func is_inventory_full() -> bool:
+	return get_inventory().size() >= MAX_INVENTORY_SIZE
 
 ## Supprime un item de l'inventaire par son ID
 func remove_item_from_inventory(item_id: String) -> void:
@@ -290,6 +308,40 @@ func get_item_by_id(item_id: String) -> Dictionary:
 		if item is Dictionary and str((item as Dictionary).get("id", "")) == item_id:
 			return item as Dictionary
 	return {}
+
+## Calcule le coût d'upgrade pour un level donné
+func get_upgrade_cost(current_level: int) -> int:
+	# Coût exponentiel: 10 * (level^1.5)
+	if current_level >= 10:
+		return 0  # Max level atteint
+	return int(10.0 * pow(float(current_level), 1.5))
+
+## Upgrade un item (augmente son level)
+func upgrade_item(item_id: String) -> bool:
+	var item := get_item_by_id(item_id)
+	if item.is_empty():
+		return false
+	
+	var current_level := int(item.get("level", 1))
+	if current_level >= 10:
+		push_warning("[ProfileManager] Item already at max level!")
+		return false
+	
+	var cost := get_upgrade_cost(current_level)
+	if not spend_crystals(cost):
+		push_warning("[ProfileManager] Not enough crystals to upgrade!")
+		return false
+	
+	# Mettre à jour le level
+	var inv := get_inventory()
+	for i in range(inv.size()):
+		if inv[i] is Dictionary and str(inv[i].get("id", "")) == item_id:
+			inv[i]["level"] = current_level + 1
+			_update_active_profile("inventory", inv)
+			return true
+	
+	return false
+
 
 # =============================================================================
 # LOADOUTS (équipement par vaisseau)
@@ -369,6 +421,72 @@ func get_equipped_item(ship_id: String, slot: String) -> Dictionary:
 	if item_id == "":
 		return {}
 	return get_item_by_id(item_id)
+
+# =============================================================================
+# UNIQUE POWERS (From Items)
+# =============================================================================
+
+## Retourne la liste des Unique Power IDs disponibles via l'équipement actuel
+func get_available_unique_powers(ship_id: String) -> Array:
+	var powers: Array = []
+	var loadout := get_loadout_for_ship(ship_id)
+	
+	for slot_id in loadout:
+		# Ignorer les clés spéciales comme "selected_unique_power"
+		if slot_id == "selected_unique_power":
+			continue
+			
+		var item_id: String = str(loadout[slot_id])
+		if item_id == "": continue
+		
+		# Récupérer l'item complet
+		var item := get_item_by_id(item_id)
+		if item.is_empty(): continue
+		
+		var power_id: String = str(item.get("unique_power_id", ""))
+		# Fallback: Check base unique definition in DataManager
+		if power_id == "":
+			var base_unique := DataManager.get_unique(item_id)
+			if not base_unique.is_empty():
+				power_id = str(base_unique.get("unique_power_id", ""))
+		
+		if power_id != "" and not powers.has(power_id):
+			powers.append(power_id)
+			
+	return powers
+
+## Retourne l'Unique Power actif pour le vaisseau (celui choisi ou par défaut)
+func get_active_unique_power(ship_id: String) -> String:
+	var avail := get_available_unique_powers(ship_id)
+	if avail.is_empty():
+		return ""
+		
+	# Vérifier la sauvegarde
+	var loadout := get_loadout_for_ship(ship_id)
+	var selected: String = str(loadout.get("selected_unique_power", ""))
+	
+	if selected != "" and avail.has(selected):
+		return selected
+		
+	# Par défaut: le premier trouvé
+	return avail[0]
+
+## Défini l'Unique Power actif
+func set_active_unique_power(ship_id: String, power_id: String) -> void:
+	var profile := get_active_profile()
+	var loadouts: Variant = profile.get("loadouts", {})
+	var loadouts_dict: Dictionary = {}
+	if loadouts is Dictionary:
+		loadouts_dict = (loadouts as Dictionary).duplicate(true)
+	
+	if not loadouts_dict.has(ship_id):
+		loadouts_dict[ship_id] = {}
+		
+	var ship_loadout: Dictionary = loadouts_dict[ship_id]
+	ship_loadout["selected_unique_power"] = power_id
+	loadouts_dict[ship_id] = ship_loadout
+	
+	_update_active_profile("loadouts", loadouts_dict)
 
 # =============================================================================
 # UTILITAIRES INTERNES

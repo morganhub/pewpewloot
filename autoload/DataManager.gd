@@ -21,6 +21,7 @@ var _uniques_by_id: Dictionary = {} # unique_id -> data
 var _super_powers: Dictionary = {} # power_id -> data
 var _unique_powers: Dictionary = {} # power_id -> data
 var _boss_powers: Dictionary = {} # power_id -> data
+var _effects: Dictionary = {} # effect_id -> data
 
 var _default_unlocked_ships: Array = []
 
@@ -37,6 +38,7 @@ func _load_all_data() -> void:
 	_load_bosses()
 	_load_loot_data()
 	_load_levels()
+	_load_effects()
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
 	print("[DataManager] Ships: ", _ships.size())
@@ -206,9 +208,18 @@ func get_all_missile_patterns() -> Array:
 # MISSILES (Visuals)
 # =============================================================================
 
+var _default_explosion: Dictionary = {}
+
 func _load_missiles() -> void:
 	_missiles.clear()
+	_default_explosion.clear()
 	var data := _load_json("res://data/missiles/missiles.json")
+	
+	# Load default explosion
+	var raw_explosion: Variant = data.get("default_explosion", {})
+	if raw_explosion is Dictionary:
+		_default_explosion = raw_explosion as Dictionary
+	
 	var raw_missiles: Variant = data.get("missiles", [])
 	if raw_missiles is Array:
 		for missile in raw_missiles:
@@ -221,6 +232,10 @@ func _load_missiles() -> void:
 ## Retourne un missile par son ID
 func get_missile(missile_id: String) -> Dictionary:
 	return _missiles.get(missile_id, {})
+
+## Retourne l'explosion par défaut
+func get_default_explosion() -> Dictionary:
+	return _default_explosion
 
 # =============================================================================
 # POWERS (Super & Unique)
@@ -484,3 +499,22 @@ func _load_json(path: String) -> Dictionary:
 func reload_all() -> void:
 	print("[DataManager] Reloading all data...")
 	_load_all_data()
+
+# =============================================================================
+# EFFECTS
+# =============================================================================
+
+func _load_effects() -> void:
+	_effects.clear()
+	var data := _load_json("res://data/effects.json")
+	var raw_effects: Variant = data.get("effects", [])
+	if raw_effects is Array:
+		for e in raw_effects:
+			if e is Dictionary:
+				var e_dict := e as Dictionary
+				var e_id: String = str(e_dict.get("id", ""))
+				if e_id != "":
+					_effects[e_id] = e_dict
+
+func get_effect(effect_id: String) -> Dictionary:
+	return _effects.get(effect_id, {})

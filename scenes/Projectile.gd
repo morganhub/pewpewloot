@@ -23,8 +23,14 @@ var is_active: bool = false
 var _pattern_data: Dictionary = {}
 var _trajectory_type: String = "straight"
 var _time_alive: float = 0.0
-var _max_lifetime: float = 5.0
+var _max_lifetime: float = 20.0
 var is_critical: bool = false
+
+# New: Acceleration & Explosion
+var _acceleration: float = 0.0
+var _explosion_data: Dictionary = {}
+var _homing_turn_rate: float = 3.0
+var _target: Node2D = null
 
 # Visual
 @onready var visual: Polygon2D = $Visual
@@ -67,6 +73,19 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	# Appliquer le pattern
 	_trajectory_type = str(pattern_data.get("trajectory", "straight"))
 	
+	# Acceleration from missile data
+	_acceleration = float(pattern_data.get("acceleration", 0.0))
+	
+	# Homing turn rate
+	_homing_turn_rate = float(pattern_data.get("homing_turn_rate", 3.0))
+	
+	# Explosion data (missile-specific or default)
+	var missile_explosion: Dictionary = pattern_data.get("explosion_data", {})
+	if missile_explosion.is_empty():
+		_explosion_data = DataManager.get_default_explosion()
+	else:
+		_explosion_data = missile_explosion
+	
 	# Visuel Data
 	# On s'attend à recevoir soit data complète, soit on fallback sur le pattern_data (legacy)
 	var visual_data: Dictionary = pattern_data.get("visual_data", {})
@@ -88,18 +107,65 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	set_process(true)
 
 func _setup_visual(visual_data: Dictionary) -> void:
-	var size: float = float(visual_data.get("size", 8)) * 1.5 # Scale +50%
-	if is_critical:
-		size *= 1.5
+	# Calculate size based on percentage of screen height (if provided) or legacy pixel size
+	var viewport_height: float = get_viewport_rect().size.y
+	var width_pct: float = float(visual_data.get("width_pct", 0.0))
+	var height_pct: float = float(visual_data.get("height_pct", 0.0))
+	
+	var final_width: float
+	var final_height: float
+	
+	if width_pct > 0.0 and height_pct > 0.0:
+		# Use percentage-based sizing
+		final_width = viewport_height * width_pct
+		final_height = viewport_height * height_pct
+	else:
+		# Legacy: use pixel size
+		var size: float = float(visual_data.get("size", 8)) * 1.5
+		final_width = size
+		final_height = size
 	
 	var asset_path: String = str(visual_data.get("asset", ""))
+	var asset_anim: String = str(visual_data.get("asset_anim", ""))
 	var use_asset: bool = false
 	
-	if asset_path != "" and ResourceLoader.exists(asset_path):
+	# Priority 1: AnimatedSprite (asset_anim)
+	if asset_anim != "" and ResourceLoader.exists(asset_anim):
+		var frames = load(asset_anim)
+		if frames is SpriteFrames:
+			use_asset = true
+			visual.visible = false
+			
+			var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+			if not anim_sprite:
+				anim_sprite = AnimatedSprite2D.new()
+				anim_sprite.name = "AnimatedSprite2D"
+				add_child(anim_sprite)
+			
+			anim_sprite.visible = true
+			anim_sprite.sprite_frames = frames
+			anim_sprite.play("default")
+			
+			# Scale to match target size
+			var frame_tex = frames.get_frame_texture("default", 0)
+			if frame_tex:
+				var f_size = frame_tex.get_size()
+				anim_sprite.scale = Vector2(final_width / f_size.x, final_height / f_size.y)
+			
+			# Hide static sprite if exists
+			var static_sprite: Sprite2D = get_node_or_null("Sprite2D")
+			if static_sprite: static_sprite.visible = false
+
+	# Priority 2: Static Sprite (asset)
+	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
 		var texture = load(asset_path)
 		if texture:
 			use_asset = true
 			visual.visible = false
+			
+			# Hide anim sprite if exists
+			var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+			if anim_sprite: anim_sprite.visible = false
 			
 			var sprite: Sprite2D = get_node_or_null("Sprite2D")
 			if not sprite:
@@ -110,33 +176,68 @@ func _setup_visual(visual_data: Dictionary) -> void:
 			sprite.visible = true
 			sprite.texture = texture
 			
-			# Scale
+			# Scale to match target size
 			var tex_size = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
-				sprite.scale = Vector2(size * 2 / tex_size.x, size * 2 / tex_size.y)
+				sprite.scale = Vector2(final_width / tex_size.x, final_height / tex_size.y)
 	
+	# Priority 3: Fallback Polygon2D shape
 	if not use_asset:
-		var color := Color(visual_data.get("color", "#FFFF00"))
-		if is_critical: color = Color.YELLOW
+		var shape_color := Color(visual_data.get("color", "#FFFF00"))
+		if is_critical: shape_color = Color.YELLOW
 		
-		# Cacher sprite
+		# Hide sprites
 		var sprite: Sprite2D = get_node_or_null("Sprite2D")
 		if sprite: sprite.visible = false
+		var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+		if anim_sprite: anim_sprite.visible = false
 		
+		# Show and configure Polygon2D
 		visual.visible = true
-		visual.color = color
-		visual.polygon = _create_circle_polygon(size)
+		visual.color = shape_color
+		
+		# Generate shape polygon
+		var shape_type: String = str(visual_data.get("shape", "circle"))
+		visual.polygon = _create_shape_polygon(shape_type, final_width, final_height)
 	
-	# Collision
-	var shape := collision.shape as CircleShape2D
-	if shape:
-		shape.radius = size / 2.0
+	# Collision - use average of width/height
+	var avg_size: float = (final_width + final_height) / 2.0
+	var col_shape := collision.shape as CircleShape2D
+	if col_shape:
+		col_shape.radius = avg_size / 2.0
 	
-	# Rotation initiale
+	# Initial rotation
 	rotation = direction.angle() + PI / 2
 	
 	show()
 	set_process(true)
+
+func _create_shape_polygon(shape_type: String, width: float, height: float) -> PackedVector2Array:
+	match shape_type:
+		"circle":
+			return _create_circle_polygon(max(width, height) / 2.0)
+		"rectangle":
+			return PackedVector2Array([
+				Vector2(-width/2, -height/2),
+				Vector2(width/2, -height/2),
+				Vector2(width/2, height/2),
+				Vector2(-width/2, height/2)
+			])
+		"triangle":
+			return PackedVector2Array([
+				Vector2(0, -height/2),
+				Vector2(width/2, height/2),
+				Vector2(-width/2, height/2)
+			])
+		"diamond":
+			return PackedVector2Array([
+				Vector2(0, -height/2),
+				Vector2(width/2, 0),
+				Vector2(0, height/2),
+				Vector2(-width/2, 0)
+			])
+		_:
+			return _create_circle_polygon(max(width, height) / 2.0)
 
 func deactivate() -> void:
 	is_active = false
@@ -149,6 +250,11 @@ func _process(delta: float) -> void:
 		return
 	
 	_time_alive += delta
+	
+	# Apply acceleration
+	if _acceleration != 0.0:
+		speed += _acceleration * delta
+		speed = maxf(speed, 50.0) # Minimum speed
 	
 	# Lifetime check
 	if _time_alive >= _max_lifetime:
@@ -165,14 +271,17 @@ func _process(delta: float) -> void:
 			_move_straight(delta)  # Aimed est déjà calculé au spawn
 		"spiral":
 			_move_spiral(delta)
+		"homing":
+			_move_homing(delta)
 		_:
 			_move_straight(delta)
 	
-	# Check hors écran
+	# Check hors écran (Marge plus large pour laisser les projectiles "infinis" traverser tout l'espace possible)
 	var viewport_size := get_viewport_rect().size
-	if global_position.x < -50 or global_position.x > viewport_size.x + 50:
-		deactivate()
-	if global_position.y < -50 or global_position.y > viewport_size.y + 50:
+	var margin := 500.0
+	if global_position.x < -margin or global_position.x > viewport_size.x + margin \
+	or global_position.y < -margin or global_position.y > viewport_size.y + margin:
+		# print("[Projectile] Deactivated off-screen at ", global_position)
 		deactivate()
 
 # =============================================================================
@@ -198,6 +307,30 @@ func _move_spiral(delta: float) -> void:
 	rotation = direction.angle() + PI / 2
 	global_position += direction * speed * delta
 
+func _move_homing(delta: float) -> void:
+	# Find target if not set
+	if _target == null or not is_instance_valid(_target):
+		if is_player_projectile:
+			# Target closest enemy
+			var enemies := get_tree().get_nodes_in_group("enemies")
+			var closest_dist := INF
+			for e in enemies:
+				if e is Node2D:
+					var dist := global_position.distance_to(e.global_position)
+					if dist < closest_dist:
+						closest_dist = dist
+						_target = e
+		else:
+			# Target player
+			_target = get_tree().get_first_node_in_group("player")
+	
+	if _target and is_instance_valid(_target):
+		var to_target: Vector2 = (_target.global_position - global_position).normalized()
+		direction = direction.lerp(to_target, _homing_turn_rate * delta).normalized()
+		rotation = direction.angle() + PI / 2
+	
+	global_position += direction * speed * delta
+
 # =============================================================================
 # COLLISIONS
 # =============================================================================
@@ -210,6 +343,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if is_player_projectile and body.is_in_group("enemies"):
 		if body.has_method("take_damage"):
 			body.take_damage(damage, is_critical)
+		_spawn_explosion()
 		deactivate()
 	
 	# Projectile ennemi touche joueur
@@ -219,7 +353,20 @@ func _on_body_entered(body: Node2D) -> void:
 		# Pour l'instant on appelle take_damage standard
 		if body.has_method("take_damage"):
 			body.take_damage(damage)
+		_spawn_explosion()
 		deactivate()
+
+func _spawn_explosion() -> void:
+	if _explosion_data.is_empty():
+		return
+	
+	var size_val: float = float(_explosion_data.get("size", 20))
+	var anim_path: String = str(_explosion_data.get("asset_anim", ""))
+	var asset_path: String = str(_explosion_data.get("asset", ""))
+	var color_hex: String = str(_explosion_data.get("color", "#FFAA00"))
+	
+	# Priority: asset_anim > asset > geometric (color)
+	VFXManager.spawn_explosion(global_position, size_val, Color(color_hex), get_parent(), asset_path, anim_path)
 
 func _on_area_entered(_area: Area2D) -> void:
 	# Collision avec d'autres projectiles (optionnel)

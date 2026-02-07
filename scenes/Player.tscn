@@ -14,7 +14,11 @@ script = ExtResource("1")
 shape = SubResource("CircleShape2D_player")
 
 [node name="Visual" type="Node2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="Visual"]
+visible = false
 
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual"]
+visible = false
 [node name="ShipPlaceholder" type="Polygon2D" parent="Visual"]
 color = Color(0.2, 1, 0.2, 1)
 polygon = PackedVector2Array(-15, 20, 0, -25, 15, 20)

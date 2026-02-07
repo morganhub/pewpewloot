@@ -37,15 +37,50 @@ func _process(delta: float) -> void:
 # EXPLOSION
 # =============================================================================
 
-func spawn_explosion(pos: Vector2, size: float, color: Color, container: Node2D) -> void:
-	# TODO: Remplacer par AnimatedSprite2D avec spritesheet explosion
-	# Pour le moment: cercle qui grandit et fade
-	
+func spawn_explosion(pos: Vector2, size: float, color: Color, container: Node, asset_path: String = "", asset_anim: String = "") -> void:
 	var explosion := Node2D.new()
 	explosion.global_position = pos
 	container.add_child(explosion)
 	
-	# Cercle visuel
+	# Priority 1: Animated Asset
+	if asset_anim != "" and ResourceLoader.exists(asset_anim):
+		var frames = load(asset_anim)
+		if frames is SpriteFrames:
+			var anim_sprite := AnimatedSprite2D.new()
+			anim_sprite.sprite_frames = frames
+			anim_sprite.name = "ExplosionAnim"
+			explosion.add_child(anim_sprite)
+			anim_sprite.play("default")
+			
+			# Scale based on size?
+			# Assuming default frame size is ~64x64, we scale to match 'size * 2'
+			var tex = frames.get_frame_texture("default", 0)
+			if tex:
+				var s = tex.get_size()
+				anim_sprite.scale = Vector2(size * 4 / s.x, size * 4 / s.y) # Bigger explosion
+
+			# Auto-kill after anim
+			anim_sprite.animation_finished.connect(explosion.queue_free)
+			return
+
+	# Priority 2: Static Asset (Fade out)
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var texture = load(asset_path)
+		if texture:
+			var sprite := Sprite2D.new()
+			sprite.texture = texture
+			explosion.add_child(sprite)
+			
+			# Scale
+			var s = texture.get_size()
+			sprite.scale = Vector2(size * 3 / s.x, size * 3 / s.y)
+			
+			var alpha_tween := create_tween()
+			alpha_tween.tween_property(sprite, "modulate:a", 0.0, 0.4)
+			alpha_tween.tween_callback(explosion.queue_free)
+			return
+
+	# Priority 3: Geometric Fallback
 	var circle := Polygon2D.new()
 	circle.color = color
 	circle.polygon = _create_circle(size)
@@ -62,7 +97,7 @@ func spawn_explosion(pos: Vector2, size: float, color: Color, container: Node2D)
 	for i in range(8):
 		_spawn_particle(pos, size, color, container)
 
-func _spawn_particle(pos: Vector2, size: float, color: Color, container: Node2D) -> void:
+func _spawn_particle(pos: Vector2, size: float, color: Color, container: Node) -> void:
 	var particle := Polygon2D.new()
 	particle.global_position = pos
 	particle.color = color
@@ -82,7 +117,7 @@ func _spawn_particle(pos: Vector2, size: float, color: Color, container: Node2D)
 # HIT FLASH
 # =============================================================================
 
-func flash_sprite(node: Node2D, flash_color: Color = Color.WHITE, duration: float = 0.1) -> void:
+func flash_sprite(node: Node, flash_color: Color = Color.WHITE, duration: float = 0.1) -> void:
 	# Trouver le Polygon2D ou Sprite2D
 	var visual: Node = null
 	for child in node.get_children():
@@ -112,7 +147,7 @@ func flash_sprite(node: Node2D, flash_color: Color = Color.WHITE, duration: floa
 # IMPACT
 # =============================================================================
 
-func spawn_impact(pos: Vector2, size: float, container: Node2D) -> void:
+func spawn_impact(pos: Vector2, size: float, container: Node) -> void:
 	# Petit flash au point d'impact
 	var impact := Polygon2D.new()
 	impact.global_position = pos
@@ -130,7 +165,7 @@ func spawn_impact(pos: Vector2, size: float, container: Node2D) -> void:
 # FLOATING TEXT
 # =============================================================================
 
-func spawn_floating_text(pos: Vector2, text: String, color: Color, container: Node2D) -> void:
+func spawn_floating_text(pos: Vector2, text: String, color: Color, container: Node) -> void:
 	var label := Label.new()
 	label.text = text
 	label.modulate = color

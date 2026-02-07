@@ -78,7 +78,9 @@ func _start_wave(wave: Dictionary) -> void:
 		_pending_spawns.append({
 			"delay": spawn_delay,
 			"enemy_id": enemy_id,
-			"pattern_id": pattern_id
+			"pattern_id": pattern_id,
+			"origin_x": wave.get("origin_x", "50%"),
+			"origin_y": wave.get("origin_y", -50)
 		})
 
 func _process_pending_spawns(delta: float) -> void:
@@ -98,13 +100,29 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 	# Override pattern si défini dans la vague
 	if spawn_info["pattern_id"] != "":
 		enemy_data["move_pattern_id"] = spawn_info["pattern_id"]
+
+	# Calculer la position de spawn
+	var viewport_size := get_viewport().get_visible_rect().size
+	var spawn_pos := Vector2.ZERO
 	
-	# Position calculée dans Game.gd ou ici ?
-	# On va émettre un signal et laisser Game.gd décider de la position X exacte
-	# ou on calcule une position X intelligente ici ?
-	# Pour éviter le chevauchement, l'intervalle temporel suffit souvent si le pattern bouge.
-	# Si pattern "straight_down", X est important.
-	
-	# On va laisser Game.gd gérer, mais on pourrait passer une hint.
-	
-	spawn_enemy.emit(enemy_data, Vector2.ZERO)
+	# X
+	var ox = spawn_info.get("origin_x", "50%")
+	if ox is String and ox == "random":
+		spawn_pos.x = randf_range(50, viewport_size.x - 50)
+	elif ox is String and ox.ends_with("%"):
+		var pct := float(ox.replace("%", "")) / 100.0
+		spawn_pos.x = viewport_size.x * pct
+	else:
+		spawn_pos.x = float(ox)
+		
+	# Y
+	var oy = spawn_info.get("origin_y", -50)
+	if oy is String and oy == "random":
+		spawn_pos.y = randf_range(50, viewport_size.y - 50)
+	elif oy is String and oy.ends_with("%"):
+		var pct := float(oy.replace("%", "")) / 100.0
+		spawn_pos.y = viewport_size.y * pct
+	else:
+		spawn_pos.y = float(oy)
+
+	spawn_enemy.emit(enemy_data, spawn_pos)

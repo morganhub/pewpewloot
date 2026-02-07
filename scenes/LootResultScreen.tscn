@@ -12,27 +12,38 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_loot")
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=1018799003]
+[node name="Background" type="TextureRect" parent="." unique_id=1018799003]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.862745)
+expand_mode = 1
+stretch_mode = 6
+
+[node name="FallbackBg" type="ColorRect" parent="." unique_id=2028645517]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.15, 0.95)
 
 [node name="CenterContainer" type="CenterContainer" parent="." unique_id=1025210087]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = -220.0
-offset_bottom = -787.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer" unique_id=466667875]
-custom_minimum_size = Vector2(500, 400)
+custom_minimum_size = Vector2(500, 500)
 layout_mode = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer" unique_id=760801156]
@@ -58,18 +69,19 @@ layout_mode = 2
 [node name="ItemNameLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=885455228]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 28
 text = "Super Weapon"
 horizontal_alignment = 1
 
 [node name="ItemTypeLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=696863965]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 text = "Primary - Lv.5"
 horizontal_alignment = 1
 
 [node name="Panel" type="Panel" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=2144879789]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 
 [node name="StatsLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Panel" unique_id=1237312690]
@@ -88,27 +100,26 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1777458914]
+[node name="ButtonsContainer" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=797777726]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 30
 alignment = 1
 
-[node name="KeepButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1642955269]
-custom_minimum_size = Vector2(100, 50)
-layout_mode = 2
-text = "Garder"
-
-[node name="EquipButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1387234964]
-custom_minimum_size = Vector2(100, 50)
-layout_mode = 2
-text = "Équiper"
-
-[node name="DisassembleButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=679131834]
+[node name="EquipButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer" unique_id=408543210]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(160, 60)
 layout_mode = 2
-text = "♻️ Recycler (+5 💎)"
+theme_override_font_sizes/font_size = 18
+text = "Équiper"
+icon_alignment = 1
 
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/KeepButton" to="." method="_on_keep_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/EquipButton" to="." method="_on_equip_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/DisassembleButton" to="." method="_on_disassemble_pressed"]
+[node name="DisassembleButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer" unique_id=920970897]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Recycler"
+icon_alignment = 1
+
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer/EquipButton" to="." method="_on_equip_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer/DisassembleButton" to="." method="_on_disassemble_pressed"]

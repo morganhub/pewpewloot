@@ -1,0 +1,12 @@
+{
+    "effects": [
+        {
+            "id": "boss_explosion",
+            "name": "Boss Explosion",
+            "asset": "res://assets/effects/boss_explosion.png",
+            "fallback_color": "#0088FF",
+            "frame_count": 8,
+            "fps": 12
+        }
+    ]
+}

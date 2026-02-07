@@ -14,6 +14,18 @@ func execute_power(power_id: String, source: Node2D) -> void:
 	var duration: float = float(data.get("duration", 2.0))
 	var invincibility: bool = bool(data.get("invincibility", false))
 	
+	# Feedback Visuel
+	VFXManager.flash_sprite(source, Color.WHITE, 0.2)
+	VFXManager.spawn_floating_text(source.global_position, "POWER ACTIVE!", Color.ORANGE, get_tree().root)
+
+	# 0. Flag d'exécution
+	if "_is_executing_power" in source:
+		source.set("_is_executing_power", true)
+		get_tree().create_timer(duration).timeout.connect(func():
+			if is_instance_valid(source) and "_is_executing_power" in source:
+				source.set("_is_executing_power", false)
+		)
+
 	# 1. Invincibilité
 	if invincibility and source.has_method("set_invincible"):
 		source.set_invincible(true)
@@ -35,7 +47,7 @@ func execute_power(power_id: String, source: Node2D) -> void:
 
 func _handle_movement(source: Node2D, move_data: Dictionary, duration: float) -> void:
 	var type: String = str(move_data.get("type", ""))
-	var speed: float = float(move_data.get("speed", 300))
+	var _speed: float = float(move_data.get("speed", 300))
 	var dist_pct: float = float(move_data.get("distance_pct", 50))
 	
 	var viewport_size := source.get_viewport_rect().size
@@ -60,8 +72,17 @@ func _handle_movement(source: Node2D, move_data: Dictionary, duration: float) ->
 			
 		"spin_center":
 			# Aller au centre et tourner
-			var center = viewport_size / 2
-			tween.tween_property(source, "global_position", center, 0.5)
+			var center = Vector2(viewport_size.x / 2, viewport_size.y * 0.3)
+			tween.tween_property(source, "global_position", center, duration * 0.2).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+			tween.tween_property(source, "rotation_degrees", 360.0, duration * 0.6)
+			tween.tween_property(source, "global_position", start_pos, duration * 0.2).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+			tween.parallel().tween_property(source, "rotation_degrees", 0.0, duration * 0.2)
+			
+		"dash_forward":
+			# Dash vers le bas puis remonte
+			var target_y = start_pos.y + 200
+			tween.tween_property(source, "global_position:y", target_y, duration * 0.3).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+			tween.tween_property(source, "global_position:y", start_pos.y, duration * 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 			# Rotation visuals handled by VFX? Or rotate source? 
 			# Vaut mieux éviter de rotate le CharacterBody2D car ça casse les contrôles inputs (axis).
 			# On suppose que c'est visuel seulement, ou on laisse tel quel.
@@ -77,15 +98,19 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 	var size: float = float(proj_data.get("size", 20))
 	var color_hex: String = str(proj_data.get("color", "#FFFF00"))
 	var safe_zones: Variant = proj_data.get("safe_zones", null)
+	var aim_target: bool = bool(proj_data.get("aim_target", false))
 	
 	var pattern := {
 		"trajectory": trajectory,
+		"aim_target": aim_target,
 		"speed": 400.0,
 		"damage": 50, # High damage info
 		"visual_data": {
 			"size": size,
 			"color": color_hex,
-			"shape": "circle"
+			"shape": "circle",
+			"asset": str(proj_data.get("asset", "")),
+			"asset_anim": str(proj_data.get("asset_anim", ""))
 		}
 	}
 	
@@ -121,9 +146,9 @@ func _spawn_wave(source: Node2D, count: int, pattern: Dictionary, trajectory: St
 			var skip := false
 			for zone in safe_angles:
 				# Normalize angle checks (handles wrapping)
-				var a = posmod(angle, TAU)
-				var s = posmod(zone[0], TAU)
-				var e = posmod(zone[1], TAU)
+				var a = fposmod(angle, TAU)
+				var s = fposmod(zone[0], TAU)
+				var e = fposmod(zone[1], TAU)
 				
 				# Simple range check handling wrap-around
 				if s < e:

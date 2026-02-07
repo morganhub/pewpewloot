@@ -57,3 +57,7 @@ func translate(key: String, params: Dictionary = {}) -> String:
 ## Raccourci pour les traductions simples sans paramètres
 func t(key: String) -> String:
 	return translate(key, {})
+
+## Vérifie si une clé existe dans les cordes chargées
+func has_key(key: String) -> bool:
+	return _strings.has(key)

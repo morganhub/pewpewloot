@@ -27,6 +27,10 @@ func setup(texture: Texture2D, scroll_speed: float, _viewport_size: Vector2) -> 
 		s2.centered = false
 		s2.position.y = -_texture_height
 		add_child(s2)
+		
+		# Start layer off-screen (above viewport) to prevent "popping"
+		# Layers will smoothly scroll down into view
+		position.y = -_texture_height
 
 func _process(delta: float) -> void:
 	# Algorithme de défilement demandé :

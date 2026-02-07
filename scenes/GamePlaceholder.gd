@@ -10,8 +10,8 @@ func _ready() -> void:
 	_refresh_info()
 
 func _refresh_info() -> void:
-	var world_id := str(App.get_meta("selected_world_id"))
-	var level_index := int(App.get_meta("selected_level_index"))
+	var world_id := App.current_world_id
+	var level_index := App.current_level_index
 	
 	# Récupérer le nom du monde et du niveau
 	var world := App.get_world(world_id)
@@ -26,8 +26,8 @@ func _refresh_info() -> void:
 	info_label.text += "\nVaisseau : " + ship_name
 
 func _on_complete_pressed() -> void:
-	var world_id := str(App.get_meta("selected_world_id"))
-	var level_index := int(App.get_meta("selected_level_index"))
+	var world_id := App.current_world_id
+	var level_index := App.current_level_index
 
 	# Marque le niveau comme complété -> unlock suivant
 	ProfileManager.complete_level(world_id, level_index, 6)

@@ -1,175 +1,206 @@
 {
-    "enemies": [
-        {
-            "id": "scout_basic",
-            "name": "Éclaireur",
-            "hp": 20,
-            "size": {
-                "width": 30,
-                "height": 30
-            },
-            "color": "#FF4444",
-            "shape": "circle",
-            "asset": "",
-            "move_pattern_id": "straight_down",
-            "missile_pattern_id": "single_straight",
-            "missile_id": "missile_default",
-            "fire_rate": 2.0,
-            "score": 10,
-            "loot_chance": 0.1
-        },
-        {
-            "id": "fighter_aggressive",
-            "name": "Chasseur",
-            "hp": 40,
-            "size": {
-                "width": 35,
-                "height": 35
-            },
-            "color": "#FF2222",
-            "shape": "triangle",
-            "asset": "",
-            "move_pattern_id": "zigzag_horizontal",
-            "missile_pattern_id": "triple_spread",
-            "fire_rate": 1.5,
-            "score": 25,
-            "loot_chance": 0.15
-        },
-        {
-            "id": "bomber_heavy",
-            "name": "Bombardier",
-            "hp": 60,
-            "size": {
-                "width": 45,
-                "height": 40
-            },
-            "color": "#DD3333",
-            "shape": "rectangle",
-            "asset": "",
-            "move_pattern_id": "straight_down",
-            "missile_pattern_id": "burst_5",
-            "fire_rate": 3.0,
-            "score": 40,
-            "loot_chance": 0.2
-        },
-        {
-            "id": "spinner_circular",
-            "name": "Virevoltant",
-            "hp": 30,
-            "size": {
-                "width": 32,
-                "height": 32
-            },
-            "color": "#FF6644",
-            "shape": "circle",
-            "asset": "",
-            "move_pattern_id": "circle_clockwise",
-            "missile_pattern_id": "circle_8",
-            "fire_rate": 4.0,
-            "score": 50,
-            "loot_chance": 0.25
-        },
-        {
-            "id": "sniper_precise",
-            "name": "Tireur d'élite",
-            "hp": 25,
-            "size": {
-                "width": 28,
-                "height": 28
-            },
-            "color": "#FF8844",
-            "shape": "diamond",
-            "asset": "",
-            "move_pattern_id": "wave_horizontal",
-            "missile_pattern_id": "aimed_player",
-            "fire_rate": 2.5,
-            "score": 35,
-            "loot_chance": 0.18
-        },
-        {
-            "id": "tank_armored",
-            "name": "Tank blindé",
-            "hp": 100,
-            "size": {
-                "width": 50,
-                "height": 45
-            },
-            "color": "#CC2222",
-            "shape": "rectangle",
-            "asset": "",
-            "move_pattern_id": "straight_down",
-            "missile_pattern_id": "cone_forward",
-            "fire_rate": 2.0,
-            "score": 60,
-            "loot_chance": 0.3
-        },
-        {
-            "id": "drone_fast",
-            "name": "Drone rapide",
-            "hp": 15,
-            "size": {
-                "width": 25,
-                "height": 25
-            },
-            "color": "#FF5555",
-            "shape": "circle",
-            "asset": "",
-            "move_pattern_id": "rush_player",
-            "missile_pattern_id": "double_side",
-            "fire_rate": 1.0,
-            "score": 20,
-            "loot_chance": 0.12
-        },
-        {
-            "id": "artillery_stationary",
-            "name": "Artillerie",
-            "hp": 80,
-            "size": {
-                "width": 40,
-                "height": 40
-            },
-            "color": "#AA2222",
-            "shape": "hexagon",
-            "asset": "",
-            "move_pattern_id": "stationary",
-            "missile_pattern_id": "spiral_continuous",
-            "fire_rate": 0.5,
-            "score": 70,
-            "loot_chance": 0.35
-        },
-        {
-            "id": "interceptor_diagonal",
-            "name": "Intercepteur",
-            "hp": 35,
-            "size": {
-                "width": 33,
-                "height": 30
-            },
-            "color": "#FF3344",
-            "shape": "triangle",
-            "asset": "",
-            "move_pattern_id": "diagonal_right",
-            "missile_pattern_id": "rapid_burst",
-            "fire_rate": 1.2,
-            "score": 30,
-            "loot_chance": 0.16
-        },
-        {
-            "id": "bouncer_erratic",
-            "name": "Rebondisseur",
-            "hp": 45,
-            "size": {
-                "width": 38,
-                "height": 38
-            },
-            "color": "#EE4444",
-            "shape": "circle",
-            "asset": "",
-            "move_pattern_id": "bounce_horizontal",
-            "missile_pattern_id": "wave_pattern",
-            "fire_rate": 1.8,
-            "score": 45,
-            "loot_chance": 0.22
-        }
-    ]
+	"enemies": [
+		{
+			"id": "scout_basic",
+			"name": "Éclaireur",
+			"hp": 20,
+			"size": {
+				"width": 50,
+				"height": 80
+			},
+			"visual": {
+				"color": "#FF4444",
+				"shape": "circle",
+				"asset": "res://assets/enemies/ennemy.png",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "straight_down",
+			"missile_pattern_id": "single_straight",
+			"missile_id": "missile_default",
+			"fire_rate": 2.0,
+			"score": 10,
+			"loot_chance": 0.1
+		},
+		{
+			"id": "fighter_aggressive",
+			"name": "Chasseur",
+			"hp": 40,
+			"size": {
+				"width": 35,
+				"height": 35
+			},
+			"visual": {
+				"color": "#FF2222",
+				"shape": "triangle",
+				"asset": "res://assets/enemies/ennemy.png",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "figure_eight",
+			"missile_pattern_id": "triple_spread",
+			"fire_rate": 1.5,
+			"score": 25,
+			"loot_chance": 0.15
+		},
+		{
+			"id": "bomber_heavy",
+			"name": "Bombardier",
+			"hp": 60,
+			"size": {
+				"width": 45,
+				"height": 40
+			},
+			"visual": {
+				"color": "#DD3333",
+				"shape": "rectangle",
+				"asset": "res://assets/enemies/ennemy.png",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "straight_down",
+			"missile_pattern_id": "burst_5",
+			"fire_rate": 3.0,
+			"score": 40,
+			"loot_chance": 0.2
+		},
+		{
+			"id": "spinner_circular",
+			"name": "Virevoltant",
+			"hp": 30,
+			"size": {
+				"width": 32,
+				"height": 32
+			},
+			"visual": {
+				"color": "#FF6644",
+				"shape": "circle",
+				"asset": "res://assets/enemies/ennemy.png",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "circle_clockwise",
+			"missile_pattern_id": "circle_8",
+			"fire_rate": 4.0,
+			"score": 50,
+			"loot_chance": 0.25
+		},
+		{
+			"id": "sniper_precise",
+			"name": "Tireur d'élite",
+			"hp": 25,
+			"size": {
+				"width": 28,
+				"height": 28
+			},
+			"visual": {
+				"color": "#FF8844",
+				"shape": "diamond",
+				"asset": "res://assets/enemies/ennemy.png",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "random_strafe",
+			"missile_pattern_id": "aimed_player",
+			"fire_rate": 2.5,
+			"score": 35,
+			"loot_chance": 0.18
+		},
+		{
+			"id": "tank_armored",
+			"name": "Tank blindé",
+			"hp": 100,
+			"size": {
+				"width": 50,
+				"height": 45
+			},
+			"visual": {
+				"color": "#CC2222",
+				"shape": "rectangle",
+				"asset": "res://assets/enemies/ennemy.png",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "straight_down",
+			"missile_pattern_id": "cone_forward",
+			"fire_rate": 2.0,
+			"score": 60,
+			"loot_chance": 0.3
+		},
+		{
+			"id": "drone_fast",
+			"name": "Drone rapide",
+			"hp": 15,
+			"size": {
+				"width": 25,
+				"height": 25
+			},
+			"visual": {
+				"color": "#FF5555",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "rush_player",
+			"missile_pattern_id": "double_side",
+			"fire_rate": 1.0,
+			"score": 20,
+			"loot_chance": 0.12
+		},
+		{
+			"id": "artillery_stationary",
+			"name": "Artillerie",
+			"hp": 80,
+			"size": {
+				"width": 40,
+				"height": 40
+			},
+			"visual": {
+				"color": "#AA2222",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "stationary",
+			"missile_pattern_id": "spiral_continuous",
+			"fire_rate": 0.5,
+			"score": 70,
+			"loot_chance": 0.35
+		},
+		{
+			"id": "interceptor_diagonal",
+			"name": "Intercepteur",
+			"hp": 35,
+			"size": {
+				"width": 33,
+				"height": 30
+			},
+			"visual": {
+				"color": "#FF3344",
+				"shape": "triangle",
+				"asset": "",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "bezier_curve",
+			"missile_pattern_id": "homing_barrage",
+			"missile_id": "missile_homing",
+			"fire_rate": 1.2,
+			"score": 30,
+			"loot_chance": 0.16
+		},
+		{
+			"id": "bouncer_erratic",
+			"name": "Rebondisseur",
+			"hp": 45,
+			"size": {
+				"width": 38,
+				"height": 38
+			},
+			"visual": {
+				"color": "#EE4444",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": ""
+			},
+			"move_pattern_id": "bounce_horizontal",
+			"missile_pattern_id": "wave_pattern",
+			"fire_rate": 1.8,
+			"score": 45,
+			"loot_chance": 0.22
+		}
+	]
 }

@@ -1,27 +1,84 @@
 {
-    "missiles": [
-        {
-            "id": "missile_default",
-            "name": "Default Missile",
-            "type": "basic",
-            "visual": {
-                "color": "#FFFF00",
-                "shape": "circle",
-                "size": 8,
-                "asset": ""
-            }
-        },
-        {
-            "id": "missile_car",
-            "name": "Car Missile",
-            "type": "basic",
-            "speed": 600,
-            "visual": {
-                "color": "#FF0000",
-                "shape": "circle",
-                "size": 10,
-                "asset": "res://assets/missiles/car_missile.png"
-            }
-        }
-    ]
+	"default_explosion": {
+		"size": 20,
+		"color": "#FFAA00",
+		"asset": "",
+		"asset_anim": ""
+	},
+	"missiles": [
+		{
+			"id": "missile_default",
+			"name": "Default Missile",
+			"type": "basic",
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#FFFF00",
+				"shape": "circle",
+				"size": 8,
+				"width_pct": 0.025,
+				"height_pct": 0.025,
+				"asset": "res://assets/missiles/blue_ball.png",
+				"asset_anim": ""
+			},
+			"explosion": {}
+		},
+		{
+			"id": "missile_car",
+			"name": "Car Missile",
+			"type": "basic",
+			"speed": 150,
+			"acceleration": 50,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#FF0000",
+				"shape": "circle",
+				"size": 10,
+				"width_pct": 0.03,
+				"height_pct": 0.08,
+				"asset": "",
+				"asset_anim": "res://assets/missiles/sacred_missile.tres"
+			},
+			"explosion": {}
+		},
+		{
+			"id": "missile_homing",
+			"name": "Homing Missile",
+			"type": "homing",
+			"speed": 250,
+			"acceleration": 100,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#FF4444",
+				"shape": "triangle",
+				"size": 10,
+				"width_pct": 0.03,
+				"height_pct": 0.03,
+				"asset": "",
+				"asset_anim": ""
+			},
+			"explosion": {
+				"size": 30,
+				"color": "#FF2222"
+			}
+		},
+		{
+			"id": "missile_wave",
+			"name": "Wave Missile",
+			"type": "wave",
+			"speed": 300,
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#44AAFF",
+				"shape": "circle",
+				"size": 8,
+				"width_pct": 0.025,
+				"height_pct": 0.025,
+				"asset": "",
+				"asset_anim": ""
+			},
+			"explosion": {}
+		}
+	]
 }

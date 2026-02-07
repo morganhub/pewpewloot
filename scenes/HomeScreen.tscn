@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://s10rr2lkydv2" path="res://scenes/HomeScreen.gd" id="1_home"]
 
-[node name="HomeScreen" type="Control" unique_id=1774589415]
+[node name="HomeScreen" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,79 +11,120 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_home")
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=764109846]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
-offset_right = 720.0
-offset_bottom = 1280.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=2045471269]
-layout_mode = 2
-theme_override_constants/separation = 15
+
+
+[node name="TopSection" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 0.4
+offset_left = 20.0
+offset_top = 30.0
+offset_right = -20.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=388675772]
+[node name="LogoTexture" type="TextureRect" parent="TopSection"]
+visible = false
 layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LogoAnimContainer" type="Control" parent="TopSection"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+
+[node name="LogoAnim" type="AnimatedSprite2D" parent="TopSection/LogoAnimContainer"]
+position = Vector2(340, 60)
+
+[node name="TitleLabel" type="Label" parent="TopSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
 text = "PEWPEWLOOT"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="CrystalLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=111222333]
+[node name="ProfileInfo" type="HBoxContainer" parent="TopSection"]
 layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 40
+
+[node name="CrystalLabel" type="Label" parent="TopSection/ProfileInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
 theme_override_colors/font_color = Color(0.4, 1, 1, 1)
 text = "💎 0"
 horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1692803490]
+[node name="ShipPreview" type="HBoxContainer" parent="TopSection/ProfileInfo"]
 layout_mode = 2
-
-[node name="ProfileLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1623084144]
-layout_mode = 2
-text = "Profil: ---"
-horizontal_alignment = 1
-
-[node name="ShipLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=667643264]
-layout_mode = 2
-text = "Vaisseau: ---"
-horizontal_alignment = 1
-
-[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1698405309]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-
-[node name="ButtonsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1470034498]
-layout_mode = 2
-theme_override_constants/separation = 12
 alignment = 1
 
-[node name="PlayButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer" unique_id=336427105]
-custom_minimum_size = Vector2(250, 50)
+[node name="BottomSection" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.4
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 0.0
+offset_right = -20.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="PlayButton" type="Button" parent="BottomSection"]
 layout_mode = 2
 size_flags_horizontal = 4
+custom_minimum_size = Vector2(540, 70)
+theme_override_font_sizes/font_size = 24
 text = "🎮 Jouer"
 
-[node name="ShipButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer" unique_id=871079465]
-custom_minimum_size = Vector2(250, 50)
+[node name="ShipButton" type="Button" parent="BottomSection"]
 layout_mode = 2
 size_flags_horizontal = 4
+custom_minimum_size = Vector2(540, 70)
+theme_override_font_sizes/font_size = 24
 text = "🚀 Vaisseau"
 
-[node name="OptionsButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer" unique_id=1721778678]
-custom_minimum_size = Vector2(250, 50)
+[node name="OptionsButton" type="Button" parent="BottomSection"]
 layout_mode = 2
 size_flags_horizontal = 4
+custom_minimum_size = Vector2(540, 70)
+theme_override_font_sizes/font_size = 24
 disabled = true
 text = "⚙️ Options"
 
-[node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer" unique_id=470505874]
-custom_minimum_size = Vector2(250, 50)
+[node name="QuitButton" type="Button" parent="BottomSection"]
 layout_mode = 2
 size_flags_horizontal = 4
+custom_minimum_size = Vector2(540, 70)
+theme_override_font_sizes/font_size = 24
 text = "🚪 Quitter"
 
-[node name="Spacer2" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1895260430]
+[node name="Spacer" type="Control" parent="BottomSection"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="ChangeProfileButton" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1084144880]
+[node name="ChangeProfileButton" type="Button" parent="BottomSection"]
 layout_mode = 2
 size_flags_horizontal = 4
+custom_minimum_size = Vector2(300, 50)
+theme_override_font_sizes/font_size = 18
 text = "Changer de profil"

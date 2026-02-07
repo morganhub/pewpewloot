@@ -1,0 +1,92 @@
+extends Control
+
+## OptionsMenu — Menu des options avec sélection de langue.
+## Accessible depuis l'écran d'accueil via le bouton "Options".
+
+# =============================================================================
+# RÉFÉRENCES UI
+# =============================================================================
+
+@onready var background_rect: TextureRect = $Background
+@onready var title_label: Label = $MarginContainer/VBoxContainer/Header/TitleLabel
+@onready var back_button: Button = $MarginContainer/VBoxContainer/Header/BackButton
+@onready var language_label: Label = $MarginContainer/VBoxContainer/LanguageSection/LanguageLabel
+@onready var language_dropdown: OptionButton = $MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown
+
+var _game_config: Dictionary = {}
+
+# =============================================================================
+# LIFECYCLE
+# =============================================================================
+
+func _ready() -> void:
+	_load_game_config()
+	_setup_background()
+	_setup_language_dropdown()
+	_apply_translations()
+	
+	# Connect signals
+	back_button.pressed.connect(_on_back_pressed)
+	language_dropdown.item_selected.connect(_on_language_selected)
+
+func _load_game_config() -> void:
+	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		var err := json.parse(file.get_as_text())
+		file.close()
+		if err == OK and json.data is Dictionary:
+			_game_config = json.data
+
+func _setup_background() -> void:
+	var menu_config: Dictionary = _game_config.get("main_menu", {})
+	var bg_path: String = str(menu_config.get("background", ""))
+	
+	if bg_path != "" and ResourceLoader.exists(bg_path):
+		var tex = load(bg_path)
+		if tex and background_rect:
+			background_rect.texture = tex
+			background_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			background_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	else:
+		# Fallback: dark background
+		if background_rect:
+			background_rect.visible = false
+
+func _setup_language_dropdown() -> void:
+	# Sync dropdown selection with current locale
+	var current_locale := LocaleManager.get_locale()
+	match current_locale:
+		"fr":
+			language_dropdown.select(0)
+		"en":
+			language_dropdown.select(1)
+		_:
+			language_dropdown.select(0)
+
+func _apply_translations() -> void:
+	title_label.text = LocaleManager.translate("options_title")
+	language_label.text = LocaleManager.translate("options_language")
+	back_button.text = LocaleManager.translate("options_back")
+
+# =============================================================================
+# CALLBACKS
+# =============================================================================
+
+func _on_back_pressed() -> void:
+	var switcher := get_tree().current_scene
+	switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+func _on_language_selected(index: int) -> void:
+	var new_locale: String = ""
+	match index:
+		0:
+			new_locale = "fr"
+		1:
+			new_locale = "en"
+	
+	if new_locale != "" and new_locale != LocaleManager.get_locale():
+		LocaleManager.set_locale(new_locale)
+		# Re-apply translations immediately
+		_apply_translations()
+		print("[OptionsMenu] Language changed to: ", new_locale)

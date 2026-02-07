@@ -1,0 +1,67 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://cm706chvtwrng"]
+
+[ext_resource type="Texture2D" uid="uid://ct8elovhfvv8b" path="res://assets/missiles/sacred_missile.png" id="1_belug"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wto4h"]
+atlas = ExtResource("1_belug")
+region = Rect2(0, 0, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r41ky"]
+atlas = ExtResource("1_belug")
+region = Rect2(119, 0, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qr0vj"]
+atlas = ExtResource("1_belug")
+region = Rect2(238, 0, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wrm7y"]
+atlas = ExtResource("1_belug")
+region = Rect2(357, 0, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_m6nn3"]
+atlas = ExtResource("1_belug")
+region = Rect2(0, 595, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5bnl3"]
+atlas = ExtResource("1_belug")
+region = Rect2(119, 595, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_aa5pm"]
+atlas = ExtResource("1_belug")
+region = Rect2(238, 595, 119, 595)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lh4pm"]
+atlas = ExtResource("1_belug")
+region = Rect2(357, 595, 119, 595)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wto4h")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r41ky")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qr0vj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wrm7y")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_m6nn3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5bnl3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_aa5pm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lh4pm")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]

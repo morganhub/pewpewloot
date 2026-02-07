@@ -1,66 +1,228 @@
 extends Control
 
 ## HomeScreen — Écran d'accueil après sélection/chargement du profil.
-## Affiche le profil actif et le vaisseau sélectionné.
-## Navigation: Jouer, Vaisseau, Options, Quitter.
+## Layout: Top 40% for title/info, Bottom 60% for buttons.
+## Buttons are 75% screen width.
 
 # =============================================================================
 # RÉFÉRENCES UI
 # =============================================================================
 
-@onready var title_label: Label = $MarginContainer/VBoxContainer/TitleLabel
-@onready var crystal_label: Label = $MarginContainer/VBoxContainer/CrystalLabel
-@onready var profile_label: Label = $MarginContainer/VBoxContainer/ProfileLabel
-@onready var ship_label: Label = $MarginContainer/VBoxContainer/ShipLabel
-@onready var play_button: Button = $MarginContainer/VBoxContainer/ButtonsContainer/PlayButton
-@onready var ship_button: Button = $MarginContainer/VBoxContainer/ButtonsContainer/ShipButton
-@onready var options_button: Button = $MarginContainer/VBoxContainer/ButtonsContainer/OptionsButton
-@onready var quit_button: Button = $MarginContainer/VBoxContainer/ButtonsContainer/QuitButton
-@onready var change_profile_button: Button = $MarginContainer/VBoxContainer/ChangeProfileButton
+@onready var background_rect: TextureRect = $Background
+@onready var top_section: VBoxContainer = $TopSection
+@onready var bottom_section: VBoxContainer = $BottomSection
+
+@onready var title_label: Label = $TopSection/TitleLabel
+@onready var logo_texture: TextureRect = $TopSection/LogoTexture
+@onready var logo_anim_container: Control = $TopSection/LogoAnimContainer
+@onready var logo_anim: AnimatedSprite2D = $TopSection/LogoAnimContainer/LogoAnim
+@onready var profile_info: HBoxContainer = $TopSection/ProfileInfo
+@onready var crystal_label: Label = $TopSection/ProfileInfo/CrystalLabel
+@onready var ship_preview: Control = $TopSection/ProfileInfo/ShipPreview
+
+@onready var play_button: Button = $BottomSection/PlayButton
+@onready var ship_button: Button = $BottomSection/ShipButton
+@onready var options_button: Button = $BottomSection/OptionsButton
+@onready var quit_button: Button = $BottomSection/QuitButton
+@onready var change_profile_button: Button = $BottomSection/ChangeProfileButton
+
+var _game_config: Dictionary = {}
 
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
 
 func _ready() -> void:
-	# Connexions
+	_load_game_config()
+	_setup_layout()
+	_setup_background()
+	_setup_logo()
+	_setup_buttons()
+	_apply_translations()
+	_update_info()
+	
+	# Connect signals
 	play_button.pressed.connect(_on_play_pressed)
 	ship_button.pressed.connect(_on_ship_pressed)
 	options_button.pressed.connect(_on_options_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	change_profile_button.pressed.connect(_on_change_profile_pressed)
+
+func _load_game_config() -> void:
+	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		var err := json.parse(file.get_as_text())
+		file.close()
+		if err == OK and json.data is Dictionary:
+			_game_config = json.data
+
+func _setup_layout() -> void:
+	# Layout is handled by anchors
+	pass
+
+func _setup_background() -> void:
+	var menu_config: Dictionary = _game_config.get("main_menu", {})
+	var bg_path: String = str(menu_config.get("background", ""))
+	var bg_anim_path: String = str(menu_config.get("background_anim", ""))
 	
-	# Appliquer les traductions et afficher les infos
-	_apply_translations()
-	_update_info()
+	# Priority: anim > static > fallback color
+	if bg_anim_path != "" and ResourceLoader.exists(bg_anim_path):
+		# TODO: Handle animated background
+		pass
+	elif bg_path != "" and ResourceLoader.exists(bg_path):
+		var tex = load(bg_path)
+		if tex and background_rect:
+			background_rect.texture = tex
+			background_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			background_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	else:
+		# Fallback: dark gradient
+		if background_rect:
+			background_rect.visible = false
+
+func _setup_logo() -> void:
+	var menu_config: Dictionary = _game_config.get("main_menu", {})
+	var logo_path: String = str(menu_config.get("logo", ""))
+	var logo_anim_path: String = str(menu_config.get("logo_anim", ""))
+	var width_pct: float = float(menu_config.get("logo_width_pct", 0.5))
+	var height_pct: float = float(menu_config.get("logo_height_pct", 0.2))
+	
+	var viewport_size := get_viewport_rect().size
+	var target_size := Vector2(viewport_size.x * width_pct, viewport_size.y * height_pct)
+	
+	# Apply sizing and 'contain' behavior
+	if logo_texture:
+		logo_texture.custom_minimum_size = target_size
+		logo_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		logo_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	
+	if logo_anim_container:
+		logo_anim_container.custom_minimum_size = target_size
+	
+	# Reset visibility (default to text)
+	title_label.visible = true
+	if logo_texture: logo_texture.visible = false
+	if logo_anim_container: logo_anim_container.visible = false
+	
+	# Priority 1: Animated Logo
+	if logo_anim_path != "" and ResourceLoader.exists(logo_anim_path):
+		var frames = load(logo_anim_path)
+		if frames is SpriteFrames and logo_anim:
+			logo_anim.sprite_frames = frames
+			logo_anim.play("default")
+			
+			# Center and scale (contain) animation in container
+			if not logo_anim_container.resized.is_connected(_center_logo_anim):
+				logo_anim_container.resized.connect(_center_logo_anim)
+			_center_logo_anim()
+			
+			# Start animation (scale from 0 to 1, fade in)
+			logo_anim_container.scale = Vector2.ZERO
+			logo_anim_container.modulate.a = 0.0
+			logo_anim_container.pivot_offset = target_size / 2
+			
+			var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tween.tween_property(logo_anim_container, "scale", Vector2.ONE, 3.0)
+			tween.tween_property(logo_anim_container, "modulate:a", 1.0, 3.0)
+			
+			if logo_anim_container: logo_anim_container.visible = true
+			title_label.visible = false
+			return
+
+	# Priority 2: Static Logo
+	if logo_path != "" and ResourceLoader.exists(logo_path):
+		var tex = load(logo_path)
+		if tex and logo_texture:
+			logo_texture.texture = tex
+			logo_texture.visible = true
+			title_label.visible = false
+			
+			# Start animation (scale from 0 to 1, fade in)
+			logo_texture.pivot_offset = target_size / 2
+			logo_texture.scale = Vector2.ZERO
+			logo_texture.modulate.a = 0.0
+			
+			var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tween.tween_property(logo_texture, "scale", Vector2.ONE, 3.0)
+			tween.tween_property(logo_texture, "modulate:a", 1.0, 3.0)
+			return
+
+func _center_logo_anim() -> void:
+	if logo_anim and logo_anim_container:
+		var container_size = logo_anim_container.size
+		logo_anim.position = container_size / 2
+		
+		# Containment logic for AnimatedSprite2D
+		var frames = logo_anim.sprite_frames
+		if frames:
+			var frame_tex = frames.get_frame_texture("default", 0)
+			if frame_tex:
+				var tex_size = frame_tex.get_size()
+				if tex_size.x > 0 and tex_size.y > 0:
+					var scale_factor = min(container_size.x / tex_size.x, container_size.y / tex_size.y)
+					logo_anim.scale = Vector2(scale_factor, scale_factor)
+
+func _setup_buttons() -> void:
+	var buttons_config: Dictionary = _game_config.get("buttons", {})
+	
+	_setup_single_button(play_button, buttons_config.get("play", {}), "home_play")
+	_setup_single_button(ship_button, buttons_config.get("ship", {}), "home_ship_menu")
+	_setup_single_button(options_button, buttons_config.get("options", {}), "home_options")
+	_setup_single_button(quit_button, buttons_config.get("quit", {}), "home_quit")
+	_setup_single_button(change_profile_button, buttons_config.get("change_profile", {}), "home_change_profile_short")
+
+func _setup_single_button(button: Button, config: Dictionary, translation_key: String) -> void:
+	var asset_path: String = str(config.get("asset", ""))
+	var _asset_anim: String = str(config.get("asset_anim", ""))
+	var show_text: bool = bool(config.get("show_text", true))
+	
+	# Set button icon if asset available
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var tex = load(asset_path)
+		if tex:
+			button.icon = tex
+			button.expand_icon = true
+	
+	# Show/hide text
+	if not show_text:
+		button.text = ""
+	else:
+		button.text = LocaleManager.t(translation_key)
 
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.t("app_title")
-	play_button.text = LocaleManager.t("home_play")
-	ship_button.text = LocaleManager.t("home_ship_menu")
-	options_button.text = LocaleManager.t("home_options")
-	quit_button.text = LocaleManager.t("home_quit")
 
 func _update_info() -> void:
-	var profile := ProfileManager.get_active_profile()
-	var profile_name := str(profile.get("name", "???"))
+	var _profile := ProfileManager.get_active_profile()
 	
-	# Profil
-	profile_label.text = LocaleManager.translate("home_profile", {"name": profile_name})
-	
-	# Vaisseau actif
-	var ship_id := ProfileManager.get_active_ship_id()
-	var ship := DataManager.get_ship(ship_id)
-	var ship_name := str(ship.get("name", ship_id))
-	ship_label.text = LocaleManager.translate("home_ship", {"name": ship_name})
-	
-	# Bouton changer de profil avec nom du profil actif
-	# Bouton changer de profil avec nom du profil actif
-	change_profile_button.text = LocaleManager.translate("home_change_profile", {"name": profile_name})
-	
+	# Cristaux
 	var crystals: int = ProfileManager.get_crystals()
 	if crystal_label:
 		crystal_label.text = "💎 " + str(crystals)
+	
+	# Ship preview (visual)
+	_update_ship_preview()
+
+func _update_ship_preview() -> void:
+	var ship_id := ProfileManager.get_active_ship_id()
+	var ship := DataManager.get_ship(ship_id)
+	var ship_name := str(ship.get("name", ship_id))
+	
+	# Clear existing preview
+	for child in ship_preview.get_children():
+		child.queue_free()
+	
+	var visual_data: Dictionary = ship.get("visual", {})
+	var _asset_path: String = str(visual_data.get("asset", ""))
+	var _asset_anim: String = str(visual_data.get("asset_anim", ""))
+	
+	# Create ship label
+	var ship_label := Label.new()
+	ship_label.text = "🚀 " + ship_name
+	ship_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ship_label.add_theme_font_size_override("font_size", 24)  # +50% from default ~16
+	ship_preview.add_child(ship_label)
 
 # =============================================================================
 # NAVIGATION
@@ -75,8 +237,8 @@ func _on_ship_pressed() -> void:
 	switcher.goto_screen("res://scenes/ShipMenu.tscn")
 
 func _on_options_pressed() -> void:
-	# Placeholder - Options pas encore implémentées
-	pass
+	var switcher := get_tree().current_scene
+	switcher.goto_screen("res://scenes/OptionsMenu.tscn")
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

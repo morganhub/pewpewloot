@@ -90,17 +90,62 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		width = float(size_dict.get("width", 100))
 		height = float(size_dict.get("height", 100))
 	
-	# Gestion de l'asset vs shape
-	var asset_path: String = str(boss_data.get("asset", ""))
+	# Gestion de l'asset vs shape vs anim
+	var visual_data: Variant = boss_data.get("visual", {})
+	var asset_path: String = ""
+	var asset_anim: String = ""
+	var color_hex: String = "#AA44FF"
+	var shape_type: String = "hexagon"
+	
+	if visual_data is Dictionary:
+		var v_dict := visual_data as Dictionary
+		asset_path = str(v_dict.get("asset", ""))
+		asset_anim = str(v_dict.get("asset_anim", ""))
+		color_hex = str(v_dict.get("color", "#AA44FF"))
+		shape_type = str(v_dict.get("shape", "hexagon"))
+	
 	var use_asset: bool = false
 	
-	if asset_path != "" and ResourceLoader.exists(asset_path):
+	# Priority 1: AnimatedSprite (asset_anim)
+	if asset_anim != "" and ResourceLoader.exists(asset_anim):
+		var sprite_frames := load(asset_anim)
+		if sprite_frames is SpriteFrames:
+			use_asset = true
+			shape_visual.visible = false
+			
+			var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+			if not anim_sprite:
+				anim_sprite = AnimatedSprite2D.new()
+				anim_sprite.name = "AnimatedSprite2D"
+				visual_container.add_child(anim_sprite)
+			
+			anim_sprite.visible = true
+			anim_sprite.sprite_frames = sprite_frames
+			anim_sprite.play("default")
+			
+			# Scale to size
+			var frame_tex = sprite_frames.get_frame_texture("default", 0)
+			if frame_tex:
+				var f_size = frame_tex.get_size()
+				anim_sprite.scale = Vector2(width / f_size.x, height / f_size.y) * 1.5
+			else:
+				# Fallback hardcoded scale if no frame texture (unlikely)
+				anim_sprite.scale = Vector2(width / 100.0, height / 100.0) * 1.5
+			
+			# Hide static sprite
+			var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+			if sprite: sprite.visible = false
+	
+	# Priority 2: Static Sprite (asset)
+	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
 		var texture = load(asset_path)
 		if texture:
 			use_asset = true
 			shape_visual.visible = false
 			
-			# Chercher ou créer le Sprite2D
+			var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+			if anim_sprite: anim_sprite.visible = false
+			
 			var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
 			if not sprite:
 				sprite = Sprite2D.new()
@@ -110,23 +155,22 @@ func _setup_visual(boss_data: Dictionary) -> void:
 			sprite.visible = true
 			sprite.texture = texture
 			
-			# Redimensionner l'image pour qu'elle corresponde à la taille définie
 			var tex_size = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
-				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y) * 1.2 # Scale +20%
+				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y) * 1.2
 	
 	if not use_asset:
-		var color := Color(boss_data.get("color", "#AA44FF"))
-		var shape_type := str(boss_data.get("shape", "hexagon"))
+		var color := Color(color_hex)
 		
-		# Cacher le sprite si existant
 		var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
-		if sprite:
-			sprite.visible = false
+		if sprite: sprite.visible = false
+		var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+		if anim_sprite: anim_sprite.visible = false
 		
 		shape_visual.visible = true
 		shape_visual.color = color
-		shape_visual.polygon = _create_shape_polygon(shape_type, width * 1.2, height * 1.2) # Scale +20%
+		shape_visual.polygon = _create_shape_polygon(shape_type, width * 1.2, height * 1.2)
+
 	
 	# Collision
 	var circle_shape := CircleShape2D.new()
@@ -296,6 +340,7 @@ func _fire() -> void:
 	var trajectory := str(_missile_pattern_data.get("trajectory", "straight"))
 	var speed: float = float(_missile_pattern_data.get("speed", 200))
 	var damage: int = int(_missile_pattern_data.get("damage", 15))
+	var spawn_strategy: String = str(_missile_pattern_data.get("spawn_strategy", "shooter"))
 	
 	# Injecter les data visuelles du missile
 	var missile_data := DataManager.get_missile(missile_id)
@@ -303,32 +348,131 @@ func _fire() -> void:
 	if not visual_data.is_empty():
 		_missile_pattern_data["visual_data"] = visual_data
 	
-	var base_direction := Vector2.DOWN
+	# Inject acceleration from missile
+	var acceleration: float = float(missile_data.get("acceleration", 0.0))
+	_missile_pattern_data["acceleration"] = acceleration
 	
-	if trajectory == "aimed":
-		var player_node := get_tree().get_first_node_in_group("player")
-		if player_node and player_node is Node2D:
-			var player := player_node as Node2D
-			base_direction = (player.global_position - global_position).normalized()
-	elif trajectory == "radial":
-		# Cercle complet
+	# Inject explosion data from missile
+	var missile_explosion: Dictionary = missile_data.get("explosion", {})
+	if not missile_explosion.is_empty() and missile_explosion.keys().size() > 0:
+		_missile_pattern_data["explosion_data"] = missile_explosion
+	
+	# Get spawn positions based on strategy
+	var spawn_positions: Array = _get_spawn_positions(spawn_strategy, projectile_count)
+	var player_node: Node2D = get_tree().get_first_node_in_group("player")
+	
+	var is_aimed := (trajectory == "aimed") or bool(_missile_pattern_data.get("aim_target", false))
+	
+	# Special case for radial
+	if trajectory == "radial" and spawn_strategy == "shooter":
 		for i in range(projectile_count):
 			var angle: float = (i / float(projectile_count)) * TAU
 			var direction := Vector2(cos(angle), sin(angle))
 			ProjectileManager.spawn_enemy_projectile(global_position, direction, speed, damage, _missile_pattern_data)
 		return
 	
-	# Spawn normal avec spread
-	if projectile_count == 1:
-		ProjectileManager.spawn_enemy_projectile(global_position, base_direction, speed, damage, _missile_pattern_data)
-	else:
-		var angle_step: float = deg_to_rad(spread_angle) / max(1, projectile_count - 1)
-		var start_angle: float = -deg_to_rad(spread_angle) / 2.0
+	for i in range(spawn_positions.size()):
+		var spawn_pos: Vector2 = spawn_positions[i]
+		var direction: Vector2 = Vector2.DOWN
 		
-		for i in range(projectile_count):
+		if is_aimed and player_node:
+			direction = (player_node.global_position - spawn_pos).normalized()
+		else:
+			direction = _get_default_direction(spawn_strategy, spawn_pos)
+		
+		# Apply spread angle if multiple projectiles from same position
+		if spawn_strategy == "shooter" and projectile_count > 1:
+			var angle_step: float = deg_to_rad(spread_angle) / max(1, projectile_count - 1)
+			var start_angle: float = -deg_to_rad(spread_angle) / 2.0
 			var angle: float = start_angle + angle_step * i
-			var direction := base_direction.rotated(angle)
-			ProjectileManager.spawn_enemy_projectile(global_position, direction, speed, damage, _missile_pattern_data)
+			direction = direction.rotated(angle)
+		
+		ProjectileManager.spawn_enemy_projectile(spawn_pos, direction, speed, damage, _missile_pattern_data)
+
+func _get_spawn_positions(strategy: String, count: int) -> Array:
+	var positions: Array = []
+	var viewport_size := get_viewport_rect().size
+	var player_node: Node2D = get_tree().get_first_node_in_group("player")
+	
+	match strategy:
+		"shooter":
+			for i in range(count):
+				positions.append(global_position)
+		
+		"screen_bottom":
+			var margin: float = 50.0
+			var step_x: float = (viewport_size.x - margin * 2) / max(1, count - 1) if count > 1 else 0.0
+			for i in range(count):
+				var x: float = margin + step_x * i if count > 1 else viewport_size.x / 2.0
+				positions.append(Vector2(x, viewport_size.y + 20))
+		
+		"screen_top":
+			var margin: float = 50.0
+			var step_x: float = (viewport_size.x - margin * 2) / max(1, count - 1) if count > 1 else 0.0
+			for i in range(count):
+				var x: float = margin + step_x * i if count > 1 else viewport_size.x / 2.0
+				positions.append(Vector2(x, -20))
+		
+		"target_circle":
+			var radius: float = float(_missile_pattern_data.get("spawn_radius", 150))
+			var target_pos: Vector2 = player_node.global_position if player_node else Vector2(viewport_size.x / 2, viewport_size.y / 2)
+			for i in range(count):
+				var angle: float = (float(i) / float(count)) * TAU
+				var offset := Vector2(cos(angle), sin(angle)) * radius
+				positions.append(target_pos + offset)
+		
+		"corners":
+			positions.append(Vector2(30, 30))
+			positions.append(Vector2(viewport_size.x - 30, 30))
+			positions.append(Vector2(30, viewport_size.y - 30))
+			positions.append(Vector2(viewport_size.x - 30, viewport_size.y - 30))
+		
+		"flanking":
+			var half: int = count / 2
+			var step_y: float = viewport_size.y / max(1, half)
+			for i in range(half):
+				positions.append(Vector2(-20, step_y * i + step_y / 2))
+				positions.append(Vector2(viewport_size.x + 20, step_y * i + step_y / 2))
+		
+		"random_edge":
+			for i in range(count):
+				var edge: int = randi() % 4
+				var pos: Vector2
+				match edge:
+					0:
+						pos = Vector2(randf_range(0, viewport_size.x), -20)
+					1:
+						pos = Vector2(randf_range(0, viewport_size.x), viewport_size.y + 20)
+					2:
+						pos = Vector2(-20, randf_range(0, viewport_size.y))
+					3:
+						pos = Vector2(viewport_size.x + 20, randf_range(0, viewport_size.y))
+				positions.append(pos)
+		
+		_:
+			for i in range(count):
+				positions.append(global_position)
+	
+	return positions
+
+func _get_default_direction(strategy: String, spawn_pos: Vector2) -> Vector2:
+	var viewport_size := get_viewport_rect().size
+	var center := Vector2(viewport_size.x / 2, viewport_size.y / 2)
+	
+	match strategy:
+		"screen_bottom":
+			return Vector2.UP
+		"screen_top":
+			return Vector2.DOWN
+		"corners", "flanking", "random_edge":
+			return (center - spawn_pos).normalized()
+		"target_circle":
+			var player: Node2D = get_tree().get_first_node_in_group("player")
+			if player:
+				return (player.global_position - spawn_pos).normalized()
+			return (center - spawn_pos).normalized()
+		_:
+			return Vector2.DOWN
 
 # =============================================================================
 # DAMAGE & DEATH
@@ -360,9 +504,12 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 func die() -> void:
 	print("[Boss] ", boss_name, " defeated! Score: ", score)
 	
-	# VFX explosion
-	VFXManager.spawn_explosion(global_position, 50, shape_visual.color, get_parent())
-	VFXManager.screen_shake(20, 0.8)
+	# VFX explosion customisée "boss_explosion"
+	var eff := DataManager.get_effect("boss_explosion")
+	var eff_color := Color(eff.get("fallback_color", "#0088FF"))
+	
+	VFXManager.spawn_explosion(global_position, collision.shape.radius * 2.0, eff_color, get_parent())
+	VFXManager.screen_shake(30, 1.2)
 	
 	# TODO: Spawn loot unique si chance
 	

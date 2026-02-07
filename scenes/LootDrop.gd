@@ -35,6 +35,9 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	# visual.texture = load("res://assets/items/" + item_data.get("id", "unknown") + ".png")
 	
 	# Connecter signaux
+	# Layer 4 (Loot), Mask 2 (Player)
+	collision_layer = 4
+	collision_mask = 2
 	body_entered.connect(_on_body_entered)
 	
 	# Animation de pulsation
@@ -62,8 +65,16 @@ func _on_body_entered(body: Node2D) -> void:
 func _collect() -> void:
 	print("[LootDrop] Collected: ", item_data.get("name", "Item"))
 	
-	# Ajouter à l'inventaire
-	ProfileManager.add_item_to_inventory(item_data)
+	if item_data.get("type") == "powerup":
+		# Power Up Logic
+		var effect = item_data.get("effect", "")
+		if effect == "fire_rate":
+			var player = get_tree().get_first_node_in_group("player")
+			if player and player.has_method("add_fire_rate_boost"):
+				player.add_fire_rate_boost(10.0)
+	else:
+		# Item d'inventaire
+		ProfileManager.add_item_to_inventory(item_data)
 	
 	# VFX de collection
 	if visual:

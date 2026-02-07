@@ -54,7 +54,7 @@ same_column_width = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Sélectionnez un vaisseau"
+text = ""
 autowrap_mode = 2
 
 [node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=946733949]
@@ -62,11 +62,11 @@ layout_mode = 2
 
 [node name="SlotsLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=308161947]
 layout_mode = 2
-text = "Équipement (8 slots):"
+text = "Équipement :"
 
 [node name="SlotsGrid" type="GridContainer" parent="MarginContainer/VBoxContainer" unique_id=1638318570]
 layout_mode = 2
-columns = 4
+columns = 3
 
 [node name="HSeparator3" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=747707368]
 layout_mode = 2

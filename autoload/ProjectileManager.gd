@@ -60,6 +60,8 @@ func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, dam
 	_active_player_projectiles.append(projectile)
 	
 	if _projectile_container:
+		if projectile.get_parent():
+			projectile.get_parent().remove_child(projectile)
 		_projectile_container.add_child(projectile)
 	
 	projectile.activate(pos, direction, speed, damage, pattern_data, is_critical)
@@ -73,6 +75,8 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 	_active_enemy_projectiles.append(projectile)
 	
 	if _projectile_container:
+		if projectile.get_parent():
+			projectile.get_parent().remove_child(projectile)
 		_projectile_container.add_child(projectile)
 	
 	projectile.activate(pos, direction, speed, damage, pattern_data)

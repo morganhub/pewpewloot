@@ -9,7 +9,7 @@ extends Node2D
 
 @onready var background: TextureRect = $Background
 @onready var game_layer: Node2D = $GameLayer
-@onready var hud_container: Control = $HUD
+@onready var hud_container: Control = $UI/HUD
 @onready var camera: Camera2D = $Camera2D
 
 var player: CharacterBody2D = null
@@ -30,6 +30,7 @@ func _ready() -> void:
 	# Load session data
 	current_world_id = App.current_world_id
 	current_level_index = App.current_level_index
+	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
 	
 	_setup_background()
 	_setup_camera()
@@ -82,7 +83,14 @@ func _setup_background() -> void:
 func _create_layer(parent: Node, path: String, speed: float, viewport_size: Vector2) -> void:
 	if path == "": return
 	
-	var tex := load(path)
+	# Preload texture to prevent "popping" during gameplay
+	# Using ResourceLoader ensures texture is fully loaded before use
+	if not ResourceLoader.exists(path):
+		push_warning("[Game] Background texture does not exist: " + path)
+		return
+		
+	var tex: Texture2D = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	
 	if tex:
 		var layer_script = load("res://scenes/ScrollingLayer.gd")
 		var layer = layer_script.new()
@@ -151,8 +159,12 @@ func _update_hud() -> void:
 func _spawn_player() -> void:
 	var player_scene := load("res://scenes/Player.tscn")
 	player = player_scene.instantiate()
+	player.input_provider = hud # Assigner le joystick provider
 	game_layer.add_child(player)
 	print("[Game] Player spawned")
+	
+	if hud:
+		hud.set_player_reference(player)
 	
 	# Connecter les signaux
 	player.tree_exiting.connect(_on_player_died)
@@ -214,17 +226,10 @@ func _start_enemy_spawner() -> void:
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)
 	wave_manager.setup(level_id)
 
-func _on_wave_enemy_spawn(enemy_data: Dictionary, _spawn_pos_hint: Vector2) -> void:
+func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	# Instancier l'ennemi
 	var enemy_scene := load("res://scenes/Enemy.tscn")
 	var enemy: CharacterBody2D = enemy_scene.instantiate()
-	
-	# Position calculée ici pour le moment (Haut de l'écran, aléatoire X ou pattern)
-	# Si le pattern est "straight_down", on veut probablement random X.
-	# Si c'est un pattern complexe, peut-être fixe ?
-	# Pour ce prototype, on garde random X.
-	var viewport_width := get_viewport_rect().size.x
-	var spawn_pos := Vector2(randf_range(50, viewport_width - 50), -50)
 	
 	# Calcul du scaling par niveau
 	var scaling_multiplier: float = 1.0 + (current_level_index * 0.1)
@@ -238,8 +243,16 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, _spawn_pos_hint: Vector2) -> v
 	# print("[Game] Wave Spawn: ", enemy_data.get("name", "?"))
 
 func _on_level_completed() -> void:
-	print("[Game] Level Completed! Spawning Boss...")
-	_spawn_boss()
+	var level_id := current_world_id + "_lvl_" + str(current_level_index)
+	var level_data := DataManager.get_level_data(level_id)
+	var boss_id: String = str(level_data.get("boss_id", ""))
+	
+	if boss_id != "":
+		print("[Game] Level Waves Completed! Spawning Boss: ", boss_id)
+		_spawn_boss(boss_id)
+	else:
+		print("[Game] Level Waves Completed! No Boss defined, triggering victory.")
+		_handle_victory_screen()
 
 func _on_enemy_died(enemy: CharacterBody2D) -> void:
 	print("[Game] Enemy died")
@@ -252,17 +265,17 @@ func _on_enemy_died(enemy: CharacterBody2D) -> void:
 	
 	# Note: Le boss spawn est maintenant géré par WaveManager -> _on_level_completed
 
-func _spawn_boss() -> void:
+func _spawn_boss(boss_id: String) -> void:
 	boss_spawned = true
-	print("[Game] BOSS INCOMING!")
+	print("[Game] BOSS INCOMING: ", boss_id)
 	
 	# Arrêter le spawn d'ennemis normaux
-	for child in get_children():
-		if child is Timer:
-			child.stop()
+	_stop_all_timers()
+	if wave_manager:
+		wave_manager.stop()
 	
 	# Spawn le boss
-	var boss_data := DataManager.get_boss("boss_world1")
+	var boss_data := DataManager.get_boss(boss_id)
 	if boss_data.is_empty():
 		print("[Game] Boss data not found!")
 		return
@@ -298,9 +311,17 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 	if hud:
 		hud.add_score(boss.score)
 	
-	# TODO: Victory screen
+	_handle_victory_screen()
+
+func _handle_victory_screen() -> void:
+	# 1. Feedback Victoire Immédiat (UI)
+	if hud:
+		VFXManager.spawn_floating_text(player.global_position if is_instance_valid(player) else Vector2(360, 640), "VICTOIRE !", Color.GREEN, hud_container)
 	
-	# Générer un loot épique/légendaire
+	# 2. Attendre 3 secondes pour l'explosion
+	await get_tree().create_timer(3.0).timeout
+	
+	# 3. Générer un loot épique/légendaire
 	var slot_ids := DataManager.get_slot_ids()
 	if slot_ids.is_empty(): 
 		_return_to_home()
@@ -325,8 +346,15 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 	loot_screen.setup(item)
 	loot_screen.finished.connect(_return_to_home)
 	
-	# Mettre en pause le jeu
-	get_tree().paused = true
+	# NE PAS mettre en pause le jeu, mais désactiver le joueur et le spawn
+	if player and player.has_method("set_can_shoot"):
+		player.set_can_shoot(false)
+	
+	if wave_manager:
+		wave_manager.stop()
+		
+	# On garde le jeu actif pour que le background continue de scroller
+	# get_tree().paused = true
 
 func _return_to_home() -> void:
 	get_tree().paused = false
@@ -343,6 +371,7 @@ func _show_pause_menu() -> void:
 		pause_menu.show_menu()
 
 func _on_restart_requested() -> void:
+	print("[Game] Restart requested for Level: ", current_world_id, " | Index: ", current_level_index)
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
@@ -354,3 +383,8 @@ func _on_level_select_requested() -> void:
 
 func _on_quit_requested() -> void:
 	_return_to_home()
+
+func _stop_all_timers() -> void:
+	for child in get_children():
+		if child is Timer:
+			child.stop()

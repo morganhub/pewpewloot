@@ -1,36 +1,40 @@
 {
-    "bosses": [
-        {
-            "id": "boss_world1",
-            "name": "The Tank Lord",
-            "hp": 2000,
-            "score": 5000,
-            "loot_unique_chance": 0.25,
-            "color": "#880000",
-            "shape": "hexagon",
-            "size": {
-                "width": 120,
-                "height": 120
-            },
-            "missile_id": "missile_boss_heavy",
-            "phases": [
-                {
-                    "hp_threshold": 100,
-                    "move_pattern_id": "boss_hover",
-                    "missile_pattern_id": "circle_8",
-                    "fire_rate": 1.5,
-                    "special_power_id": "power_boss_storm",
-                    "special_power_interval": 10.0
-                },
-                {
-                    "hp_threshold": 50,
-                    "move_pattern_id": "boss_rage",
-                    "missile_pattern_id": "spiral_fast",
-                    "fire_rate": 0.8,
-                    "special_power_id": "power_boss_storm",
-                    "special_power_interval": 5.0
-                }
-            ]
-        }
-    ]
+	"bosses": [
+		{
+			"id": "boss_world1",
+			"name": "The Tank Lord",
+			"hp": 500,
+			"score": 5000,
+			"loot_unique_chance": 0.25,
+			"size": {
+				"width": 320,
+				"height": 320
+			},
+			"visual": {
+				"color": "#880000",
+				"shape": "hexagon",
+				"asset": "res://assets/bosses/boar.png",
+				"asset_anim": "res://assets/bosses/boar.tres"
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.5,
+					"special_power_id": "power_boss_storm",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 0.8,
+					"special_power_id": "power_boss_dash",
+					"special_power_interval": 5.0
+				}
+			]
+		}
+	]
 }

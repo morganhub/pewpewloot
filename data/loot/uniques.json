@@ -11,6 +11,7 @@
                 "energy_regen": 5,
                 "cooldown_reduction": 10
             },
+            "unique_power_id": "unique_meteor_storm",
             "unique_effect": {
                 "id": "core_pulse",
                 "name": "Pulse du Noyau",
@@ -83,6 +84,7 @@
                 "damage": 12,
                 "fire_rate": 10
             },
+            "unique_power_id": "unique_laser_beam",
             "unique_effect": {
                 "id": "void_consumption",
                 "name": "Consommation du Vide",

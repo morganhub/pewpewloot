@@ -1,24 +1,52 @@
 {
-    "powers": [
-        {
-            "id": "power_boss_storm",
-            "name": "Boss Storm",
-            "description": "Boss specific storm attack with safe zones.",
-            "duration": 4.0,
-            "invincibility": false,
-            "ship_movement": null,
-            "projectile": {
-                "count": 24,
-                "trajectory": "radial",
-                "size": 30,
-                "waves": 4,
-                "wave_delay": 1.0,
-                "color": "#FF0000",
-                "safe_zones": {
-                    "count": 3,
-                    "width_degrees": 20
-                }
-            }
-        }
-    ]
+	"powers": [
+		{
+			"id": "power_boss_storm",
+			"name": "Boss Storm",
+			"description": "Boss sweep with radial projectiles.",
+			"duration": 5.0,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"speed": 300
+			},
+			"projectile": {
+				"count": 30,
+				"trajectory": "radial",
+				"aim_target": true,
+				"size": 25,
+				"waves": 3,
+				"wave_delay": 1.5,
+				"color": "#FFCC00",
+				"asset": "res://assets/missiles/blue_ball.png",
+				"asset_anim": "",
+				"safe_zones": {
+					"count": 2,
+					"width_degrees": 25
+				}
+			}
+		},
+		{
+			"id": "power_boss_dash",
+			"name": "Boss Dash Attack",
+			"description": "Dash forward and spray bullets.",
+			"duration": 3.0,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "dash_forward",
+				"speed": 500
+			},
+			"projectile": {
+				"count": 12,
+				"trajectory": "radial",
+				"aim_target": true,
+				"size": 15,
+				"waves": 5,
+				"wave_delay": 0.4,
+				"color": "#FFFFFF",
+				"asset": "res://assets/missiles/blue_ball.png",
+				"asset_anim": ""
+			}
+		}
+	]
 }
