@@ -48,8 +48,8 @@
 				"asset": "",
 				"asset_anim": ""
 			},
-			"missile_id": "rapid_burst",
-			"missile_pattern_id": "random_chaos",
+			"missile_id": "missile_car",
+			"missile_pattern_id": "double_side",
 			"special_power_id": "power_barrel_roll"
 		},
 		{
