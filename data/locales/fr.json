@@ -28,6 +28,15 @@
 		"stat_power": "Puissance",
 		"stat_hp": "PV",
 		"stat_speed": "Vitesse",
+		"stat.power": "Puissance",
+		"stat.max_hp": "Santé Max",
+		"stat.move_speed": "Vitesse",
+		"stat.fire_rate": "Cadence de Tir",
+		"stat.crit_chance": "Chance Critique",
+		"stat.dodge_chance": "Esquive",
+		"stat.missile_speed_pct": "Vitesse Missiles",
+		"stat.special_cd": "Recharge Spécial",
+		"stat.special_damage": "Dégâts Spécial",
 		"ship.ship_car.name": "Countryman",
 		"ship.ship_car.desc": "Puissante, missiles lents. Invasion.",
 		"ship.ship_plane.name": "Avion",
@@ -73,6 +82,14 @@
 		"game_back": "← Retour",
 		"options_title": "OPTIONS",
 		"options_language": "Langue / Language",
-		"options_back": "←"
+		"options_sound": "Son / Audio",
+		"options_music": "Musique",
+		"options_sfx": "Effets Sonores",
+		"options_back": "←",
+		"pause_title": "PAUSE",
+		"pause_resume": "CONTINUER",
+		"pause_restart": "RECOMMENCER",
+		"pause_level_select": "CHANGER DE NIVEAU",
+		"pause_quit": "QUITTER"
 	}
 }

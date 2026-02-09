@@ -11,14 +11,56 @@ signal quit_requested
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_apply_popup_style()
 	hide()
 
+func _apply_popup_style() -> void:
+	if not panel: return
+	
+	var game_config: Dictionary = {}
+	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK:
+			game_config = json.data
+	
+	var popup_config: Dictionary = game_config.get("popups", {})
+	var popup_bg_asset: String = str(popup_config.get("background", {}).get("asset", ""))
+	var margin: int = int(popup_config.get("margin", 20))
+	
+	if popup_bg_asset != "" and ResourceLoader.exists(popup_bg_asset):
+		var style = StyleBoxTexture.new()
+		style.texture = load(popup_bg_asset)
+		style.content_margin_top = margin
+		style.content_margin_bottom = margin
+		style.content_margin_left = margin
+		style.content_margin_right = margin
+		
+		panel.add_theme_stylebox_override("panel", style)
+
 func show_menu() -> void:
+	_translate()
 	show()
 	get_tree().paused = true
 
+func _translate() -> void:
+	var title = panel.get_node_or_null("Margin/VBox/Title")
+	if title: title.text = LocaleManager.translate("pause_title")
+	
+	var resume_btn = panel.get_node_or_null("Margin/VBox/ResumeButton")
+	if resume_btn: resume_btn.text = LocaleManager.translate("pause_resume")
+	
+	var restart_btn = panel.get_node_or_null("Margin/VBox/RestartButton")
+	if restart_btn: restart_btn.text = LocaleManager.translate("pause_restart")
+	
+	var level_btn = panel.get_node_or_null("Margin/VBox/LevelSelectButton")
+	if level_btn: level_btn.text = LocaleManager.translate("pause_level_select")
+	
+	var quit_btn = panel.get_node_or_null("Margin/VBox/QuitButton")
+	if quit_btn: quit_btn.text = LocaleManager.translate("pause_quit")
+
 func set_continue_enabled(enabled: bool) -> void:
-	var resume_btn := panel.get_node_or_null("VBoxContainer/ResumeButton") as Button
+	var resume_btn := panel.get_node_or_null("Margin/VBox/ResumeButton") as Button
 	if resume_btn:
 		resume_btn.disabled = not enabled
 

@@ -16,6 +16,11 @@
 				"asset": "res://assets/bosses/boar.png",
 				"asset_anim": "res://assets/bosses/boar.tres"
 			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
 			"missile_id": "missile_boss_heavy",
 			"phases": [
 				{

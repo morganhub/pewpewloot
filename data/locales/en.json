@@ -28,6 +28,15 @@
         "stat_power": "Power",
         "stat_hp": "HP",
         "stat_speed": "Speed",
+        "stat.power": "Power",
+        "stat.max_hp": "Max HP",
+        "stat.move_speed": "Move Speed",
+        "stat.fire_rate": "Fire Rate",
+        "stat.crit_chance": "Crit Chance",
+        "stat.dodge_chance": "Dodge",
+        "stat.missile_speed_pct": "Missile Speed",
+        "stat.special_cd": "Special Cooldown",
+        "stat.special_damage": "Special Damage",
         "ship.ship_car.name": "The Car",
         "ship.ship_car.desc": "High power, slow missiles. Paint attack.",
         "ship.ship_plane.name": "The Plane",
@@ -73,6 +82,14 @@
         "game_back": "← Back",
         "options_title": "OPTIONS",
         "options_language": "Langue / Language",
-        "options_back": "←"
+        "options_sound": "Sound / Audio",
+        "options_music": "Music",
+        "options_sfx": "Sound Effects",
+        "options_back": "←",
+        "pause_title": "PAUSE",
+        "pause_resume": "RESUME",
+        "pause_restart": "RESTART",
+        "pause_level_select": "CHANGE LEVEL",
+        "pause_quit": "QUIT"
     }
 }

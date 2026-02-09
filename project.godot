@@ -18,14 +18,16 @@ config/icon="res://icon.svg"
 [autoload]
 
 DataManager="*res://autoload/DataManager.gd"
-LocaleManager="*res://autoload/LocaleManager.gd"
-App="*res://autoload/App.gd"
-ProfileManager="*res://autoload/ProfileManager.gd"
 SaveManager="*res://autoload/SaveManager.gd"
+ProfileManager="*res://autoload/ProfileManager.gd"
+LocaleManager="*res://autoload/LocaleManager.gd"
+AudioManager="*res://autoload/AudioManager.gd"
+App="*res://autoload/App.gd"
 ProjectileManager="*res://autoload/ProjectileManager.gd"
 VFXManager="*res://autoload/VFXManager.gd"
 PowerManager="*res://autoload/PowerManager.gd"
-AudioManager="*res://autoload/AudioManager.gd"
+LootGenerator="*res://autoload/LootGenerator.gd"
+StatsCalculator="*res://autoload/StatsCalculator.gd"
 
 [display]
 
@@ -37,29 +39,21 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 window/display/window_per_pixel_transparency=true
-
-[display/window/size]
-
-window/size/initial_position_type=0
-window/size/initial_screen=0
-window/size/initial_position=Vector2(0, 0)
-window/size/initial_size=Vector2(720, 1280)
-window/size/resizable=true
-window/size/borderless=false
-window/size/fullscreen=false
-window/size/always_on_top=false
-window/size/no_focus=false
-window/size/window_width_override=0
-window/size/window_height_override=0
-window/size/initial_position_type_override=0
-window/size/initial_screen_override=0
-window/size/initial_position_override=Vector2(0, 0)
-window/size/initial_size_override=Vector2(0, 0)
-
-[display/window/stretch]
-
-mode="canvas_items"
-aspect="expand"
+window/size/window/size/initial_position_type=0
+window/size/window/size/initial_screen=0
+window/size/window/size/initial_position=Vector2(0, 0)
+window/size/window/size/initial_size=Vector2(720, 1280)
+window/size/window/size/resizable=true
+window/size/window/size/borderless=false
+window/size/window/size/fullscreen=false
+window/size/window/size/always_on_top=false
+window/size/window/size/no_focus=false
+window/size/window/size/window_width_override=0
+window/size/window/size/window_height_override=0
+window/size/window/size/initial_position_type_override=0
+window/size/window/size/initial_screen_override=0
+window/size/window/size/initial_position_override=Vector2(0, 0)
+window/size/window/size/initial_size_override=Vector2(0, 0)
 
 [gui]
 

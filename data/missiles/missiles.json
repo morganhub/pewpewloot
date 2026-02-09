@@ -21,6 +21,7 @@
 				"asset": "res://assets/missiles/blue_ball.png",
 				"asset_anim": ""
 			},
+			"sound": "res://assets/sounds/sfx_shoot_basic.wav",
 			"explosion": {}
 		},
 		{
@@ -39,6 +40,7 @@
 				"asset": "",
 				"asset_anim": "res://assets/missiles/sacred_missile.tres"
 			},
+			"sound": "res://assets/sounds/laser_1.ogg",
 			"explosion": {}
 		},
 		{
@@ -57,6 +59,7 @@
 				"asset": "",
 				"asset_anim": ""
 			},
+			"sound": "res://assets/sounds/sfx_shoot_homing.wav",
 			"explosion": {
 				"size": 30,
 				"color": "#FF2222"
@@ -78,6 +81,7 @@
 				"asset": "",
 				"asset_anim": "res://assets/missiles/sacred_missile.tres"
 			},
+			"sound": "res://assets/sounds/sfx_shoot_wave.wav",
 			"explosion": {}
 		}
 	]

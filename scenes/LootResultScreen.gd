@@ -14,6 +14,7 @@ var _upgrade_value: int = 5 # Crystals pour Common
 @onready var background_rect: TextureRect = %Background
 @onready var equip_btn: Button = %EquipButton
 @onready var disassemble_btn: Button = %DisassembleButton
+@onready var panel_container: PanelContainer = $CenterContainer/PanelContainer
 
 func setup(item: Dictionary) -> void:
 	_item = item
@@ -69,6 +70,13 @@ func _update_ui() -> void:
 	
 	# Type et Niveau
 	item_type_label.text = type.capitalize() + " - Lv." + str(level)
+	
+	# Appliquer le cadre de rareté au panel
+	var frame_path := DataManager.get_rarity_frame_path(rarity)
+	if frame_path != "" and ResourceLoader.exists(frame_path):
+		var style = StyleBoxTexture.new()
+		style.texture = load(frame_path)
+		panel_container.add_theme_stylebox_override("panel", style)
 	
 	# Stats et Description (générées comme dans ShipMenu)
 	var description: String = ""

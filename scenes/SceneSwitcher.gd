@@ -12,9 +12,6 @@ func _ready() -> void:
 	# On démarre en noir puis on fade-out après le 1er écran
 	fade.color.a = 1.0
 
-	# Charger les profils depuis le disque
-	ProfileManager.load_from_disk()
-	
 	# Déterminer l'écran de démarrage
 	var start_screen := _get_start_screen()
 	goto_screen(start_screen, false)

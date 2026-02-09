@@ -13,10 +13,132 @@
 		"button_equip": "res://assets/ui/btn_equip.png",
 		"button_destroy": "res://assets/ui/btn_destroy.png"
 	},
+	"rarity_frames": {
+		"common": "res://assets/ui/frame_common.png",
+		"uncommon": "res://assets/ui/frame_uncommon.png",
+		"rare": "res://assets/ui/frame_rare.png",
+		"epic": "res://assets/ui/frame_epic.png",
+		"legendary": "res://assets/ui/frame_legendary.png",
+		"unique": "res://assets/ui/frame_unique.png"
+	},
 	"ship_menu": {
-		"slot_background": "res://assets/ui/main_menu_bg.jpg",
-		"popup_background": "res://assets/ui/popup_bg.png",
-		"inventory_background": "res://assets/ui/main_menu_bg.jpg"
+		"background": "res://assets/ui/ship_menu_bg.jpg",
+		"sections": {
+			"ship_selection": {
+				"background": ""
+			},
+			"equipment": {
+				"background": ""
+			},
+			"inventory": {
+				"background": ""
+			}
+		},
+		"stats_max_values": {
+			"power": 4000,
+			"max_hp": 3000,
+			"move_speed": 1000,
+			"missile": 2000,
+			"crit_chance": 50,
+			"dodge_chance": 30,
+			"special": 1000
+		},
+		"stat_icons": {
+			"power": "res://assets/ui/icons/power.png",
+			"level": "res://assets/ui/icons/trophy.png",
+			"crystals": "res://assets/ui/icons/crystal.png",
+			"hp": "res://assets/ui/icons/heart.png",
+			"speed": "res://assets/ui/icons/speed.png",
+			"missile": "res://assets/ui/icons/missile.png",
+			"crit_chance": "res://assets/ui/icons/crit.png",
+			"dodge_chance": "res://assets/ui/icons/dodge.png",
+			"special": "res://assets/ui/icons/special.png"
+		},
+		"stat_colors": {
+			"power": "#501dc5",
+			"level": "#501dc5",
+			"crystals": "#501dc5",
+			"hp": "#501dc5",
+			"speed": "#501dc5",
+			"missile": "#501dc5",
+			"crit_chance": "#501dc5",
+			"dodge_chance": "#501dc5",
+			"special": "#501dc5"
+		},
+		"ship_stats": {
+			"power": {
+				"icon_asset": "res://assets/ui/icons/power.png",
+				"icon_height": 30,
+				"icon_width": 30,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"level": {
+				"icon_asset": "res://assets/ui/icons/level.png",
+				"icon_height": 30,
+				"icon_width": 30,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"crystals": {
+				"icon_asset": "res://assets/ui/icons/crystals.png",
+				"icon_height": 30,
+				"icon_width": 30,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"hp": {
+				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 16,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"speed": {
+				"icon_asset": "res://assets/ui/icons/speed.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 16,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"missile": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 16,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"crit_chance": {
+				"icon_asset": "res://assets/ui/icons/crit.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 16,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"dodge_chance": {
+				"icon_asset": "res://assets/ui/icons/dodge.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 16,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"special": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 16,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			}
+		}
 	},
 	"options_menu": {
 		"background": "res://assets/ui/main_menu_bg.jpg"
@@ -25,13 +147,132 @@
 		"background": "res://assets/ui/main_menu_bg.jpg"
 	},
 	"popups": {
-		"default_background": "res://assets/ui/popup_bg.png"
+		"margin": 65,
+		"background": {
+			"asset": "res://assets/ui/popup_background.png",
+			"text_color": "#000000",
+			"letter_spacing": 0,
+			"font_size": 24
+		},
+		"button": {
+			"asset": "res://assets/ui/button.png",
+			"text_color": "#000000",
+			"letter_spacing": 0,
+			"font_size": 18
+		}
+	},
+	"ship_options": {
+		"ship_select_button": {
+			"asset_selected": "res://assets/ui/ship_select_background_selected.png",
+			"asset_unselected": "res://assets/ui/ship_select_background.png",
+			"text_color": "#000000",
+			"font_size": 18,
+			"letter_spacing": 2
+		},
+		"power_button": {
+			"asset": "res://assets/ui/super_power_button.png",
+			"text_color": "#000000",
+			"font_size": 30,
+			"letter_spacing": 2
+		},
+		"unique_power_button": {
+			"asset": "res://assets/ui/unique_power_button.png",
+			"text_color": "#000000",
+			"font_size": 30,
+			"letter_spacing": 2
+		},
+		"equipment_button": {
+			"asset": "res://assets/ui/frame_empty.png",
+			"text_color": "#ffffff",
+			"font_size": 20,
+			"letter_spacing": 2
+		},
+		"inventory_button": {
+			"asset": "res://assets/ui/frame_empty.png",
+			"text_color": "#000000",
+			"font_size": 20,
+			"letter_spacing": 2
+		},
+		"slot_icons": {
+			"reactor": "res://assets/ui/icons/power.png",
+			"engine": "res://assets/ui/icons/power.png",
+			"armor": "res://assets/ui/icons/power.png",
+			"shield": "res://assets/ui/icons/power.png",
+			"missiles": "res://assets/ui/icons/power.png",
+			"targeting": "res://assets/ui/icons/power.png",
+			"utility": "res://assets/ui/icons/power.png",
+			"special": "res://assets/ui/icons/power.png"
+		},
+		"item_placeholders": {
+			"reactor": "res://assets/items/engine.png",
+			"engine": "res://assets/items/engine.png",
+			"armor": "res://assets/items/engine.png",
+			"shield": "res://assets/items/engine.png",
+			"missiles": "res://assets/items/engine.png",
+			"targeting": "res://assets/items/engine.png",
+			"utility": "res://assets/items/engine.png",
+			"special": "res://assets/items/engine.png"
+		},
+		"level_indicator_assets": {
+			"1-2": "res://assets/ui/frame_level_bronze.png",
+			"3-5": "res://assets/ui/frame_level_silver.png",
+			"6-8": "res://assets/ui/frame_level_gold.png",
+			"9": "res://assets/ui/frame_level_diamond.png",
+			"text_color": "#FFFFFF",
+			"font_size": 18,
+			"width": 40,
+			"height": 40
+		},
+		"stats_number_font_size": 16
+	},
+	"ui_dropdown": {
+		"item_bg_asset": "res://assets/ui/popup_background.png",
+		"item_text_color": "#000000",
+		"highlight_bg_color": "#FFD700",
+		"highlight_text_color": "#000000"
 	},
 	"ui_icons": {
 		"burger_menu": "res://assets/ui/burger_menu.png",
 		"super_power_placeholder": "res://assets/ui/super_power.png",
 		"unique_power_placeholder": "res://assets/ui/icon_up_placeholder.png",
-		"back_button": "res://assets/ui/button_back.png"
+		"back_button": "res://assets/ui/back_arrow.png",
+		"close_button": "res://assets/ui/close_icon.png",
+		"sort_asc": "res://assets/ui/sort_asc.png",
+		"sort_desc": "res://assets/ui/sort_desc.png",
+		"shop_icon": "res://assets/ui/shop_icon.png",
+		"arrow_left": "res://assets/ui/arrow_left.png",
+		"arrow_right": "res://assets/ui/arrow_right.png"
+	},
+	"shop_menu": {
+		"background": "res://assets/ui/main_menu_bg.jpg",
+		"button": {
+			"asset": "res://assets/ui/button.png",
+			"text_color": "#000000",
+			"font_size": 18,
+			"letter_spacing": 0
+		},
+		"packs": [
+			{
+				"id": "pack_small",
+				"crystals": 100,
+				"price_usd": 0.99
+			},
+			{
+				"id": "pack_medium",
+				"crystals": 500,
+				"price_usd": 3.99
+			},
+			{
+				"id": "pack_large",
+				"crystals": 1200,
+				"price_usd": 7.99
+			},
+			{
+				"id": "pack_mega",
+				"crystals": 3000,
+				"price_usd": 14.99
+			}
+		]
 	},
 	"buttons": {
 		"play": {

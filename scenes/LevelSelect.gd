@@ -39,6 +39,11 @@ func _ready() -> void:
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
 		back_button.icon = load(back_icon_path)
 		back_button.text = ""
+		back_button.flat = true
+		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)

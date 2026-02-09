@@ -207,25 +207,32 @@ func _setup_visual() -> void:
 func _load_stats_from_loadout() -> void:
 	var ship_id := ProfileManager.get_active_ship_id()
 	var ship := DataManager.get_ship(ship_id)
-	var stats: Variant = ship.get("stats", {})
-	if stats is Dictionary:
-		var stats_dict := stats as Dictionary
-		max_hp = int(stats_dict.get("max_hp", 100))
-		move_speed = float(stats_dict.get("move_speed", 200))
-		base_damage = int(stats_dict.get("power", 10))
-		fire_rate = float(stats_dict.get("fire_rate", 0.3))
-		_base_fire_rate = fire_rate
-		crit_chance = float(stats_dict.get("crit_chance", 0.05))
-		dodge_chance = float(stats_dict.get("dodge_chance", 0.02))
-		missile_speed_pct = float(stats_dict.get("missile_speed_pct", 1.0))
-		special_cd = float(stats_dict.get("special_cd", 10.0))
-		special_cd_max = special_cd
+	
+	# Use StatsCalculator to get aggregated stats (base + items)
+	var stats := StatsCalculator.calculate_ship_stats(ship_id)
+	
+	max_hp = int(stats.get("max_hp", 100))
+	move_speed = float(stats.get("move_speed", 200))
+	base_damage = int(stats.get("power", 10))
+	fire_rate = float(stats.get("fire_rate", 0.3))
+	_base_fire_rate = fire_rate
+	crit_chance = float(stats.get("crit_chance", 0.05))
+	dodge_chance = float(stats.get("dodge_chance", 0.02))
+	missile_speed_pct = float(stats.get("missile_speed_pct", 1.0))
+	special_cd = float(stats.get("special_cd", 10.0))
+	special_cd_max = special_cd
 	
 	current_missile_id = str(ship.get("missile_id", "missile_default"))
 	current_hp = max_hp
 	special_power_id = str(ship.get("special_power_id", ""))
 	
-	unique_power_id = ProfileManager.get_active_unique_power(ship_id)
+	# Get unique power from equipped items (if any)
+	var item_unique_power := StatsCalculator.get_equipped_unique_power(ship_id)
+	if item_unique_power != "":
+		unique_power_id = item_unique_power
+	else:
+		unique_power_id = ProfileManager.get_active_unique_power(ship_id)
+
 
 func set_invincible(state: bool) -> void:
 	is_invincible = state
@@ -475,6 +482,9 @@ func _inject_missile_properties(pattern_data: Dictionary) -> void:
 	var missile_speed: float = float(missile_data.get("speed", 0))
 	if missile_speed > 0:
 		pattern_data["speed"] = missile_speed * missile_speed_pct
+		
+	# Sound
+	pattern_data["sound"] = str(missile_data.get("sound", ""))
 
 func _execute_burst_sequence(pattern_data: Dictionary, count: int, interval: float, speed: float, damage: int) -> void:
 	for i in range(count):
@@ -493,6 +503,11 @@ func _spawn_salvo(pattern_data: Dictionary, speed: float, damage: int) -> void:
 	var trajectory: String = str(pattern_data.get("trajectory", "straight"))
 	var spawn_strategy: String = str(pattern_data.get("spawn_strategy", "shooter"))
 	
+	# Play sound (once per salvo)
+	var sound_path: String = str(pattern_data.get("sound", ""))
+	if sound_path != "":
+		AudioManager.play_sfx(sound_path, 0.1) # Soft pitch random
+		
 	# Determine Base Position and Direction
 	var base_pos: Vector2 = global_position + Vector2(0, -20)
 	var base_dir: Vector2 = Vector2.UP

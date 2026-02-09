@@ -1,6 +1,37 @@
 [gd_scene format=3 uid="uid://dryi2lffa523i"]
 
 [ext_resource type="Script" uid="uid://bu1ywck4kx5ny" path="res://scenes/OptionsMenu.gd" id="1_options"]
+[ext_resource type="Texture2D" uid="uid://c8l7m1x4p6k2j" path="res://assets/ui/slider_grabber_30.tres" id="2_grabber"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
+content_margin_left = 4.0
+content_margin_top = 10.0
+content_margin_right = 4.0
+content_margin_bottom = 10.0
+bg_color = Color(0.1, 0.1, 0.1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.3, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_area"]
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.2, 0.5, 1, 1)
+corner_radius_top_left = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_area_highlight"]
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.3, 0.6, 1, 1)
+corner_radius_top_left = 10
+corner_radius_bottom_left = 10
 
 [node name="OptionsMenu" type="Control" unique_id=1396723102]
 layout_mode = 3
@@ -79,6 +110,67 @@ popup/item_0/text = "Français"
 popup/item_0/id = 0
 popup/item_1/text = "English"
 popup/item_1/id = 1
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=-414234397]
+layout_mode = 2
+
+[node name="SoundSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=981572249]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="SoundLabel" type="Label" parent="MarginContainer/VBoxContainer/SoundSection" unique_id=634572356]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Son / Audio"
+horizontal_alignment = 1
+
+[node name="MusicBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SoundSection" unique_id=1831499812]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SoundSection/MusicBox" unique_id=432514065]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Musique"
+horizontal_alignment = 2
+
+[node name="MusicSlider" type="HSlider" parent="MarginContainer/VBoxContainer/SoundSection/MusicBox" unique_id=1235564060]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_icons/grabber = ExtResource("2_grabber")
+theme_override_icons/grabber_highlight = ExtResource("2_grabber")
+theme_override_styles/slider = SubResource("StyleBoxFlat_track")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_area")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_area_highlight")
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="SFXBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SoundSection" unique_id=1015196319]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SoundSection/SFXBox" unique_id=87283221]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "SFX"
+horizontal_alignment = 2
+
+[node name="SFXSlider" type="HSlider" parent="MarginContainer/VBoxContainer/SoundSection/SFXBox" unique_id=-1949403236]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_icons/grabber = ExtResource("2_grabber")
+theme_override_icons/grabber_highlight = ExtResource("2_grabber")
+theme_override_styles/slider = SubResource("StyleBoxFlat_track")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_area")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_area_highlight")
+max_value = 1.0
+step = 0.05
+value = 1.0
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1608799950]
 layout_mode = 2

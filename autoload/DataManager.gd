@@ -451,6 +451,14 @@ func get_rarity_color(rarity_id: String) -> Color:
 	var color_code := str(rarity.get("color", "#FFFFFF"))
 	return Color(color_code)
 
+## Retourne le chemin de la frame (bordure) associée à une rareté
+func get_rarity_frame_path(rarity_id: String) -> String:
+	var frames: Dictionary = _game_config.get("rarity_frames", {})
+	if frames.has(rarity_id):
+		return str(frames.get(rarity_id, ""))
+	# Fallback to common if not found
+	return str(frames.get("common", ""))
+
 ## Retourne les affixes disponibles pour un slot (global + spécifiques)
 func get_affixes_for_slot(slot_id: String) -> Array:
 	var result: Array = []

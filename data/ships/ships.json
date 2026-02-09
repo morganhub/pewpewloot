@@ -7,14 +7,15 @@
 			"description": "High power, slow missiles. Paint attack.",
 			"type": "car",
 			"stats": {
-				"max_hp": 150,
+				"max_hp": 350,
 				"move_speed": 180,
-				"power": 80,
+				"power": 150,
 				"fire_rate": 0.5,
 				"crit_chance": 0.07,
 				"dodge_chance": 0.02,
 				"missile_speed_pct": 0.4,
-				"special_cd": 20.0
+				"special_cd": 20.0,
+				"special_damage": 50
 			},
 			"visual": {
 				"color": "#FF4444",
@@ -40,7 +41,8 @@
 				"crit_chance": 0.10,
 				"dodge_chance": 0.10,
 				"missile_speed_pct": 1.0,
-				"special_cd": 10.0
+				"special_cd": 10.0,
+				"special_damage": 75
 			},
 			"visual": {
 				"color": "#4444FF",
@@ -66,7 +68,8 @@
 				"crit_chance": 0.10,
 				"dodge_chance": 0.05,
 				"missile_speed_pct": 0.8,
-				"special_cd": 30.0
+				"special_cd": 30.0,
+				"special_damage": 100
 			},
 			"visual": {
 				"color": "#AA44FF",
@@ -85,6 +88,33 @@
 			"description": "Low power, very fast missiles. Homing attack.",
 			"type": "supercar",
 			"stats": {
+				"max_hp": 380,
+				"move_speed": 250,
+				"power": 20,
+				"fire_rate": 0.5,
+				"crit_chance": 0.10,
+				"dodge_chance": 0.02,
+				"missile_speed_pct": 1.5,
+				"special_cd": 10.0,
+				"special_damage": 30
+			},
+			"visual": {
+				"color": "#FFFF44",
+				"shape": "diamond",
+				"asset": "res://assets/ships/ecraseur.png",
+				"asset_anim": ""
+			},
+			"missile_id": "missile_car",
+			"missile_pattern_id": "screen_bottom_wave",
+			"special_power_id": "power_barrel_roll"
+		},
+		{
+			"id": "ship_supercarB",
+			"crystal_price": 10,
+			"name": "Bacd",
+			"description": "Low power, very fast missiles. Homing attack.",
+			"type": "supercar",
+			"stats": {
 				"max_hp": 80,
 				"move_speed": 250,
 				"power": 20,
@@ -92,7 +122,8 @@
 				"crit_chance": 0.10,
 				"dodge_chance": 0.02,
 				"missile_speed_pct": 1.5,
-				"special_cd": 10.0
+				"special_cd": 10.0,
+				"special_damage": 30
 			},
 			"visual": {
 				"color": "#FFFF44",

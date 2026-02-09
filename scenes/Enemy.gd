@@ -631,6 +631,11 @@ func _fire_single_wave() -> void:
 	var missile_speed_override: float = float(missile_data.get("speed", 0))
 	if missile_speed_override > 0:
 		speed = missile_speed_override
+		
+	# Play sound (once per wave/salvo)
+	var sound_path: String = str(missile_data.get("sound", ""))
+	if sound_path != "":
+		AudioManager.play_sfx(sound_path, 0.1)
 	
 	# Get spawn positions based on strategy
 	var spawn_positions: Array = _get_spawn_positions(spawn_strategy, projectile_count)

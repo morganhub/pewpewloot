@@ -7,7 +7,9 @@ var _current_locale: String = "fr"
 var _strings: Dictionary = {}
 
 func _ready() -> void:
-	load_locale(_current_locale)
+	# Récupérer la locale sauvegardée dans ProfileManager
+	var saved_locale = ProfileManager.get_setting("locale", _current_locale)
+	load_locale(saved_locale)
 
 func load_locale(locale: String) -> void:
 	_current_locale = locale
@@ -41,6 +43,7 @@ func get_locale() -> String:
 ## Change la locale
 func set_locale(locale: String) -> void:
 	load_locale(locale)
+	ProfileManager.set_setting("locale", locale)
 
 ## Traduit une clé avec substitution de paramètres
 ## Exemple: translate("home_profile", {"name": "John"}) -> "Profil: John"

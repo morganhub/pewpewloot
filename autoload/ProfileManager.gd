@@ -5,6 +5,14 @@ extends Node
 
 var active_profile_id: String = ""
 var profiles: Array[Dictionary] = []
+func _ready() -> void:
+	load_from_disk()
+
+var settings: Dictionary = {
+	"music_volume": 1.0,
+	"sfx_volume": 1.0,
+	"locale": "en"
+}
 
 # =============================================================================
 # CHARGEMENT / SAUVEGARDE
@@ -26,6 +34,10 @@ func load_from_disk() -> void:
 	var raw_active: Variant = data.get("active_profile_id", "")
 	if raw_active is String:
 		active_profile_id = raw_active
+		
+	var raw_settings: Variant = data.get("settings", {})
+	if raw_settings is Dictionary:
+		settings.merge(raw_settings, true)
 	
 	# Sauvegarder si des migrations ont eu lieu
 	save_to_disk()
@@ -33,7 +45,8 @@ func load_from_disk() -> void:
 func save_to_disk() -> void:
 	var data := {
 		"profiles": profiles,
-		"active_profile_id": active_profile_id
+		"active_profile_id": active_profile_id,
+		"settings": settings
 	}
 	SaveManager.save_json(data)
 
@@ -500,4 +513,14 @@ func _update_active_profile(key: String, value: Variant) -> void:
 			updated[key] = value
 			profiles[i] = updated
 			break
+	save_to_disk()
+# =============================================================================
+# SETTINGS
+# =============================================================================
+
+func get_setting(key: String, default: Variant = null) -> Variant:
+	return settings.get(key, default)
+
+func set_setting(key: String, value: Variant) -> void:
+	settings[key] = value
 	save_to_disk()

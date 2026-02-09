@@ -49,6 +49,15 @@ size_flags_vertical = 3
 theme_override_constants/separation = 30
 alignment = 1
 
+[node name="HeaderContainer" type="HBoxContainer" parent="CenterContainer/MainPanel"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="CenterContainer/MainPanel/HeaderContainer"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "←"
+
 [node name="TitleLabel" type="Label" parent="CenterContainer/MainPanel"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
@@ -96,13 +105,7 @@ text = "🗑️ Supprimer"
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="BackButton" type="Button" parent="CenterContainer/MainPanel/ButtonsContainer"]
-custom_minimum_size = Vector2(400, 50)
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "← Retour"
-
-[node name="CreatePopup" type="Panel" parent="."]
+[node name="CreatePopup" type="PanelContainer" parent="."]
 visible = false
 layout_mode = 1
 anchors_preset = 8
@@ -117,77 +120,65 @@ offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PopupBg" type="ColorRect" parent="CreatePopup"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.15, 0.17, 0.22, 1)
+[node name="MarginContainer" type="MarginContainer" parent="CreatePopup"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="PopupContent" type="VBoxContainer" parent="CreatePopup"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="PopupContent" type="VBoxContainer" parent="CreatePopup/MarginContainer"]
+layout_mode = 2
 theme_override_constants/separation = 15
 alignment = 1
 
-[node name="PopupTitle" type="Label" parent="CreatePopup/PopupContent"]
+[node name="PopupTitle" type="Label" parent="CreatePopup/MarginContainer/PopupContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Créer un profil"
 horizontal_alignment = 1
 
-[node name="Spacer1" type="Control" parent="CreatePopup/PopupContent"]
+[node name="Spacer1" type="Control" parent="CreatePopup/MarginContainer/PopupContent"]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="CreatePopup/PopupContent"]
+[node name="NameLabel" type="Label" parent="CreatePopup/MarginContainer/PopupContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Nom du profil :"
 
-[node name="NameInput" type="LineEdit" parent="CreatePopup/PopupContent"]
+[node name="NameInput" type="LineEdit" parent="CreatePopup/MarginContainer/PopupContent"]
 custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 placeholder_text = "Entrez un nom..."
 
-[node name="PortraitLabel" type="Label" parent="CreatePopup/PopupContent"]
+[node name="PortraitLabel" type="Label" parent="CreatePopup/MarginContainer/PopupContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Portrait :"
 
-[node name="PortraitOption" type="OptionButton" parent="CreatePopup/PopupContent"]
+[node name="PortraitOption" type="OptionButton" parent="CreatePopup/MarginContainer/PopupContent"]
 custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 
-[node name="Spacer2" type="Control" parent="CreatePopup/PopupContent"]
+[node name="Spacer2" type="Control" parent="CreatePopup/MarginContainer/PopupContent"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="ButtonsRow" type="HBoxContainer" parent="CreatePopup/PopupContent"]
+[node name="ButtonsRow" type="HBoxContainer" parent="CreatePopup/MarginContainer/PopupContent"]
 layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="CancelButton" type="Button" parent="CreatePopup/PopupContent/ButtonsRow"]
+[node name="CancelButton" type="Button" parent="CreatePopup/MarginContainer/PopupContent/ButtonsRow"]
 custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "← Retour"
 
-[node name="ValidateButton" type="Button" parent="CreatePopup/PopupContent/ButtonsRow"]
+[node name="ValidateButton" type="Button" parent="CreatePopup/MarginContainer/PopupContent/ButtonsRow"]
 custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18

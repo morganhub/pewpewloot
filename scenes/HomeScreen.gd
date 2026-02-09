@@ -276,6 +276,13 @@ func _update_info() -> void:
 	if crystal_label:
 		crystal_label.text = "💎 " + str(crystals)
 	
+	# Total Power
+	var ship_id := ProfileManager.get_active_ship_id()
+	var total_power := StatsCalculator.calculate_total_power(ship_id)
+	# Display in crystal_label for now (or add a new label)
+	if crystal_label:
+		crystal_label.text += "  ⚡ " + str(total_power)
+	
 	# Ship preview (visual)
 	_update_ship_preview()
 

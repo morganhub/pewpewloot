@@ -44,6 +44,9 @@ var special_power_interval: float = 10.0
 var _special_timer: float = 0.0
 var is_invincible: bool = false
 var _is_executing_power: bool = false
+var _sound_config: Dictionary = {}
+var _sound_timer: float = 0.0
+var _sound_remaining_repeats: int = 0
 
 # Visual
 @onready var visual_container: Node2D = $Visual
@@ -71,6 +74,17 @@ func setup(boss_data: Dictionary) -> void:
 	# Initialiser la phase 1
 	if not phases.is_empty():
 		_apply_phase(0)
+	
+	# Initialiser les sons
+	var sounds_data: Variant = boss_data.get("sounds", {})
+	if sounds_data is Dictionary:
+		_sound_config = sounds_data as Dictionary
+		_sound_remaining_repeats = int(_sound_config.get("repeat", 0))
+		_sound_timer = float(_sound_config.get("interval", 0))
+		# Si -1 ou > 0, on démarre le premier son après l'intervalle (ou immédiatement ?)
+		# On va lancer immédiatement si on a un repeat prévu.
+		if _sound_remaining_repeats != 0:
+			_play_boss_sound()
 	
 	# Visual setup
 	_setup_visual(boss_data)
@@ -203,6 +217,7 @@ func _process(delta: float) -> void:
 	
 	_update_shooting(delta)
 	_update_special_power(delta)
+	_update_sounds(delta)
 	_check_phase_transition()
 
 func _update_special_power(delta: float) -> void:
@@ -225,6 +240,26 @@ func set_invincible(state: bool) -> void:
 		VFXManager.spawn_floating_text(global_position, "SHIELD UP!", Color.CYAN, get_parent())
 	else:
 		modulate.a = 1.0
+
+func _update_sounds(delta: float) -> void:
+	if _sound_remaining_repeats == 0: return
+	
+	var interval: float = float(_sound_config.get("interval", 1.0))
+	if interval <= 0: return
+	
+	_sound_timer -= delta
+	if _sound_timer <= 0:
+		_play_boss_sound()
+		_sound_timer = interval
+		
+		# Gérer le décompte des répétitions (si pas infini)
+		if _sound_remaining_repeats > 0:
+			_sound_remaining_repeats -= 1
+
+func _play_boss_sound() -> void:
+	var asset: String = str(_sound_config.get("asset", ""))
+	if asset != "":
+		AudioManager.play_sfx(asset)
 
 # =============================================================================
 # PHASES
@@ -357,6 +392,11 @@ func _fire() -> void:
 	if not missile_explosion.is_empty() and missile_explosion.keys().size() > 0:
 		_missile_pattern_data["explosion_data"] = missile_explosion
 	
+	# Play sound (once per salvo)
+	var sound_path: String = str(missile_data.get("sound", ""))
+	if sound_path != "":
+		AudioManager.play_sfx(sound_path, 0.1)
+		
 	# Get spawn positions based on strategy
 	var spawn_positions: Array = _get_spawn_positions(spawn_strategy, projectile_count)
 	var player_node: Node2D = get_tree().get_first_node_in_group("player")

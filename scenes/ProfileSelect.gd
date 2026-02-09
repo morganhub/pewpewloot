@@ -11,15 +11,15 @@ extends Control
 @onready var profile_list: ItemList = $CenterContainer/MainPanel/ProfileListContainer/ProfileList
 @onready var create_button: Button = $CenterContainer/MainPanel/ButtonsContainer/CreateButton
 @onready var delete_button: Button = $CenterContainer/MainPanel/ButtonsContainer/DeleteButton
-@onready var back_button: Button = $CenterContainer/MainPanel/ButtonsContainer/BackButton
+@onready var back_button: Button = $CenterContainer/MainPanel/HeaderContainer/BackButton
 
-@onready var create_popup: Panel = $CreatePopup
-@onready var popup_name_label: Label = $CreatePopup/PopupContent/NameLabel
-@onready var popup_name_input: LineEdit = $CreatePopup/PopupContent/NameInput
-@onready var popup_portrait_label: Label = $CreatePopup/PopupContent/PortraitLabel
-@onready var popup_portrait_option: OptionButton = $CreatePopup/PopupContent/PortraitOption
-@onready var popup_validate: Button = $CreatePopup/PopupContent/ButtonsRow/ValidateButton
-@onready var popup_cancel: Button = $CreatePopup/PopupContent/ButtonsRow/CancelButton
+@onready var create_popup: PanelContainer = $CreatePopup
+@onready var popup_name_label: Label = $CreatePopup/MarginContainer/PopupContent/NameLabel
+@onready var popup_name_input: LineEdit = $CreatePopup/MarginContainer/PopupContent/NameInput
+@onready var popup_portrait_label: Label = $CreatePopup/MarginContainer/PopupContent/PortraitLabel
+@onready var popup_portrait_option: OptionButton = $CreatePopup/MarginContainer/PopupContent/PortraitOption
+@onready var popup_validate: Button = $CreatePopup/MarginContainer/PopupContent/ButtonsRow/ValidateButton
+@onready var popup_cancel: Button = $CreatePopup/MarginContainer/PopupContent/ButtonsRow/CancelButton
 
 var selected_profile_id: String = ""
 var _game_config: Dictionary = {}
@@ -32,6 +32,7 @@ func _ready() -> void:
 	App.play_menu_music()
 	_load_game_config()
 	_setup_background()
+	_apply_popup_style()
 	
 	# Connect signals
 	create_button.pressed.connect(_on_create_pressed)
@@ -75,6 +76,35 @@ func _setup_background() -> void:
 		if background_rect:
 			background_rect.visible = false
 
+func _apply_popup_style() -> void:
+	if not create_popup: return
+	
+	var popup_config: Dictionary = _game_config.get("popups", {})
+	var popup_bg_asset: String = str(popup_config.get("background", {}).get("asset", ""))
+	var margin: int = int(popup_config.get("margin", 20))
+	
+	if popup_bg_asset != "" and ResourceLoader.exists(popup_bg_asset):
+		var style = StyleBoxTexture.new()
+		style.texture = load(popup_bg_asset)
+		style.content_margin_top = margin
+		style.content_margin_bottom = margin
+		style.content_margin_left = margin
+		style.content_margin_right = margin
+		
+		create_popup.add_theme_stylebox_override("panel", style)
+	
+	# Back button styling
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+	var back_icon_path: String = str(ui_icons.get("back_button", ""))
+	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
+		back_button.icon = load(back_icon_path)
+		back_button.text = ""
+		back_button.flat = true
+		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
 func _refresh_list() -> void:
 	profile_list.clear()
 	selected_profile_id = ""
@@ -90,23 +120,6 @@ func _refresh_list() -> void:
 func _update_buttons() -> void:
 	var has_selection := selected_profile_id != ""
 	delete_button.disabled = not has_selection
-	
-	# Back button text
-	# Back button text/icon
-	if ProfileManager.active_profile_id != "":
-		# Mode Back
-		var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-		var back_icon = str(ui_icons.get("back_button", ""))
-		if back_icon != "" and ResourceLoader.exists(back_icon):
-			back_button.icon = load(back_icon)
-			back_button.text = ""
-		else:
-			back_button.icon = null
-			back_button.text = "← Retour"
-	else:
-		# Mode Quit
-		back_button.icon = null
-		back_button.text = "🚪 Quitter"
 
 func _on_profile_selected(index: int) -> void:
 	var raw_id: Variant = profile_list.get_item_metadata(index)

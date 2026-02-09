@@ -13,6 +13,12 @@ extends Control
 @onready var language_label: Label = $MarginContainer/VBoxContainer/LanguageSection/LanguageLabel
 @onready var language_dropdown: OptionButton = $MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown
 
+@onready var sound_label: Label = $MarginContainer/VBoxContainer/SoundSection/SoundLabel
+@onready var music_label: Label = $MarginContainer/VBoxContainer/SoundSection/MusicBox/Label
+@onready var music_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/MusicBox/MusicSlider
+@onready var sfx_label: Label = $MarginContainer/VBoxContainer/SoundSection/SFXBox/Label
+@onready var sfx_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/SFXBox/SFXSlider
+
 var _game_config: Dictionary = {}
 
 # =============================================================================
@@ -23,11 +29,14 @@ func _ready() -> void:
 	_load_game_config()
 	_setup_background()
 	_setup_language_dropdown()
+	_setup_audio_sliders()
 	_apply_translations()
 	
 	# Connect signals
 	back_button.pressed.connect(_on_back_pressed)
 	language_dropdown.item_selected.connect(_on_language_selected)
+	music_slider.value_changed.connect(_on_music_volume_changed)
+	sfx_slider.value_changed.connect(_on_sfx_volume_changed)
 	
 	# Setup Back Button Icon
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
@@ -35,6 +44,11 @@ func _ready() -> void:
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
 		back_button.icon = load(back_icon_path)
 		back_button.text = ""
+		back_button.flat = true
+		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
@@ -75,9 +89,20 @@ func _setup_language_dropdown() -> void:
 		_:
 			language_dropdown.select(0)
 
+func _setup_audio_sliders() -> void:
+	var vol_music = ProfileManager.get_setting("music_volume", 1.0)
+	var vol_sfx = ProfileManager.get_setting("sfx_volume", 1.0)
+	
+	if music_slider: music_slider.value = vol_music
+	if sfx_slider: sfx_slider.value = vol_sfx
+
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
 	language_label.text = LocaleManager.translate("options_language")
+	
+	if sound_label: sound_label.text = LocaleManager.translate("options_sound")
+	if music_label: music_label.text = LocaleManager.translate("options_music")
+	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
 	
 	if back_button.icon == null:
 		back_button.text = LocaleManager.translate("options_back")
@@ -105,3 +130,11 @@ func _on_language_selected(index: int) -> void:
 		# Re-apply translations immediately
 		_apply_translations()
 		print("[OptionsMenu] Language changed to: ", new_locale)
+
+func _on_music_volume_changed(value: float) -> void:
+	AudioManager.set_music_volume(value)
+	ProfileManager.set_setting("music_volume", value)
+
+func _on_sfx_volume_changed(value: float) -> void:
+	AudioManager.set_sfx_volume(value)
+	ProfileManager.set_setting("sfx_volume", value)

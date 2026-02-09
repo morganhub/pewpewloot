@@ -1,0 +1,206 @@
+{
+    "rarity_config": {
+        "common": {
+            "weight": 50,
+            "affix_count": 0,
+            "power_multiplier": 1.0
+        },
+        "uncommon": {
+            "weight": 25,
+            "affix_count": 1,
+            "power_multiplier": 1.15
+        },
+        "rare": {
+            "weight": 15,
+            "affix_count": 2,
+            "power_multiplier": 1.35
+        },
+        "epic": {
+            "weight": 7,
+            "affix_count": 3,
+            "power_multiplier": 1.6
+        },
+        "legendary": {
+            "weight": 2.5,
+            "affix_count": 4,
+            "power_multiplier": 2.0
+        },
+        "unique": {
+            "weight": 0.5,
+            "affix_count": 0,
+            "power_multiplier": 0
+        }
+    },
+    "affixes_pool": [
+        {
+            "id": "affix_hp_minor",
+            "name": "Fortified",
+            "stat": "max_hp",
+            "base_range": [
+                10,
+                25
+            ]
+        },
+        {
+            "id": "affix_hp_major",
+            "name": "Massive",
+            "stat": "max_hp",
+            "base_range": [
+                30,
+                60
+            ]
+        },
+        {
+            "id": "affix_speed",
+            "name": "Swift",
+            "stat": "move_speed",
+            "base_range": [
+                5,
+                15
+            ]
+        },
+        {
+            "id": "affix_power_minor",
+            "name": "Empowered",
+            "stat": "power",
+            "base_range": [
+                5,
+                12
+            ]
+        },
+        {
+            "id": "affix_power_major",
+            "name": "Devastating",
+            "stat": "power",
+            "base_range": [
+                15,
+                30
+            ]
+        },
+        {
+            "id": "affix_fire_rate",
+            "name": "Rapid",
+            "stat": "fire_rate",
+            "base_range": [
+                0.02,
+                0.08
+            ]
+        },
+        {
+            "id": "affix_crit",
+            "name": "Precise",
+            "stat": "crit_chance",
+            "base_range": [
+                0.02,
+                0.06
+            ]
+        },
+        {
+            "id": "affix_dodge",
+            "name": "Evasive",
+            "stat": "dodge_chance",
+            "base_range": [
+                0.01,
+                0.04
+            ]
+        },
+        {
+            "id": "affix_missile_speed",
+            "name": "Accelerated",
+            "stat": "missile_speed_pct",
+            "base_range": [
+                0.05,
+                0.15
+            ]
+        },
+        {
+            "id": "affix_special_cd",
+            "name": "Focused",
+            "stat": "special_cd",
+            "base_range": [
+                -1.0,
+                -3.0
+            ]
+        },
+        {
+            "id": "affix_special_damage",
+            "name": "Amplified",
+            "stat": "special_damage",
+            "base_range": [
+                10,
+                25
+            ]
+        }
+    ],
+    "unique_items": [
+        {
+            "id": "unique_engine_of_gods",
+            "name": "Engine of the Gods",
+            "slot": "engine",
+            "stats": {
+                "move_speed": 50,
+                "dodge_chance": 0.15,
+                "missile_speed_pct": 0.3
+            },
+            "special_ability_id": "unique_warp_dash"
+        },
+        {
+            "id": "unique_infernal_reactor",
+            "name": "Infernal Reactor",
+            "slot": "reactor",
+            "stats": {
+                "power": 75,
+                "fire_rate": 0.15,
+                "crit_chance": 0.12
+            },
+            "special_ability_id": "unique_meteor_storm"
+        },
+        {
+            "id": "unique_aegis_shield",
+            "name": "Aegis of the Ancients",
+            "slot": "shield",
+            "stats": {
+                "max_hp": 150,
+                "dodge_chance": 0.08
+            },
+            "special_ability_id": "unique_invincibility_burst"
+        }
+    ],
+    "slot_base_stats": {
+        "reactor": [
+            "power",
+            "fire_rate",
+            "crit_chance"
+        ],
+        "engine": [
+            "move_speed",
+            "missile_speed_pct",
+            "dodge_chance"
+        ],
+        "armor": [
+            "max_hp"
+        ],
+        "shield": [
+            "max_hp",
+            "dodge_chance"
+        ],
+        "missiles": [
+            "power",
+            "missile_speed_pct",
+            "special_damage"
+        ],
+        "targeting": [
+            "crit_chance",
+            "fire_rate"
+        ],
+        "utility": [
+            "special_cd",
+            "dodge_chance"
+        ],
+        "special": [
+            "special_damage",
+            "special_cd",
+            "power"
+        ]
+    }
+}
