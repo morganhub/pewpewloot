@@ -370,6 +370,24 @@ func get_loadout_for_ship(ship_id: String) -> Dictionary:
 			return ship_loadout as Dictionary
 	return {}
 
+## Retourne tous les IDs d'items équipés (tous vaisseaux confondus)
+func get_all_equipped_item_ids() -> Array:
+	var equipped: Array = []
+	var profile := get_active_profile()
+	var loadouts: Variant = profile.get("loadouts", {})
+	if loadouts is Dictionary:
+		for ship_id in (loadouts as Dictionary):
+			var ship_loadout: Variant = (loadouts as Dictionary)[ship_id]
+			if ship_loadout is Dictionary:
+				for slot_id in (ship_loadout as Dictionary):
+					# Ignorer keys spéciales
+					if slot_id == "selected_unique_power": continue
+					
+					var item_id: String = str((ship_loadout as Dictionary)[slot_id])
+					if item_id != "" and not equipped.has(item_id):
+						equipped.append(item_id)
+	return equipped
+
 ## Équipe un item sur un slot pour un vaisseau
 func equip_item(ship_id: String, slot: String, item_id: String) -> void:
 	var profile := get_active_profile()
@@ -405,6 +423,10 @@ func spend_crystals(amount: int) -> bool:
 		_update_active_profile("crystals", current - amount)
 		return true
 	return false
+
+func remove_crystals(amount: int) -> void:
+	var current := get_crystals()
+	_update_active_profile("crystals", max(0, current - amount))
 
 
 ## Déséquipe un item d'un slot

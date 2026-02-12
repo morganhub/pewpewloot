@@ -30,9 +30,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 0
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer" unique_id=101457869]
 layout_mode = 2
@@ -52,6 +52,7 @@ theme_override_constants/separation = 10
 [node name="BackButton" type="Button" parent="MarginContainer/ScrollContainer/Content/Header" unique_id=806286378]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
+mouse_filter = 1
 text = "←"
 
 [node name="HSeparator1" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1789503953]
@@ -62,10 +63,15 @@ clip_contents = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="ShipTitleLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/ShipSection" unique_id=987654321]
+layout_mode = 2
+text = "VAISSEAUX"
+horizontal_alignment = 1
+
 [node name="ShipCountLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/ShipSection" unique_id=743620687]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Vaisseaux: 0/0"
+text = "0/0"
 horizontal_alignment = 1
 
 [node name="ShipSelector" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content/ShipSection" unique_id=1331321943]
@@ -93,6 +99,7 @@ alignment = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
+mouse_filter = 1
 theme_override_font_sizes/font_size = 20
 text = "←"
 
@@ -100,6 +107,7 @@ text = "←"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
+mouse_filter = 1
 theme_override_font_sizes/font_size = 20
 text = "→"
 
@@ -119,8 +127,10 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="HSeparator2" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=2110573607]
+[node name="PowersTitleLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=123456789]
 layout_mode = 2
+text = "POUVOIRS"
+horizontal_alignment = 1
 
 [node name="PowersSection" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=533069045]
 layout_mode = 2
@@ -129,12 +139,6 @@ theme_override_constants/separation = 20
 [node name="SPContainer" type="VBoxContainer" parent="MarginContainer/ScrollContainer/Content/PowersSection" unique_id=665711547]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="Label" type="Label" parent="MarginContainer/ScrollContainer/Content/PowersSection/SPContainer" unique_id=1024753452]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-text = "Super Power"
-horizontal_alignment = 1
 
 [node name="SPInfo" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content/PowersSection/SPContainer" unique_id=2116251118]
 layout_mode = 2
@@ -156,25 +160,18 @@ text = "None"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="MarginContainer/ScrollContainer/Content/PowersSection/UPContainer" unique_id=375846074]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-text = "Unique Power"
-horizontal_alignment = 1
-
 [node name="UPButton" type="Button" parent="MarginContainer/ScrollContainer/Content/PowersSection/UPContainer" unique_id=1276218920]
 unique_name_in_owner = true
 layout_mode = 2
+mouse_filter = 1
 text = "Select Power..."
 text_overrun_behavior = 3
 clip_text = true
 
-[node name="HSeparatorPowers" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=367243017]
-layout_mode = 2
-
 [node name="SlotsLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=945803165]
 layout_mode = 2
-text = "Équipement (8 slots):"
+text = "ÉQUIPEMENT"
+horizontal_alignment = 1
 
 [node name="SlotsGrid" type="GridContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=870760348]
 layout_mode = 2
@@ -182,58 +179,20 @@ theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
 columns = 3
 
-[node name="HSeparator3" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1512836806]
-layout_mode = 2
-
 [node name="InventoryLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=459974033]
 layout_mode = 2
-text = "Inventaire:"
+text = "INVENTAIRE"
+horizontal_alignment = 1
 
-[node name="FiltersContainer" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=1070784149]
+[node name="FiltersContainer" type="VBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=1070784149]
 layout_mode = 2
 theme_override_constants/separation = 15
-
-[node name="SlotFilterLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/FiltersContainer" unique_id=522769047]
-layout_mode = 2
-text = "Slot:"
-vertical_alignment = 1
-
-[node name="SlotFilter" type="OptionButton" parent="MarginContainer/ScrollContainer/Content/FiltersContainer" unique_id=1056906494]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-selected = 0
-item_count = 1
-popup/item_0/text = "Tous"
-popup/item_0/id = 0
-
-[node name="RarityLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/FiltersContainer" unique_id=62511594]
-layout_mode = 2
-text = "Rareté:"
-vertical_alignment = 1
-
-[node name="RaritySort" type="Button" parent="MarginContainer/ScrollContainer/Content/FiltersContainer" unique_id=605020393]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 0)
-layout_mode = 2
-tooltip_text = "Trier par rareté"
-text = "↓"
-
-[node name="PageLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/FiltersContainer" unique_id=1786210231]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Page 1/1"
-horizontal_alignment = 2
 
 [node name="InventoryGrid" type="GridContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=2121731068]
 layout_mode = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
 columns = 3
-
-[node name="HSeparator4" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=887701914]
-layout_mode = 2
 
 [node name="PaginationContainer" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=1349833903]
 layout_mode = 2
@@ -244,12 +203,21 @@ alignment = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
+mouse_filter = 1
 text = "< Précédent"
+
+[node name="PageLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/PaginationContainer" unique_id=1786210231]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Page 1/1"
+horizontal_alignment = 1
 
 [node name="NextPageBtn" type="Button" parent="MarginContainer/ScrollContainer/Content/PaginationContainer" unique_id=1385154476]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
+mouse_filter = 1
 text = "Suivant >"
 
 [node name="DebugSection" type="HBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=608172198]
@@ -258,10 +226,8 @@ alignment = 1
 
 [node name="GenerateItemButton" type="Button" parent="MarginContainer/ScrollContainer/Content/DebugSection" unique_id=1604274337]
 layout_mode = 2
+mouse_filter = 1
 text = "🎲 Générer item (debug)"
-
-[node name="HSeparator5" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1604263753]
-layout_mode = 2
 
 [node name="ItemPopup" type="PanelContainer" parent="." unique_id=235958319]
 layout_mode = 1
@@ -270,10 +236,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = -120.0
-offset_right = 150.0
-offset_bottom = 120.0
+offset_left = -258.0
+offset_top = -200.0
+offset_right = 258.0
+offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -286,7 +252,7 @@ theme_override_constants/margin_bottom = 100
 
 [node name="VBox" type="VBoxContainer" parent="ItemPopup/MarginContainer" unique_id=471502116]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
 [node name="Header" type="HBoxContainer" parent="ItemPopup/MarginContainer/VBox" unique_id=385409226]
 layout_mode = 2
@@ -296,12 +262,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Détails de l'objet"
 vertical_alignment = 1
-
-[node name="CloseButton" type="Button" parent="ItemPopup/MarginContainer/VBox/Header" unique_id=1380424096]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 30)
-layout_mode = 2
-text = "Fermer"
 
 [node name="HSeparator" type="HSeparator" parent="ItemPopup/MarginContainer/VBox" unique_id=1747949010]
 layout_mode = 2
@@ -319,16 +279,11 @@ text = "Statistiques:
   +5 Speed"
 autowrap_mode = 2
 
-[node name="Buttons" type="HBoxContainer" parent="ItemPopup/MarginContainer/VBox" unique_id=2016309973]
+[node name="Buttons" type="GridContainer" parent="ItemPopup/MarginContainer/VBox" unique_id=2016309973]
 layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="EquipButton" type="Button" parent="ItemPopup/MarginContainer/VBox/Buttons" unique_id=1476788911]
-custom_minimum_size = Vector2(80, 40)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Équiper"
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 2
 
 [node name="UpgradeButton" type="Button" parent="ItemPopup/MarginContainer/VBox/Buttons" unique_id=271500005]
 unique_name_in_owner = true
@@ -343,6 +298,20 @@ custom_minimum_size = Vector2(80, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "🗑️ Supprimer"
+
+[node name="EquipButton" type="Button" parent="ItemPopup/MarginContainer/VBox/Buttons" unique_id=1476788911]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Équiper"
+
+[node name="CloseButton" type="Button" parent="ItemPopup/MarginContainer/VBox/Buttons" unique_id=1380424096]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Fermer"
 
 [node name="UniqueSelectionPopup" type="PanelContainer" parent="." unique_id=958983873]
 unique_name_in_owner = true

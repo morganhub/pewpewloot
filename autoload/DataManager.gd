@@ -40,6 +40,7 @@ func _load_all_data() -> void:
 	_load_bosses()
 	_load_loot_data()
 	_load_levels()
+	_load_level_modifiers()
 	_load_effects()
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
@@ -61,6 +62,9 @@ func _load_game_config() -> void:
 	_game_config = _load_json("res://data/game.json")
 
 func get_game_config() -> Dictionary:
+	return _game_config
+	
+func get_game_data() -> Dictionary:
 	return _game_config
 
 # =============================================================================
@@ -548,3 +552,24 @@ func _load_effects() -> void:
 
 func get_effect(effect_id: String) -> Dictionary:
 	return _effects.get(effect_id, {})
+
+# =============================================================================
+# LEVELS MODIFIERS (Upgrade System)
+# =============================================================================
+
+var _level_modifiers: Dictionary = {} # level (int) -> data
+
+func _load_level_modifiers() -> void:
+	_level_modifiers.clear()
+	var data := _load_json("res://data/loot/levels.json")
+	var raw_levels: Variant = data.get("levels", [])
+	if raw_levels is Array:
+		for lvl in raw_levels:
+			if lvl is Dictionary:
+				var l_dict := lvl as Dictionary
+				var level_idx: int = int(l_dict.get("level", 0))
+				if level_idx > 0:
+					_level_modifiers[level_idx] = l_dict
+
+func get_level_upgrade_data(level: int) -> Dictionary:
+	return _level_modifiers.get(level, {})

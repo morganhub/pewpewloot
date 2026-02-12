@@ -1,0 +1,219 @@
+{
+	"levels": [
+		{
+			"level": 1,
+			"upgrade_to_next": {
+				"cost": 50,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.12,
+						"multiplier_max": 1.18
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 2,
+			"upgrade_to_next": {
+				"cost": 100,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.12,
+						"multiplier_max": 1.18
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 3,
+			"upgrade_to_next": {
+				"cost": 150,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.12,
+						"multiplier_max": 1.18
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 4,
+			"upgrade_to_next": {
+				"cost": 200,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.12,
+						"multiplier_max": 1.18
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 5,
+			"upgrade_to_next": {
+				"cost": 400,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.12,
+						"multiplier_max": 1.18
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 6,
+			"upgrade_to_next": {
+				"cost": 750,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.12,
+						"multiplier_max": 1.18
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 7,
+			"upgrade_to_next": {
+				"cost": 1000,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.15,
+						"multiplier_max": 1.20
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.25,
+						"multiplier_max": 1.25
+					}
+				}
+			}
+		},
+		{
+			"level": 8,
+			"upgrade_to_next": {
+				"cost": 2500,
+				"tiers": {
+					"decent": {
+						"weight": 40,
+						"label": "Decent Upgrade",
+						"multiplier_min": 1.05,
+						"multiplier_max": 1.10
+					},
+					"great": {
+						"weight": 45,
+						"label": "Great Upgrade!",
+						"multiplier_min": 1.15,
+						"multiplier_max": 1.20
+					},
+					"perfect": {
+						"weight": 15,
+						"label": "PERFECT UPGRADE",
+						"multiplier_min": 1.30,
+						"multiplier_max": 1.50
+					}
+				}
+			}
+		},
+		{
+			"level": 9,
+			"upgrade_to_next": {
+				"cost": 0,
+				"tiers": {}
+			}
+		}
+	]
+}

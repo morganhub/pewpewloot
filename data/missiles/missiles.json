@@ -21,7 +21,7 @@
 				"asset": "res://assets/missiles/blue_ball.png",
 				"asset_anim": ""
 			},
-			"sound": "res://assets/sounds/sfx_shoot_basic.wav",
+			"sound": "",
 			"explosion": {}
 		},
 		{
@@ -35,12 +35,12 @@
 				"color": "#FF0000",
 				"shape": "circle",
 				"size": 10,
-				"width_pct": 0.03,
-				"height_pct": 0.08,
+				"width_pct": 0.02,
+				"height_pct": 0.06,
 				"asset": "",
 				"asset_anim": "res://assets/missiles/sacred_missile.tres"
 			},
-			"sound": "res://assets/sounds/laser_1.ogg",
+			"sound": "res://assets/sfx/combat/very_weak_laser.ogg",
 			"explosion": {}
 		},
 		{
@@ -59,7 +59,7 @@
 				"asset": "",
 				"asset_anim": ""
 			},
-			"sound": "res://assets/sounds/sfx_shoot_homing.wav",
+			"sound": "res://assets/sfx/combat/laser_shot.ogg",
 			"explosion": {
 				"size": 30,
 				"color": "#FF2222"
@@ -76,12 +76,12 @@
 				"color": "#44AAFF",
 				"shape": "circle",
 				"size": 8,
-				"width_pct": 0.025,
-				"height_pct": 0.025,
+				"width_pct": 0.020,
+				"height_pct": 0.020,
 				"asset": "",
 				"asset_anim": "res://assets/missiles/sacred_missile.tres"
 			},
-			"sound": "res://assets/sounds/sfx_shoot_wave.wav",
+			"sound": "res://assets/sfx/combat/laser_shot.ogg",
 			"explosion": {}
 		}
 	]

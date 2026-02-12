@@ -14,6 +14,8 @@ extends Control
 
 const GRID_COLUMNS := 4
 const GRID_GAP := 12
+const ItemCardScene = preload("res://scenes/components/ItemCard.tscn")
+const ItemDetailsPopupScene = preload("res://scenes/components/ItemDetailsPopup.tscn")
 var _item_card_size := Vector2(100, 75)
 var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time)
 
@@ -50,8 +52,8 @@ var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time
 @onready var popup_title: Label = $ItemPopup/MarginContainer/VBox/Header/PopupTitle
 @onready var popup_item_name: Label = $ItemPopup/MarginContainer/VBox/ItemName
 @onready var popup_stats: Label = $ItemPopup/MarginContainer/VBox/StatsLabel
-@onready var popup_equip_btn: Button = $ItemPopup/MarginContainer/VBox/Buttons/EquipButton
-@onready var popup_cancel_btn: Button = $ItemPopup/MarginContainer/VBox/Header/CloseButton
+@onready var popup_equip_btn: Button = %EquipButton
+@onready var popup_cancel_btn: Button = %CloseButton
 
 # Powers UI
 @onready var sp_name_label: Label = %SPName
@@ -62,13 +64,15 @@ var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time
 @onready var unique_cancel_btn: Button = %CancelSelectionButton
 
 # Filtres et pagination
-@onready var slot_filter: OptionButton = %SlotFilter
-@onready var rarity_sort_btn: Button = %RaritySort
+# Filtres et pagination
+@onready var filters_container: VBoxContainer = $MarginContainer/ScrollContainer/Content/FiltersContainer
 @onready var page_label: Label = %PageLabel
 @onready var prev_page_btn: Button = %PrevPageBtn
 @onready var next_page_btn: Button = %NextPageBtn
 @onready var popup_upgrade_btn: Button = %UpgradeButton
 @onready var popup_delete_btn: Button = %DeleteButton
+
+var _filter_icon_buttons: Dictionary = {} # slot_id -> TextureButton
 
 
 
@@ -95,12 +99,17 @@ var current_page: int = 0
 var items_per_page: int = 12  # 4 colonnes × 3 lignes
 var filter_slot: String = ""  # "" = tous, sinon slot_id spécifique
 var filter_rarity_asc: bool = false  # false = descendant, true = ascendant
-var filter_rarity_enabled: bool = false
+var filter_rarity: String = "" # "" = all, else rarity_id
+var _rarity_badge_buttons: Dictionary = {} # rarity_id -> Button
+var rarity_filter_label: Label = null
+var multi_recycle_btn: TextureButton = null
+var _item_details_popup: Control = null
+
 
 # Ship scroll state for infinite cycling (replaced by pagination)
 var current_ship_page: int = 0
 var _ship_visible_count: int = 4
-var _all_ships_data: Array = []
+# _all_ships_data removed (unused)
 var _drag_start_pos: Vector2 = Vector2.ZERO
 var _min_drag_distance: float = 50.0
 var _is_dragging: bool = false
@@ -115,6 +124,12 @@ var _is_initial_load: bool = true
 # =============================================================================
 
 func _ready() -> void:
+	_load_game_config()
+	
+	if content: content.mouse_filter = Control.MOUSE_FILTER_PASS
+	if inventory_grid: inventory_grid.mouse_filter = Control.MOUSE_FILTER_PASS
+	if slots_grid: slots_grid.mouse_filter = Control.MOUSE_FILTER_PASS
+	
 	# Connexions
 	# Ship Selection
 	if ship_prev_btn: ship_prev_btn.pressed.connect(_on_ship_scroll_left)
@@ -130,30 +145,64 @@ func _ready() -> void:
 	generate_item_button.pressed.connect(_on_generate_item_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	
-	# Popup
-	popup_equip_btn.pressed.connect(_on_popup_equip_pressed)
-	if popup_cancel_btn: popup_cancel_btn.pressed.connect(_on_popup_cancel_pressed)
-	item_popup.visible = false
+	# Load Back Button Texture
+	var sm_cfg: Dictionary = _game_config.get("ship_menu", {})
+	var bb_asset: String = str(sm_cfg.get("back_button", ""))
+	if bb_asset != "" and ResourceLoader.exists(bb_asset):
+		back_button.texture_normal = load(bb_asset)
+
+	
+	
+	# Popup (Legacy, removed)
+	if item_popup: item_popup.visible = false
+
 	
 	if up_button: up_button.pressed.connect(_on_up_button_pressed)
 	if unique_cancel_btn: unique_cancel_btn.pressed.connect(func(): unique_popup.visible = false)
 	unique_popup.visible = false
 	
 	# Filtres et pagination
-	if slot_filter: slot_filter.item_selected.connect(_on_slot_filter_changed)
-	if rarity_sort_btn: rarity_sort_btn.pressed.connect(_on_rarity_sort_pressed)
+	# Filtres (New Icon System)
+	# Clean up old UI elements if they exist
 	if prev_page_btn: prev_page_btn.pressed.connect(_on_prev_page_pressed)
 	if next_page_btn: next_page_btn.pressed.connect(_on_next_page_pressed)
-	if popup_upgrade_btn: popup_upgrade_btn.pressed.connect(_on_popup_upgrade_pressed)
-	if popup_delete_btn: popup_delete_btn.pressed.connect(_on_popup_recycle_pressed)
+
+	# Instantiate Item Details Popup
+	_item_details_popup = ItemDetailsPopupScene.instantiate()
+	_item_details_popup.visible = false
+	_item_details_popup.z_index = 100 # Ensure on top
+	add_child(_item_details_popup)
 	
-	_populate_slot_filter()
+	# Redirect legacy reference to new popup
+	if item_popup: item_popup.visible = false # Hide old
+	item_popup = _item_details_popup # Update ref so existing code uses new popup
+	
+	_item_details_popup.close_requested.connect(func(): _item_details_popup.visible = false)
+	_item_details_popup.upgrade_requested.connect(func(id): 
+		popup_item_id = id
+		_on_popup_upgrade_pressed()
+	)
+	_item_details_popup.recycle_requested.connect(func(id): 
+		popup_item_id = id
+		_on_popup_recycle_pressed(id)
+	)
+	_item_details_popup.equip_requested.connect(_on_popup_equip_requested)
+	_item_details_popup.unequip_requested.connect(_on_popup_unequip_requested)
+
+
+	_setup_filter_icons_ui()
+	_setup_rarity_filter_ui()
 	
 	# Appliquer les traductions
 	_apply_translations()
 	App.play_menu_music()
 	
-	_load_game_config()
+	# Parallax Connection
+	var v_scroll: VScrollBar = scroll_container.get_v_scroll_bar()
+	v_scroll.value_changed.connect(_update_background_parallax)
+	
+
+
 	
 	# Force reload ships if empty (e.g. JSON edit while running)
 	if DataManager.get_ships().size() == 0:
@@ -165,63 +214,77 @@ func _ready() -> void:
 	
 	# Initial load deferred to ensure correct size
 	call_deferred("_initial_layout")
-
-	# Force update power buttons style
+	if content: _fix_mobile_scroll_recursive(content)
 	# Power Buttons Styling
-	# Power Buttons use power_button config (not ship_select_button)
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
+	
+	# 1. Super Power Button config
 	var power_cfg: Dictionary = ship_opts.get("power_button", {}) if ship_opts.get("power_button") is Dictionary else {}
 	var power_asset: String = str(power_cfg.get("asset", ""))
-	var power_text_color: Color = Color(power_cfg.get("text_color", "#FFFFFF"))
-	var power_font_size: int = int(power_cfg.get("font_size", 16))
-	var power_style_box = StyleBoxFlat.new()
-	power_style_box.bg_color = Color(0.2, 0.2, 0.2, 1)
+	var power_text_color: Color = Color(power_cfg.get("text_color", "#000000"))
+	var power_font_size: int = int(power_cfg.get("font_size", 30))
+	var power_letter_spacing: int = int(power_cfg.get("letter_spacing", 2))
 	
+	var power_style_box: StyleBox
 	if power_asset != "" and ResourceLoader.exists(power_asset):
-		var tex = load(power_asset)
 		power_style_box = StyleBoxTexture.new()
-		power_style_box.texture = tex
-		
-	# 1. Unique Power Button (%UPButton)
+		power_style_box.texture = load(power_asset)
+	else:
+		power_style_box = StyleBoxFlat.new()
+		power_style_box.bg_color = Color(0.2, 0.2, 0.2, 1)
+	
+	# Apply to SP Label
+	if sp_name_label:
+		sp_name_label.add_theme_color_override("font_color", power_text_color)
+		sp_name_label.add_theme_font_size_override("font_size", power_font_size)
+		sp_name_label.add_theme_constant_override("letter_spacing", power_letter_spacing)
+
+	# 2. Unique Power Button config
+	var up_cfg: Dictionary = ship_opts.get("unique_power_button", {}) if ship_opts.get("unique_power_button") is Dictionary else {}
+	var up_asset: String = str(up_cfg.get("asset", ""))
+	var up_text_color: Color = Color(up_cfg.get("text_color", "#000000"))
+	var up_font_size: int = int(up_cfg.get("font_size", 30))
+	var up_letter_spacing: int = int(up_cfg.get("letter_spacing", 2))
+
+	var up_style_box: StyleBox
+	if up_asset != "" and ResourceLoader.exists(up_asset):
+		up_style_box = StyleBoxTexture.new()
+		up_style_box.texture = load(up_asset)
+	else:
+		up_style_box = StyleBoxFlat.new()
+		up_style_box.bg_color = Color(0.2, 0.2, 0.2, 1)
+
 	if up_button:
-		up_button.custom_minimum_size = Vector2(0, 60) # Wide rectangle
-		up_button.add_theme_stylebox_override("normal", power_style_box)
-		up_button.add_theme_stylebox_override("hover", power_style_box)
-		up_button.add_theme_stylebox_override("pressed", power_style_box)
-		up_button.add_theme_stylebox_override("focus", power_style_box)
-		# Ensure text is visible with configured color
-		up_button.add_theme_color_override("font_color", power_text_color)
-		up_button.add_theme_font_size_override("font_size", power_font_size)
+		up_button.custom_minimum_size = Vector2(0, 60)
+		up_button.add_theme_stylebox_override("normal", up_style_box)
+		up_button.add_theme_stylebox_override("hover", up_style_box)
+		up_button.add_theme_stylebox_override("pressed", up_style_box)
+		up_button.add_theme_stylebox_override("focus", up_style_box)
+		up_button.add_theme_color_override("font_color", up_text_color)
+		up_button.add_theme_font_size_override("font_size", up_font_size)
+		# Button doesn't have letter_spacing directly, but it affects fallback or we can use it if we had a custom label
+		up_button.add_theme_constant_override("letter_spacing", up_letter_spacing)
 		up_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		
-	# 2. Super Power Display (SPInfo)
-	# Access SPInfo container
+
+	# Super Power Display (SPInfo) background
 	if sp_icon_rect:
 		var sp_info = sp_icon_rect.get_parent()
 		if sp_info is Control:
-			# Strategy: Add a Panel node as first child of SPInfo and set it to full rect.
-			var existing_bg = sp_info.get_node_or_null("SPBackgroundPanel")
-			if not existing_bg:
-				# Best bet without scene change: Add a Panel as a sibling of SPInfo, behind it?
-				# SPInfo is in SPContainer (VBox).
-				# Let's insert a PanelContainer in SPContainer, move SPInfo children into it.
-				# Reference: sp_info (HBox)
-				
-				var parent = sp_info.get_parent()
-				var idx = sp_info.get_index()
-				
-				var new_panel = PanelContainer.new()
-				new_panel.name = "SPStyledContainer"
-				new_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				new_panel.custom_minimum_size = Vector2(0, 60)
-				new_panel.add_theme_stylebox_override("panel", power_style_box)
-				
-				parent.add_child(new_panel)
-				parent.move_child(new_panel, idx)
-				
-				sp_info.reparent(new_panel)
-				sp_info.alignment = BoxContainer.ALIGNMENT_CENTER
-				sp_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var parent = sp_info.get_parent()
+			var idx = sp_info.get_index()
+			
+			var new_panel = PanelContainer.new()
+			new_panel.name = "SPStyledContainer"
+			new_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			new_panel.custom_minimum_size = Vector2(0, 60)
+			new_panel.add_theme_stylebox_override("panel", power_style_box)
+			new_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			parent.add_child(new_panel)
+			parent.move_child(new_panel, idx)
+			
+			sp_info.reparent(new_panel)
+			sp_info.alignment = BoxContainer.ALIGNMENT_CENTER
+			sp_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _initial_layout() -> void:
 	_calculate_layout_metrics()
@@ -235,6 +298,39 @@ func _on_resized() -> void:
 	_load_ships()
 	_update_inventory_grid()
 	_update_slot_buttons()
+	# Update background size for parallax
+	_setup_visuals() # Re-applies background size logic
+	if scroll_container:
+		_update_background_parallax(scroll_container.get_v_scroll_bar().value)
+
+func _update_background_parallax(scroll_val: float) -> void:
+	var bg = get_node_or_null("Background")
+	if not bg or not scroll_container: return
+	
+	# Determine Scroll Progress (0.0 to 1.0)
+	var v_scroll: VScrollBar = scroll_container.get_v_scroll_bar()
+	var max_scroll: float = v_scroll.max_value - v_scroll.page
+	
+	var progress: float = 0.0
+	if max_scroll > 0:
+		progress = clamp(scroll_val / max_scroll, 0.0, 1.0)
+		
+	# Target: Move background UP as we scroll DOWN.
+	# Available movement = Background Height - Viewport Height
+	# We set bg height to 1.2x viewport in setup.
+	var viewport_h: float = get_viewport_rect().size.y
+	if viewport_h == 0: viewport_h = size.y
+	
+	var bg_h: float = bg.custom_minimum_size.y
+	if bg_h < viewport_h: bg_h = viewport_h # Safety
+	
+	var max_shift: float = bg_h - viewport_h
+	
+	# Apply slight ease or direct linear mapping? Linear is predictable.
+	var shift_y: float = -progress * max_shift
+	
+	bg.position.y = shift_y
+
 
 func _setup_visuals() -> void:
 	# 1. Main Background
@@ -250,21 +346,90 @@ func _setup_visuals() -> void:
 			bg.name = "Background"
 			bg.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+			# PARALLAX CHANGE: Use Top Wide to allow height modification and movement
+			bg.set_anchors_preset(Control.PRESET_TOP_WIDE)
 			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(bg)
 			move_child(bg, 0)
+		
+		# Ensure background is taller than screen for parallax (1.2x)
+		var viewport_h = get_viewport_rect().size.y
+		if viewport_h == 0: viewport_h = size.y
+		bg.custom_minimum_size.y = viewport_h * 1.2
 		bg.texture = tex
+		
+		# Initial Parallax Update
+		if scroll_container:
+			_update_background_parallax(scroll_container.get_v_scroll_bar().value)
 	
 	# 2. Section Backgrounds
 	var sections_cfg: Dictionary = ship_config.get("sections", {})
+	
+	# Ship Selection (Covers the whole ship selector and stats)
 	_apply_section_background("ShipSection", sections_cfg.get("ship_selection", {}))
-	_apply_section_background("SlotsGrid", sections_cfg.get("equipment", {}))
-	_apply_section_background("InventoryGrid", sections_cfg.get("inventory", {}))
+	
+	# Equipment Section (Group Label + Grid)
+	var content_vbox = $MarginContainer/ScrollContainer/Content
+	var equipment_nodes = []
+	if slots_label: equipment_nodes.append(slots_label)
+	if slots_grid: equipment_nodes.append(slots_grid)
+	
+	if not equipment_nodes.is_empty():
+		var eq_section = _ensure_group_node("EquipmentSection", equipment_nodes)
+		_apply_section_background(eq_section.name, sections_cfg.get("equipment", {}))
+	
+	# Inventory Section (Group Label + Filters + Grid + Pagination)
+	var inventory_nodes = []
+	if inventory_label: inventory_nodes.append(inventory_label)
+	var filters = content_vbox.get_node_or_null("FiltersContainer")
+	if filters: inventory_nodes.append(filters)
+	if inventory_grid: inventory_nodes.append(inventory_grid)
+	
+	# Pagination
+	var pagination = content_vbox.get_node_or_null("PaginationContainer")
+	if pagination: inventory_nodes.append(pagination)
+	
+	if not inventory_nodes.is_empty():
+		var inv_section = _ensure_group_node("InventorySection", inventory_nodes)
+		_apply_section_background(inv_section.name, sections_cfg.get("inventory", {}))
+		
+	# Powers Section (Title + Content)
+	var powers_title = content_vbox.get_node_or_null("PowersTitleLabel")
+	var powers_content = content_vbox.get_node_or_null("PowersSection") # The HBox
+	var powers_nodes = []
+	if powers_title: powers_nodes.append(powers_title)
+	if powers_content: powers_nodes.append(powers_content)
+	
+	if not powers_nodes.is_empty():
+		var p_section = _ensure_group_node("PowersSectionGroup", powers_nodes)
+		_apply_section_background(p_section.name, sections_cfg.get("powers", {}))
+
+	# 5. Section Titles Styling
+	var title_cfg: Dictionary = _game_config.get("ship_menu", {}).get("title", {})
+	var t_font_sz: int = int(title_cfg.get("font_size", 24))
+	var t_linesp: int = int(title_cfg.get("letter_spacing", 2))
+	var t_color_hex: String = str(title_cfg.get("text_color", "#FFFFFF"))
+	var t_color: Color = Color.html(t_color_hex)
+	
+	var titles = []
+	# Ship Title
+	var ship_sec = content_vbox.get_node_or_null("ShipSection")
+	if ship_sec:
+		var st = ship_sec.get_node_or_null("ShipTitleLabel")
+		if st: titles.append(st)
+	
+	# Powers Title
+	if powers_title: titles.append(powers_title)
+	if slots_label: titles.append(slots_label)
+	if inventory_label: titles.append(inventory_label)
+	
+	for t in titles:
+		t.add_theme_font_size_override("font_size", t_font_sz)
+		t.add_theme_constant_override("letter_spacing", t_linesp)
+		t.add_theme_color_override("font_color", t_color)
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	
 	# 3. Fix Double Separator
-	# Remove dynamically added separator if HSeparator3 already exists between slots and inventory
-	var content_vbox = $MarginContainer/ScrollContainer/Content
 	var dynamic_sep = content_vbox.get_node_or_null("SeparatorSlotsInventory")
 	if dynamic_sep:
 		dynamic_sep.queue_free()
@@ -286,20 +451,12 @@ func _setup_visuals() -> void:
 		if unlock_popup: unlock_popup.add_theme_stylebox_override("panel", style)
 		if unique_popup: unique_popup.add_theme_stylebox_override("panel", style)
 	
-	# 5. Close button icon
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var close_icon_path: String = str(ui_icons.get("close_button", ""))
-	if close_icon_path != "" and ResourceLoader.exists(close_icon_path) and popup_cancel_btn:
-		popup_cancel_btn.icon = load(close_icon_path)
-		popup_cancel_btn.text = ""
-		popup_cancel_btn.flat = true
-		popup_cancel_btn.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		popup_cancel_btn.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		popup_cancel_btn.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		popup_cancel_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	# 5. Popup Buttons Styling (Upgrade, Recycle, Close, Equip)
+	_update_popup_buttons_style()
 		
 		
 	# 6. Back Button
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
 		back_button.icon = load(back_icon_path)
@@ -328,22 +485,42 @@ func _setup_visuals() -> void:
 			btn.text = ""
 	
 	# 7. Sort Button Icon
-	if rarity_sort_btn:
-		var sort_icon_path: String = str(ui_icons.get("sort_desc", "")) # Default descending
-		if filter_rarity_asc:
-			sort_icon_path = str(ui_icons.get("sort_asc", ""))
-		if sort_icon_path != "" and ResourceLoader.exists(sort_icon_path):
-			rarity_sort_btn.icon = load(sort_icon_path)
-			rarity_sort_btn.text = ""
+
 	
 	# 8. Shop Button Icon
 	# 9. Dropdown Styling
-	if slot_filter:
-		_apply_dropdown_style(slot_filter)
+	# 9. Dropdown Styling
+	# Removed Legacy SlotFilter styling
 	
 	_create_slot_buttons()
 	_update_slot_buttons()
 	_update_inventory_grid()
+
+func _ensure_group_node(group_name: String, nodes: Array) -> Control:
+	var content_vbox = $MarginContainer/ScrollContainer/Content
+	var existing = content_vbox.get_node_or_null(group_name)
+	if existing: return existing as Control
+	
+	if nodes.is_empty(): return null
+	
+	# Create the group container
+	var group = VBoxContainer.new()
+	group.name = group_name
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.add_theme_constant_override("separation", 10)
+	
+	# Add it at the position of the first node
+	var first_node = nodes[0] as Control
+	var idx = first_node.get_index()
+	content_vbox.add_child(group)
+	content_vbox.move_child(group, idx)
+	
+	# Reparent all nodes to the group
+	for node in nodes:
+		if node is Control:
+			node.reparent(group)
+			
+	return group
 
 func _apply_section_background(section_node_name: String, section_cfg: Dictionary) -> void:
 	var bg_path: String = str(section_cfg.get("background", ""))
@@ -351,29 +528,39 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 		return
 	
 	var content_vbox = $MarginContainer/ScrollContainer/Content
-	var section_node = content_vbox.get_node_or_null(section_node_name)
+	# Look in Content or anywhere else
+	var section_node = get_node_or_null("MarginContainer/ScrollContainer/Content/" + section_node_name)
+	if not section_node:
+		# Maybe it was already wrapped?
+		section_node = get_node_or_null("MarginContainer/ScrollContainer/Content/" + section_node_name + "Wrapper/" + section_node_name)
+		
 	if not section_node:
 		return
 	
-	# Wrap in a PanelContainer if not already wrapped
-	if section_node.get_parent().name == section_node_name + "Wrapper":
-		return # Already wrapped
+	var parent = section_node.get_parent()
+	if parent and parent.name == section_node_name + "Wrapper":
+		# Already wrapped, just update texture
+		var style = parent.get_theme_stylebox("panel")
+		if style is StyleBoxTexture:
+			style.texture = load(bg_path)
+		return
 	
 	var wrapper = PanelContainer.new()
 	wrapper.name = section_node_name + "Wrapper"
 	wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrapper.mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	var style = StyleBoxTexture.new()
 	style.texture = load(bg_path)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
+	style.content_margin_left = 15
+	style.content_margin_right = 15
+	style.content_margin_top = 15
+	style.content_margin_bottom = 15
 	wrapper.add_theme_stylebox_override("panel", style)
 	
 	var idx = section_node.get_index()
-	content_vbox.add_child(wrapper)
-	content_vbox.move_child(wrapper, idx)
+	parent.add_child(wrapper)
+	parent.move_child(wrapper, idx)
 	section_node.reparent(wrapper)
 
 func _apply_dropdown_style(opt_btn: OptionButton) -> void:
@@ -389,6 +576,10 @@ func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 	# This avoids the radio button icon occupying space.
 	for i in range(popup.item_count):
 		popup.set_item_as_checkable(i, false)
+	
+	# Allow scroll pass on popup items? Native popup handling is different.
+	# But setting mouse_filter pass on option button itself is good.
+	opt_btn.mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	# Styling via StyleBox overrides
 	var popup_style = StyleBoxFlat.new()
@@ -406,7 +597,63 @@ func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 	
 	popup.add_theme_color_override("font_hover_color", highlight_text)
 	popup.add_theme_color_override("font_color", item_text)
+	
+	popup.add_theme_color_override("font_hover_color", highlight_text)
+	popup.add_theme_color_override("font_color", item_text)
 
+
+func _update_popup_buttons_style() -> void:
+	var details_cfg: Dictionary = _game_config.get("ship_menu", {}).get("ship_details", {}).get("buttons", {})
+	var font_sz = int(details_cfg.get("font_size", 18))
+	var text_col = Color(details_cfg.get("text_color", "#FFFFFF"))
+	
+	# Mapping key -> button node
+	var buttons_map = {
+		"upgrade": popup_upgrade_btn,
+		"recycle": popup_delete_btn,
+		"close": popup_cancel_btn,
+		"equip": popup_equip_btn
+	}
+	
+	for key in buttons_map:
+		var btn = buttons_map[key]
+		if not btn: continue
+		
+		# Common styles
+		btn.add_theme_font_size_override("font_size", font_sz)
+		btn.add_theme_color_override("font_color", text_col)
+		
+		var btn_cfg = details_cfg.get(key, {})
+		if btn_cfg.is_empty(): continue
+			
+		var w = int(btn_cfg.get("width", 140))
+		var h = int(btn_cfg.get("height", 50))
+		var asset = str(btn_cfg.get("asset", ""))
+		
+		btn.custom_minimum_size = Vector2(w, h)
+		
+		if asset != "" and ResourceLoader.exists(asset):
+			print("[ShipMenu] Loading asset for ", key, ": ", asset)
+			var style = StyleBoxTexture.new()
+			var tex = load(asset)
+			style.texture = tex
+			# Ensure text is readable over image
+			style.content_margin_left = 5
+			style.content_margin_right = 5
+			style.content_margin_top = 0
+			style.content_margin_bottom = 0
+			
+			btn.add_theme_stylebox_override("normal", style)
+			btn.add_theme_stylebox_override("hover", style)
+			btn.add_theme_stylebox_override("pressed", style)
+			btn.add_theme_stylebox_override("focus", style)
+			btn.add_theme_stylebox_override("disabled", style) # Ensure asset remains when disabled
+			# Only disable flat if we are using stylebox
+			btn.flat = false
+		else:
+			print("[ShipMenu] Asset not found for ", key, ": ", asset)
+			# If no asset, maybe keep default or flat
+			pass
 
 
 func _calculate_layout_metrics() -> void:
@@ -442,40 +689,78 @@ func _calculate_layout_metrics() -> void:
 	var s_height: float = s_width * (8.34 / 7.0)
 	_ship_card_size = Vector2(s_width, s_height)
 	
+	var v_gap = GRID_GAP + 20
+	
 	# Apply to grids
 	if slots_grid:
 		slots_grid.columns = GRID_COLUMNS
 		slots_grid.add_theme_constant_override("h_separation", GRID_GAP)
-		slots_grid.add_theme_constant_override("v_separation", GRID_GAP)
+		slots_grid.add_theme_constant_override("v_separation", v_gap)
 		
 	if inventory_grid:
 		inventory_grid.columns = GRID_COLUMNS
 		inventory_grid.add_theme_constant_override("h_separation", GRID_GAP)
-		inventory_grid.add_theme_constant_override("v_separation", GRID_GAP)
+		inventory_grid.add_theme_constant_override("v_separation", v_gap)
+		# Set minimum height for 3 rows to avoid yoyo effect
+		var inv_rows: int = 3
+		var min_inv_h: float = float(inv_rows) * _item_card_size.y + float(inv_rows - 1) * float(v_gap)
+		inventory_grid.custom_minimum_size.y = min_inv_h
 	
 	# Apply separation to ship cards container
 	if ship_cards_container:
 		ship_cards_container.add_theme_constant_override("separation", GRID_GAP)
 
 func _apply_translations() -> void:
-	slots_label.text = LocaleManager.translate("ship_menu_equipment", {"count": "8"})
-	inventory_label.text = LocaleManager.translate("ship_menu_inventory")
+	# 1. Ship Title
+	var content_node = $MarginContainer/ScrollContainer/Content
+	var ship_sec = content_node.get_node_or_null("ShipSection")
+	if ship_sec:
+		var st = ship_sec.get_node_or_null("ShipTitleLabel")
+		if st: 
+			var txt = LocaleManager.translate("ship_menu_ships")
+			if txt == "ship_menu_ships": txt = "VAISSEAUX"
+			st.text = txt.to_upper()
+	
+	# 2. Powers Title
+	var pt = content_node.get_node_or_null("PowersTitleLabel")
+	if pt: 
+		var txt = LocaleManager.translate("ship_menu_powers")
+		if txt == "ship_menu_powers": txt = "POUVOIRS"
+		pt.text = txt.to_upper()
+
+	# 3. Equipment
+	var eq_txt = LocaleManager.translate("ship_menu_equipment")
+	if eq_txt == "ship_menu_equipment": eq_txt = "EQUIPEMENT"
+	slots_label.text = eq_txt.to_upper()
+
+	# 4. Inventory
+	var inv_txt = LocaleManager.translate("ship_menu_inventory")
+	if inv_txt == "ship_menu_inventory": inv_txt = "INVENTAIRE"
+	inventory_label.text = inv_txt.to_upper()
+
 	generate_item_button.text = LocaleManager.translate("ship_menu_generate_item")
 	back_button.text = LocaleManager.translate("ship_menu_back")
 	if popup_cancel_btn: popup_cancel_btn.text = LocaleManager.translate("item_popup_close")
 	
-	# Localiser les labels statiques dans PowersSection
-	var powers_section := $MarginContainer/ScrollContainer/Content/PowersSection
-	if powers_section:
-		var sp_label := powers_section.get_node_or_null("SPContainer/Label")
-		if sp_label: sp_label.text = LocaleManager.translate("ship_menu_super_power")
-		var up_label := powers_section.get_node_or_null("UPContainer/Label")
-		if up_label: up_label.text = LocaleManager.translate("ship_menu_unique_power")
+	if popup_cancel_btn: popup_cancel_btn.text = LocaleManager.translate("item_popup_close")
+	
+	# Clean up old labels in PowersSection if they still exist (though removed from tscn mostly)
+	# var powers_section := content_node.get_node_or_null("PowersSection") # Unused variable removed
+	# Since _setup_visuals wraps it, the path changes.
+	# But _setup_visuals uses reparent. "PowersSection" is now child of "PowersSectionGroup" which is child of "Content".
+	# So $MarginContainer/.../Content/PowersSection might fail if already wrapped.
+	# We should search for it or assume wrapper structure if set up.
+	# Or better: don't rely on it because we removed the labels in .tscn anyway.
+	# We can just skip updating SP/UP labels since we use the main PowersTitleLabel now.
 	
 	# Localiser le label de filtre
-	var slot_filter_label := $MarginContainer/ScrollContainer/Content/FiltersContainer/SlotFilterLabel
-	if slot_filter_label:
-		slot_filter_label.text = LocaleManager.translate("ship_menu_slot_label")
+	# Localiser le label de filtre (SUPPRIMÉ)
+	# var slot_filter_label := get_node_or_null("MarginContainer/ScrollContainer/Content/FiltersContainer/SlotFilterLabel")
+	# if slot_filter_label:
+	# 	slot_filter_label.text = LocaleManager.translate("ship_menu_slot_label")
+		
+	if rarity_filter_label:
+		rarity_filter_label.text = LocaleManager.translate("ship_menu_rarity_label")
 	
 	# Crystal label moved to stats area, so we don't update separate label here
 
@@ -500,7 +785,7 @@ func _load_ships() -> void:
 		
 	print("[ShipMenu] Loaded ships count: ", all_ships.size())
 	var total_ships := all_ships.size()
-	var active_id := ProfileManager.get_active_ship_id()
+	var active_id: String = ProfileManager.get_active_ship_id()
 	var unlocked_ids := ProfileManager.get_unlocked_ships()
 	
 	if selected_ship_id == "":
@@ -520,7 +805,7 @@ func _load_ships() -> void:
 		if translated != "ship_menu_unlocked_count":
 			ship_count_label.text = translated
 		else:
-			ship_count_label.text = "Vaisseaux: " + count_str
+			ship_count_label.text = count_str
 	
 	# Pagination slicing
 	var start_idx: int = current_ship_page * _ship_visible_count
@@ -557,28 +842,25 @@ func _load_ships() -> void:
 	_update_slot_buttons()
 	_update_inventory_grid()
 
-func _create_ship_card(ship_id: String, ship_name: String, is_unlocked: bool, is_selected: bool, ship_data: Dictionary) -> void:
-	# Card Container (PanelContainer) - uses calculated ship card size
+func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, is_selected: bool, ship_data: Dictionary) -> void:
+	# 1. Le Conteneur Principal
 	var card := PanelContainer.new()
 	card.custom_minimum_size = _ship_card_size
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	# Transparent panel background
 	var style_bg := StyleBoxFlat.new()
-	style_bg.bg_color = Color(0, 0, 0, 0)  # Transparent
+	style_bg.bg_color = Color(0, 0, 0, 0)
 	card.add_theme_stylebox_override("panel", style_bg)
 	
-	# LAYER 1: Background Asset (from ship_options.ship_select_button)
-	# Use asset_selected or asset_unselected based on selection state
+	# 2. Récupération des assets
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
 	var ship_select_cfg: Dictionary = ship_opts.get("ship_select_button", {}) if ship_opts.get("ship_select_button") is Dictionary else {}
 	var asset_selected: String = str(ship_select_cfg.get("asset_selected", ""))
 	var asset_unselected: String = str(ship_select_cfg.get("asset_unselected", ""))
 	var bg_asset: String = asset_selected if is_selected else asset_unselected
-	var text_color: Color = Color(ship_select_cfg.get("text_color", "#FFFFFF"))
-	var _font_size: int = int(ship_select_cfg.get("font_size", 16))
 	
-	# Background TextureRect - FULL SIZE (scaling handled by icon_rect)
+	# 3. LAYER 1: Background
 	var bg_rect = TextureRect.new()
 	bg_rect.name = "BgTexture"
 	bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -587,108 +869,93 @@ func _create_ship_card(ship_id: String, ship_name: String, is_unlocked: bool, is
 	bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	
 	if bg_asset != "" and ResourceLoader.exists(bg_asset):
-		# Check if it's a SpriteFrames (.tres) or Texture (.png)
 		if bg_asset.ends_with(".tres"):
 			var frames = load(bg_asset)
 			if frames is SpriteFrames:
 				var anim = AnimatedSprite2D.new()
 				anim.sprite_frames = frames
 				anim.play("default")
-				anim.centered = false
-				# Scale to fit bg_rect size? AnimatedSprite2D doesn't have size property like TextureRect
-				# We add it to a container within bg_rect?
-				# Actually, easier to swap bg_rect for a Control if animated.
-				# But let's just make a dedicated node for anim if present.
-				
-				# For simplicity: If .tres, use a Control container that centers the anim
-				var anim_container = Control.new()
-				anim_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-				anim_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				anim.position = _ship_card_size / 2.0 # Centered in the card
 				anim.centered = true
-				anim_container.add_child(anim)
-				bg_rect.add_child(anim_container)
+				anim.position = _ship_card_size / 2.0
+				bg_rect.add_child(anim)
 		else:
 			bg_rect.texture = load(bg_asset)
-	
 	card.add_child(bg_rect)
 	
-	# LAYER 2: Ship Visual (Asset from ship_data)
-	var visual: Variant = ship_data.get("visual", {})
-	var visual_asset: String = ""
-	if visual is Dictionary:
-		visual_asset = str((visual as Dictionary).get("asset", ""))
+	# 4. LAYER 2: Ship Visual (Le fix est ici)
+	# On crée un Control pour "isoler" l'image des contraintes du PanelContainer
+	var icon_wrapper := Control.new()
+	icon_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_wrapper.custom_minimum_size = _ship_card_size
+	card.add_child(icon_wrapper) 
+	
+	var visual: Dictionary = ship_data.get("visual", {})
+	var visual_asset: String = str(visual.get("asset", ""))
 	
 	var icon_rect := TextureRect.new()
+	icon_rect.name = "ShipIcon"
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_rect.size = _ship_card_size # Force size for correct pivot
-	icon_rect.pivot_offset = _ship_card_size / 2.0
 	
-	# PRE-SET TARGET STATE (Avoid flicker)
+	# Important: Le pivot doit être au centre pour la rotation et le scale
+	icon_rect.pivot_offset = _ship_card_size / 2.0
+	icon_wrapper.add_child(icon_rect)
+	
+	if visual_asset != "" and ResourceLoader.exists(visual_asset):
+		icon_rect.texture = load(visual_asset)
+		
+	# 5. État Initial (Pre-set)
 	if is_selected:
 		icon_rect.rotation_degrees = 180.0
 		icon_rect.scale = Vector2(1.0, 1.0)
 	else:
 		icon_rect.rotation_degrees = 0.0
-		icon_rect.scale = Vector2(0.5, 0.5)
+		icon_rect.scale = Vector2(0.8, 0.8)
 
-	if visual_asset != "" and ResourceLoader.exists(visual_asset):
-		icon_rect.texture = load(visual_asset)
-	
 	if not is_unlocked:
-		icon_rect.modulate = Color(0.2, 0.2, 0.2, 1) # Silhouette
+		icon_rect.modulate = Color(0.2, 0.2, 0.2, 1)
 	
-	card.add_child(icon_rect)
-	
-	# ANIMATION LOGIC
+	# 6. LOGIQUE D'ANIMATION
 	var was_previously_selected := (ship_id == _previous_selected_ship_id and _previous_selected_ship_id != "")
 	
 	if not _is_initial_load:
 		if is_selected and not was_previously_selected:
-			# NEW Selection: Animate from 0/0.5 to 180/1.0
+			# Reset avant animation
 			icon_rect.rotation_degrees = 0.0
-			icon_rect.scale = Vector2(0.5, 0.5)
+			icon_rect.scale = Vector2(0.8, 0.8)
 			
 			var tw = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw.tween_property(icon_rect, "rotation_degrees", 180.0, 1.0)
-			tw.tween_property(icon_rect, "scale", Vector2(1.0, 1.0), 1.0)
+			tw.tween_property(icon_rect, "rotation_degrees", 180.0, 0.8)
+			tw.tween_property(icon_rect, "scale", Vector2(1.0, 1.0), 0.8)
 			
 		elif not is_selected and was_previously_selected:
-			# DESELECTION: Animate from 180/1.0 to 0/0.5 (CCW)
-			icon_rect.rotation_degrees = 180.0
-			icon_rect.scale = Vector2(0.5, 0.5) # Modifié pour l'exemple pour voir l'effet
-
 			var tw = create_tween()
 			tw.set_parallel(true)
 			tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-			# --- Étape 1 : Rotation à 0 et Scale à 1 en même temps ---
 			tw.tween_property(icon_rect, "rotation_degrees", 180.0, 0.0)
+
 			tw.tween_property(icon_rect, "scale", Vector2(1, 1), 0.0)
 
-			# --- Étape 2 : Rotation supplémentaire après les deux premières ---
-			# On utilise .chain() pour forcer cette animation à attendre la fin du bloc parallèle
 			tw.chain().tween_property(icon_rect, "rotation_degrees", 0.0, 1.0)
-
-	# Invisible Button for interaction
+			tw.parallel().tween_property(icon_rect, "scale", Vector2(0.8, 0.8), 1.0)
+			
+	# 7. Bouton Invisible pour l'interaction
 	var btn := Button.new()
 	btn.flat = true
 	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
-	btn.mouse_filter = Control.MOUSE_FILTER_PASS # Allow propagation for swipe
-	btn.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	btn.add_theme_stylebox_override("hover", StyleBoxEmpty.new()) # Hover effect?
-	# Maybe add a light hover overlay
+	btn.mouse_filter = Control.MOUSE_FILTER_PASS
+	
+	var empty_style = StyleBoxEmpty.new()
+	btn.add_theme_stylebox_override("normal", empty_style)
+	btn.add_theme_stylebox_override("pressed", empty_style)
+	btn.add_theme_stylebox_override("focus", empty_style)
+	
 	var hover_style = StyleBoxFlat.new()
-	hover_style.bg_color = Color(1, 1, 1, 0.1)
+	hover_style.bg_color = Color(1, 1, 1, 0.05)
 	btn.add_theme_stylebox_override("hover", hover_style)
 	
-	btn.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	
-	# Disable button if already selected to prevent re-clicking
 	if is_selected:
 		btn.disabled = true
 		btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -700,12 +967,10 @@ func _create_ship_card(ship_id: String, ship_name: String, is_unlocked: bool, is
 	
 	card.add_child(btn)
 	
-	# Metadata
+	# Metadata & Finalisation
 	card.set_meta("ship_id", ship_id)
-	card.set_meta("price", int(ship_data.get("crystal_price", 0)))
-	
 	ship_cards_container.add_child(card)
-
+	
 func _on_ship_card_pressed(ship_id: String) -> void:
 	# Prevent re-selecting the same ship
 	if ship_id == selected_ship_id:
@@ -794,6 +1059,8 @@ func _show_purchase_overlay(ship_id: String) -> void:
 			break
 
 func _update_ship_info(ship_id: String) -> void:
+	_cleanup_orphaned_icons()
+	
 	# --- NEW STATS DISPLAY ---
 	for child in ship_stats_container.get_children():
 		child.queue_free()
@@ -849,10 +1116,12 @@ func _update_ship_info(ship_id: String) -> void:
 	
 	var col1 = VBoxContainer.new()
 	col1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col1.add_theme_constant_override("separation", 10)
 	grid.add_child(col1)
 	
 	var col2 = VBoxContainer.new()
 	col2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col2.add_theme_constant_override("separation", 10)
 	grid.add_child(col2)
 	
 	# Left Column: HP, Vitesse, Missile
@@ -880,7 +1149,8 @@ func _update_ship_info(ship_id: String) -> void:
 	_add_detailed_stat(col2, "DODGE", dodge_val, max_dodge, get_cfg.call("dodge_chance"), colors.get("dodge_chance", "#ffffff"))
 	_add_detailed_stat(col2, "SPECIAL", final_stats.special_score, max_special, get_cfg.call("special"), colors.get("special", "#ffffff"))
 	_update_locking_ui(ship_id)
-
+	if ship_stats_container: _fix_mobile_scroll_recursive(ship_stats_container)
+	
 func _update_locking_ui(ship_id: String) -> void:
 	if not ship_unlock_btn: return
 	
@@ -984,124 +1254,25 @@ func _create_slot_buttons() -> void:
 		if slot is Dictionary:
 			var slot_dict := slot as Dictionary
 			var slot_id := str(slot_dict.get("id", ""))
-			# var slot_name := str(slot_dict.get("name", slot_id))
+			var slot_name := str(slot_dict.get("name", slot_id))
 			
-			# Use a Container for layering
-			var container := PanelContainer.new()
-			container.custom_minimum_size = _item_card_size
-			container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-			container.clip_contents = true # Prevent expansion
+			# Create ItemCard in Empty State
+			var card = ItemCardScene.instantiate()
+			card.custom_minimum_size = _item_card_size
+			card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			
-			# LAYER 1: Background (equipment_button)
 			var ship_opts: Dictionary = _game_config.get("ship_options", {})
-			var equip_cfg: Dictionary = ship_opts.get("equipment_button", {}) if ship_opts.get("equipment_button") is Dictionary else {}
-			var bg_asset: String = str(equip_cfg.get("asset", ""))
-			var text_color: Color = Color(equip_cfg.get("text_color", "#FFFFFF"))
-			var font_size: int = int(equip_cfg.get("font_size", 14))
+			var config = {
+				"equipment_button": ship_opts.get("equipment_button", {})
+			}
+			# Setup empty visuals
+			card.setup_empty(slot_id, slot_name, config)
 			
-			if bg_asset != "" and ResourceLoader.exists(bg_asset):
-				var style = StyleBoxTexture.new()
-				style.texture = load(bg_asset)
-				container.add_theme_stylebox_override("panel", style)
-			else:
-				var style = StyleBoxFlat.new()
-				style.bg_color = Color(0.2, 0.2, 0.2, 1)
-				container.add_theme_stylebox_override("panel", style)
+			# Connect signal
+			card.card_pressed.connect(func(i, s): _on_slot_pressed(s))
 			
-			# LAYER 2: Content container for positioning
-			var content := Control.new()
-			content.set_anchors_preset(Control.PRESET_FULL_RECT)
-			container.add_child(content)
-			
-			# LAYER 2.1: Placeholder container
-			var placeholder_container := Control.new()
-			placeholder_container.name = "PlaceholderContainer"
-			placeholder_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-			content.add_child(placeholder_container)
-			
-			# LAYER 3: Text VBox
-			var vbox := VBoxContainer.new()
-			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-			content.add_child(vbox)
-			
-			var label := Label.new()
-			label.name = "InfoLabel"
-			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			label.add_theme_color_override("font_color", text_color)
-			label.add_theme_font_size_override("font_size", font_size)
-			label.clip_text = true
-			label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			label.custom_minimum_size.x = _item_card_size.x - 10
-			vbox.add_child(label)
-			
-			# LAYER 4: Slot Icon (initially hidden)
-			var slot_icon := TextureRect.new()
-			slot_icon.name = "SlotIcon"
-			slot_icon.visible = false
-			slot_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			slot_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			slot_icon.custom_minimum_size = Vector2(28, 28)
-			slot_icon.anchor_left = 0.5
-			slot_icon.anchor_right = 0.5
-			slot_icon.anchor_top = 1.0
-			slot_icon.anchor_bottom = 1.0
-			slot_icon.offset_left = -14
-			slot_icon.offset_right = 14
-			slot_icon.offset_top = -32
-			slot_icon.offset_bottom = -4
-			content.add_child(slot_icon)
-			
-			# LAYER 5: Level Indicator (Top-Center)
-			var level_indicator := Control.new()
-			level_indicator.name = "LevelIndicator"
-			level_indicator.visible = false
-			level_indicator.custom_minimum_size = Vector2(24, 24)
-			# Anchor Top-Center
-			level_indicator.anchor_left = 0.5
-			level_indicator.anchor_right = 0.5
-			level_indicator.anchor_top = 0.0
-			level_indicator.anchor_bottom = 0.0
-			level_indicator.offset_left = -12
-			level_indicator.offset_right = 12
-			level_indicator.offset_top = 0 # Top edge
-			level_indicator.offset_bottom = 24
-			content.add_child(level_indicator)
-			
-			# Add sub-nodes for level indicator (image + label)
-			var li_bg := TextureRect.new()
-			li_bg.name = "BgImage" # Can be TextureRect or AnimatedSprite2D placeholder
-			li_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-			li_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			level_indicator.add_child(li_bg)
-			
-			var li_label := Label.new()
-			li_label.name = "Label"
-			li_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			li_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			li_label.add_theme_font_size_override("font_size", 14)
-			li_label.add_theme_color_override("font_color", Color.WHITE)
-			li_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-			level_indicator.add_child(li_label)
-
-			
-			# Invisible Button (LAYER 4)
-			var btn := Button.new()
-			btn.flat = true
-			btn.set_anchors_preset(Control.PRESET_FULL_RECT)
-			btn.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-			btn.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-			btn.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-			btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-			
-			btn.pressed.connect(func(): _on_slot_pressed(slot_id))
-			
-			container.add_child(btn)
-			
-			slots_grid.add_child(container)
-			# Store the container to update text later
-			slot_buttons[slot_id] = container
+			slots_grid.add_child(card)
+			slot_buttons[slot_id] = card # Store the ItemCard instance
 
 func _update_slot_buttons() -> void:
 	if selected_ship_id == "":
@@ -1109,185 +1280,39 @@ func _update_slot_buttons() -> void:
 	
 	var loadout := ProfileManager.get_loadout_for_ship(selected_ship_id)
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
-	var slot_icons: Dictionary = ship_opts.get("slot_icons", {}) if ship_opts.get("slot_icons") is Dictionary else {}
-	var lvl_assets: Dictionary = ship_opts.get("level_indicator_assets", {})
+	
+	# Prepare config for ItemCard setup
+	var config = {
+		"rarity_frames": _game_config.get("rarity_frames", {}),
+		"rarity_colors": _game_config.get("rarity_colors", {}),
+		"level_assets": ship_opts.get("level_indicator_assets", {}),
+		"placeholders": ship_opts.get("item_placeholders", {}),
+		"slot_icons": ship_opts.get("slot_icons", {}),
+		"equipment_button": ship_opts.get("equipment_button", {}),
+		"show_upgrade": false # Equipment slots dont show upgrade arrows usually
+	}
 	
 	for slot_id in slot_buttons.keys():
-		var container: PanelContainer = slot_buttons[slot_id]
+		var card = slot_buttons[slot_id]
+		if not card or not is_instance_valid(card): continue
 		
-		# Locate components
-		var content: Control = null
-		for child in container.get_children():
-			if child is Control and not child is Button and not child is TextureRect: # TextureRect might be stylebox bg? No, stylebox is on Panel.
-				content = child
-				break
-		
-		if not content: continue
-		
-		var label: Label = content.get_node_or_null("VBoxContainer/InfoLabel")
-		var slot_icon: TextureRect = content.get_node_or_null("SlotIcon")
-		var level_indicator: Control = content.get_node_or_null("LevelIndicator")
-		
+		# Get slot name logic
 		var slot_data := DataManager.get_slot(slot_id)
 		var slot_name := str(slot_data.get("name", slot_id))
 		
 		var equipped_item_id := str(loadout.get(slot_id, ""))
 		
 		if equipped_item_id != "":
-			# --- EQUIPPED ---
+			# EQUIPPED -> Setup as Item
 			var item := ProfileManager.get_item_by_id(equipped_item_id)
-			var rarity := str(item.get("rarity", "common"))
-			var level := int(item.get("level", 1))
-			
-			# 1. Hide Text Label
-			if label: label.visible = false
-			
-			# 2. Show Slot Icon
-			if slot_icon:
-				slot_icon.visible = true
-				var icon_path := str(item.get("asset", ""))
-				
-				# Try placeholder if asset missing
-				if icon_path == "" or not ResourceLoader.exists(icon_path):
-					var placeholders: Dictionary = ship_opts.get("item_placeholders", {})
-					icon_path = str(placeholders.get(slot_id, ""))
-				
-				# Final fallback to slot icon
-				if icon_path == "" or not ResourceLoader.exists(icon_path):
-					icon_path = str(slot_icons.get(slot_id, ""))
-					
-				# Clean up any existing animated icon
-				var existing_anim = content.get_node_or_null("AnimatedSlotIcon")
-				if existing_anim: existing_anim.queue_free()
-				
-				if icon_path != "" and ResourceLoader.exists(icon_path):
-					if icon_path.ends_with(".tres"):
-						# Animated Sprite
-						slot_icon.visible = false # Hide static rect
-						var frames = load(icon_path)
-						if frames is SpriteFrames:
-							var anim := AnimatedSprite2D.new()
-							anim.name = "AnimatedSlotIcon"
-							anim.sprite_frames = frames
-							anim.play("default")
-							anim.scale = Vector2(0.7, 0.7) # Same scale as inventory
-							anim.centered = true
-							
-							# Center in content (assuming content is full rect or defined size)
-							# Content is Control.PRESET_FULL_RECT inside PanelContainer
-							anim.position = Vector2(_item_card_size.x / 2.0, _item_card_size.y / 2.0)
-							
-							content.add_child(anim)
-					else:
-						# Static Texture (Resize to big centered icon)
-						slot_icon.visible = true
-						slot_icon.texture = load(icon_path)
-						
-						# Apply big centered layout
-						var reduced_size := _item_card_size * 0.7
-						slot_icon.custom_minimum_size = reduced_size
-						slot_icon.anchor_left = 0.5
-						slot_icon.anchor_right = 0.5
-						slot_icon.anchor_top = 0.5
-						slot_icon.anchor_bottom = 0.5
-						slot_icon.offset_left = -reduced_size.x / 2.0
-						slot_icon.offset_right = reduced_size.x / 2.0
-						slot_icon.offset_top = -reduced_size.y / 2.0
-						slot_icon.offset_bottom = reduced_size.y / 2.0
-				else:
-					slot_icon.visible = false
-			
-			# 3. Show Level Indicator
-			if level_indicator:
-				level_indicator.visible = true
-				var li_label := level_indicator.get_node_or_null("Label")
-				if li_label: li_label.text = str(level)
-				
-				# Background logic
-				var bg_path: String = ""
-				if level <= 2: bg_path = str(lvl_assets.get("1-2", ""))
-				elif level <= 5: bg_path = str(lvl_assets.get("3-5", ""))
-				elif level <= 8: bg_path = str(lvl_assets.get("6-8", ""))
-				elif level >= 9: bg_path = str(lvl_assets.get("9", ""))
-				
-				# Clean old bg anims if any
-				for c in level_indicator.get_children():
-					if c is AnimatedSprite2D: c.queue_free()
-				
-				var li_bg_tex: TextureRect = level_indicator.get_node_or_null("BgImage")
-				
-				if bg_path != "" and ResourceLoader.exists(bg_path):
-					if bg_path.ends_with(".tres"):
-						if li_bg_tex: li_bg_tex.visible = false
-						var frames = load(bg_path)
-						if frames is SpriteFrames:
-							var bg_anim := AnimatedSprite2D.new()
-							bg_anim.sprite_frames = frames
-							bg_anim.play("default")
-							bg_anim.centered = true
-							bg_anim.position = Vector2(12, 12)
-							# Insert at 0 to be behind label
-							level_indicator.add_child(bg_anim)
-							level_indicator.move_child(bg_anim, 0)
-					else:
-						if li_bg_tex:
-							li_bg_tex.visible = true
-							li_bg_tex.texture = load(bg_path)
-				else:
-					if li_bg_tex: li_bg_tex.texture = null
-				
-				# Apply style from config
-				var font_col: Color = Color(lvl_assets.get("text_color", "#FFFFFF"))
-				var font_sz: int = int(lvl_assets.get("font_size", 16))
-				var w = int(lvl_assets.get("width", 24))
-				var h = int(lvl_assets.get("height", 24))
-				
-				# Resize container
-				level_indicator.custom_minimum_size = Vector2(w, h)
-				level_indicator.offset_left = -w / 2
-				level_indicator.offset_right = w / 2
-				level_indicator.offset_bottom = h
-				
-				if li_label:
-					li_label.add_theme_color_override("font_color", font_col)
-					li_label.add_theme_font_size_override("font_size", font_sz)
-					
-				# Update anim position if exists (created in previous frame logic, but needs centering)
-				for c in level_indicator.get_children():
-					if c is AnimatedSprite2D:
-						c.position = Vector2(w/2, h/2)
-			
-			# 4. Rarity Frame
-			var frame_path := DataManager.get_rarity_frame_path(rarity)
-			if frame_path != "" and ResourceLoader.exists(frame_path):
-				var style = StyleBoxTexture.new()
-				style.texture = load(frame_path)
-				container.add_theme_stylebox_override("panel", style)
-				
-		else:
-			# --- EMPTY ---
-			# 1. Show Text Label
-			if label:
-				label.visible = true
-				label.text = slot_name # Just name, no "Empty"
-				label.modulate = Color.WHITE # Or config color
-			
-			# 2. Hide Icons
-			if slot_icon: slot_icon.visible = false
-			if level_indicator: level_indicator.visible = false
-			
-			# 3. Default Background
-			var eq_cfg: Dictionary = ship_opts.get("equipment_button", {}) if ship_opts.get("equipment_button") is Dictionary else {}
-			var eq_asset: String = str(eq_cfg.get("asset", ""))
-			
-			if eq_asset != "" and ResourceLoader.exists(eq_asset):
-				var style = StyleBoxTexture.new()
-				style.texture = load(eq_asset)
-				container.add_theme_stylebox_override("panel", style)
+			if item.is_empty():
+				# Fallback if item deleted but ref exists (shouldnt happen)
+				card.setup_empty(slot_id, slot_name, config)
 			else:
-				var style = StyleBoxFlat.new()
-				style.bg_color = Color(0.2, 0.2, 0.2, 1)
-				container.add_theme_stylebox_override("panel", style)
+				card.setup_item(item, slot_id, config)
+		else:
+			# EMPTY -> Setup as Empty
+			card.setup_empty(slot_id, slot_name, config)
 	
 	_update_powers_ui()
 
@@ -1302,20 +1327,11 @@ func _on_slot_pressed(slot_id: String) -> void:
 		# Ouvrir le popup pour retirer l'item
 		_show_item_popup(equipped_id, true, slot_id)
 	else:
-		# Auto Filter
-		# Trouver l'index du slot dans le filtre
-		for i in range(slot_filter.item_count):
-			if str(slot_filter.get_item_metadata(i)) == slot_id:
-				slot_filter.select(i)
-				_on_slot_filter_changed(i)
-				break
-
-
+		# Auto Filter via Icon
+		_on_filter_icon_pressed(slot_id)
 
 # =============================================================================
 # GRILLE D'INVENTAIRE
-
-
 # =============================================================================
 
 func _update_inventory_grid() -> void:
@@ -1325,8 +1341,7 @@ func _update_inventory_grid() -> void:
 	inventory_cards.clear()
 	
 	var filtered := _get_filtered_inventory()
-	print("[ShipMenu] Updating grid. Filtered items: ", filtered.size(), " Current Page: ", current_page)
-	
+			
 	# Pagination
 	var start_idx := current_page * items_per_page
 	var end_idx: int = int(min(start_idx + items_per_page, filtered.size()))
@@ -1346,220 +1361,187 @@ func _update_inventory_grid() -> void:
 		inventory_cards.append(card)
 	
 	_update_page_label()
+	if inventory_grid: _fix_mobile_scroll_recursive(inventory_grid)
 
-func _create_item_card(item: Dictionary) -> PanelContainer:
-	var item_id := str(item.get("id", ""))
-	var rarity := str(item.get("rarity", "common"))
-	var slot := str(item.get("slot", ""))
-	var upgrade_level := int(item.get("upgrade", 0))
 	
-	var rarity_color := _get_rarity_color(rarity)
-	var bg_color := rarity_color
-	bg_color.a = 1.0
-	
-	# Container principal
-	var card := PanelContainer.new()
+func _create_item_card(item: Dictionary) -> Control:
+	var card = ItemCardScene.instantiate()
 	card.custom_minimum_size = _item_card_size
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	card.clip_contents = true
 	
-	# Style from ship_options
+	# Prepare config for ItemCard
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
-	var inv_cfg: Dictionary = ship_opts.get("inventory_button", {}) if ship_opts.get("inventory_button") is Dictionary else {}
+	var config = {
+		"rarity_frames": _game_config.get("rarity_frames", {}),
+		"rarity_colors": _game_config.get("rarity_colors", {}),
+		"level_assets": ship_opts.get("level_indicator_assets", {}),
+		"placeholders": ship_opts.get("item_placeholders", {}),
+		"slot_icons": ship_opts.get("slot_icons", {}),
+		"equipment_button": ship_opts.get("equipment_button", {}),
+		"show_upgrade": _is_upgrade(item)
+	}
 	
-	# Get placeholder path based on slot
-	var placeholders: Dictionary = ship_opts.get("item_placeholders", {})
-	var placeholder_path: String = str(item.get("asset", "")) # Try specific asset first
+	var slot_id = str(item.get("slot", ""))
+	card.setup_item(item, slot_id, config)
 	
-	if placeholder_path == "" or not ResourceLoader.exists(placeholder_path):
-		# Fallback to slot placeholder
-		placeholder_path = str(placeholders.get(slot, ""))
-		
-	# Final fallback to generic if still empty
-	if placeholder_path == "" or not ResourceLoader.exists(placeholder_path):
-		placeholder_path = str(ship_opts.get("item_placeholder", ""))
-	
-	# Determine frame asset (Priority: Rarity Frame > Inventory Button Asset > Flat)
-	var frame_path := DataManager.get_rarity_frame_path(rarity)
-	var final_asset := frame_path
-	
-	if final_asset == "" or not ResourceLoader.exists(final_asset):
-		final_asset = str(inv_cfg.get("asset", ""))
-	
-	if final_asset != "" and ResourceLoader.exists(final_asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(final_asset)
-		card.add_theme_stylebox_override("panel", style)
-	else:
-		var style := StyleBoxFlat.new()
-		style.bg_color = bg_color
-		style.border_color = rarity_color
-		style.set_border_width_all(2)
-		style.set_corner_radius_all(8)
-		card.add_theme_stylebox_override("panel", style)
-	
-	# Content container (Control for absolute positioning)
-	var content := Control.new()
-	content.set_anchors_preset(Control.PRESET_FULL_RECT)
-	card.add_child(content)
-	
-	# LAYER 1: Placeholder image (PNG or .tres AnimatedSprite2D)
-	if placeholder_path != "" and ResourceLoader.exists(placeholder_path):
-		# Container for centering and scaling
-		var placeholder_container := Control.new()
-		placeholder_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-		content.add_child(placeholder_container)
-		
-		if placeholder_path.ends_with(".tres"):
-			# AnimatedSprite2D support
-			var frames = load(placeholder_path)
-			if frames is SpriteFrames:
-				var anim := AnimatedSprite2D.new()
-				anim.sprite_frames = frames
-				anim.play("default")
-				anim.centered = true
-				anim.scale = Vector2(0.7, 0.7) # Reduced by 30%
-				# Center in container
-				anim.position = Vector2(_item_card_size.x / 2.0, _item_card_size.y / 2.0)
-				placeholder_container.add_child(anim)
-		else:
-			# PNG/JPG texture support
-			var placeholder := TextureRect.new()
-			placeholder.texture = load(placeholder_path)
-			placeholder.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			placeholder.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			# Reduce size by 30% (use 70% of card size)
-			var reduced_size := _item_card_size * 0.7
-			placeholder.custom_minimum_size = reduced_size
-			# Center it
-			placeholder.anchor_left = 0.5
-			placeholder.anchor_right = 0.5
-			placeholder.anchor_top = 0.5
-			placeholder.anchor_bottom = 0.5
-			placeholder.offset_left = -reduced_size.x / 2.0
-			placeholder.offset_right = reduced_size.x / 2.0
-			placeholder.offset_top = -reduced_size.y / 2.0
-			placeholder.offset_bottom = reduced_size.y / 2.0
-			placeholder_container.add_child(placeholder)
-	
-	# LAYER 2: Upgrade indicator (top-center)
-	var display_level := int(item.get("level", 1))
-	if display_level > 0 and display_level <= 10:
-		# Determine background asset
-		var lvl_assets: Dictionary = ship_opts.get("level_indicator_assets", {})
-		var bg_path: String = ""
-		
-		# "1-2", "3-5", "6-8", "9"
-		if display_level <= 2:
-			bg_path = str(lvl_assets.get("1-2", ""))
-		elif display_level <= 5:
-			bg_path = str(lvl_assets.get("3-5", ""))
-		elif display_level <= 8:
-			bg_path = str(lvl_assets.get("6-8", ""))
-		elif display_level >= 9:
-			bg_path = str(lvl_assets.get("9", ""))
-			
-		# Increase size to accommodate larger font
-		var w = int(lvl_assets.get("width", 24))
-		var h = int(lvl_assets.get("height", 24))
-		var li_size := Vector2(w, h)
-		
-		var indicator_container := Control.new()
-		indicator_container.name = "LevelIndicator"
-		indicator_container.custom_minimum_size = li_size
-		# Anchor Top-Center
-		indicator_container.anchor_left = 0.5
-		indicator_container.anchor_right = 0.5
-		indicator_container.anchor_top = 0.0
-		indicator_container.anchor_bottom = 0.0
-		indicator_container.offset_left = -li_size.x / 2
-		indicator_container.offset_right = li_size.x / 2
-		indicator_container.offset_top = 0
-		indicator_container.offset_bottom = li_size.y
-		content.add_child(indicator_container)
-		
-		# Background Image (same logic as slot buttons)
-		if bg_path != "" and ResourceLoader.exists(bg_path):
-			if bg_path.ends_with(".tres"):
-				var frames = load(bg_path)
-				if frames is SpriteFrames:
-					var bg_anim := AnimatedSprite2D.new()
-					bg_anim.sprite_frames = frames
-					bg_anim.play("default")
-					bg_anim.centered = true
-					bg_anim.position = Vector2(li_size.x / 2, li_size.y / 2)
-					indicator_container.add_child(bg_anim)
-			else:
-				var bg_tex := TextureRect.new()
-				bg_tex.texture = load(bg_path)
-				bg_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				bg_tex.set_anchors_preset(Control.PRESET_FULL_RECT)
-				indicator_container.add_child(bg_tex)
-		
-		var upgrade_label := Label.new()
-		upgrade_label.text = str(display_level)
-		upgrade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		upgrade_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		
-		var font_col: Color = Color(lvl_assets.get("text_color", "#FFFFFF"))
-		var font_sz: int = int(lvl_assets.get("font_size", 16))
-		
-		upgrade_label.add_theme_font_size_override("font_size", font_sz)
-		upgrade_label.add_theme_color_override("font_color", font_col)
-		upgrade_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-		indicator_container.add_child(upgrade_label)
-	
-	# LAYER 3: Slot icon (bottom-center)
-	var slot_icons: Dictionary = ship_opts.get("slot_icons", {}) if ship_opts.get("slot_icons") is Dictionary else {}
-	var slot_icon_path: String = str(slot_icons.get(slot, ""))
-	
-	if slot_icon_path != "" and ResourceLoader.exists(slot_icon_path):
-		var slot_icon := TextureRect.new()
-		slot_icon.texture = load(slot_icon_path)
-		slot_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		slot_icon.custom_minimum_size = Vector2(28, 28)
-		slot_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		
-		# Position at bottom-center
-		slot_icon.anchor_left = 0.5
-		slot_icon.anchor_right = 0.5
-		slot_icon.anchor_top = 1.0
-		slot_icon.anchor_bottom = 1.0
-		slot_icon.offset_left = -14
-		slot_icon.offset_right = 14
-		slot_icon.offset_top = -32
-		slot_icon.offset_bottom = -4
-		
-		content.add_child(slot_icon)
-	
-	# LAYER 4: Upgrade arrow indicator (if applicable)
-	if _is_upgrade(item):
-		var arrow_label := Label.new()
-		arrow_label.text = "↑"
-		arrow_label.add_theme_color_override("font_color", Color.GREEN)
-		arrow_label.add_theme_font_size_override("font_size", 20)
-		arrow_label.anchor_left = 1.0
-		arrow_label.anchor_right = 1.0
-		arrow_label.anchor_top = 0.0
-		arrow_label.anchor_bottom = 0.0
-		arrow_label.offset_left = -28
-		arrow_label.offset_right = -4
-		arrow_label.offset_top = 4
-		arrow_label.offset_bottom = 28
-		content.add_child(arrow_label)
-	
-	# Rendre cliquable
-	var btn := Button.new()
-	btn.flat = true
-	btn.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	btn.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-	btn.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	btn.anchors_preset = Control.PRESET_FULL_RECT
-	btn.pressed.connect(_on_inventory_card_pressed.bind(item_id))
-	card.add_child(btn)
+	# Connect signal
+	card.card_pressed.connect(_on_card_pressed)
 	
 	return card
+
+func _on_card_pressed(item_id: String, slot_id: String) -> void:
+	# From Inventory -> Not equipped
+	_show_item_popup(item_id, false, slot_id)
+
+func _show_item_popup(item_id: String, is_equipped_in_slot: bool, slot_id: String) -> void:
+	popup_item_id = item_id
+	popup_is_equipped = is_equipped_in_slot
+	popup_slot_id = slot_id
+	
+	var ship_opts: Dictionary = _game_config.get("ship_options", {})
+	var config = {
+		"rarity_colors": _game_config.get("rarity_colors", {}),
+		"placeholders": ship_opts.get("item_placeholders", {})
+	}
+	
+	if _item_details_popup:
+		_item_details_popup.setup(item_id, slot_id, is_equipped_in_slot, config)
+		_item_details_popup.visible = true
+		# Center on screen
+		_item_details_popup.position = (size - _item_details_popup.size) / 2.0
+
+func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
+	# Resolve slot if generic (e.g. from Inventory "missile" -> "missile_1")
+	var target_slot = slot_id
+	var ship_data = DataManager.get_ship(selected_ship_id)
+	var slots_def = ship_data.get("slots", {})
+	
+	# If generic (not present in slots_def), find best match
+	if not slots_def.has(target_slot):
+		# Find slots with matching type
+		var candidates = []
+		for s_key in slots_def:
+			var s_data = slots_def[s_key]
+			var s_type = str(s_data.get("type", ""))
+			if s_type == target_slot or s_key.begins_with(target_slot + "_"):
+				candidates.append(s_key)
+		
+		candidates.sort() # Ensure missile_1 comes before missile_2
+		
+		# Pick first empty, or just first
+		var loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
+		var best_slot = ""
+		for cand in candidates:
+			if not loadout.has(cand) or str(loadout[cand]) == "":
+				best_slot = cand
+				break
+		
+		if best_slot == "" and candidates.size() > 0:
+			best_slot = candidates[0] # Overwrite first
+			
+		if best_slot != "":
+			target_slot = best_slot
+		else:
+			# Fallback: If ship has NO slots defined (e.g. uses global slots like "shield", "engine" directly)
+			# And candidates was empty (meaning target_slot wasn't found as a TYPE either)
+			# We check if target_slot matches a known global slot ID.
+			# If so, we use it directly.
+			var global_slot = DataManager.get_slot(target_slot)
+			if not global_slot.is_empty():
+				# It's a valid global slot, and ship didn't specify restrictions. Use it.
+				pass
+			else:
+				print("[ShipMenu] Error: No compatible slot found for ", target_slot)
+				return
+
+	# Check if slot is occupied (using resolved target_slot)
+	var loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
+	var current_equipped = str(loadout.get(target_slot, ""))
+	
+	if current_equipped != "":
+		# Unequip current (pass SLOT ID)
+		ProfileManager.unequip_item(selected_ship_id, target_slot)
+		
+	# Equip new
+	ProfileManager.equip_item(selected_ship_id, target_slot, item_id)
+	
+	print("[ShipMenu] Equipped ", item_id, " to ", target_slot)
+	
+	# Update UI but KEEP POPUP OPEN
+	_update_slot_buttons()
+	_update_inventory_grid()
+	_update_ship_info(selected_ship_id)
+	
+	# Refresh Popup State (Toggle button to Unequip)
+	# IMPORTANT: Pass resolved target_slot so popup knows where it is!
+	_show_item_popup(item_id, true, target_slot)
+
+
+func _on_popup_unequip_requested(item_id: String, slot_id: String) -> void:
+	# Correctly pass slot_id instead of item_id
+	ProfileManager.unequip_item(selected_ship_id, slot_id)
+	
+	print("[ShipMenu] Unequipped item from ", slot_id)
+	
+	# Update UI but KEEP POPUP OPEN
+	_update_slot_buttons()
+	_update_inventory_grid()
+	_update_ship_info(selected_ship_id)
+	
+	# Refresh Popup State (Toggle button to Equip)
+	# Pass slot_id (or generic if needed? Popup uses it for setup, but also sends it back).
+	# If we unequipped, it's now in inventory.
+	# But we want to show it as available.
+	# We can pass generic slot type if we know it, or keep specific slot_id?
+	# If we pass "missile_1", setup might fail to find "missile_1" data if item moved to inventory?
+	# Actually item maintains its slot type.
+	# Let's derive generic type from item data if possible, or just pass slot_id.
+	# It shouldn't hurt.
+	_show_item_popup(item_id, false, slot_id)
+
+func _on_popup_recycle_pressed(item_id: String) -> void:
+	var item = ProfileManager.get_item_by_id(item_id)
+	if item.is_empty(): return
+	
+	# Calculate Value (Duplicate logic from ItemDetailsPopup for safety/speed)
+	var rarity = str(item.get("rarity", "common"))
+	var level = int(item.get("level", 1))
+	
+	var base_val: int = 5
+	match rarity:
+		"common": base_val = 5
+		"uncommon": base_val = 15
+		"rare": base_val = 40
+		"epic": base_val = 100
+		"legendary": base_val = 250
+		"unique": base_val = 500
+	var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
+	var val = int(float(base_val) * multiplier)
+	
+	# Safety Check: Is this item equipped anywhere?
+	# Relying on popup_is_equipped might fail if state is stale or confusing
+	var loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
+	for s_key in loadout:
+		if str(loadout[s_key]) == item_id:
+			ProfileManager.unequip_item(selected_ship_id, s_key)
+			print("[ShipMenu] Auto-unequipped recycled item from ", s_key)
+			
+	if val > 0:
+		ProfileManager.add_crystals(val)
+		print("[ShipMenu] Recycled for ", val, " crystals")
+	
+	ProfileManager.remove_item_from_inventory(item_id)
+	print("[ShipMenu] Item deleted: ", item_id)
+	
+	if _item_details_popup: _item_details_popup.visible = false
+	_update_inventory_grid()
+	_update_slot_buttons()
+	_update_ship_info(selected_ship_id)
+	_apply_translations() # Refresh crystal count label
+
+
+
+
 
 func _is_upgrade(item: Dictionary) -> bool:
 	if selected_ship_id == "":
@@ -1600,268 +1582,7 @@ func _on_inventory_card_pressed(item_id: String) -> void:
 
 # =============================================================================
 
-func _show_item_popup(item_id: String, is_equipped: bool, slot_id: String) -> void:
-	popup_item_id = item_id
-	popup_is_equipped = is_equipped
-	popup_slot_id = slot_id
-	
-	var item := ProfileManager.get_item_by_id(item_id)
-	var item_name := str(item.get("name", "???"))
-	var rarity := str(item.get("rarity", "common"))
-	var level := int(item.get("level", 1))
-	var slot := str(item.get("slot", ""))
-	
-	# Fetch Stat Config
-	var sh_config = _game_config.get("ship_menu", {})
-	var stat_cfgs = sh_config.get("ship_stats", {})
-	var stat_icons_override = sh_config.get("stat_icons", {})
-	
-	# Clean up old dynamic elements (Stats Grid, Indicators)
-	# Use immediate free (not queue_free) to prevent appending on same frame
-	var content_vbox = item_popup.get_node("MarginContainer/VBox")
-	var stats_grid = content_vbox.get_node_or_null("StatsGrid")
-	if stats_grid:
-		content_vbox.remove_child(stats_grid)
-		stats_grid.free()
-	
-	# Hide legacy label if present
-	if popup_stats: popup_stats.visible = false
-	
-	# Remove old overlay indicators from Frame (immediate)
-	var to_remove: Array = []
-	for child in item_popup.get_children():
-		if child.name in ["PopupLevelIndicator", "PopupSlotIcon"]:
-			to_remove.append(child)
-	for child in to_remove:
-		item_popup.remove_child(child)
-		child.free()
-	
-	# 1. Header & Title (Existing)
-	popup_title.text = LocaleManager.translate("item_popup_title")
-	
-	# 2. Item Name (Large, Rarity Color)
-	popup_item_name.text = item_name
-	popup_item_name.add_theme_color_override("font_color", _get_rarity_color(rarity))
-	popup_item_name.add_theme_font_size_override("font_size", 22) # Large title
-	
-	# 3. Stats Grid (2 Columns)
-	stats_grid = GridContainer.new()
-	stats_grid.name = "StatsGrid"
-	stats_grid.columns = 2
-	stats_grid.add_theme_constant_override("h_separation", 20)
-	stats_grid.add_theme_constant_override("v_separation", 10)
-	# Insert after ItemName (index of ItemName + 1)
-	content_vbox.add_child(stats_grid)
-	content_vbox.move_child(stats_grid, popup_item_name.get_index() + 1)
-	
-	var item_stats: Dictionary = item.get("stats", {})
-	
-	for stat_key in item_stats.keys():
-		var val = item_stats[stat_key]
-		var cfg = stat_cfgs.get(stat_key, {}).duplicate()
-		if stat_icons_override.has(stat_key):
-			cfg["icon_asset"] = stat_icons_override[stat_key]
-		
-		# Icon (Large + 50%)
-		var icon_path = str(cfg.get("icon_asset", ""))
-		var icon_rect = TextureRect.new()
-		if icon_path != "" and ResourceLoader.exists(icon_path):
-			icon_rect.texture = load(icon_path)
-		
-		icon_rect.custom_minimum_size = Vector2(36, 36) # Approx 24 * 1.5
-		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		
-		stats_grid.add_child(icon_rect)
-		
-		# Label (Name + Value)
-		var text_label = Label.new()
-		var tr_key = "stat." + stat_key
-		var stat_name = LocaleManager.translate(tr_key)
-		# Fallback if translation missing
-		if stat_name == tr_key:
-			stat_name = stat_key.capitalize()
-			
-		var val_str = ""
-		if stat_key in ["crit_chance", "dodge_chance", "missile_speed_pct"]:
-			var fval = float(val)
-			# If small float (e.g. 0.11), convert to % (11)
-			# If large (legacy 11), keep as is
-			if fval <= 1.0:
-				fval *= 100.0
-			
-			val_str = "+" + str(int(round(fval))) + "%"
-		else:
-			val_str = "+" + str(val)
-			
-		text_label.text = stat_name + "\n" + val_str
-		text_label.add_theme_font_size_override("font_size", 16)
-		stats_grid.add_child(text_label)
 
-	# 4. Buttons (Update State)
-	if is_equipped:
-		popup_equip_btn.text = LocaleManager.translate("item_popup_unequip")
-	else:
-		popup_equip_btn.text = LocaleManager.translate("item_popup_equip")
-		popup_equip_btn.disabled = (selected_ship_id == "")
-	
-	if popup_upgrade_btn:
-		if level >= 10:
-			popup_upgrade_btn.text = "MAX LEVEL"
-			popup_upgrade_btn.disabled = true
-		else:
-			var cost := ProfileManager.get_upgrade_cost(level)
-			popup_upgrade_btn.text = "Upgrade (" + str(cost) + "💎)"
-			popup_upgrade_btn.disabled = (ProfileManager.get_crystals() < cost)
-			
-	if popup_delete_btn:
-		popup_delete_btn.disabled = false
-		var base_val: int = 5
-		match rarity:
-			"common": base_val = 5
-			"rare": base_val = 15
-			"epic": base_val = 40
-			"legendary": base_val = 100
-		var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
-		_recycle_value = int(float(base_val) * multiplier)
-		popup_delete_btn.text = "Recycler (+" + str(_recycle_value) + " 💎)"
-
-	item_popup.visible = true
-	
-	# 5. Visuals: Rarity Frame
-	var frame_path := DataManager.get_rarity_frame_path(rarity)
-	_apply_bg_to_popup(item_popup, frame_path)
-	
-	# 6. Visuals: Overlays (Level Indicator & Slot Icon)
-	_add_popup_overlays(level, slot)
-
-func _add_popup_overlays(level: int, slot: String) -> void:
-	var ship_opts: Dictionary = _game_config.get("ship_options", {})
-	
-# --- LEVEL INDICATOR (Top-Center) ---
-	var lvl_assets: Dictionary = ship_opts.get("level_indicator_assets", {})
-	# Use "a bit larger" (+20%) instead of +50%
-	var w = int(lvl_assets.get("width", 32)) * 1.5 
-	var h = int(lvl_assets.get("height", 32)) * 1.5
-	var font_sz = int(lvl_assets.get("font_size", 26)) * 1.1
-	var text_col = Color(lvl_assets.get("text_color", "#FFFFFF"))
-	
-	var bg_path = ""
-	if level <= 2: bg_path = str(lvl_assets.get("1-2", ""))
-	elif level <= 5: bg_path = str(lvl_assets.get("3-5", ""))
-	elif level <= 8: bg_path = str(lvl_assets.get("6-8", ""))
-	elif level >= 9: bg_path = str(lvl_assets.get("9", ""))
-	
-	# 1. Overlay transparent (s'étire sur tout le popup à cause du PanelContainer parent)
-	var li_container = Control.new()
-	li_container.name = "PopupLevelIndicator"
-	li_container.mouse_filter = Control.MOUSE_FILTER_IGNORE # Important : laisse passer les clics
-	li_container.z_index = 10
-	
-	item_popup.add_child(li_container)
-
-	# 2. Le Badge réel (C'est lui qu'on dimensionne et positionne)
-	var badge = Control.new()
-	badge.name = "Badge"
-	badge.custom_minimum_size = Vector2(w, h)
-	
-	# Ancrage Top-Center par rapport à l'Overlay
-	badge.anchor_left = 0.5
-	badge.anchor_right = 0.5
-	badge.anchor_top = 0.0
-	badge.anchor_bottom = 0.0
-	
-	# Offsets pour centrer
-	badge.offset_left = -w/2
-	badge.offset_right = w/2
-	badge.offset_top = 0 
-	badge.offset_bottom = h
-	
-	li_container.add_child(badge)
-	
-	# 3. Contenu (Icone et Label) : Ils remplissent le "Badge"
-	if bg_path != "" and ResourceLoader.exists(bg_path):
-		var icon = TextureRect.new()
-		icon.texture = load(bg_path)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-		badge.add_child(icon) # On ajoute au badge, pas au container global
-		
-	var lbl = Label.new()
-	lbl.text = str(level)
-	lbl.add_theme_font_size_override("font_size", font_sz)
-	lbl.add_theme_color_override("font_color", text_col)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
-	badge.add_child(lbl) # On ajoute au badge
-	
-	# --- SLOT ICON (Bottom-Center) ---
-	var slot_icons: Dictionary = ship_opts.get("slot_icons", {})
-	var icon_path = str(slot_icons.get(slot, ""))
-	
-	if icon_path != "":
-		# 1. Le conteneur sert de "calque" (Overlay)
-		# Il sera étiré par le PanelContainer parent, c'est NORMAL.
-		var si_container = Control.new()
-		si_container.name = "PopupSlotIcon"
-		si_container.mouse_filter = Control.MOUSE_FILTER_IGNORE # Important pour cliquer au travers
-		si_container.z_index = 10
-		
-		item_popup.add_child(si_container)
-		
-		# 2. On configure la taille et la position sur l'ICÔNE elle-même
-		# (et non plus sur le conteneur)
-		var sw = 32 * 1.5
-		var sh = 32 * 1.5
-		
-		var icon = TextureRect.new()
-		icon.texture = load(icon_path)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		
-		# On applique la taille fixe sur l'icone
-		icon.custom_minimum_size = Vector2(sw, sh)
-		
-		# On ancre l'icone en bas au centre de son parent (si_container)
-		# Comme si_container fait la taille du popup, ça placera l'icone en bas du popup.
-		icon.anchor_left = 0.5
-		icon.anchor_right = 0.5
-		icon.anchor_top = 1.0 
-		icon.anchor_bottom = 1.0
-		
-		# On applique les offsets pour centrer et remonter l'icone
-		icon.offset_left = -sw / 2
-		icon.offset_right = sw / 2
-		icon.offset_top = -sh # Remonte de sa hauteur pour être "dedans"
-		icon.offset_bottom = 0
-		
-		# Optionnel : Dimmer légèrement
-		icon.modulate = Color(1, 1, 1, 0.8) 
-		
-		si_container.add_child(icon)
-
-func _on_popup_equip_pressed() -> void:
-	if popup_item_id == "":
-		return
-	
-	if popup_is_equipped:
-		# Retirer l'item
-		ProfileManager.unequip_item(selected_ship_id, popup_slot_id)
-	else:
-		# Équiper l'item
-		var item := ProfileManager.get_item_by_id(popup_item_id)
-		var slot := str(item.get("slot", ""))
-		ProfileManager.equip_item(selected_ship_id, slot, popup_item_id)
-	
-	item_popup.visible = false
-	_update_slot_buttons()
-	_update_inventory_grid()
-	# Refresh ship stats display to reflect the equipment change
-	if selected_ship_id != "":
-		_update_ship_info(selected_ship_id)
-
-func _on_popup_cancel_pressed() -> void:
-	item_popup.visible = false
 
 
 
@@ -1884,10 +1605,9 @@ func _on_generate_item_pressed() -> void:
 	if item_res:
 		var item_dict = item_res.to_dict()
 		if ProfileManager.add_item_to_inventory(item_dict):
-			print("[ShipMenu] Generated item using LootGenerator: ", item_dict.get("name", "?"))
 			# Reset filters to see the new item
 			filter_slot = ""
-			if slot_filter: slot_filter.select(0)
+			# if slot_filter: slot_filter.select(0)
 			current_page = 0
 			_update_inventory_grid()
 		else:
@@ -1924,32 +1644,46 @@ func _on_back_pressed() -> void:
 func _update_powers_ui() -> void:
 	if selected_ship_id == "": return
 	
-	# Get config for unique power button
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
+	
+	# Super Power Styling
+	var power_cfg: Dictionary = ship_opts.get("power_button", {}) if ship_opts.get("power_button") is Dictionary else {}
+	var power_text_color: Color = Color(power_cfg.get("text_color", "#000000"))
+	var power_font_size: int = int(power_cfg.get("font_size", 30))
+	var power_letter_spacing: int = int(power_cfg.get("letter_spacing", 2))
+	
+	# Unique Power Styling
 	var up_cfg: Dictionary = ship_opts.get("unique_power_button", {}) if ship_opts.get("unique_power_button") is Dictionary else {}
 	var up_text_color: Color = Color(up_cfg.get("text_color", "#000000"))
 	var up_font_size: int = int(up_cfg.get("font_size", 30))
-	var up_letter_spacing: int = int(up_cfg.get("letter_spacing", 2))
+	# up_letter_spacing unused
+
 	
 	# Update SP Info
 	var ship := DataManager.get_ship(selected_ship_id)
 	var sp_id := str(ship.get("special_power_id", ""))
 	
-	if sp_id != "":
-		var sp_data := DataManager.get_super_power(sp_id)
-		if sp_name_label: 
+	if sp_name_label:
+		# Apply formatting 
+		sp_name_label.add_theme_color_override("font_color", power_text_color)
+		sp_name_label.add_theme_font_size_override("font_size", power_font_size)
+		sp_name_label.add_theme_constant_override("letter_spacing", power_letter_spacing)
+	
+		if sp_id != "":
+			var sp_data := DataManager.get_super_power(sp_id)
 			sp_name_label.text = str(sp_data.get("name", sp_id))
-	else:
-		if sp_name_label: 
+		else:
 			sp_name_label.text = LocaleManager.translate("ship_menu_none")
 
 	# Update UP Button (Always visible, show "Aucun" with 0.7 opacity if none)
 	if up_button:
-		# Apply font styling from config
+		# Apply formatting
+		up_button.mouse_filter = Control.MOUSE_FILTER_PASS
 		up_button.add_theme_color_override("font_color", up_text_color)
 		up_button.add_theme_color_override("font_hover_color", up_text_color)
 		up_button.add_theme_color_override("font_pressed_color", up_text_color)
 		up_button.add_theme_font_size_override("font_size", up_font_size)
+		# Button doesn't support letter_spacing directly via theme constant
 		
 		var avail := ProfileManager.get_available_unique_powers(selected_ship_id)
 		if avail.is_empty():
@@ -2011,64 +1745,464 @@ func _on_unique_power_selected(pid: String) -> void:
 
 # =============================================================================
 
-func _populate_slot_filter() -> void:
-	if not slot_filter: return
+func _setup_filter_icons_ui() -> void:
+	if not filters_container: return
 	
-	slot_filter.clear()
-	slot_filter.add_item(LocaleManager.translate("ship_menu_all") if LocaleManager.has_key("ship_menu_all") else "Tous", 0)
-	slot_filter.set_item_metadata(0, "")
+	# Safeguard against duplication
+	if filters_container.has_node("FilterIconsContainer"):
+		return
 	
+	# Create a HBox for icons
+	var icon_box = HBoxContainer.new()
+	icon_box.name = "FilterIconsContainer"
+	icon_box.add_theme_constant_override("separation", 10)
+	
+	# Add to FiltersContainer (Row 1)
+	filters_container.add_child(icon_box)
+	filters_container.move_child(icon_box, 0)
+	
+	_filter_icon_buttons.clear()
+	
+	# Populate Icons
 	var slots := DataManager.get_slots()
-	print("[ShipMenu] Populating filter with ", slots.size(), " slots.")
+	var ship_opts: Dictionary = _game_config.get("ship_options", {})
+	var slot_icons_cfg: Dictionary = ship_opts.get("slot_icons", {})
 	
-	for i in range(slots.size()):
-		if slots[i] is Dictionary:
-			var slot_dict := slots[i] as Dictionary
-			var slot_id := str(slot_dict.get("id", ""))
-			var slot_name := str(slot_dict.get("name", slot_id))
-			
-			slot_filter.add_item(slot_name, i + 1)
-			slot_filter.set_item_metadata(i + 1, slot_id)
-
-func _on_slot_filter_changed(index: int) -> void:
-	if index == 0:
-		filter_slot = ""
-	else:
-		filter_slot = str(slot_filter.get_item_metadata(index))
-	
-	current_page = 0
-	_update_inventory_grid()
-
-func _on_rarity_sort_pressed() -> void:
-	if not filter_rarity_enabled:
-		filter_rarity_enabled = true
-		filter_rarity_asc = false # Start with Descending (rarity high to low)
-	elif not filter_rarity_asc:
-		filter_rarity_asc = true # Switch to Ascending
-	else:
-		filter_rarity_enabled = false # Disable
-	
-	# Update Icon
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var icon_path: String = ""
-	if not filter_rarity_enabled:
-		icon_path = ""
-	elif filter_rarity_asc:
-		icon_path = str(ui_icons.get("sort_asc", ""))
-	else:
-		icon_path = str(ui_icons.get("sort_desc", ""))
+	# 1. Add "ALL" Icon first
+	var all_icon_path = str(slot_icons_cfg.get("all", ""))
+	if all_icon_path != "" and ResourceLoader.exists(all_icon_path):
+		var btn_all = TextureButton.new()
+		btn_all.texture_normal = load(all_icon_path)
+		btn_all.ignore_texture_size = true
+		btn_all.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		
-	if rarity_sort_btn:
+		# RESIZED: 50% larger (40 * 1.5 = 60)
+		btn_all.custom_minimum_size = Vector2(60, 60)
+		
+		btn_all.mouse_filter = Control.MOUSE_FILTER_PASS # Allow scroll propagation
+		btn_all.pressed.connect(func(): _on_filter_icon_pressed("all"))
+		icon_box.add_child(btn_all)
+		_filter_icon_buttons["all"] = btn_all
+	
+	# 2. Add Slot Icons
+	for slot in slots:
+		var slot_id = str(slot.get("id"))
+		var icon_path = str(slot_icons_cfg.get(slot_id, ""))
+		
 		if icon_path != "" and ResourceLoader.exists(icon_path):
-			rarity_sort_btn.icon = load(icon_path)
-			rarity_sort_btn.text = ""
-		else:
-			rarity_sort_btn.icon = null
-			rarity_sort_btn.text = "↑" if filter_rarity_asc else "↓"
-			if not filter_rarity_enabled: rarity_sort_btn.text = "-"
+			var btn = TextureButton.new()
+			btn.texture_normal = load(icon_path)
+			btn.ignore_texture_size = true
+			btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			
+			# RESIZED: 50% larger (40 * 1.5 = 60)
+			btn.custom_minimum_size = Vector2(60, 60)
+			
+			btn.mouse_filter = Control.MOUSE_FILTER_PASS # Allow scroll propagation
+			
+			btn.pressed.connect(func(): _on_filter_icon_pressed(slot_id))
+			
+			icon_box.add_child(btn)
+			_filter_icon_buttons[slot_id] = btn
+			
+	_update_filter_visuals()
+
+func _on_filter_icon_pressed(slot_id: String) -> void:
+	if slot_id == "all":
+		filter_slot = ""
+	elif filter_slot == slot_id:
+		filter_slot = "" # Deselect if already selected
+	else:
+		filter_slot = slot_id # Select new
 	
 	current_page = 0
+	_update_filter_visuals()
 	_update_inventory_grid()
+
+func _setup_rarity_filter_ui() -> void:
+	if not filters_container: return
+	
+	# Safeguard against duplication
+	if filters_container.has_node("RarityFilterContainer"):
+		return
+	
+	var rarity_box = HBoxContainer.new()
+	rarity_box.name = "RarityFilterContainer"
+	rarity_box.add_theme_constant_override("separation", 15)
+	
+	# Add to FiltersContainer (Row 2, after icons)
+	filters_container.add_child(rarity_box)
+	
+	# RESTORED: "Slot:" or "Emplacement :" label Logic
+	# Actually, user asked for "Empl. :" just BEFORE filters.
+	# Since icons are the first row, we should add the label BEFORE the icon box.
+	
+	# Check if label already exists or add it
+	var slot_label = filters_container.get_node_or_null("SlotLabelPlaceholder")
+	if not slot_label:
+		slot_label = Label.new()
+		slot_label.name = "SlotLabelPlaceholder"
+		slot_label.text = LocaleManager.translate("ship_menu_slot_label") # "Empl. :"
+		# If translation missing, fallback
+		if slot_label.text == "ship_menu_slot_label": slot_label.text = "Empl. :"
+		
+		# Insert at top (index 0), shifting icons to 1
+		filters_container.add_child(slot_label)
+		filters_container.move_child(slot_label, 0)
+	else:
+		slot_label.text = "Empl. :" # Force update or use translation
+	
+	rarity_filter_label = Label.new()
+	rarity_filter_label.name = "RarityFilterLabel"
+	rarity_filter_label.text = LocaleManager.translate("ship_menu_rarity_label")
+	rarity_box.add_child(rarity_filter_label)
+	
+	var badges_box = HBoxContainer.new()
+	badges_box.add_theme_constant_override("separation", 8)
+	rarity_box.add_child(badges_box)
+	
+	_rarity_badge_buttons.clear()
+	
+	# Load assets config
+	var rarity_assets: Dictionary = _game_config.get("rarity_filter_assets", {})
+	
+	# 1. "ALL" Button
+	var btn_all = TextureButton.new()
+	btn_all.name = "Rarity_all"
+	
+	# RESIZED: 50% larger than previous 45 (45 * 1.5 ~ 68)
+	btn_all.custom_minimum_size = Vector2(68, 68)
+	
+	btn_all.ignore_texture_size = true
+	btn_all.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn_all.mouse_filter = Control.MOUSE_FILTER_PASS
+	
+	var all_asset = str(rarity_assets.get("all", ""))
+	if all_asset != "" and ResourceLoader.exists(all_asset):
+		btn_all.texture_normal = load(all_asset)
+	else:
+		# Fallback: simple colored circle
+		var style_all = StyleBoxFlat.new()
+		style_all.set_corner_radius_all(34) # Adjusted for 68px
+		style_all.bg_color = Color(0.1, 0.1, 0.1, 1)
+		style_all.set_border_width_all(2)
+		style_all.border_color = Color.WHITE
+		# As texture button doesn't take stylebox easily without theme override,
+		# we'll use a child Control or keep it simple.
+		# Actually, TextureButton doesn't render stylebox panel. 
+		# We'll stick to TextureButton but if no asset, we create a placeholder texture or use Button?
+		# Let's use Button if no asset, but to keep consistent type in Dictionary, let's wrap or handle both.
+		# Easier: Use TextureButton and generate placeholder texture if needed, OR just use Button and StyleBox if no asset.
+		# Given the prompt asks for assets, we prioritize them.
+		# If no asset, we use Button. To handle mixed types in _rarity_badge_buttons (Control), it's fine.
+		btn_all = Button.new() # Re-instantiate as Button
+		btn_all.custom_minimum_size = Vector2(30, 30)
+		btn_all.add_theme_stylebox_override("normal", style_all)
+		btn_all.add_theme_stylebox_override("hover", style_all)
+		btn_all.add_theme_stylebox_override("pressed", style_all)
+	
+	btn_all.pressed.connect(func(): _on_rarity_filter_pressed(""))
+	badges_box.add_child(btn_all)
+	
+	# Highlight container (OVERLAY now, not behind)
+	if btn_all is TextureButton:
+		var highlight = TextureRect.new()
+		highlight.name = "Highlight"
+		highlight.visible = false
+		highlight.set_anchors_preset(Control.PRESET_FULL_RECT)
+		highlight.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# CHANGED: On top (z-index logic or just draw order). 
+		# Since it's a child added AFTER texture_normal is drawn by the button itself? 
+		# TextureButton draws its generic texture. Children are drawn on top by default.
+		# "show_behind_parent" was ON. We turn it OFF.
+		highlight.show_behind_parent = false 
+		
+		# User request: "Mets juste sur un layer au dessus" (z-index/layer on top)
+		# Adding as child of TextureButton draws it on top of the button's texture.
+		# Ensure Z-Index is high just in case, though tree order usually suffices for controls.
+		highlight.z_index = 1
+		
+		btn_all.add_child(highlight)
+	
+	_rarity_badge_buttons[""] = btn_all
+	
+	# 2. Rarity Buttons
+	var rarities = DataManager.get_rarities()
+	for r in rarities:
+		var r_id = str(r.get("id"))
+		var r_asset = str(rarity_assets.get(r_id, ""))
+		
+		var btn: Control
+		
+		if r_asset != "" and ResourceLoader.exists(r_asset):
+			btn = TextureButton.new()
+			btn.ignore_texture_size = true
+			btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			
+			# RESIZED: 50% larger than 45 (45 * 1.5 ~ 68)
+			btn.custom_minimum_size = Vector2(68, 68)
+			
+			(btn as TextureButton).texture_normal = load(r_asset)
+			btn.mouse_filter = Control.MOUSE_FILTER_PASS
+			
+			var highlight = TextureRect.new()
+			highlight.name = "Highlight"
+			highlight.visible = false
+			highlight.set_anchors_preset(Control.PRESET_FULL_RECT)
+			highlight.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			
+			# OVERLAY (On top + z-index)
+			highlight.show_behind_parent = false
+			highlight.z_index = 1
+			
+			btn.add_child(highlight)
+			
+		else:
+			# Fallback to colored button
+			var r_color_hex = str(r.get("color", "#FFFFFF"))
+			var r_color = Color.html(r_color_hex)
+			
+			btn = Button.new()
+			# RESIZED
+			btn.custom_minimum_size = Vector2(68, 68)
+			var style = StyleBoxFlat.new()
+			style.set_corner_radius_all(34)
+			style.bg_color = r_color
+			btn.add_theme_stylebox_override("normal", style)
+			btn.add_theme_stylebox_override("hover", style)
+			btn.add_theme_stylebox_override("pressed", style)
+			
+		if btn.has_signal("pressed"):
+			btn.pressed.connect(func(): _on_rarity_filter_pressed(r_id))
+			
+		badges_box.add_child(btn)
+		_rarity_badge_buttons[r_id] = btn
+		
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rarity_box.add_child(spacer)
+	
+	multi_recycle_btn = TextureButton.new()
+	var recycle_icon_path = "res://assets/ui/icons/crystal.png"
+	if ResourceLoader.exists(recycle_icon_path):
+		multi_recycle_btn.texture_normal = load(recycle_icon_path)
+
+	
+	# RESIZED: 50% larger (40 * 1.5 = 60)
+	multi_recycle_btn.custom_minimum_size = Vector2(60, 60)
+	
+	multi_recycle_btn.ignore_texture_size = true
+	multi_recycle_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	multi_recycle_btn.modulate = Color(1.0, 0.3, 0.3, 1.0)
+	multi_recycle_btn.pressed.connect(_on_multi_recycle_pressed)
+	rarity_box.add_child(multi_recycle_btn)
+	
+	_update_filter_visuals()
+
+func _on_rarity_filter_pressed(rarity_id: String) -> void:
+	if filter_rarity == rarity_id:
+		filter_rarity = ""
+	else:
+		filter_rarity = rarity_id
+	current_page = 0
+	_update_filter_visuals()
+	_update_inventory_grid()
+
+func _on_multi_recycle_pressed() -> void:
+	var filtered = _get_filtered_inventory()
+	var equipped_ids = ProfileManager.get_all_equipped_item_ids()
+	var items_to_recycle = []
+	var total_crystals = 0
+	
+	for item in filtered:
+		var i_id = str(item.get("id", ""))
+		if not i_id in equipped_ids:
+			items_to_recycle.append(i_id)
+			var r_id = str(item.get("rarity", "common"))
+			var level = int(item.get("upgrade", 0)) + 1
+			var base_val: int = 5
+			match r_id:
+				"common": base_val = 5
+				"uncommon": base_val = 15
+				"rare": base_val = 40
+				"epic": base_val = 100
+				"legendary": base_val = 250
+				"unique": base_val = 500
+			var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
+			total_crystals += int(float(base_val) * multiplier)
+			
+	if items_to_recycle.is_empty(): return
+	_show_multi_recycle_confirmation(items_to_recycle, total_crystals)
+
+func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: int) -> void:
+	var popup = PanelContainer.new()
+	# Mimic size of UniqueSelectionPopup
+	popup.custom_minimum_size = Vector2(350, 200)
+	
+	var pop_cfg = _game_config.get("popups", {})
+	var bg_cfg = pop_cfg.get("background", {})
+	var btn_cfg = pop_cfg.get("button", {})
+	
+	var style = StyleBoxTexture.new()
+	var bg_asset = str(bg_cfg.get("asset", "res://assets/ui/popup_background.png"))
+	if ResourceLoader.exists(bg_asset): style.texture = load(bg_asset)
+	popup.add_theme_stylebox_override("panel", style)
+	
+	var margin = MarginContainer.new()
+	# Override game.json huge margin, use 20 like UniqueSelectionPopup
+	var m_val = 20
+	margin.add_theme_constant_override("margin_left", m_val)
+	margin.add_theme_constant_override("margin_right", m_val)
+	margin.add_theme_constant_override("margin_top", m_val)
+	margin.add_theme_constant_override("margin_bottom", m_val)
+	popup.add_child(margin)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 20)
+	margin.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = LocaleManager.translate("ship_menu_multi_recycle_popup_title")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", int(bg_cfg.get("font_size", 24)) + 4)
+	title.add_theme_color_override("font_color", Color.html(str(bg_cfg.get("text_color", "#000000"))))
+	vbox.add_child(title)
+	# Message
+	var msg = Label.new()
+	var template = LocaleManager.translate("ship_menu_multi_recycle_confirm")
+	msg.text = template.replace("{count}", str(items_to_recycle.size())).replace("{crystals}", str(total_crystals))
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg.add_theme_font_size_override("font_size", int(bg_cfg.get("font_size", 24)))
+	msg.add_theme_color_override("font_color", Color.html(str(bg_cfg.get("text_color", "#000000"))))
+	msg.add_theme_constant_override("letter_spacing", int(bg_cfg.get("letter_spacing", 0)))
+	vbox.add_child(msg)
+	
+	# Spacer
+	var sps = Control.new()
+	sps.custom_minimum_size = Vector2(0, 10)
+	vbox.add_child(sps)
+	
+	# Buttons
+	var hbox = HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 30)
+	vbox.add_child(hbox)
+	
+	var btn_asset = str(btn_cfg.get("asset", "res://assets/ui/button.png"))
+	var btn_style = StyleBoxTexture.new()
+	if ResourceLoader.exists(btn_asset):
+		btn_style.texture = load(btn_asset)
+	
+	var btn_text_color = Color.html(str(btn_cfg.get("text_color", "#000000")))
+	var btn_font_size = int(btn_cfg.get("font_size", 18))
+	var btn_ls = int(btn_cfg.get("letter_spacing", 0))
+	
+	# Confirm
+	var btn_confirm = Button.new()
+	btn_confirm.text = LocaleManager.translate("confirm")
+	btn_confirm.add_theme_stylebox_override("normal", btn_style)
+	btn_confirm.add_theme_stylebox_override("hover", btn_style)
+	btn_confirm.add_theme_stylebox_override("pressed", btn_style)
+	btn_confirm.add_theme_color_override("font_color", btn_text_color)
+	btn_confirm.add_theme_font_size_override("font_size", btn_font_size)
+	btn_confirm.add_theme_constant_override("letter_spacing", btn_ls)
+	btn_confirm.custom_minimum_size = Vector2(160, 50)
+	btn_confirm.pressed.connect(func():
+		_confirm_multi_recycle(items_to_recycle, total_crystals)
+		popup.queue_free()
+	)
+	hbox.add_child(btn_confirm)
+	
+	# Cancel
+	var btn_cancel = Button.new()
+	btn_cancel.text = LocaleManager.translate("cancel")
+	btn_cancel.add_theme_stylebox_override("normal", btn_style)
+	btn_cancel.add_theme_stylebox_override("hover", btn_style)
+	btn_cancel.add_theme_stylebox_override("pressed", btn_style)
+	btn_cancel.add_theme_color_override("font_color", btn_text_color)
+	btn_cancel.add_theme_font_size_override("font_size", btn_font_size)
+	btn_cancel.add_theme_constant_override("letter_spacing", btn_ls)
+	btn_cancel.custom_minimum_size = Vector2(160, 50)
+	btn_cancel.pressed.connect(popup.queue_free)
+	hbox.add_child(btn_cancel)
+	
+	add_child(popup)
+	
+	# Center Popup
+	popup.layout_mode = 1 # Anchors
+	popup.set_anchors_preset(Control.PRESET_CENTER)
+	popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	popup.grow_vertical = Control.GROW_DIRECTION_BOTH
+	popup.z_index = 100 # Ensure on top
+	
+	# Force reset position to be sure (though preset should handle it with grow)
+	popup.position = (size - popup.custom_minimum_size) / 2.0
+
+func _confirm_multi_recycle(item_ids: Array, crystals_earned: int) -> void:
+	for i_id in item_ids:
+		ProfileManager.remove_item_from_inventory(i_id)
+	ProfileManager.add_crystals(crystals_earned)
+	ProfileManager.save_to_disk()
+	_update_inventory_grid()
+	_apply_translations()
+
+func _update_filter_visuals() -> void:
+	for sid in _filter_icon_buttons:
+		var btn: TextureButton = _filter_icon_buttons[sid]
+		var is_selected: bool = (sid == "all" and filter_slot == "") or (sid == filter_slot)
+		
+		if is_selected:
+			btn.modulate = Color(1, 1, 1, 1)
+		else:
+			btn.modulate = Color(0.3, 0.3, 0.3, 1) # Grayscale/Dimmed effect
+			
+	var highlight_asset = str(_game_config.get("rarity_highlight", ""))
+	
+	for rid in _rarity_badge_buttons:
+		var btn: Control = _rarity_badge_buttons[rid]
+		var is_selected: bool = (rid == filter_rarity)
+		
+		if btn is TextureButton:
+			# Asset mode
+			var highlight = btn.get_node_or_null("Highlight")
+			if highlight:
+				highlight.visible = is_selected
+				if highlight.texture == null and highlight_asset != "" and ResourceLoader.exists(highlight_asset):
+					highlight.texture = load(highlight_asset)
+			
+			# Optional: Slight scale or modualte if not selected?
+			if is_selected:
+				btn.modulate = Color(1, 1, 1, 1)
+				btn.scale = Vector2(1.1, 1.1)
+				btn.pivot_offset = btn.size / 2.0
+			else:
+				btn.modulate = Color(0.7, 0.7, 0.7, 1)
+				btn.scale = Vector2(1.0, 1.0)
+				btn.pivot_offset = btn.size / 2.0
+				
+		elif btn is Button:
+			# Validating if it has stylebox (Fallback mode)
+			if btn.has_theme_stylebox_override("normal"):
+				var style = btn.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+				if style:
+					if is_selected:
+						style.set_border_width_all(3)
+						style.border_color = Color.YELLOW
+						btn.scale = Vector2(1.1, 1.1)
+						btn.pivot_offset = btn.size / 2.0
+					else:
+						style.set_border_width_all(0) # or 1
+						# style.border_color = Color.TRANSPARENT
+						btn.scale = Vector2(1.0, 1.0)
+						btn.pivot_offset = btn.size / 2.0
+					
+					btn.add_theme_stylebox_override("normal", style)
+					btn.add_theme_stylebox_override("hover", style)
+					btn.add_theme_stylebox_override("pressed", style)
 
 func _on_prev_page_pressed() -> void:
 	if current_page > 0:
@@ -2085,23 +2219,35 @@ func _on_next_page_pressed() -> void:
 
 func _get_filtered_inventory() -> Array:
 	var inv := ProfileManager.get_inventory()
+	var equipped_ids := ProfileManager.get_all_equipped_item_ids()
 	var filtered: Array = []
 	
-	# Filtre par slot
+	# Filtre par slot et exclude equipped
 	for item in inv:
 		if item is Dictionary:
 			var item_dict := item as Dictionary
-			if filter_slot == "" or str(item_dict.get("slot", "")) == filter_slot:
+			var i_id = str(item_dict.get("id", ""))
+			
+			# Exclude equipped
+			if i_id in equipped_ids:
+				continue
+				
+			var matches_slot = filter_slot == "" or str(item_dict.get("slot", "")) == filter_slot
+			var matches_rarity = filter_rarity == "" or str(item_dict.get("rarity", "")) == filter_rarity
+			if matches_slot and matches_rarity:
 				filtered.append(item_dict)
 	
-	# Tri par rareté
-	if filter_rarity_enabled:
-		var rarity_order := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4, "unique": 5}
-		filtered.sort_custom(func(a, b):
-			var ra: int = int(rarity_order.get(str(a.get("rarity", "common")), 0))
-			var rb: int = int(rarity_order.get(str(b.get("rarity", "common")), 0))
-			return rb > ra if filter_rarity_asc else ra > rb
-		)
+	# Tri par rareté (Default: Descending)
+	# Always sort by rarity descending (Legendary -> Common)
+	var rarity_order := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4, "unique": 5}
+	filtered.sort_custom(func(a, b):
+		var ra: int = int(rarity_order.get(str(a.get("rarity", "common")), 0))
+		var rb: int = int(rarity_order.get(str(b.get("rarity", "common")), 0))
+		# If rarity is equal, maybe sort by name or power?
+		if ra == rb:
+			return str(a.get("id", "")) < str(b.get("id", ""))
+		return ra > rb # Descending
+	)
 	
 	return filtered
 
@@ -2124,44 +2270,221 @@ func _on_popup_upgrade_pressed() -> void:
 	var item := ProfileManager.get_item_by_id(popup_item_id)
 	var level := int(item.get("level", 1))
 	
-	if level >= 10:
-		push_warning("[ShipMenu] Item already at max level!")
+	# MAX LEVEL CHECK (Now 9 instead of 10)
+	if level >= 9:
+		push_warning("[ShipMenu] Item already at max level (9)!")
 		return
-	
-	if ProfileManager.upgrade_item(popup_item_id):
-		print("[ShipMenu] Item upgraded to level ", level + 1)
-		# Refresh popup content instead of closing
-		_show_item_popup(popup_item_id, popup_is_equipped, popup_slot_id)
-		_update_inventory_grid()
-		_apply_translations()  # Refresh crystal count
-	else:
-		push_warning("[ShipMenu] Upgrade failed!")
 
-func _on_popup_recycle_pressed() -> void:
-	if popup_item_id == "":
+	# COST CHECK
+	var upgrade_data = DataManager.get_level_upgrade_data(level) 
+	var next_data = upgrade_data.get("upgrade_to_next", {})
+	var cost = int(next_data.get("cost", 999999))
+	
+	var user_crystals = ProfileManager.get_crystals()
+	if user_crystals < cost:
+		print("[ShipMenu] Not enough crystals! Need: ", cost, " Have: ", user_crystals)
+		# TODO: Feedback visual "Not enough crystals"
 		return
+
+	# Deduct Cost
+	ProfileManager.remove_crystals(cost)
 	
-	# TODO: Ajouter un popup de confirmation
-	# Pour l'instant, suppression directe
-	if popup_is_equipped:
-		ProfileManager.unequip_item(selected_ship_id, popup_slot_id)
+	# Disable button temporarily
+	if popup_upgrade_btn: 
+		popup_upgrade_btn.disabled = true
+		popup_upgrade_btn.text = LocaleManager.translate("upgrading") + "..."
 	
-	# Recyclage
-	if _recycle_value > 0:
-		ProfileManager.add_crystals(_recycle_value)
-		print("[ShipMenu] Recycled for ", _recycle_value, " crystals")
+	# Disable NEW popup button
+	if _item_details_popup and _item_details_popup.upgrade_btn:
+		_item_details_popup.upgrade_btn.disabled = true
+		_item_details_popup.upgrade_btn.text = LocaleManager.translate("upgrading") + "..."
 	
-	ProfileManager.remove_item_from_inventory(popup_item_id)
-	print("[ShipMenu] Item deleted: ", popup_item_id)
+	# CRAFTING DELAY (3 seconds)
+	var sh_opts = _game_config.get("ship_menu", {})
 	
-	item_popup.visible = false
+	# 1. LOOP SOUND
+	var loop_sound_path = str(sh_opts.get("upgrade_craft_sound", ""))
+	var loop_player: AudioStreamPlayer = null
+	if loop_sound_path != "" and ResourceLoader.exists(loop_sound_path):
+		print("[ShipMenu] Playing craft loop: ", loop_sound_path)
+		loop_player = AudioStreamPlayer.new()
+		loop_player.stream = load(loop_sound_path)
+		add_child(loop_player)
+		loop_player.play()
+	else:
+		print("[ShipMenu] Craft loop sound not found: ", loop_sound_path)
+		
+	# 2. CRAFT ANIM
+	var craft_anim_path = str(sh_opts.get("upgrade_craft_anim", ""))
+	var craft_anim_node: AnimatedSprite2D = null
+	if craft_anim_path != "" and ResourceLoader.exists(craft_anim_path):
+		print("[ShipMenu] Playing craft anim: ", craft_anim_path)
+		var frames = load(craft_anim_path)
+		if frames is SpriteFrames:
+			craft_anim_node = AnimatedSprite2D.new()
+			craft_anim_node.sprite_frames = frames
+			craft_anim_node.play("default")
+			# No Z-index, put behind text (child 0)
+			# craft_anim_node.z_index = 20 
+			craft_anim_node.scale = Vector2(2.0, 2.0)
+			
+			if is_instance_valid(item_popup):
+				item_popup.add_child(craft_anim_node)
+				item_popup.move_child(craft_anim_node, 0)
+				craft_anim_node.centered = true
+				craft_anim_node.position = item_popup.size / 2.0
+	
+	# WAIT
+	await get_tree().create_timer(3.0).timeout
+	
+	# CLEANUP LOOP
+	if is_instance_valid(loop_player):
+		loop_player.stop()
+		loop_player.queue_free()
+		
+	if is_instance_valid(craft_anim_node):
+		craft_anim_node.queue_free()
+	
+	# RNG LOGIC
+	var roll = randi() % 100 # 0-99
+	var tier = "decent"
+	var tier_label = "Decent Upgrade"
+	
+	# Weights: Decent 40, Great 45, Perfect 15
+	# < 40 = decent (40%)
+	# < 85 = great (45%)
+	# >= 85 = perfect (15%)
+	
+	if roll < 40:
+		tier = "decent"
+	elif roll < 85:
+		tier = "great"
+	else:
+		tier = "perfect"
+		
+	var tiers_cfg = next_data.get("tiers", {})
+	var tier_data = tiers_cfg.get(tier, {})
+	# Localize the tier label
+	tier_label = LocaleManager.translate("upgrade_" + tier)
+	if tier_label == "upgrade_" + tier: # Fallback if missing
+		tier_label = str(tier_data.get("label", tier.capitalize()))
+	
+	# Data multipliers
+	var mult_min = float(tier_data.get("multiplier_min", 1.05))
+	var mult_max = float(tier_data.get("multiplier_max", 1.10))
+	var multiplier = randf_range(mult_min, mult_max)
+	
+	print("[ShipMenu] Upgrade Roll: ", roll, " Tier: ", tier, " Mult: ", multiplier)
+	
+	# AUDIO FEEDBACK
+	sh_opts = _game_config.get("ship_menu", {})
+	var sound_path = str(sh_opts.get("upgrade_sound", ""))
+	if sound_path != "" and ResourceLoader.exists(sound_path):
+		# Assuming simple AudioManager
+		# AudioManager.play_sfx(sound_path)
+		var audio = AudioStreamPlayer.new()
+		audio.stream = load(sound_path)
+		add_child(audio)
+		audio.play()
+		audio.finished.connect(audio.queue_free)
+
+	# APPLY UPGRADE TO ITEM
+	# 1. Update Stats
+	var stats = item.get("stats", {})
+	for key in stats:
+		var val = float(stats[key])
+		# Apply multiplier and ceil to ensure progress
+		# Special handling for small values (crit/dodge 0.05) vs big (power 100)
+		if val < 1.0 and val > 0.0:
+			# Percentage-like stats: simple multiply keeps them small
+			stats[key] = val * multiplier
+		else:
+			# Large numbers: ceil to avoid 10.0 -> 10.05 not showing change
+			stats[key] = ceil(val * multiplier)
+			
+	item["stats"] = stats
+	item["level"] = level + 1
+	
+	# 2. Save
+	ProfileManager.save_to_disk()
+	
+	# VISUAL FEEDBACK (Animation & Delay)
+	_show_upgrade_feedback(tier, tier_label)
+	
+	# Wait for animation
+	await get_tree().create_timer(1.5).timeout
+	
+	if popup_upgrade_btn: 
+		popup_upgrade_btn.disabled = false
+	
+	# Refresh UI
+	print("[ShipMenu] Item upgraded to level ", level + 1)
+	_show_item_popup(popup_item_id, popup_is_equipped, popup_slot_id)
 	_update_inventory_grid()
 	_update_slot_buttons()
+	if popup_is_equipped and selected_ship_id != "":
+		_update_ship_info(selected_ship_id)
 	_apply_translations() # Refresh crystal count
+
+func _show_upgrade_feedback(tier: String, label_text: String) -> void:
+	# 1. Background Anim (Tier Based)
+	var sh_opts: Dictionary = _game_config.get("ship_menu", {})
+	var anim_path = str(sh_opts.get("upgrade_anim_" + tier, ""))
 	
-	item_popup.visible = false
-	_update_slot_buttons()
-	_update_inventory_grid()
+	if anim_path != "" and ResourceLoader.exists(anim_path):
+		var frames = load(anim_path)
+		if frames is SpriteFrames:
+			var anim = AnimatedSprite2D.new()
+			anim.sprite_frames = frames
+			anim.play("default")
+			anim.scale = Vector2(2.0, 2.0)
+			
+			item_popup.add_child(anim)
+			item_popup.move_child(anim, 0) # Background
+			anim.centered = true
+			anim.position = item_popup.size / 2.0
+			
+			# Cleanup after 2 seconds
+			get_tree().create_timer(2.0).timeout.connect(anim.queue_free)
+	
+	# 2. Success Text Label
+	var color = Color.WHITE
+	if tier == "great": color = Color.YELLOW
+	if tier == "perfect": color = Color.MAGENTA
+	
+	var lbl = Label.new()
+	lbl.text = label_text
+	lbl.add_theme_font_size_override("font_size", 28)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_constant_override("outline_size", 8)
+	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	
+	item_popup.add_child(lbl)
+	# Position absolutely: Center X, Y=100 (below header/badge)
+	lbl.global_position = item_popup.global_position + Vector2(item_popup.size.x / 2.0, 100) - Vector2(lbl.size.x / 2.0, 0)
+	# Since size isn't calculated yet, use anchors or center alignment
+	lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	lbl.position.y = 100 # Offset Y
+	lbl.z_index = 30 # On top of everything
+	
+	# Animation: Scale up + Fade out
+	lbl.pivot_offset = lbl.size / 2.0 # Center pivot for scaling
+	# Wait one frame for size update for pivot
+	await get_tree().process_frame
+	lbl.pivot_offset = lbl.size / 2.0
+	
+	var tween = create_tween()
+	lbl.scale = Vector2(0.5, 0.5)
+	lbl.modulate.a = 0.0
+	tween.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(lbl, "modulate:a", 1.0, 0.2)
+	tween.tween_interval(1.5)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(lbl.queue_free)
+
+
 
 
 
@@ -2276,6 +2599,9 @@ func _calculate_levels_completed() -> int:
 	return count
 
 func _add_stat_summary_item(parent: Control, label_text: String, value_text: String, cfg: Dictionary) -> void:
+	if not parent: return
+	# print("[ShipMenu] Adding stat summary ", label_text, " to ", parent.name)
+	
 	var item_hbox = HBoxContainer.new()
 	item_hbox.add_theme_constant_override("separation", 10)
 	item_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2481,6 +2807,25 @@ func _apply_popup_style() -> void:
 	_apply_bg_to_popup(unique_popup, default_bg)
 	_apply_bg_to_popup(unlock_popup, default_bg)
 
+func _fix_mobile_scroll_recursive(node: Node) -> void:
+	# Si c'est un élément d'interface (Control)
+	if node is Control:
+		# Si c'est un bouton ou quelque chose d'interactif
+		if node is Button or node is TextureButton or node is OptionButton:
+			node.mouse_filter = Control.MOUSE_FILTER_PASS
+			# Cas particulier : parfois les boutons ont des enfants (labels, icones) qui bloquent
+			# On continuera la récursion pour les mettre en IGNORE
+		
+		# Si c'est purement visuel (Label, TextureRect, Panel, Barres, etc.)
+		# ET que ce n'est pas le ScrollContainer lui-même
+		elif not node is ScrollContainer and not node is VScrollBar and not node is HScrollBar:
+			node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# On applique la même chose à tous les enfants (Récursion)
+	for child in node.get_children():
+		_fix_mobile_scroll_recursive(child)
+
+
 func _apply_bg_to_popup(popup: PanelContainer, bg_path: String) -> void:
 	if not popup: return
 	
@@ -2501,3 +2846,17 @@ func _apply_bg_to_popup(popup: PanelContainer, bg_path: String) -> void:
 		style.bg_color = Color(0.1, 0.1, 0.2, 0.95)
 		style.set_corner_radius_all(16)
 		popup.add_theme_stylebox_override("panel", style)
+
+func _cleanup_orphaned_icons() -> void:
+	# Safety cleanup for accumulating icons in DebugSection
+	if generate_item_button:
+		var parent = generate_item_button.get_parent()
+		if parent:
+			for child in parent.get_children():
+				if child != generate_item_button:
+					# Clean up any accumulated icons/controls that might have been added by mistake
+					# Avoid deleting legitimate layout nodes (Label, HSeparator)
+					if child is HSeparator or child is Label or child is Button:
+						continue
+						
+					child.queue_free()

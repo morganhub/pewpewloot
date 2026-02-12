@@ -132,6 +132,7 @@ func _generate_unique_item(preferred_slot: String) -> LootItem:
 	item.slot = str(unique_data.get("slot", ""))
 	item.is_unique = true
 	item.special_ability_id = str(unique_data.get("special_ability_id", ""))
+	item.asset = str(unique_data.get("icon", unique_data.get("asset", "")))
 	
 	# Fixed stats
 	var stats_raw: Variant = unique_data.get("stats", {})
@@ -152,13 +153,25 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 	
 	# Rarity
 	item.rarity = LootItem._string_to_rarity(rarity_str)
-	item.level = target_level
+	item.level = 1 # Always start at level 1 (Stats are scaled by target_level)
 	
 	# Slot (random if not specified)
+	# Slot (random if not specified)
 	if slot_type == "":
-		var slots := ["reactor", "engine", "armor", "shield", "missiles", "targeting", "utility", "special"]
+		var slots := ["primary", "reactor", "engine", "armor", "shield", "missiles", "targeting", "utility"]
 		slot_type = slots[randi() % slots.size()]
 	item.slot = slot_type
+	
+	# Resolve Asset (Icon)
+	if DataManager:
+		var slot_def = DataManager.get_slot(slot_type)
+		var icon_def = slot_def.get("icon")
+		if icon_def is Dictionary:
+			item.asset = str(icon_def.get(rarity_str, icon_def.get("common", "")))
+		elif icon_def is String:
+			item.asset = icon_def
+	
+	print("[LootGenerator] Generating item for slot: ", slot_type)
 	
 	# Get rarity config
 	var rarity_cfg: Dictionary = _rarity_config.get(rarity_str, {}) as Dictionary
@@ -236,14 +249,14 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 
 func _generate_item_name(item: LootItem) -> String:
 	var slot_names: Dictionary = {
+		"primary": "Primary Weapon",
 		"reactor": "Reactor",
 		"engine": "Engine",
 		"armor": "Armor Plating",
 		"shield": "Shield Module",
 		"missiles": "Missile System",
 		"targeting": "Targeting Computer",
-		"utility": "Utility Module",
-		"special": "Special Device"
+		"utility": "Utility Module"
 	}
 	
 	var base_name: String = slot_names.get(item.slot, "Component")

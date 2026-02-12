@@ -767,6 +767,14 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 	health_bar.value = current_hp
 	_update_health_bar_color()
 	
+	# Play SFX (Enemy Hit)
+	# Check if we should play every hit? Maybe limit frequency or only critical?
+	# For now playing on every hit.
+	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
+	var sfx_path = str(sfx_config.get("enemy", ""))
+	if sfx_path != "":
+		AudioManager.play_sfx(sfx_path, 0.2)
+	
 	# Feedback visuel
 	var flash_color := Color.WHITE
 	if is_critical:
@@ -779,7 +787,7 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 		die()
 
 func die() -> void:
-	print("[Enemy] ", enemy_name, " died! Score: ", score)
+	#print("[Enemy] ", enemy_name, " died! Score: ", score)
 	
 	# VFX explosion
 	# VFX explosion
@@ -806,23 +814,27 @@ func die() -> void:
 	queue_free()
 
 func _spawn_loot() -> void:
-	# Générer un item aléatoire
-	var slot_ids := DataManager.get_slot_ids()
-	if slot_ids.is_empty():
-		return
+	var item: Dictionary
 	
-	var random_slot: String = str(slot_ids[randi() % slot_ids.size()])
-	var item_id := "loot_" + str(Time.get_ticks_msec()) + "_" + str(randi())
+	# Only Powerups: Shield or Rapid Fire
+	var type_roll = randf()
+	var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
 	
-	var item := {
-		"id": item_id,
-		"name": "Loot " + random_slot,
-		"slot": random_slot,
-		"rarity": "common",
-		"level": 1,
-		"stats": {"bonus": randi() % 10 + 1}
-	}
-	
+	if type_roll < 0.5:
+		item = {
+			"type": "powerup",
+			"effect": "shield",
+			"name": "Energy Shield",
+			"visual_asset": gameplay_config.get("shield", {}).get("asset", "")
+		}
+	else:
+		item = {
+			"type": "powerup",
+			"effect": "fire_rate",
+			"name": "Rapid Fire",
+			"visual_asset": gameplay_config.get("rapid_fire", {}).get("asset", "")
+		}
+
 	# Spawn le visual
 	var loot_scene := load("res://scenes/LootDrop.tscn")
 	var loot: Area2D = loot_scene.instantiate()

@@ -3,7 +3,7 @@
 		{
 			"id": "boss_world1",
 			"name": "The Tank Lord",
-			"hp": 500,
+			"hp": 5000,
 			"score": 5000,
 			"loot_unique_chance": 0.25,
 			"size": {

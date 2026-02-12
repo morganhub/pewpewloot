@@ -14,7 +14,7 @@
 				"asset": "res://assets/enemies/ennemy.png",
 				"asset_anim": ""
 			},
-			"move_pattern_id": "straight_down",
+			"move_pattern_id": "enter_hover_leave",
 			"missile_pattern_id": "single_straight",
 			"missile_id": "missile_default",
 			"fire_rate": 2.0,

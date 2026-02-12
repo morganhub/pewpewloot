@@ -21,6 +21,7 @@ var _touch_id: int = -1
 var _base_pos: Vector2 = Vector2.ZERO
 var _knob_pos: Vector2 = Vector2.ZERO
 var _output: Vector2 = Vector2.ZERO
+var _frame_drag_delta: Vector2 = Vector2.ZERO
 var _active: bool = false
 
 # =============================================================================
@@ -71,12 +72,14 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
 func _handle_drag(event: InputEventScreenDrag) -> void:
 	if event.index == _touch_id:
 		_update_joystick(event.position)
+		_frame_drag_delta += event.relative
 
 func _start_joystick(pos: Vector2) -> void:
 	_active = true
 	_base_pos = pos
 	_knob_pos = pos
 	_output = Vector2.ZERO
+	_frame_drag_delta = Vector2.ZERO # Reset delta on start
 	show()
 	queue_redraw()
 
@@ -84,6 +87,7 @@ func _reset_joystick() -> void:
 	_touch_id = -1
 	_active = false
 	_output = Vector2.ZERO
+	_frame_drag_delta = Vector2.ZERO
 	hide()
 	queue_redraw()
 
@@ -126,6 +130,12 @@ func _apply_deadzone(value: Vector2) -> Vector2:
 ## Vector2.ZERO si inactif.
 func get_output() -> Vector2:
 	return _output
+
+## Retourne le déplacement relatif accumulate (pixels écran) depuis le dernier appel.
+func get_drag_delta() -> Vector2:
+	var d = _frame_drag_delta
+	_frame_drag_delta = Vector2.ZERO
+	return d
 
 ## Vérifie si le joystick est actif (doigt posé).
 func is_active() -> bool:

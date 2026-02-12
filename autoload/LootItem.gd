@@ -52,6 +52,9 @@ enum Rarity {
 ## For unique items: the special ability ID they grant
 @export var special_ability_id: String = ""
 
+## Asset path (image or animation)
+@export var asset: String = ""
+
 # =============================================================================
 # SERIALIZATION
 # =============================================================================
@@ -65,6 +68,7 @@ func to_dict() -> Dictionary:
 		"level": level,
 		"upgrade": upgrade,
 		"slot": slot,
+		"asset": asset,
 		"stats": base_stats.duplicate(),
 		"affixes": affixes.duplicate(),
 		"is_unique": is_unique,
@@ -80,6 +84,7 @@ static func from_dict(data: Dictionary) -> LootItem:
 	item.level = int(data.get("level", 1))
 	item.upgrade = int(data.get("upgrade", 0))
 	item.slot = str(data.get("slot", ""))
+	item.asset = str(data.get("asset", ""))
 	
 	var stats_raw: Variant = data.get("stats", {})
 	if stats_raw is Dictionary:

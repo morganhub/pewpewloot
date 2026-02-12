@@ -4,8 +4,10 @@ extends CharacterBody2D
 ## Utilise les stats du loadout actif (vitesse, HP, armes).
 
 # =============================================================================
-# PLAYER STATS (ch argées depuis le loadout)
+# PLAYER STATS (chargées depuis le loadout)
 # =============================================================================
+
+signal shield_changed(current: float, max_val: float)
 
 var max_hp: int = 100
 var current_hp: int = 100
@@ -25,6 +27,13 @@ var unique_power_id: String = ""
 
 # Status
 var is_invincible: bool = false
+var shield_active: bool = false # Starts inactive (Pickup only)
+
+# SHIELD SYSTEM
+var shield = null # Initialized manually
+var shield_max_energy: float = 100.0
+var shield_energy: float = 100.0
+var shield_regen_timer: float = 0.0
 
 # =============================================================================
 # STATE
@@ -67,6 +76,7 @@ func _ready() -> void:
 	_setup_hitbox()
 	_load_stats_from_loadout()
 	_setup_visual()
+	_setup_shield()
 	# Spawn at bottom of screen with margin (works for all screen sizes)
 	var viewport_size := get_viewport_rect().size
 	var ship_size := 84.0  # Approximate ship height
@@ -99,6 +109,136 @@ func _setup_hitbox() -> void:
 	hitbox.add_child(col_shape)
 	hitbox.body_entered.connect(_on_hitbox_body_entered)
 	hitbox.body_exited.connect(_on_hitbox_body_exited)
+
+func _setup_shield() -> void:
+	# Attendre que les enfants soient prêts
+	if not is_inside_tree(): await ready
+	
+	# 1. Chercher le noeud existant (plusieurs noms possibles)
+	var possible_nodes = [get_node_or_null("ShieldSphere"), get_node_or_null("Shield"), get_node_or_null("VisualContainer/ShieldSphere")]
+	for node in possible_nodes:
+		if node:
+			shield = node
+			break
+			
+	# 2. Si pas trouvé, on l'instancie dynamiquement
+	if not shield:
+		print("[Player] ⚠️ Shield node not found in tree, instantiating dynamically...")
+		var shield_scene = load("res://addons/nojoule-energy-shield/shield_sphere.tscn")
+		if shield_scene:
+			# Get config diameter
+			var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
+			var shield_dia = float(gameplay_config.get("shield", {}).get("shield_diameter", 150.0))
+			
+			# Structure 3D overlay pour 2D
+			var svc = SubViewportContainer.new()
+			svc.name = "ShieldViewportContainer"
+			svc.stretch = true
+			svc.custom_minimum_size = Vector2(shield_dia, shield_dia)
+			svc.position = Vector2(-shield_dia/2.0, -shield_dia/2.0) # Centrer
+			
+			var sv = SubViewport.new()
+			sv.name = "SubViewport"
+			sv.transparent_bg = true
+			sv.size = Vector2(shield_dia, shield_dia)
+			sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+			
+			# Caméra 3D requise pour voir le mesh
+			var cam = Camera3D.new()
+			cam.name = "ShieldCamera"
+			# Ajuster Z pour couvrir le diamètre (FOV approx)
+			cam.position = Vector3(0, 0, 2.0)
+			cam.current = true
+			
+			var shield_instance = shield_scene.instantiate()
+			shield_instance.name = "ShieldSphere"
+			
+			# Hiérarchie
+			add_child(svc)
+			svc.add_child(sv)
+			sv.add_child(cam)
+			sv.add_child(shield_instance)
+			
+			shield = shield_instance
+			print("[Player] ✅ Shield instantiated successfully (with SubViewport).")
+
+	if shield:
+		# Connecte le signal body_entered du shield (3D)
+		if not shield.body_entered.is_connected(_on_shield_body_entered):
+			shield.body_entered.connect(_on_shield_body_entered)
+		
+		# Initialiser l'état (Invisible au départ)
+		shield_active = false
+		if shield.has_method("collapse"):
+			shield.collapse() # Ensure collapsed at start
+		
+		# FORCE HIDE AT START
+		shield.visible = false 
+		if shield.get_parent() is SubViewport: # Hide the viewport container if dynamic
+			var container = shield.get_parent().get_parent()
+			if container is SubViewportContainer:
+				container.visible = false
+				
+		_update_shield_visuals()
+
+func activate_shield() -> void:
+	# Play SFX (Shield Gain)
+	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("gain", {})
+	var sfx_path = str(sfx_config.get("shield", ""))
+	if sfx_path != "":
+		AudioManager.play_sfx(sfx_path, 0.1)
+		
+	# Refresh stats just in case
+	var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
+	var base_absorb = float(gameplay_config.get("shield", {}).get("shield_absorb", 100.0))
+	shield_max_energy = base_absorb # Apply multipliers here if any
+	
+	if shield_active:
+		# Refresh energy
+		shield_energy = shield_max_energy
+		shield_changed.emit(shield_energy, shield_max_energy)
+		return 
+
+	shield_active = true
+	shield_energy = shield_max_energy
+	shield_changed.emit(shield_energy, shield_max_energy)
+	
+	if shield and is_instance_valid(shield):
+		shield.visible = true
+		
+		# Show container if dynamic
+		if shield.get_parent() is SubViewport:
+			var container = shield.get_parent().get_parent()
+			if container is SubViewportContainer:
+				container.visible = true
+				
+		if shield.has_method("generate"):
+			shield.generate()
+		
+		# Apply Visual Config
+		# Keys in JSON match shader uniform names roughly but need "_", "color conversion".
+		var visual_config = gameplay_config.get("shield", {}).get("visual", {})
+		for key in visual_config:
+			var val = visual_config[key]
+			var param_name = "_" + key # Most uniforms start with _
+			
+			# Special cases mapping
+			if key == "glow_strength" or key == "glow_enabled":
+				param_name = key # No underscore for these in shader
+			elif key == "color_shield":
+				val = Color(val)
+				param_name = "_color_shield"
+				
+			shield.update_material(param_name, val)
+			
+		# Force a safe default if not in config
+		if not visual_config.has("color_shield"):
+			shield.update_material("_color_shield", Color(0.0, 0.8, 1.0))
+			
+		print("[Player] Shield visible/generate called")
+	print("[Player] 🛡️ SHIELD ACTIVATED via function! Energy: ", shield_energy)
+
+# _init_visual_nodes and others...
 
 func _init_visual_nodes() -> void:
 	visual_container = Node2D.new()
@@ -260,16 +400,30 @@ func use_unique() -> void:
 
 func add_fire_rate_boost(duration: float) -> void:
 	_fire_rate_boost_timer = duration
-	# Apply 50% faster fire rate (divide delay by 1.5)
-	fire_rate = _base_fire_rate / 1.5
+	
+	# Fetch bonus pct
+	var gameplay_config = DataManager.get_game_data().get("gameplay", {})
+	var power_up_config = gameplay_config.get("power_ups", {})
+	var bonus_pct = float(power_up_config.get("rapid_fire", {}).get("bonus", 50.0))
+	
+	# Apply boost: New Rate = Base Rate * (1 + bonus/100)
+	# Note: fire_rate is DELAY (seconds). So we DIVIDE by multiplier.
+	var multiplier = 1.0 + (bonus_pct / 100.0)
+	if multiplier <= 0.1: multiplier = 1.0 # Safety
+	
+	fire_rate = _base_fire_rate / multiplier
+	
 	# Visual feedback
-	VFXManager.spawn_floating_text(global_position, "RAPID FIRE!", Color.YELLOW, get_parent())
+	VFXManager.spawn_floating_text(global_position, "RAPID FIRE! +" + str(int(bonus_pct)) + "%", Color.YELLOW, get_parent())
 	modulate = Color(1.5, 1.5, 0.5) # Jaunâtre brillant
 
 func _process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_shooting(delta)
+	_handle_movement(delta)
+	_handle_shooting(delta)
 	_handle_contact_damage(delta)
+	_handle_shield_regen(delta)
 	
 	# Cooldowns
 	if special_cd_current > 0:
@@ -328,6 +482,142 @@ func _on_hitbox_body_exited(body: Node2D) -> void:
 	if _contact_enemies.has(body):
 		_contact_enemies.erase(body)
 
+# =============================================================================
+# SHIELD LOGIC
+# =============================================================================
+
+func _handle_shield_regen(delta: float) -> void:
+	# Pas de regen automatique dans ce mode "Pickup"
+	pass
+
+func _update_shield_visuals() -> void:
+	if not shield or not is_instance_valid(shield): return
+	# Couleur fixe pour le mode "One Hit" (Cyan/Bleu)
+	if shield.has_method("update_material"):
+		shield.update_material("albedo", Color(0.0, 0.8, 1.0))
+
+func _on_shield_body_entered(body: Node) -> void:
+	# Handler principal pour le signal du Shield (3D)
+	# Tente de gérer l'impact si c'est un projectile compatible
+	_check_shield_impact(body)
+
+# Helper pour détecter les projectiles (compatible 2D bridge via Projectile.gd)
+func check_shield_collision(projectile: Node2D) -> bool:
+	if not shield_active or shield_energy <= 0:
+		return false
+		
+	# Vérifie si c'est un projectile ennemi
+	var is_player_proj = projectile.get("is_player_projectile")
+	if is_player_proj == false:
+		print("[Player] 🛡️ Shield Collision Check: HIT by Enemy Projectile!")
+		_apply_shield_impact(projectile)
+		return true # Impact géré
+		
+	return false
+
+func _check_shield_impact(body: Node) -> void:
+	# Wrapper générique
+	if body.has_method("get") and body.get("is_player_projectile") == false:
+		_apply_shield_impact(body)
+
+func _apply_shield_impact(projectile: Node) -> void:
+	if not shield or not shield_active: return
+	
+	# Determine damage
+	var dmg = 10.0
+	if projectile.has_method("get_damage"):
+		dmg = projectile.get_damage()
+	elif "damage" in projectile:
+		dmg = float(projectile.damage)
+		
+	# Absorb
+	shield_energy -= dmg
+	shield_changed.emit(shield_energy, shield_max_energy)
+	
+	# Play SFX (Shield Hit)
+	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
+	var sfx_path = str(sfx_config.get("shield", ""))
+	if sfx_path != "":
+		AudioManager.play_sfx(sfx_path, 0.1)
+	
+	# Update Color based on health (Low Energy Warning)
+	if shield:
+		var pct = shield_energy / shield_max_energy
+		if pct < 0.3:
+			shield.update_material("_color_shield", Color(1.0, 0.0, 0.0)) # Red Alert
+		else:
+			# Ensure we are at base color (in case we healed somehow, or just to be safe)
+			var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
+			var visual_config = gameplay_config.get("shield", {}).get("visual", {})
+			var base_col_str = str(visual_config.get("color_shield", "#00CCFF"))
+			shield.update_material("_color_shield", Color(base_col_str))
+	
+	# Visual Impact Calculation
+	# Projectile is 2D (Global Pos), Shield is 3D (in SubViewport)
+	# We need to map the 2D projectile hit relative to the Player center to the 3D Shield surface
+	
+	if projectile is Node2D:
+		var rel_pos = projectile.global_position - self.global_position
+		# Map 2D relative (X right, Y down) to 3D local (X right, Y up usually)
+		# Shield is a sphere of diameter X.
+		# Let's assume 1:1 mapping for simplicity first, scaled by some factor if needed.
+		# Note: In 3D layer, Y is Up. Screen Y is Down. So we invert Y.
+		var impact_local = Vector3(rel_pos.x, -rel_pos.y, 0.5) 
+		
+		# Normalize to surface? The shader usually expects a point on/near surface.
+		# If sphere radius is 1.0 (local), we might need to normalize.
+		# But 'impact' function seems to take a point and handle it.
+		# Let's try converting this local 3D offset to global 3D for the shield function if it expects global.
+		
+		# Getting Shield 3D global position is tricky inside SubViewport.
+		# But wait, shield.impact(pos) doc says "starting a new impact animation".
+		# Looking at shield.gd: "if relative_impact_position: impact_pos = to_local(pos)"
+		# By default relative_impact_position is false, so it expects GLOBAL 3D position.
+		
+		# Our Shield is at (0,0,0) in the SubViewport's world.
+		# Camera is at (0,0,2).
+		# So a local offset of (x, y, z) is basically the global position in that 3D world.
+		
+		# Scale down? The 2D coordinates are in pixels (e.g. 50px).
+		# The 3D sphere is likely size 1.0 or similar (MeshInstance).
+		# We need to scaling factor.
+		var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
+		var shield_dia = float(gameplay_config.get("shield", {}).get("shield_diameter", 150.0))
+		var scale_factor = 2.0 / shield_dia # Map diameter pixels to approx size 2.0 (radius 1.0)
+		
+		var impact_3d = Vector3(rel_pos.x * scale_factor, -rel_pos.y * scale_factor, 0.5)
+		
+		print("[Player] Impact 2D Rel: ", rel_pos, " -> 3D: ", impact_3d)
+		shield.impact(impact_3d)
+	else:
+		# Fallback
+		shield.impact(Vector3(0, 0, 1))
+	
+	if shield_energy <= 0:
+		# Break Shield
+		shield_active = false
+		shield_energy = 0
+		shield_changed.emit(0, shield_max_energy)
+		
+		print("[Player] 💥 SHIELD BREAK! Collapsing...")
+		
+		# Collapse sequence
+		get_tree().create_timer(0.2).timeout.connect(func():
+			if shield: 
+				shield.collapse()
+				# Hide container after collapse animation (approx 1s)
+				get_tree().create_timer(1.0).timeout.connect(func():
+					if shield and not shield_active: # Double check
+						shield.visible = false
+						if shield.get_parent() is SubViewport:
+							var container = shield.get_parent().get_parent()
+							if container is SubViewportContainer:
+								container.visible = false
+				)
+		)
+
+
+
 # INPUT STATE
 var input_provider: Object = null # GameHUD ou autre
 
@@ -342,9 +632,13 @@ func _handle_movement(delta: float) -> void:
 			joystick_output = input_provider.get_joystick_output()
 	
 	if use_joystick:
-		# Joystick Mode (Accéléré de 50%)
-		var movement := joystick_output * (move_speed * 1.5) * delta
-		position += movement
+		# 1:1 Direct Drag Movement (Touch Follow)
+		# On récupère le déplacement relatif exact du doigt depuis la dernière frame
+		var drag_delta := Vector2.ZERO
+		if input_provider.has_method("get_joystick_drag_delta"):
+			drag_delta = input_provider.get_joystick_drag_delta()
+			
+		position += drag_delta
 	else:
 		# Mouse Follow mode (Desktop)
 		# Ne pas suivre la souris si on est sur mobile/touch (évite le teleport au release)
@@ -580,6 +874,25 @@ func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int
 	var is_critical := randf() <= crit_chance
 	var final_dmg := dmg * (2 if is_critical else 1)
 	
+	# --- DEBUG LOG REQUESTED BY USER ---
+	var sound_path = str(pattern_data.get("sound", ""))
+	var visual_data = pattern_data.get("visual_data", {})
+	var anim_path = str(visual_data.get("asset_anim", ""))
+	var sprite_path = str(visual_data.get("asset", ""))
+	
+	var sound_status = "none"
+	if sound_path != "":
+		sound_status = "ok" if ResourceLoader.exists(sound_path) else "FAIL"
+	
+	var gfx_status = "fallback (shape)"
+	if anim_path != "":
+		gfx_status = "anim ok" if ResourceLoader.exists(anim_path) else "anim FAIL"
+	elif sprite_path != "":
+		gfx_status = "sprite ok" if ResourceLoader.exists(sprite_path) else "sprite FAIL"
+	
+	print("[%d] - Missile shot - asset sound {%s} - asset gfx {%s}" % [Time.get_ticks_msec(), sound_status, gfx_status])
+	# -----------------------------------
+	
 	# Clamp position roughly
 	# Warning: clamp might screw up off-screen spawning (screen_bottom/screen_top)
 	# So only clamp if standard shooter
@@ -606,6 +919,12 @@ func take_damage(amount: int) -> void:
 	current_hp = maxi(0, current_hp)
 	
 	print("[Player] Took damage: ", amount, " | HP: ", current_hp, "/", max_hp)
+	
+	# Play SFX (Player Hit)
+	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
+	var sfx_path = str(sfx_config.get("player", ""))
+	if sfx_path != "":
+		AudioManager.play_sfx(sfx_path, 0.1)
 	
 	# Feedback visuel
 	VFXManager.flash_sprite(self, Color.RED, 0.15)

@@ -59,6 +59,10 @@ window/size/window/size/initial_size_override=Vector2(0, 0)
 
 theme/custom="uid://xye84dja2dmy"
 
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

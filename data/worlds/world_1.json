@@ -23,22 +23,26 @@
 						"res://assets/backgrounds/layer_2/clouds.png"
 					]
 				],
-				"near_layer": []
+				"near_layer": [
+					[
+						"res://assets/backgrounds/layer_2/clouds.png"
+					]
+				]
 			},
 			"waves": [
 				{
 					"time": 2.0,
 					"enemy_id": "scout_basic",
-					"count": 20,
+					"count": 30,
 					"interval": 1.5,
 					"pattern_id": "circle_clockwise",
 					"origin_x": "40%",
 					"origin_y": -300
 				},
 				{
-					"time": 115.0,
+					"time": 20.0,
 					"enemy_id": "scout_basic",
-					"count": 1,
+					"count": 30,
 					"interval": 1.5,
 					"pattern_id": "figure_eight",
 					"origin_x": "30%",

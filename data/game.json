@@ -21,27 +21,79 @@
 		"legendary": "res://assets/ui/frame_legendary.png",
 		"unique": "res://assets/ui/frame_unique.png"
 	},
+	"rarity_colors": {
+		"common": "#AAAAAA",
+		"uncommon": "#1EFF00",
+		"rare": "#0070FF",
+		"epic": "#A335EE",
+		"legendary": "#FF8000",
+		"unique": "#FFD700"
+	},
+	"rarity_highlight": "res://assets/frames/rarity/rarity_selected.png",
+	"rarity_filter_assets": {
+		"all": "res://assets/frames/rarity/all.png",
+		"common": "res://assets/frames/rarity/common.png",
+		"uncommon": "res://assets/frames/rarity/uncommon.png",
+		"rare": "res://assets/frames/rarity/rare.png",
+		"epic": "res://assets/frames/rarity/epic.png",
+		"legendary": "res://assets/frames/rarity/legendary.png",
+		"unique": "res://assets/frames/rarity/unique.png"
+	},
 	"ship_menu": {
-		"background": "res://assets/ui/ship_menu_bg.jpg",
+		"background": "res://assets/backgrounds/menus/ship_background.jpg",
+		"back_button": "res://assets/ui/back_arrow.png",
 		"sections": {
 			"ship_selection": {
-				"background": ""
+				"background": "res://assets/backgrounds/menus/equipment.jpg"
 			},
 			"equipment": {
-				"background": ""
+				"background": "res://assets/backgrounds/menus/equipment.jpg"
 			},
 			"inventory": {
-				"background": ""
+				"background": "res://assets/backgrounds/menus/equipment.jpg"
+			},
+			"powers": {
+				"background": "res://assets/backgrounds/menus/equipment.jpg"
+			}
+		},
+		"title": {
+			"font_size": 24,
+			"letter_spacing": 2,
+			"text_color": "#FFFFFF"
+		},
+		"ship_details": {
+			"buttons": {
+				"font_size": 18,
+				"text_color": "#FFFFFF",
+				"upgrade": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/btn_upgrade.png"
+				},
+				"recycle": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/btn_recycle.png"
+				},
+				"close": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/btn_close.png"
+				},
+				"equip": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/btn_equip.png"
+				}
 			}
 		},
 		"stats_max_values": {
 			"power": 4000,
 			"max_hp": 3000,
 			"move_speed": 1000,
-			"missile": 2000,
-			"crit_chance": 50,
-			"dodge_chance": 30,
-			"special": 1000
+			"missile": 1000,
+			"crit_chance": 0.50,
+			"dodge_chance": 0.30
 		},
 		"stat_icons": {
 			"power": "res://assets/ui/icons/power.png",
@@ -51,8 +103,7 @@
 			"speed": "res://assets/ui/icons/speed.png",
 			"missile": "res://assets/ui/icons/missile.png",
 			"crit_chance": "res://assets/ui/icons/crit.png",
-			"dodge_chance": "res://assets/ui/icons/dodge.png",
-			"special": "res://assets/ui/icons/special.png"
+			"dodge_chance": "res://assets/ui/icons/dodge.png"
 		},
 		"stat_colors": {
 			"power": "#501dc5",
@@ -62,9 +113,14 @@
 			"speed": "#501dc5",
 			"missile": "#501dc5",
 			"crit_chance": "#501dc5",
-			"dodge_chance": "#501dc5",
-			"special": "#501dc5"
+			"dodge_chance": "#501dc5"
 		},
+		"upgrade_anim_decent": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_anim_great": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_anim_perfect": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_craft_anim": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
+		"upgrade_sound": "res://assets/sfx/upgrade_success.ogg",
 		"ship_stats": {
 			"power": {
 				"icon_asset": "res://assets/ui/icons/power.png",
@@ -144,7 +200,7 @@
 		"background": "res://assets/ui/main_menu_bg.jpg"
 	},
 	"world_select": {
-		"background": "res://assets/ui/main_menu_bg.jpg"
+		"background": "res://assets/backgrounds/menus/ship_background.jpg"
 	},
 	"popups": {
 		"margin": 65,
@@ -171,14 +227,14 @@
 		},
 		"power_button": {
 			"asset": "res://assets/ui/super_power_button.png",
-			"text_color": "#000000",
-			"font_size": 30,
+			"text_color": "#ffffff",
+			"font_size": 24,
 			"letter_spacing": 2
 		},
 		"unique_power_button": {
 			"asset": "res://assets/ui/unique_power_button.png",
-			"text_color": "#000000",
-			"font_size": 30,
+			"text_color": "#ffffff",
+			"font_size": 24,
 			"letter_spacing": 2
 		},
 		"equipment_button": {
@@ -194,14 +250,15 @@
 			"letter_spacing": 2
 		},
 		"slot_icons": {
-			"reactor": "res://assets/ui/icons/power.png",
-			"engine": "res://assets/ui/icons/power.png",
-			"armor": "res://assets/ui/icons/power.png",
-			"shield": "res://assets/ui/icons/power.png",
-			"missiles": "res://assets/ui/icons/power.png",
-			"targeting": "res://assets/ui/icons/power.png",
-			"utility": "res://assets/ui/icons/power.png",
-			"special": "res://assets/ui/icons/power.png"
+			"all": "res://assets/ui/icons/all.png",
+			"reactor": "res://assets/ui/icons/reactor.png",
+			"engine": "res://assets/ui/icons/engine.png",
+			"armor": "res://assets/ui/icons/armor.png",
+			"shield": "res://assets/ui/icons/shield.png",
+			"missiles": "res://assets/ui/icons/missile.png",
+			"targeting": "res://assets/ui/icons/targeting.png",
+			"utility": "res://assets/ui/icons/utility.png",
+			"primary": "res://assets/ui/icons/primary.png"
 		},
 		"item_placeholders": {
 			"reactor": "res://assets/items/engine.png",
@@ -211,7 +268,7 @@
 			"missiles": "res://assets/items/engine.png",
 			"targeting": "res://assets/items/engine.png",
 			"utility": "res://assets/items/engine.png",
-			"special": "res://assets/items/engine.png"
+			"primary": "res://assets/items/engine.png"
 		},
 		"level_indicator_assets": {
 			"1-2": "res://assets/ui/frame_level_bronze.png",
@@ -247,7 +304,7 @@
 		"background": "res://assets/ui/main_menu_bg.jpg",
 		"button": {
 			"asset": "res://assets/ui/button.png",
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"font_size": 18,
 			"letter_spacing": 0
 		},
@@ -276,39 +333,39 @@
 	},
 	"buttons": {
 		"play": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"letter_spacing": 15
 		},
 		"ship": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"letter_spacing": 15
 		},
 		"options": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"letter_spacing": 15
 		},
 		"quit": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"letter_spacing": 15
 		},
 		"change_profile": {
 			"asset": "res://assets/ui/button.png",
 			"asset_anim": "",
 			"show_text": true,
-			"text_color": "#000000",
-			"letter_spacing": 4
+			"text_color": "#FFFFFF",
+			"letter_spacing": 2
 		}
 	},
 	"default_card_colors": [
@@ -318,5 +375,50 @@
 		"#6f5a3a",
 		"#3a6f6f",
 		"#6f4f3a"
-	]
+	],
+	"gameplay": {
+		"bars": {
+			"height": 40,
+			"text_color": "#FFFFFF",
+			"text_size": 24,
+			"hp": {
+				"asset": "res://assets/ui/bars/hp_bar_bg.png"
+			},
+			"shield": {
+				"asset": "res://assets/ui/bars/shield_bar_bg.png"
+			}
+		},
+		"power_ups": {
+			"shield": {
+				"asset": "res://assets/ui/icons/shield.png",
+				"shield_absorb": 100,
+				"shield_diameter": 750,
+				"visual": {
+					"color_shield": "#d3158e",
+					"color_brightness_shield": 15.0,
+					"intensity_shield": 3.0,
+					"glow_strength": 0.5,
+					"glow_enabled": true,
+					"active_static": true,
+					"frequency_static": 80.0,
+					"speed_static": 0.1
+				}
+			},
+			"rapid_fire": {
+				"asset": "res://assets/ui/icons/missile.png",
+				"bonus": 250
+			}
+		},
+		"sfx": {
+			"gain": {
+				"shield": "res://assets/sfx/combat/shield_up.ogg"
+			},
+			"collisions": {
+				"shield": "res://assets/sfx/combat/shield_hit.ogg",
+				"player": "res://assets/sfx/combat/player_hit.ogg",
+				"enemy": "res://assets/sfx/combat/very_weak_hit.ogg",
+				"boss": "res://assets/sfx/combat/enemy_hit.ogg"
+			}
+		}
+	}
 }

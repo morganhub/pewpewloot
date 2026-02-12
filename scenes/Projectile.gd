@@ -25,6 +25,8 @@ var _trajectory_type: String = "straight"
 var _time_alive: float = 0.0
 var _max_lifetime: float = 20.0
 var is_critical: bool = false
+var _debug_id: int = 0
+var _first_frame: bool = true
 
 # New: Acceleration & Explosion
 var _acceleration: float = 0.0
@@ -44,12 +46,20 @@ var _target: Node2D = null
 # =============================================================================
 
 func _ready() -> void:
-	body_entered.connect(_on_body_entered)
-	area_entered.connect(_on_area_entered)
-	deactivate()
-
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+	if not area_entered.is_connected(_on_area_entered):
+		area_entered.connect(_on_area_entered)
+	_debug_id = randi() % 10000
+	# DO NOT call deactivate() here as it triggers early return to pool!
+	
 func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Dictionary = {}, is_crit: bool = false, viewport_size_arg: Vector2 = Vector2.ZERO) -> void:
+	# Reset state
+	_first_frame = true
+	show()
+	modulate = Color.WHITE
 	global_position = pos
+	
 	direction = dir.normalized()
 	speed = spd
 	damage = dmg
@@ -59,8 +69,6 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	is_critical = is_crit
 	
 	var viewport_size = viewport_size_arg
-	
-	print("[Projectile] ✅ ACTIVATED at ", pos, " | Speed: ", speed)
 	
 	# Setup Collision Layer/Mask Dynamically
 	if is_player_projectile:
@@ -139,7 +147,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	var asset_anim: String = str(visual_data.get("asset_anim", ""))
 	var use_asset: bool = false
 	
-	print("[Projectile] 🎨 Visual Setup: Size=", Vector2(final_width, final_height), " | Asset=", asset_path, " | Anim=", asset_anim)
+
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
@@ -155,7 +163,10 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 				add_child(anim_sprite)
 			
 			anim_sprite.visible = true
+			anim_sprite.modulate = Color.WHITE
 			anim_sprite.sprite_frames = frames
+			anim_sprite.stop()
+			anim_sprite.frame = 0
 			anim_sprite.play("default")
 			
 			# Scale to match target size
@@ -163,7 +174,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				anim_sprite.scale = Vector2(final_width / f_size.x, final_height / f_size.y)
-				print("[Projectile]   -> AnimatedSprite scaled to ", anim_sprite.scale)
+
 			
 			# Hide static sprite if exists
 			var static_sprite: Sprite2D = get_node_or_null("Sprite2D")
@@ -193,7 +204,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 			var tex_size = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
 				sprite.scale = Vector2(final_width / tex_size.x, final_height / tex_size.y)
-				print("[Projectile]   -> Sprite2D scaled to ", sprite.scale)
+
 	
 	# Priority 3: Fallback Polygon2D shape
 	if not use_asset:
@@ -213,7 +224,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 		# Generate shape polygon
 		var shape_type: String = str(visual_data.get("shape", "circle"))
 		visual.polygon = _create_shape_polygon(shape_type, final_width, final_height)
-		print("[Projectile]   -> Polygon2D shape: ", shape_type, " | Color: ", shape_color)
+
 	
 	# Collision - use average of width/height
 	var avg_size: float = (final_width + final_height) / 2.0
@@ -254,20 +265,24 @@ func _create_shape_polygon(shape_type: String, width: float, height: float) -> P
 		_:
 			return _create_circle_polygon(max(width, height) / 2.0)
 
-func deactivate() -> void:
-	print("[Projectile] ❌ DEACTIVATED. Lifetime: ", _time_alive)
+func deactivate(reason: String = "unknown") -> void:
 	# Remove debug
 	var debug = get_node_or_null("DEBUG_SQUARE")
 	if debug: debug.queue_free()
 	
-	is_active = false
-	hide()
-	set_process(false)
-	projectile_deactivated.emit(self)
+	if is_active:
+		# print("[Projectile #%d] Deactivated: reason=%s" % [_debug_id, reason])
+		is_active = false
+		hide()
+		set_process(false)
+		projectile_deactivated.emit(self)
 
 func _process(delta: float) -> void:
 	if not is_active:
 		return
+		
+	if _first_frame:
+		_first_frame = false
 	
 	_time_alive += delta
 	
@@ -278,7 +293,7 @@ func _process(delta: float) -> void:
 	
 	# Lifetime check
 	if _time_alive >= _max_lifetime:
-		deactivate()
+		deactivate("lifetime")
 		return
 	
 	# Movement selon trajectory
@@ -302,7 +317,7 @@ func _process(delta: float) -> void:
 	if global_position.x < -margin or global_position.x > viewport_size.x + margin \
 	or global_position.y < -margin or global_position.y > viewport_size.y + margin:
 		# print("[Projectile] Deactivated off-screen at ", global_position)
-		deactivate()
+		deactivate("off_screen")
 
 # =============================================================================
 # MOVEMENT PATTERNS
@@ -368,6 +383,20 @@ func _on_body_entered(body: Node2D) -> void:
 	
 	# Projectile ennemi touche joueur
 	elif not is_player_projectile and body.is_in_group("player"):
+		# 3. Interaction avec les Projectiles - Check Shield
+		var hit_shield = false
+		
+		# Cas 1: Le body est le Player et possède une méthode de check (Bridge 2D->3D)
+		if body.has_method("check_shield_collision"):
+			if body.check_shield_collision(self):
+				hit_shield = true
+		
+		if hit_shield:
+			print("[Projectile] Blocked by Shield!")
+			_spawn_explosion() # Petit effet sticky sur le bouclier
+			deactivate("hit_shield")
+			return
+
 		# Vérifier dodge côté joueur ou ici ?
 		# On laisse le joueur gérer son dodge dans take_damage ou ici ?
 		# Pour l'instant on appelle take_damage standard

@@ -78,7 +78,7 @@
 				"asset_anim": ""
 			},
 			"missile_id": "missile_default",
-			"missile_pattern_id": "burst_5",
+			"missile_pattern_id": "single_straight",
 			"special_power_id": "power_witch_circle"
 		},
 		{
@@ -105,7 +105,7 @@
 				"asset_anim": ""
 			},
 			"missile_id": "missile_car",
-			"missile_pattern_id": "screen_bottom_wave",
+			"missile_pattern_id": "single_straight",
 			"special_power_id": "power_barrel_roll"
 		},
 		{
@@ -132,7 +132,7 @@
 				"asset_anim": ""
 			},
 			"missile_id": "missile_car",
-			"missile_pattern_id": "screen_bottom_wave",
+			"missile_pattern_id": "single_straight",
 			"special_power_id": "power_barrel_roll"
 		}
 	],

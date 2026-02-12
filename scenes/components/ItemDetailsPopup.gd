@@ -1,0 +1,249 @@
+extends PanelContainer
+
+signal close_requested
+signal upgrade_requested(item_id: String)
+signal recycle_requested(item_id: String)
+signal equip_requested(item_id: String, slot_id: String)
+signal unequip_requested(item_id: String, slot_id: String)
+
+@onready var icon_rect = %Icon
+@onready var name_label = %NameLabel
+@onready var rarity_label = %RarityLabel
+@onready var stats_box = %StatsBox
+@onready var upgrade_btn = %UpgradeBtn
+@onready var recycle_btn = %RecycleBtn
+@onready var equip_btn = %EquipBtn
+@onready var close_btn = %CloseBtn
+
+var current_item_id: String = ""
+var current_slot_id: String = ""
+var is_equipped: bool = false
+var config: Dictionary = {}
+
+func _ready() -> void:
+	close_btn.pressed.connect(_on_close_pressed)
+	upgrade_btn.pressed.connect(_on_upgrade_pressed)
+	recycle_btn.pressed.connect(_on_recycle_pressed)
+	equip_btn.pressed.connect(_on_equip_pressed)
+
+func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionary = {}) -> void:
+	current_item_id = item_id
+	current_slot_id = slot_id
+	is_equipped = equipped
+	config = p_config
+	
+	var item = ProfileManager.get_item_by_id(item_id)
+	if item.is_empty():
+		visible = false
+		return
+	
+	# Fetch Global Config for styles if not in p_config
+	var game_cfg = DataManager.get_game_config()
+	var details_cfg = game_cfg.get("ship_menu", {}).get("ship_details", {}).get("buttons", {})
+	var rarity_params = game_cfg.get("rarity_colors", {})
+	
+	var rarity = str(item.get("rarity", "common"))
+	var level = int(item.get("level", 1))
+	var asset = str(item.get("asset", ""))
+	
+	# Icon
+	var final_path = asset
+	
+	# Try DataManager lookup if asset missing
+	if final_path == "" or not ResourceLoader.exists(final_path):
+		var s_data = DataManager.get_slot(slot_id)
+		var icon_def = s_data.get("icon")
+		if icon_def is Dictionary:
+			final_path = str(icon_def.get(rarity, icon_def.get("common", "")))
+		elif icon_def is String:
+			final_path = icon_def
+			
+	# Fallback to placeholder
+	if final_path == "" or not ResourceLoader.exists(final_path):
+		var placeholders = config.get("placeholders", {})
+		final_path = str(placeholders.get(slot_id, ""))
+	
+	_update_icon(final_path)
+	
+	# Name & Rarity
+	var slot_data = DataManager.get_slot(slot_id)
+	var base_name = str(slot_data.get("name", slot_id))
+	name_label.text = base_name.capitalize()
+	
+	# Name Styling (Title Font Size + Rarity Color)
+	var title_cfg = game_cfg.get("ship_menu", {}).get("title", {})
+	var title_fs = int(title_cfg.get("font_size", 24))
+	name_label.add_theme_font_size_override("font_size", title_fs)
+	
+	var r_col_hex = str(rarity_params.get(rarity, "#FFFFFF"))
+	name_label.add_theme_color_override("font_color", Color.html(r_col_hex))
+	
+	rarity_label.text = rarity.capitalize() + " - Lvl " + str(level)
+	rarity_label.modulate = Color(1, 1, 1, 0.7)
+	
+	# Apply Button Styles
+	_apply_btn_style(upgrade_btn, details_cfg.get("upgrade", {}), details_cfg)
+	_apply_btn_style(recycle_btn, details_cfg.get("recycle", {}), details_cfg)
+	_apply_btn_style(close_btn, details_cfg.get("close", {}), details_cfg)
+	_apply_btn_style(equip_btn, details_cfg.get("equip", {}), details_cfg)
+	
+	# Stats
+	for child in stats_box.get_children():
+		child.queue_free()
+	
+	var stats = item.get("stats", {})
+	for key in stats:
+		_add_stat_row(key, float(stats[key]))
+		
+	# Buttons State
+	if is_equipped:
+		equip_btn.text = LocaleManager.translate("item_popup_unequip")
+		equip_btn.visible = true
+	else:
+		equip_btn.text = LocaleManager.translate("item_popup_equip")
+		equip_btn.visible = true
+	
+	# Recyclable?
+	var r_val = _calculate_recycle_value(rarity, level)
+	recycle_btn.text = "+%d" % r_val
+	
+	close_btn.text = LocaleManager.translate("item_popup_close")
+	
+	# Upgrade cost
+	var upgrade_data = DataManager.get_level_upgrade_data(level)
+	var next_data = upgrade_data.get("upgrade_to_next", {})
+	var cost = int(next_data.get("cost", 999999))
+	
+	if level >= 10: # Max level
+		upgrade_btn.text = "MAX"
+		upgrade_btn.disabled = true
+	else:
+		upgrade_btn.text = str(cost)
+		upgrade_btn.disabled = false
+		# Check crystals
+		if ProfileManager.get_crystals() < cost:
+			upgrade_btn.disabled = true # or visual indicator
+
+func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) -> void:
+	if btn_cfg.is_empty(): return
+	
+	var w = int(btn_cfg.get("width", 140))
+	var h = int(btn_cfg.get("height", 50))
+	btn.custom_minimum_size = Vector2(w, h)
+	
+	var asset = str(btn_cfg.get("asset", ""))
+	if asset != "" and ResourceLoader.exists(asset):
+		var style = StyleBoxTexture.new()
+		style.texture = load(asset)
+		# Add margins if needed for text
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		btn.add_theme_stylebox_override("normal", style)
+		btn.add_theme_stylebox_override("hover", style)
+		btn.add_theme_stylebox_override("pressed", style)
+		btn.add_theme_stylebox_override("disabled", style)
+		btn.add_theme_stylebox_override("focus", style)
+		# Remove any flat style if using texture
+		btn.flat = false
+	
+	var f_sz = int(global_cfg.get("font_size", 18))
+	var col = Color.html(str(global_cfg.get("text_color", "#FFFFFF")))
+	btn.add_theme_font_size_override("font_size", f_sz)
+	btn.add_theme_color_override("font_color", col)
+
+func _calculate_recycle_value(rarity: String, level: int) -> int:
+	var base_val: int = 5
+	match rarity:
+		"common": base_val = 5
+		"uncommon": base_val = 15
+		"rare": base_val = 40
+		"epic": base_val = 100
+		"legendary": base_val = 250
+		"unique": base_val = 500
+	var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
+	return int(float(base_val) * multiplier)
+
+func _add_stat_row(stat_name: String, value: float) -> void:
+	var hbox = HBoxContainer.new()
+	var name_lbl = Label.new()
+	var stat_key = "stat." + stat_name
+	var trans = LocaleManager.translate(stat_key)
+	if trans == stat_key:
+		name_lbl.text = stat_name.capitalize().replace("_", " ")
+	else:
+		name_lbl.text = trans
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var val_lbl = Label.new()
+	
+	# Percent logic: if < 1.0 or specific key
+	var is_percent = false
+	if value <= 1.0 and value > 0: is_percent = true # Heuristic
+	if stat_name.ends_with("chance") or stat_name.ends_with("pct") or stat_name in ["damage_reduction", "cooldown_reduction", "move_speed", "fire_rate", "missile_damage", "loot_radius", "xp_multiplier"]:
+		is_percent = true
+		
+	# Override for known Flat stats just in case
+	if stat_name in ["max_hp", "shield_capacity", "shield_regen", "dash_charges", "projectile_count", "missile_count", "pierce_count"]:
+		is_percent = false
+	
+	if is_percent:
+		var pct_val = value * 100.0
+		val_lbl.text = "%.1f%%" % pct_val
+	else:
+		val_lbl.text = "%d" % int(value)
+	
+	hbox.add_child(name_lbl)
+	hbox.add_child(val_lbl)
+	stats_box.add_child(hbox)
+
+func _on_equip_pressed() -> void:
+	if is_equipped:
+		unequip_requested.emit(current_item_id, current_slot_id)
+	else:
+		equip_requested.emit(current_item_id, current_slot_id)
+
+func _on_upgrade_pressed() -> void:
+	upgrade_requested.emit(current_item_id)
+
+func _on_recycle_pressed() -> void:
+	recycle_requested.emit(current_item_id)
+
+func _on_close_pressed() -> void:
+	close_requested.emit()
+
+func _update_icon(path: String) -> void:
+	# Clean up previous animation
+	var existing = icon_rect.get_node_or_null("AnimSprite")
+	if existing: existing.queue_free()
+	
+	if path != "" and ResourceLoader.exists(path):
+		icon_rect.visible = true
+		
+		# Check for AnimatedSprite2D resource (SpriteFrames)
+		if path.ends_with(".tres") or path.ends_with(".res"):
+			var res = load(path)
+			if res is SpriteFrames:
+				icon_rect.texture = null
+				var anim = AnimatedSprite2D.new()
+				anim.name = "AnimSprite"
+				anim.sprite_frames = res
+				anim.play("default")
+				anim.centered = true
+				icon_rect.add_child(anim)
+				
+				anim.position = icon_rect.size / 2.0
+				if not icon_rect.resized.is_connected(_on_icon_resized):
+					icon_rect.resized.connect(_on_icon_resized)
+				return
+		
+		# Fallback / Normal Texture
+		if icon_rect.resized.is_connected(_on_icon_resized):
+			icon_rect.resized.disconnect(_on_icon_resized)
+		icon_rect.texture = load(path)
+	else:
+		icon_rect.visible = false
+
+func _on_icon_resized() -> void:
+	var anim = icon_rect.get_node_or_null("AnimSprite")
+	if anim:
+		anim.position = icon_rect.size / 2.0

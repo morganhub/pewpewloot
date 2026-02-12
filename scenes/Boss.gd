@@ -535,6 +535,12 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 	VFXManager.flash_sprite(visual_container, flash_color, 0.1)
 	VFXManager.screen_shake(5, 0.1)
 	
+	# Play SFX (Boss Hit)
+	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
+	var sfx_path = str(sfx_config.get("boss", ""))
+	if sfx_path != "":
+		AudioManager.play_sfx(sfx_path, 0.1)
+	
 	health_changed.emit(current_hp, max_hp)
 	_check_phase_transition()
 	

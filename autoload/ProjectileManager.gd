@@ -103,14 +103,19 @@ func _on_projectile_deactivated(projectile: Area2D) -> void:
 	call_deferred("_return_to_pool", projectile)
 
 func _return_to_pool(projectile: Area2D) -> void:
+	if not is_instance_valid(projectile):
+		return
+		
 	# Sécurité : Si le projectile a encore un parent ici (rare mais possible si race condition), on force le retrait
 	if projectile.get_parent():
 		projectile.get_parent().remove_child(projectile)
 		
 	if projectile.is_player_projectile:
-		_player_pool.append(projectile)
+		if projectile not in _player_pool:
+			_player_pool.append(projectile)
 	else:
-		_enemy_pool.append(projectile)
+		if projectile not in _enemy_pool:
+			_enemy_pool.append(projectile)
 
 func clear_all_projectiles() -> void:
 	# Désactive tous les projectiles actifs

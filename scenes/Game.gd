@@ -129,6 +129,9 @@ func _process(_delta: float) -> void:
 # =============================================================================
 
 func _setup_camera() -> void:
+	# Force Camera to Top-Left alignment to match background coordinates
+	camera.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
+	camera.position = Vector2.ZERO
 	VFXManager.set_camera(camera)
 
 # =============================================================================
@@ -170,6 +173,11 @@ func _spawn_player() -> void:
 	var player_scene := load("res://scenes/Player.tscn")
 	player = player_scene.instantiate()
 	player.input_provider = hud # Assigner le joystick provider
+	
+	# Initial Position (20% from bottom = 80% of height)
+	var viewport_size := get_viewport_rect().size
+	player.position = Vector2(viewport_size.x / 2, viewport_size.y * 0.8)
+	
 	game_layer.add_child(player)
 	print("[Game] Player spawned")
 	
@@ -270,7 +278,7 @@ func _on_level_completed() -> void:
 		_handle_victory_screen()
 
 func _on_enemy_died(enemy: CharacterBody2D) -> void:
-	print("[Game] Enemy died")
+	#print("[Game] Enemy died")
 	
 	# Ajouter score
 	if hud:
@@ -374,6 +382,9 @@ func _handle_victory_screen() -> void:
 func _return_to_home() -> void:
 	App.play_menu_music()
 	get_tree().paused = false
+	
+	ProjectileManager.clear_all_projectiles()
+	
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
@@ -390,6 +401,8 @@ func _on_restart_requested() -> void:
 	print("[Game] Restart requested for Level: ", current_world_id, " | Index: ", current_level_index)
 	get_tree().paused = false
 	
+	ProjectileManager.clear_all_projectiles()
+	
 	# Recharger la scène de jeu avec les paramètres actuels
 	# On passe par le SceneSwitcher s'il est disponible pour faire propre
 	var switcher := get_tree().current_scene
@@ -403,6 +416,9 @@ func _on_restart_requested() -> void:
 func _on_level_select_requested() -> void:
 	App.play_menu_music()
 	get_tree().paused = false
+	
+	ProjectileManager.clear_all_projectiles()
+	
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/LevelSelect.tscn")

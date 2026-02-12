@@ -10,6 +10,8 @@ signal unique_requested
 @onready var profile_label: Label = $TopLeft/ProfileLabel
 @onready var hp_bar: ProgressBar = $TopLeft/HPBar
 @onready var hp_label: Label = $TopLeft/HPLabel
+# Shield Bar (Dynamic)
+var shield_bar: ProgressBar = null
 
 # TopRight
 @onready var score_label: Label = $TopRight/ScoreLabel
@@ -63,6 +65,11 @@ func _ready() -> void:
 	if boss_hp_bar:
 		boss_hp_bar.add_theme_stylebox_override("background", sb_bg)
 	
+	if boss_hp_bar:
+		boss_hp_bar.add_theme_stylebox_override("background", sb_bg)
+	
+	_setup_hp_bar_style()
+	_setup_shield_bar()
 	_setup_virtual_joystick()
 
 func _load_assets() -> void:
@@ -104,6 +111,17 @@ func _update_profile_info() -> void:
 
 func set_player_reference(player: Node2D) -> void:
 	_player = player
+	if _player.has_signal("shield_changed"):
+		if not _player.shield_changed.is_connected(_on_shield_changed):
+			_player.shield_changed.connect(_on_shield_changed)
+			
+	# Init Shield UI state
+	if _player.get("shield_active") == true:
+		var s_curr = _player.get("shield_energy")
+		var s_max = _player.get("shield_max_energy")
+		_on_shield_changed(s_curr, s_max)
+	else:
+		_on_shield_changed(0, 100)
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(_player):
@@ -170,6 +188,11 @@ func get_joystick_output() -> Vector2:
 		return virtual_joystick.get_output()
 	return Vector2.ZERO
 
+func get_joystick_drag_delta() -> Vector2:
+	if virtual_joystick and virtual_joystick.has_method("get_drag_delta"):
+		return virtual_joystick.get_drag_delta()
+	return Vector2.ZERO
+
 func is_joystick_active() -> bool:
 	if virtual_joystick and virtual_joystick.has_method("is_active"):
 		return virtual_joystick.is_active()
@@ -224,10 +247,20 @@ func update_player_hp(current_hp: int, max_hp: int) -> void:
 	if hp_bar:
 		hp_bar.max_value = max_hp
 		hp_bar.value = current_hp
+		
+		# Update Label Text inside bar if it exists
+		var lbl = hp_bar.get_node_or_null("ValueLabel")
+		if lbl:
+			lbl.text = "%d / %d" % [current_hp, max_hp]
+			
 	if hp_label:
-		hp_label.text = str(current_hp) + " / " + str(max_hp)
+		# Keep original label if needed, or hide it if we moved it inside
+		hp_label.visible = false # We moved text inside bar
+		
 	var hp_percent := float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
 	if hp_bar:
+		# Use Stylebox update if using flat color, or Modulate if texture
+		# Keep simple modulate for now or enhance later
 		if hp_percent > 0.5:
 			hp_bar.modulate = Color.GREEN
 		elif hp_percent > 0.25:
@@ -239,8 +272,111 @@ func set_player_max_hp(max_hp: int) -> void:
 	if hp_bar:
 		hp_bar.max_value = max_hp
 		hp_bar.value = max_hp
+		var lbl = hp_bar.get_node_or_null("ValueLabel")
+		if lbl:
+			lbl.text = "%d / %d" % [max_hp, max_hp]
 	if hp_label:
 		hp_label.text = str(max_hp) + " / " + str(max_hp)
+
+# =============================================================================
+# SHIELD BAR
+# =============================================================================
+
+func _setup_hp_bar_style() -> void:
+	if not hp_bar: return
+	var config = DataManager.get_game_data().get("gameplay", {}).get("bars", {})
+	var height = float(config.get("height", 40.0))
+	
+	hp_bar.custom_minimum_size.y = height
+	
+	# Add internal label
+	var lbl = Label.new()
+	lbl.name = "ValueLabel"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hp_bar.add_child(lbl)
+	
+	# Style Text
+	var txt_color = Color(str(config.get("text_color", "#FFFFFF")))
+	var txt_size = int(config.get("text_size", 24))
+	lbl.add_theme_color_override("font_color", txt_color)
+	lbl.add_theme_font_size_override("font_size", txt_size)
+	
+	# Background Asset for HP ?
+	var asset = str(config.get("hp", {}).get("asset", ""))
+	if asset != "" and ResourceLoader.exists(asset):
+		# If we want an image background, we need a StyleBoxTexture
+		var sb_bg = StyleBoxTexture.new()
+		sb_bg.texture = load(asset)
+		hp_bar.add_theme_stylebox_override("background", sb_bg)
+
+func _setup_shield_bar() -> void:
+	var top_left = $TopLeft
+	if not top_left: return
+	
+	var config = DataManager.get_game_data().get("gameplay", {}).get("bars", {})
+	var height = float(config.get("height", 40.0))
+	
+	shield_bar = ProgressBar.new()
+	shield_bar.name = "ShieldBar"
+	shield_bar.show_percentage = false
+	shield_bar.custom_minimum_size = Vector2(200, height) # Thick bar
+	shield_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Internal Label
+	var lbl = Label.new()
+	lbl.name = "ValueLabel"
+	lbl.text = "0 / 0"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shield_bar.add_child(lbl)
+	
+	# Style Text
+	var txt_color = Color(str(config.get("text_color", "#FFFFFF")))
+	var txt_size = int(config.get("text_size", 24))
+	lbl.add_theme_color_override("font_color", txt_color)
+	lbl.add_theme_font_size_override("font_size", txt_size)
+	
+	# Style Bar
+	var sb_fill = StyleBoxFlat.new()
+	sb_fill.bg_color = Color(0.0, 0.6, 1.0) # Blue
+	sb_fill.corner_radius_top_left = 5
+	sb_fill.corner_radius_top_right = 5
+	sb_fill.corner_radius_bottom_left = 5
+	sb_fill.corner_radius_bottom_right = 5
+	
+	var sb_bg = StyleBoxFlat.new() # Default fallback
+	sb_bg.bg_color = Color(0.0, 0.0, 0.0, 0.5)
+	
+	# Background Asset for Shield
+	var asset = str(config.get("shield", {}).get("asset", ""))
+	if asset != "" and ResourceLoader.exists(asset):
+		sb_bg = StyleBoxTexture.new()
+		sb_bg.texture = load(asset)
+	
+	shield_bar.add_theme_stylebox_override("fill", sb_fill)
+	shield_bar.add_theme_stylebox_override("background", sb_bg)
+	
+	# Add below HP Bar
+	top_left.add_child(shield_bar)
+	if hp_bar:
+		var idx = hp_bar.get_index()
+		top_left.move_child(shield_bar, idx + 1)
+	
+	shield_bar.visible = true # ALWAYS VISIBLE
+
+func _on_shield_changed(current: float, max_val: float) -> void:
+	if not shield_bar: return
+	
+	shield_bar.visible = true # Always visible
+	shield_bar.max_value = max_val
+	shield_bar.value = current
+	
+	var lbl = shield_bar.get_node_or_null("ValueLabel")
+	if lbl:
+		lbl.text = "%d / %d" % [current, max_val]
 
 # =============================================================================
 # SCORE

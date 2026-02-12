@@ -20,15 +20,37 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	item_data = loot_item
 	global_position = pos
 	
-	# Visuel placeholder (diamant jaune)
-	visual.color = Color.YELLOW
-	var size := 15.0
-	visual.polygon = PackedVector2Array([
-		Vector2(0, -size),
-		Vector2(size, 0),
-		Vector2(0, size),
-		Vector2(-size, 0)
-	])
+	# Visual Setup (Sprite vs Polygon)
+	var asset_path = item_data.get("visual_asset", "")
+	var sprite: Sprite2D = get_node_or_null("Sprite2D")
+	
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		if not sprite:
+			sprite = Sprite2D.new()
+			sprite.name = "Sprite2D"
+			add_child(sprite)
+		sprite.texture = load(asset_path)
+		visual.visible = false # Hide polygon
+		
+		# Scale icon appropriately (e.g. 32x32)
+		var tex_size = sprite.texture.get_size()
+		if tex_size.x > 0:
+			var target_size = 32.0
+			sprite.scale = Vector2(target_size/tex_size.x, target_size/tex_size.y)
+	else:
+		# Fallback Polygon
+		visual.visible = true
+		visual.color = Color.YELLOW
+		if item_data.get("effect") == "shield": visual.color = Color.CYAN
+		elif item_data.get("effect") == "fire_rate": visual.color = Color.ORANGE
+		
+		var size := 15.0
+		visual.polygon = PackedVector2Array([
+			Vector2(0, -size),
+			Vector2(size, 0),
+			Vector2(0, size),
+			Vector2(-size, 0)
+		])
 	
 	# TODO: Remplacer par sprite de l'item selon rarity
 	# var rarity := str(item_data.get("rarity", "common"))
@@ -72,6 +94,11 @@ func _collect() -> void:
 			var player = get_tree().get_first_node_in_group("player")
 			if player and player.has_method("add_fire_rate_boost"):
 				player.add_fire_rate_boost(10.0)
+		elif effect == "shield":
+			var player = get_tree().get_first_node_in_group("player")
+			if player and player.has_method("activate_shield"):
+				print("[LootDrop] SHIELD UP! (PowerUp Collected)")
+				player.activate_shield()
 	else:
 		# Item d'inventaire
 		ProfileManager.add_item_to_inventory(item_data)
