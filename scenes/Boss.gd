@@ -20,7 +20,6 @@ var boss_name: String = "Boss"
 var max_hp: int = 500
 var current_hp: int = 500
 var score: int = 1000
-var loot_unique_chance: float = 0.15
 
 # Phases
 var phases: Array = []
@@ -63,7 +62,6 @@ func setup(boss_data: Dictionary) -> void:
 	max_hp = int(boss_data.get("hp", 500))
 	current_hp = max_hp
 	score = int(boss_data.get("score", 1000))
-	loot_unique_chance = float(boss_data.get("loot_unique_chance", 0.15))
 	missile_id = str(boss_data.get("missile_id", "missile_default"))
 	
 	# Charger les phases

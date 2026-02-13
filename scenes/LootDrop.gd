@@ -21,7 +21,8 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	global_position = pos
 	
 	# Visual Setup (Sprite vs Polygon)
-	var asset_path = item_data.get("visual_asset", "")
+	# Support both 'visual_asset' (legacy/powerups) and 'asset' (LootItem)
+	var asset_path = str(item_data.get("visual_asset", item_data.get("asset", "")))
 	var sprite: Sprite2D = get_node_or_null("Sprite2D")
 	
 	if asset_path != "" and ResourceLoader.exists(asset_path):
@@ -87,7 +88,9 @@ func _on_body_entered(body: Node2D) -> void:
 func _collect() -> void:
 	print("[LootDrop] Collected: ", item_data.get("name", "Item"))
 	
-	if item_data.get("type") == "powerup":
+	var is_powerup := str(item_data.get("type", "")) == "powerup"
+	
+	if is_powerup:
 		# Power Up Logic
 		var effect = item_data.get("effect", "")
 		if effect == "fire_rate":
@@ -102,6 +105,10 @@ func _collect() -> void:
 	else:
 		# Item d'inventaire
 		ProfileManager.add_item_to_inventory(item_data)
+		# Track for end of level summary
+		get_tree().call_group("game_controller", "track_loot", item_data)
+		# Only show toast notification for items, not powerups
+		get_tree().call_group("game_hud", "show_loot_notification", item_data)
 	
 	# VFX de collection
 	if visual:

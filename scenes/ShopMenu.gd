@@ -6,7 +6,7 @@ extends Control
 # RÉFÉRENCES UI
 # =============================================================================
 
-@onready var back_button: Button = %BackButton
+@onready var back_button: TextureButton = %BackButton
 @onready var packs_grid: GridContainer = %PacksGrid
 @onready var confirm_popup: PanelContainer = %ConfirmPopup
 @onready var confirm_title: Label = %ConfirmTitle
@@ -71,13 +71,7 @@ func _setup_visuals() -> void:
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.icon = load(back_icon_path)
-		back_button.text = ""
-		back_button.flat = true
-		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		back_button.texture_normal = load(back_icon_path)
 
 # =============================================================================
 # PACKS

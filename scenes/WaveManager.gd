@@ -72,6 +72,9 @@ func _start_wave(wave: Dictionary) -> void:
 	var interval: float = float(wave.get("interval", 1.0))
 	var pattern_id: String = str(wave.get("pattern_id", "straight_down"))
 	
+	# Optional modifier
+	var modifier_id: String = str(wave.get("enemy_modifier_id", ""))
+	
 	# Ajouter les spawns prévus avec leur délai
 	for i in range(count):
 		var spawn_delay: float = i * interval
@@ -79,6 +82,7 @@ func _start_wave(wave: Dictionary) -> void:
 			"delay": spawn_delay,
 			"enemy_id": enemy_id,
 			"pattern_id": pattern_id,
+			"modifier_id": modifier_id,
 			"origin_x": wave.get("origin_x", "50%"),
 			"origin_y": wave.get("origin_y", -50)
 		})
@@ -100,6 +104,10 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 	# Override pattern si défini dans la vague
 	if spawn_info["pattern_id"] != "":
 		enemy_data["move_pattern_id"] = spawn_info["pattern_id"]
+		
+	# Inject modifier if present
+	if spawn_info.get("modifier_id", "") != "":
+		enemy_data["modifier_id"] = spawn_info["modifier_id"]
 
 	# Calculer la position de spawn
 	var viewport_size := get_viewport().get_visible_rect().size

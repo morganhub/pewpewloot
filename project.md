@@ -101,10 +101,11 @@ Chaque vaisseau = une **classe**:
 7) **targeting** (crit, marque, on-hit)
 8) **utility** (drone, aimant loot, contre-mesures)
 
-### 5.2 Raretés (5)
+### 5.2 Raretés (6)
 - **Common** (fr : commun)
 - **Uncommon** (fr : peu commun)
 - **Rare** (fr : rare)
+- **Epic** (fr : épique)
 - **Legendary** (fr : légendaire)
 - **Unique** (fr : unique). Les uniques donnent une abilité spéciale.
 
@@ -129,13 +130,16 @@ Chaque vaisseau = une **classe**:
 
 ## 6) UI/UX (phase 1 à 3)
 
-### 6.1 Écrans existants (ossature)
+### 6.1 Écrans existants (implémentés)
 - **SceneSwitcher**: root navigation + fade
-- **MainMenu**
 - **ProfileSelect**: créer/supprimer/sélectionner + sauvegarde
+- **HomeScreen**: hub principal (jouer, vaisseaux, options, profils)
+- **ShipMenu**: équipement, inventaire, upgrade, recycle, choix pouvoirs
 - **WorldSelect**: mondes débloqués uniquement
 - **LevelSelect**: niveaux débloqués uniquement
-- **GamePlaceholder**: simulation de fin de niveau (déverrouillage)
+- **Game**: gameplay réel (waves, boss, loot/session recap)
+- **PauseMenu**, **LootResultScreen**, **OptionsMenu**, **ShopMenu**, **LoadingScreen**
+- **GamePlaceholder**: legacy pour simulation de déverrouillage
 
 ### 6.2 Principes UI
 - Responsive portrait (Android).
@@ -156,7 +160,7 @@ Chaque vaisseau = une **classe**:
 - `SceneSwitcher.gd`:
   - instancie l’écran courant dans `ScreenRoot`
   - gère fade via `Fade` (ColorRect)
-- Écrans: `MainMenu`, `ProfileSelect`, `WorldSelect`, `LevelSelect`, `Loadout` (à venir), etc.
+- Écrans: `ProfileSelect`, `HomeScreen`, `ShipMenu`, `WorldSelect`, `LevelSelect`, `Game`, etc.
 
 ### 7.2 Autoloads (singletons)
 - `SaveManager`:
@@ -204,30 +208,49 @@ Règles:
 
 ---
 
-## 9) État actuel du projet (implémenté)
-✅ Projet Godot créé, résolution réglée  
-✅ Thème UI global (base)  
-✅ Autoloads: SaveManager, ProfileManager, App  
-✅ Navigation SceneSwitcher + fade  
-✅ MainMenu → ProfileSelect → WorldSelect → LevelSelect → GamePlaceholder  
-✅ Progression:
-- Monde 1 / Niveau 1 initial
-- Unlock niveau suivant au “complete”
-- Unlock monde suivant au boss
-✅ LevelSelect liste générée (6 niveaux) + lock/unlock  
-✅ Validation via “simulateur” (GamePlaceholder)
+## 9) État actuel du projet (implémentation réelle)
+✅ Gameplay jouable sur `Game.tscn`:
+- Spawn joueur, waves data-driven (`WaveManager`), boss, HUD, pause, game over, recap de session
+- Projectiles poolés (`ProjectileManager`: 100 joueur / 200 ennemi)
+- Patterns missiles/mouvements variés + trajectoires (`straight`, `sine`, `spiral`, `homing`, radial, spawn bords/coins/cercle)
+✅ Combat enrichi:
+- Stats finales calculées via `StatsCalculator` (vaisseau + équipements)
+- Crit, esquive, dégâts de contact, super pouvoir, pouvoir unique
+- Power-ups en run: **shield** (absorption énergie) + **rapid fire**
+- Ennemis élites avec modificateurs (`EnemyModifiers`) et abilités (ex: `wall_spawner`)
+- Boss multi-phases avec pouvoirs spéciaux (`PowerManager`)
+✅ Boucle méta ARPG active:
+- Profils persistants (inventaire, loadouts par ship, progression, cristaux, settings)
+- `ShipMenu` complet: equip/unequip, filtres slot/rareté, pagination, multi-recycle, upgrade d’item, sélection de pouvoir unique
+- `LootResultScreen` en fin de run, notifications de loot en combat, popup détail item
+- Économie cristaux + `ShopMenu` (simulation d’achat)
+✅ UX:
+- Navigation moderne `ProfileSelect -> HomeScreen -> World/Level -> Game`
+- Options langue/audio, loading screen dédiée au chargement de la scène de jeu
 
 ---
 
-## 10) Prochaine grande brique: Loadout + Inventaire + Équipement
-- Introduire écran **Loadout** entre LevelSelect et lancement mission
-- Définir vaisseaux jouables et 8 slots
-- Inventaire minimal + equip/unequip
-- Sauvegarde par profil
+## 10) Mécaniques qui ont évolué depuis le concept initial
+1) **Loadout/Inventaire**: n’est plus “à venir”, il est déjà au cœur du jeu via `ShipMenu`.
+2) **Raretés**: passage de 5 à **6** raretés avec ajout de **Epic**.
+3) **Vaisseaux**: le roster conceptuel a évolué (5 entrées dans `data/ships/ships.json`, déblocage par cristaux).
+4) **Pouvoirs actifs**: super pouvoirs + pouvoirs uniques exécutés en runtime (mouvement cinématique, salves spéciales).
+5) **Bouclier & boosts en run**: système de shield énergétique et boost cadence via pickups.
+6) **Système élite**: modificateurs statistiques/visuels + compétences d’ennemis (obstacles muraux).
+7) **Loot loop**: loot procédural + upgrade/recycle/équipement directement depuis les écrans de session et de ship.
+8) **Architecture data-driven**: patterns, missiles, pouvoirs, niveaux et loot majoritairement pilotés par JSON.
 
 ---
 
-## 11) Conventions & bonnes pratiques (projet)
+## 11) Écarts/points à aligner (audit technique)
+1) **Progression post-mission**: la progression monde/niveau est correctement codée dans `ProfileManager`, mais l’appel est encore branché surtout dans `GamePlaceholder`; la victoire dans `Game.gd` doit persister le `complete_level`/`unlock_next_world_if_needed`.
+2) **Contenu mondes 2–5**: les JSON existent, mais le runtime actuel est surtout aligné sur le schéma de `world_1` (waves avec `time`, `interval`, `pattern_id`, etc.). Plusieurs entrées monde 2–5 utilisent un format `delay` non consommé par `WaveManager`.
+3) **Boss/loot ciblé**: le concept vise un farm de boss avec uniques signature; l’implémentation actuelle génère surtout un item de récompense générique en fin de run et le TODO unique boss reste à finaliser.
+4) **Données ships par défaut**: clé `default_unlocked` côté JSON vs attente `default_unlocked_ships` côté `DataManager` à harmoniser.
+
+---
+
+## 12) Conventions & bonnes pratiques (projet)
 - Scripts attachés **au root** des scènes (sauf exceptions).
 - Éviter les `get_parent().get_parent()`; préférer `get_tree().current_scene` (SceneSwitcher).
 - Pour les chemins nodes:
@@ -239,11 +262,10 @@ Règles:
 
 ---
 
-## 12) Roadmap (haute)
-1) UI progression (fait)  
-2) Loadout + inventory (next)  
-3) Prototypage gameplay vertical slice (player + 1 enemy + pooling projectiles)  
-4) Loot drop réel (boss) + affixes + raretés  
-5) Monde 1 complet (5 niveaux + boss)  
-6) Optimisation & polish (FX, audio, feedback, perf)  
-7) Export Android AAB + test devices + store prep
+## 13) Roadmap révisée (priorisée)
+1) Persister la progression directement depuis `Game.gd` (victoire/défaite, unlock niveau/monde).  
+2) Normaliser le schéma des mondes 2–5 pour `WaveManager` et compléter les données ennemis/boss associées.  
+3) Finaliser le loot boss ciblé (tables dédiées + uniques signature réellement dropables).  
+4) Équilibrer économie cristaux / coûts d’upgrade / taux de loot par rareté.  
+5) Pass perf mobile: caps FX, stress test patterns denses, profiling device mid-range.  
+6) QA gameplay + export Android (AAB/APK) + préparation store.

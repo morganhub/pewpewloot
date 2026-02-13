@@ -37,11 +37,11 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="BackButton" type="Button" parent="TopBar/HeaderLine1"]
+[node name="BackButton" type="TextureButton" parent="TopBar/HeaderLine1"]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
-text = "←"
-theme_override_font_sizes/font_size = 28
+ignore_texture_size = true
+stretch_mode = 5
 
 [node name="Spacer" type="Control" parent="TopBar/HeaderLine1"]
 layout_mode = 2

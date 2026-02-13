@@ -22,6 +22,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
+
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=466598836]
 layout_mode = 1
 anchors_preset = 15
@@ -49,11 +50,17 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BackButton" type="Button" parent="MarginContainer/ScrollContainer/Content/Header" unique_id=806286378]
+[node name="BackButtonMargin" type="MarginContainer" parent="MarginContainer/ScrollContainer/Content/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+
+[node name="BackButton" type="TextureButton" parent="MarginContainer/ScrollContainer/Content/Header/BackButtonMargin" unique_id=806286378]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
-mouse_filter = 1
-text = "←"
+ignore_texture_size = true
+stretch_mode = 5
 
 [node name="HSeparator1" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1789503953]
 layout_mode = 2

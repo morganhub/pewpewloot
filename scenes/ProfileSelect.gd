@@ -11,7 +11,7 @@ extends Control
 @onready var profile_list: ItemList = $CenterContainer/MainPanel/ProfileListContainer/ProfileList
 @onready var create_button: Button = $CenterContainer/MainPanel/ButtonsContainer/CreateButton
 @onready var delete_button: Button = $CenterContainer/MainPanel/ButtonsContainer/DeleteButton
-@onready var back_button: Button = $CenterContainer/MainPanel/HeaderContainer/BackButton
+@onready var back_button: TextureButton = $CenterContainer/MainPanel/HeaderContainer/BackButton
 
 @onready var create_popup: PanelContainer = $CreatePopup
 @onready var popup_name_label: Label = $CreatePopup/MarginContainer/PopupContent/NameLabel
@@ -97,13 +97,7 @@ func _apply_popup_style() -> void:
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.icon = load(back_icon_path)
-		back_button.text = ""
-		back_button.flat = true
-		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		back_button.texture_normal = load(back_icon_path)
 
 func _refresh_list() -> void:
 	profile_list.clear()

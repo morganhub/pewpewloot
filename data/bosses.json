@@ -3,9 +3,12 @@
 		{
 			"id": "boss_world1",
 			"name": "The Tank Lord",
+			"loot_table": [
+				"unique_asteroid_core",
+				"unique_guardian_shield"
+			],
 			"hp": 5000,
 			"score": 5000,
-			"loot_unique_chance": 0.25,
 			"size": {
 				"width": 320,
 				"height": 320

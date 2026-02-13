@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/objects/ArcaneOrb.gd" id="1_arcane_script"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2_arcane_placeholder"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_orb"]
+radius = 16.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_laser"]
+size = Vector2(432, 18)
+
+[node name="ArcaneOrb" type="Area2D" groups=["arcane_orbs"]]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_arcane_script")
+
+[node name="Orb" type="Sprite2D" parent="."]
+texture = ExtResource("2_arcane_placeholder")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_orb")
+
+[node name="LaserContainer" type="Node2D" parent="."]
+
+[node name="LaserHitbox" type="Area2D" parent="LaserContainer"]
+collision_layer = 4
+collision_mask = 2
+
+[node name="Beam" type="Sprite2D" parent="LaserContainer/LaserHitbox"]
+texture = ExtResource("2_arcane_placeholder")
+
+[node name="BeamShape" type="CollisionShape2D" parent="LaserContainer/LaserHitbox"]
+shape = SubResource("RectangleShape2D_laser")

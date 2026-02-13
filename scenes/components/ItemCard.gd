@@ -106,13 +106,16 @@ func setup_item(data: Dictionary, p_slot_id: String, config: Dictionary = {}) ->
 	# 3. Level Badge
 	var level = int(data.get("level", 1))
 	_setup_level_badge(level, config.get("level_assets", {}))
-	level_badge.visible = true # Force Visible for Inventory
 	
 	# 4. Slot Indicator
 	var slot_icons = config.get("slot_icons", {})
 	var s_icon_path = str(slot_icons.get(slot_id, ""))
 	_setup_slot_indicator(s_icon_path)
-	slot_indicator.visible = true # Force Visible for Inventory
+	
+	# Visibility based on config
+	var hide_badges = config.get("hide_badges", false)
+	level_badge.visible = not hide_badges
+	slot_indicator.visible = not hide_badges
 	
 	# 5. Upgrade / Action Indicator
 	var show_upgrade = config.get("show_upgrade", false)

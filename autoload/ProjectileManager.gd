@@ -120,9 +120,11 @@ func _return_to_pool(projectile: Area2D) -> void:
 func clear_all_projectiles() -> void:
 	# Désactive tous les projectiles actifs
 	for projectile in _active_player_projectiles.duplicate():
-		projectile.deactivate()
+		if is_instance_valid(projectile):
+			projectile.deactivate()
 	
 	for projectile in _active_enemy_projectiles.duplicate():
-		projectile.deactivate()
+		if is_instance_valid(projectile):
+			projectile.deactivate()
 	
 	print("[ProjectileManager] All projectiles cleared")

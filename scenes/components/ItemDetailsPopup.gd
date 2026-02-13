@@ -6,7 +6,7 @@ signal recycle_requested(item_id: String)
 signal equip_requested(item_id: String, slot_id: String)
 signal unequip_requested(item_id: String, slot_id: String)
 
-@onready var icon_rect = %Icon
+@onready var icon_rect = %Icon 
 @onready var name_label = %NameLabel
 @onready var rarity_label = %RarityLabel
 @onready var stats_box = %StatsBox
@@ -20,7 +20,18 @@ var current_slot_id: String = ""
 var is_equipped: bool = false
 var config: Dictionary = {}
 
+func _ensure_nodes() -> void:
+	if not icon_rect: icon_rect = %Icon
+	if not name_label: name_label = %NameLabel
+	if not rarity_label: rarity_label = %RarityLabel
+	if not stats_box: stats_box = %StatsBox
+	if not upgrade_btn: upgrade_btn = %UpgradeBtn
+	if not recycle_btn: recycle_btn = %RecycleBtn
+	if not equip_btn: equip_btn = %EquipBtn
+	if not close_btn: close_btn = %CloseBtn
+
 func _ready() -> void:
+	_ensure_nodes()
 	close_btn.pressed.connect(_on_close_pressed)
 	upgrade_btn.pressed.connect(_on_upgrade_pressed)
 	recycle_btn.pressed.connect(_on_recycle_pressed)
@@ -37,10 +48,23 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 		visible = false
 		return
 	
-	# Fetch Global Config for styles if not in p_config
+	# Fetch Global Config for styles
 	var game_cfg = DataManager.get_game_config()
+	var popup_cfg = game_cfg.get("popups", {})
 	var details_cfg = game_cfg.get("ship_menu", {}).get("ship_details", {}).get("buttons", {})
 	var rarity_params = game_cfg.get("rarity_colors", {})
+	
+	# Apply Popup Background
+	var popup_bg = str(popup_cfg.get("background", {}).get("asset", ""))
+	if popup_bg != "" and ResourceLoader.exists(popup_bg):
+		var style = StyleBoxTexture.new()
+		style.texture = load(popup_bg)
+		var m = int(popup_cfg.get("margin", 30))
+		style.content_margin_left = m
+		style.content_margin_right = m
+		style.content_margin_top = m
+		style.content_margin_bottom = m
+		add_theme_stylebox_override("panel", style)
 	
 	var rarity = str(item.get("rarity", "common"))
 	var level = int(item.get("level", 1))
@@ -71,7 +95,7 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 	name_label.text = base_name.capitalize()
 	
 	# Name Styling (Title Font Size + Rarity Color)
-	var title_cfg = game_cfg.get("ship_menu", {}).get("title", {})
+	var title_cfg = popup_cfg.get("background", {})
 	var title_fs = int(title_cfg.get("font_size", 24))
 	name_label.add_theme_font_size_override("font_size", title_fs)
 	
@@ -81,11 +105,12 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 	rarity_label.text = rarity.capitalize() + " - Lvl " + str(level)
 	rarity_label.modulate = Color(1, 1, 1, 0.7)
 	
-	# Apply Button Styles
-	_apply_btn_style(upgrade_btn, details_cfg.get("upgrade", {}), details_cfg)
-	_apply_btn_style(recycle_btn, details_cfg.get("recycle", {}), details_cfg)
-	_apply_btn_style(close_btn, details_cfg.get("close", {}), details_cfg)
-	_apply_btn_style(equip_btn, details_cfg.get("equip", {}), details_cfg)
+	# Apply Button Styles (Generic from popups if specific not found)
+	var generic_btn_cfg = popup_cfg.get("button", {})
+	_apply_btn_style(upgrade_btn, details_cfg.get("upgrade", {}), generic_btn_cfg)
+	_apply_btn_style(recycle_btn, details_cfg.get("recycle", {}), generic_btn_cfg)
+	_apply_btn_style(close_btn, details_cfg.get("close", {}), generic_btn_cfg)
+	_apply_btn_style(equip_btn, details_cfg.get("equip", {}), generic_btn_cfg)
 	
 	# Stats
 	for child in stats_box.get_children():
@@ -104,7 +129,7 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 		equip_btn.visible = true
 	
 	# Recyclable?
-	var r_val = _calculate_recycle_value(rarity, level)
+	var r_val = ProfileManager.calculate_recycle_value(item)
 	recycle_btn.text = "+%d" % r_val
 	
 	close_btn.text = LocaleManager.translate("item_popup_close")
@@ -123,12 +148,27 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 		# Check crystals
 		if ProfileManager.get_crystals() < cost:
 			upgrade_btn.disabled = true # or visual indicator
+	await get_tree().process_frame  # Attendre que le layout soit calculé
+	_limit_popup_height()
+	
+	
+func _limit_popup_height() -> void:
+	var max_height = 500  # Hauteur maximale souhaitée
+	if size.y > max_height:
+		custom_minimum_size.y = 0  # Réinitialiser
+		size.y = max_height
+
+func set_actions_visible(p_visible: bool) -> void:
+	_ensure_nodes()
+	if upgrade_btn: upgrade_btn.visible = p_visible
+	if recycle_btn: recycle_btn.visible = p_visible
+	if equip_btn: equip_btn.visible = p_visible
 
 func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) -> void:
 	if btn_cfg.is_empty(): return
 	
-	var w = int(btn_cfg.get("width", 140))
-	var h = int(btn_cfg.get("height", 50))
+	var w = int(btn_cfg.get("width", 140) * 1.4)
+	var h = int(btn_cfg.get("height", 50) * 1.4)
 	btn.custom_minimum_size = Vector2(w, h)
 	
 	var asset = str(btn_cfg.get("asset", ""))
@@ -151,17 +191,6 @@ func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) 
 	btn.add_theme_font_size_override("font_size", f_sz)
 	btn.add_theme_color_override("font_color", col)
 
-func _calculate_recycle_value(rarity: String, level: int) -> int:
-	var base_val: int = 5
-	match rarity:
-		"common": base_val = 5
-		"uncommon": base_val = 15
-		"rare": base_val = 40
-		"epic": base_val = 100
-		"legendary": base_val = 250
-		"unique": base_val = 500
-	var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
-	return int(float(base_val) * multiplier)
 
 func _add_stat_row(stat_name: String, value: float) -> void:
 	var hbox = HBoxContainer.new()
@@ -179,11 +208,11 @@ func _add_stat_row(stat_name: String, value: float) -> void:
 	# Percent logic: if < 1.0 or specific key
 	var is_percent = false
 	if value <= 1.0 and value > 0: is_percent = true # Heuristic
-	if stat_name.ends_with("chance") or stat_name.ends_with("pct") or stat_name in ["damage_reduction", "cooldown_reduction", "move_speed", "fire_rate", "missile_damage", "loot_radius", "xp_multiplier"]:
+	if stat_name.ends_with("chance") or stat_name.ends_with("pct") or stat_name in ["damage_reduction", "cooldown_reduction", "fire_rate", "missile_damage", "loot_radius", "xp_multiplier"]:
 		is_percent = true
 		
 	# Override for known Flat stats just in case
-	if stat_name in ["max_hp", "shield_capacity", "shield_regen", "dash_charges", "projectile_count", "missile_count", "pierce_count"]:
+	if stat_name in ["max_hp", "shield_capacity", "speed", "shield_regen", "dash_charges", "projectile_count", "missile_count", "pierce_count"]:
 		is_percent = false
 	
 	if is_percent:

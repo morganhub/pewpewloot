@@ -19,8 +19,13 @@ var pause_menu: Control = null
 
 var enemies_killed: int = 0
 var boss_spawned: bool = false
+var session_loot: Array = [] # Track items collected in this session
+
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
+
+func track_loot(item: Dictionary) -> void:
+	session_loot.append(item)
 
 # =============================================================================
 # BACKGROUND
@@ -30,8 +35,12 @@ func _ready() -> void:
 	# Load session data
 	current_world_id = App.current_world_id
 	current_level_index = App.current_level_index
-	current_level_index = App.current_level_index
 	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
+	
+	add_to_group("game_controller")
+	
+	# Reset Managers
+	EnemyAbilityManager.reset()
 	
 	# Music
 	var world = App.get_world(current_world_id)
@@ -58,6 +67,7 @@ func _setup_background() -> void:
 	# Créer un conteneur pour les layers
 	var bg_container := Node2D.new()
 	bg_container.name = "BackgroundContainer"
+	bg_container.z_index = -100 # Ensure behind walls and entities
 	add_child(bg_container)
 	move_child(bg_container, 0)
 	
@@ -162,8 +172,13 @@ func _setup_hud() -> void:
 	hud.unique_requested.connect(func(): if player: player.use_unique())
 
 func _update_hud() -> void:
-	if player and hud:
-		hud.update_player_hp(player.current_hp, player.max_hp)
+	if hud:
+		if is_instance_valid(player):
+			hud.update_player_hp(player.current_hp, player.max_hp)
+		else:
+			# Player may be null because it was queue_free'd on death
+			# We force 0 to ensure the HUD shows death state
+			hud.update_player_hp(0, 100)
 
 # =============================================================================
 # PLAYER
@@ -194,29 +209,16 @@ func _on_player_died() -> void:
 	var overlay_scene := load("res://scenes/ui/GameOverOverlay.tscn")
 	var overlay: Control = overlay_scene.instantiate()
 	hud_container.add_child(overlay)
-	# Assurer que l'overlay est derrière le menu de pause / HUD interactif si besoin
-	# Mais l'overlay "DEFEAT" doit être visible...
-	# Le problème est que le bouton "Recommencer" est sans doute DANS le PauseMenu qui est SOUS l'Overlay si on l'ajoute après.
-	# On va mettre l'Overlay en PREMIER enfant du container pour qu'il soit derrière les menus qui s'ouvriront par dessus.
-	hud_container.move_child(overlay, 0)
 	
-	# Connect to animation finished
-	if overlay.has_signal("animation_finished"):
-		overlay.animation_finished.connect(func():
-			# Wait a bit more ?
-			await get_tree().create_timer(1.0).timeout
-			
-			# Open Pause Menu
-			if pause_menu:
-				pause_menu.set_continue_enabled(false)
-				pause_menu.show_menu()
-		)
-	else:
-		# Fallback if no script/signal
-		await get_tree().create_timer(2.0).timeout
-		if pause_menu:
-			pause_menu.set_continue_enabled(false)
-			pause_menu.show_menu()
+	# After animation, show session report (Loot/Inventory)
+	overlay.animation_finished.connect(func():
+		await get_tree().create_timer(1.5).timeout
+		overlay.queue_free()
+		_show_end_session_screen(false)
+	)
+	
+	# Ensure overlay is at the bottom for layering
+	hud_container.move_child(overlay, 0)
 
 # =============================================================================
 # PROJECTILES
@@ -275,7 +277,7 @@ func _on_level_completed() -> void:
 		_spawn_boss(boss_id)
 	else:
 		print("[Game] Level Waves Completed! No Boss defined, triggering victory.")
-		_handle_victory_screen()
+		_show_end_session_screen(true)
 
 func _on_enemy_died(enemy: CharacterBody2D) -> void:
 	#print("[Game] Enemy died")
@@ -329,55 +331,60 @@ func _on_boss_health_changed(new_hp: int, max_hp: int) -> void:
 
 func _on_boss_died(boss: CharacterBody2D) -> void:
 	print("[Game] BOSS DEFEATED!")
-	
-	# Gros score bonus
 	if hud:
 		hud.add_score(boss.score)
 	
-	_handle_victory_screen()
+	# Rendre le joueur invincible pour éviter de mourir pendant le popup de loot
+	if player:
+		player.is_invincible = true
+		if player.has_method("set_can_shoot"):
+			player.set_can_shoot(false)
+			
+	_show_end_session_screen(true)
 
-func _handle_victory_screen() -> void:
-	# 1. Feedback Victoire Immédiat (UI)
-	if hud:
-		VFXManager.spawn_floating_text(player.global_position if is_instance_valid(player) else Vector2(360, 640), "VICTOIRE !", Color.GREEN, hud_container)
-	
-	# 2. Attendre 3 secondes pour l'explosion
-	await get_tree().create_timer(3.0).timeout
-	
-	# 3. Générer un loot épique/légendaire
-	var slot_ids := DataManager.get_slot_ids()
-	if slot_ids.is_empty(): 
-		_return_to_home()
-		return
-		
-	var random_slot := str(slot_ids[randi() % slot_ids.size()])
-	var item_id := "boss_loot_" + str(Time.get_ticks_msec())
-	
-	var item := {
-		"id": item_id,
-		"name": "Boss Reward",
-		"slot": random_slot,
-		"rarity": "epic" if randf() > 0.2 else "legendary",
-		"level": current_level_index + 1,
-		"stats": {"bonus": randi() % 20 + 10} # Placeholder stats
-	}
-	
-	# Afficher l'écran de résultat
-	var loot_screen_scene := load("res://scenes/LootResultScreen.tscn")
-	var loot_screen: Control = loot_screen_scene.instantiate()
-	hud_container.add_child(loot_screen)
-	loot_screen.setup(item)
-	loot_screen.finished.connect(_return_to_home)
-	
-	# NE PAS mettre en pause le jeu, mais désactiver le joueur et le spawn
+func _show_end_session_screen(is_victory: bool = true) -> void:
+	# Disable spawning/shooting immediately
 	if player and player.has_method("set_can_shoot"):
 		player.set_can_shoot(false)
-	
 	if wave_manager:
 		wave_manager.stop()
 		
-	# On garde le jeu actif pour que le background continue de scroller
-	# get_tree().paused = true
+	# 1. Feedback
+	if hud:
+		var txt = "VICTOIRE !" if is_victory else "DÉFAITE..."
+		var color = Color.GREEN if is_victory else Color.RED
+		VFXManager.spawn_floating_text(player.global_position if is_instance_valid(player) else Vector2(get_viewport_rect().size.x/2, get_viewport_rect().size.y/2), txt, color, hud_container)
+	
+	await get_tree().create_timer(3.0).timeout
+	
+	# 2. Main Reward (Boss Loot) - Only on Victory
+	var item := {}
+	if is_victory:
+		# Use universal boss loot pipeline:
+		# - rarity rates from data/loot_table.json
+		# - boss unique pool from data/bosses.json -> loot_table
+		var target_level: int = max(1, current_level_index + 1)
+		
+		var level_id := current_world_id + "_lvl_" + str(current_level_index)
+		var level_data := DataManager.get_level_data(level_id)
+		var boss_id: String = str(level_data.get("boss_id", ""))
+		
+		var generated_item: LootItem = LootGenerator.generate_boss_loot(target_level, boss_id)
+		if generated_item:
+			item = generated_item.to_dict()
+		else:
+			push_warning("[Game] Boss reward generation failed, result screen will show no item.")
+	
+	
+	# 3. Setup and show Result Screen
+	var loot_screen_scene := load("res://scenes/LootResultScreen.tscn")
+	if loot_screen_scene:
+		var loot_screen: Control = loot_screen_scene.instantiate()
+		hud_container.add_child(loot_screen)
+		loot_screen.setup(item, session_loot, is_victory)
+		loot_screen.finished.connect(_return_to_home)
+		loot_screen.restart_requested.connect(_on_restart_requested)
+		loot_screen.exit_requested.connect(_on_level_select_requested)
 
 func _return_to_home() -> void:
 	App.play_menu_music()

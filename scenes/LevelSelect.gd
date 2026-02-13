@@ -8,7 +8,7 @@ extends Control
 # RÉFÉRENCES UI
 # =============================================================================
 
-@onready var back_button: Button = $TopBar/HeaderLine1/BackButton
+@onready var back_button: TextureButton = $TopBar/HeaderLine1/BackButton
 @onready var header_title: Label = $TopBar/HeaderLine2/HeaderTitle
 @onready var crystal_label: Label = $TopBar/HeaderLine1/HeaderInfo/CrystalLabel
 @onready var ship_label: Label = $TopBar/HeaderLine1/HeaderInfo/ShipLabel
@@ -37,13 +37,7 @@ func _ready() -> void:
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.icon = load(back_icon_path)
-		back_button.text = ""
-		back_button.flat = true
-		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		back_button.texture_normal = load(back_icon_path)
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)

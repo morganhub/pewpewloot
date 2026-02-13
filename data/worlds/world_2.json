@@ -137,8 +137,7 @@
 					"hp_percent": 25,
 					"pattern": "phase_3_berserk"
 				}
-			],
-			"loot_table": "boss_world_2"
+			]
 		}
 	],
 	"unlock_condition": {

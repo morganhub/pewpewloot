@@ -203,18 +203,21 @@
 		"background": "res://assets/backgrounds/menus/ship_background.jpg"
 	},
 	"popups": {
-		"margin": 65,
+		"margin": 35,
 		"background": {
 			"asset": "res://assets/ui/popup_background.png",
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"letter_spacing": 0,
 			"font_size": 24
 		},
 		"button": {
 			"asset": "res://assets/ui/button.png",
-			"text_color": "#000000",
+			"text_color": "#FFFFFF",
 			"letter_spacing": 0,
 			"font_size": 18
+		},
+		"recycle": {
+			"font_size": 16
 		}
 	},
 	"ship_options": {
@@ -292,7 +295,7 @@
 		"burger_menu": "res://assets/ui/burger_menu.png",
 		"super_power_placeholder": "res://assets/ui/super_power.png",
 		"unique_power_placeholder": "res://assets/ui/icon_up_placeholder.png",
-		"back_button": "res://assets/ui/back_arrow.png",
+		"back_button": "res://assets/ui/button_back.png",
 		"close_button": "res://assets/ui/close_icon.png",
 		"sort_asc": "res://assets/ui/sort_asc.png",
 		"sort_desc": "res://assets/ui/sort_desc.png",

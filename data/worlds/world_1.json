@@ -34,19 +34,21 @@
 					"time": 2.0,
 					"enemy_id": "scout_basic",
 					"count": 30,
-					"interval": 1.5,
-					"pattern_id": "circle_clockwise",
+					"interval": 0.5,
+					"pattern_id": "bezier_curve",
 					"origin_x": "40%",
-					"origin_y": -300
+					"origin_y": -100,
+					"enemy_modifier_id": "graviton"
 				},
 				{
 					"time": 20.0,
 					"enemy_id": "scout_basic",
 					"count": 30,
 					"interval": 1.5,
-					"pattern_id": "figure_eight",
+					"pattern_id": "swoop_dive",
 					"origin_x": "30%",
-					"origin_y": -300
+					"origin_y": -300,
+					"enemy_modifier_id": "minefreak"
 				}
 			],
 			"boss_id": "boss_world1",
@@ -219,8 +221,7 @@
 				"mid_layer": [],
 				"near_layer": []
 			},
-			"waves": [],
-			"loot_table": "boss_world_1"
+			"waves": []
 		}
 	],
 	"unlock_condition": {

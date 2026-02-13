@@ -93,13 +93,13 @@
         "pause_quit": "QUIT",
         "upgrade": "UPGRADE",
         "recycle": "RECYCLE",
-        "upgrading": "Upgrading...",
+        "upgrading": "...",
         "upgrade_decent": "Decent Upgrade",
         "upgrade_great": "Great Upgrade!",
         "upgrade_perfect": "PERFECT UPGRADE",
         "ship_menu_rarity_label": "Rarity:",
-        "ship_menu_multi_recycle_confirm": "Are you sure you want to recycle {count} item(s) for a total of {crystals} crystals?",
-        "ship_menu_multi_recycle_popup_title": "Mass Recycle",
+        "ship_menu_multi_recycle_confirm": "Are you sure you want to recycle {count} item{item_suffix} for a total of {crystals} crystals?",
+        "ship_menu_multi_recycle_popup_title": "Recycle",
         "confirm": "Confirm",
         "cancel": "Cancel"
     }

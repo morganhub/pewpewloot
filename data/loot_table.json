@@ -1,4 +1,5 @@
 {
+    "boss_loot_quality_bonus": 25,
     "rarity_config": {
         "common": {
             "weight": 50,
@@ -130,40 +131,6 @@
                 10,
                 25
             ]
-        }
-    ],
-    "unique_items": [
-        {
-            "id": "unique_engine_of_gods",
-            "name": "Engine of the Gods",
-            "slot": "engine",
-            "stats": {
-                "move_speed": 50,
-                "dodge_chance": 0.15,
-                "missile_speed_pct": 0.3
-            },
-            "special_ability_id": "unique_warp_dash"
-        },
-        {
-            "id": "unique_infernal_reactor",
-            "name": "Infernal Reactor",
-            "slot": "reactor",
-            "stats": {
-                "power": 75,
-                "fire_rate": 0.15,
-                "crit_chance": 0.12
-            },
-            "special_ability_id": "unique_meteor_storm"
-        },
-        {
-            "id": "unique_aegis_shield",
-            "name": "Aegis of the Ancients",
-            "slot": "shield",
-            "stats": {
-                "max_hp": 150,
-                "dodge_chance": 0.08
-            },
-            "special_ability_id": "unique_invincibility_burst"
         }
     ],
     "slot_base_stats": {

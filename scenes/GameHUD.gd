@@ -71,6 +71,36 @@ func _ready() -> void:
 	_setup_hp_bar_style()
 	_setup_shield_bar()
 	_setup_virtual_joystick()
+	_setup_notification_area()
+	
+	add_to_group("game_hud")
+
+var notification_area: VBoxContainer = null
+
+func _setup_notification_area() -> void:
+	notification_area = VBoxContainer.new()
+	notification_area.name = "NotificationArea"
+	notification_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Setup Layout (Top Right, below score)
+	notification_area.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	notification_area.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	
+	notification_area.anchor_left = 1.0
+	notification_area.anchor_right = 1.0
+	notification_area.offset_left = -130 # card 110 + 20 margin
+	notification_area.offset_right = -20
+	notification_area.offset_top = 100
+	notification_area.offset_bottom = 600
+	
+	add_child(notification_area)
+
+func show_loot_notification(item_data: Dictionary) -> void:
+	if notification_area:
+		var scene = load("res://scenes/ui/LootNotification.tscn")
+		if scene:
+			var notif = scene.instantiate()
+			notification_area.add_child(notif)
+			notif.setup(item_data)
 
 func _load_assets() -> void:
 	var game_config: Dictionary = {}
@@ -102,8 +132,7 @@ func _on_burger_pressed() -> void:
 
 func _update_profile_info() -> void:
 	if profile_label:
-		var profile_name: String = ProfileManager.get_active_profile_name()
-		profile_label.text = profile_name
+		profile_label.visible = false
 
 # =============================================================================
 # PLAYER REFERENCE (for cooldown tracking)
@@ -243,7 +272,8 @@ func _update_boss_bar_color(percent: float) -> void:
 # PLAYER HP
 # =============================================================================
 
-func update_player_hp(current_hp: int, max_hp: int) -> void:
+func update_player_hp(p_current_hp: int, max_hp: int) -> void:
+	var current_hp = max(0, p_current_hp)
 	if hp_bar:
 		hp_bar.max_value = max_hp
 		hp_bar.value = current_hp

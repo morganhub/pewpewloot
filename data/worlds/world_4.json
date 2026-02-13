@@ -137,8 +137,7 @@
                     "hp_percent": 20,
                     "pattern": "phase_3_ramming"
                 }
-            ],
-            "loot_table": "boss_world_4"
+            ]
         }
     ],
     "unlock_condition": {

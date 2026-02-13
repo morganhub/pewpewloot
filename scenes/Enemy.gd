@@ -21,6 +21,7 @@ var score: int = 10
 var loot_chance: float = 0.1
 var death_asset: String = ""
 var death_anim: String = ""
+var loot_quality_multiplier: float = 1.0
 
 # Movement
 var move_pattern_id: String = "straight_down"
@@ -45,6 +46,20 @@ var _lifetime_timer: float = 0.0
 var _is_leaving: bool = false
 const MAX_LIFETIME: float = 12.0
 
+# Shared ability: mine spawner (minefreak)
+const MINE_SCENE = preload("res://scenes/objects/Mine.tscn")
+const ARCANE_ORB_SCENE = preload("res://scenes/objects/ArcaneOrb.tscn")
+const GRAVITY_WELL_SCENE = preload("res://scenes/objects/GravityWell.tscn")
+var _minefreak_enabled: bool = false
+var _minefreak_visuals: Dictionary = {}
+var _minefreak_ability_config: Dictionary = {}
+var _arcane_enabled: bool = false
+var _arcane_visuals: Dictionary = {}
+var _arcane_ability_config: Dictionary = {}
+var _graviton_enabled: bool = false
+var _graviton_visuals: Dictionary = {}
+var _graviton_ability_config: Dictionary = {}
+
 # Visual
 @onready var visual_container: Node2D = $Visual
 @onready var shape_visual: Polygon2D = $Visual/Shape
@@ -58,7 +73,7 @@ const MAX_LIFETIME: float = 12.0
 # SETUP
 # =============================================================================
 
-func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0) -> void:
+func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: String = "") -> void:
 	enemy_id = str(enemy_data.get("id", "unknown"))
 	enemy_name = str(enemy_data.get("name", "Enemy"))
 	max_hp = int(enemy_data.get("hp", 50) * stat_multiplier)  # Scaling HP
@@ -84,6 +99,13 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0) -> void:
 	
 	_start_position = global_position
 	_fire_timer = randf_range(0, fire_rate)  # Random offset
+	
+	# Apply Modifier (Elite)
+	if modifier_id == "":
+		modifier_id = str(enemy_data.get("modifier_id", ""))
+		
+	if modifier_id != "":
+		EnemyModifiers.apply_modifier(self, modifier_id)
 
 func _setup_visual(enemy_data: Dictionary) -> void:
 	var size_data: Variant = enemy_data.get("size", {"width": 30, "height": 30})
@@ -216,6 +238,44 @@ func _setup_health_bar() -> void:
 	health_bar.position = Vector2(-20, -30)
 	_update_health_bar_color()
 
+func apply_stat_multipliers(stats: Dictionary) -> void:
+	var hp_mult = float(stats.get("hp_mult", 1.0))
+	if hp_mult != 1.0:
+		max_hp = int(max_hp * hp_mult)
+		current_hp = max_hp
+		health_bar.max_value = max_hp
+		health_bar.value = current_hp
+		
+	var spd_mult = float(stats.get("speed_mult", 1.0))
+	if spd_mult != 1.0:
+		move_speed *= spd_mult
+		
+	var dmg_mult = float(stats.get("damage_mult", 1.0))
+	if dmg_mult != 1.0:
+		_stat_multiplier *= dmg_mult
+
+func set_health_bar_frame(path: String) -> void:
+	if not ResourceLoader.exists(path): return
+	var tex = load(path)
+	
+	var frame = TextureRect.new()
+	frame.name = "EliteFrame"
+	frame.texture = tex
+	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	frame.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	
+	# Adjust size/position to surround the bar
+	# Assuming frame asset is designed to wrap around
+	health_bar.add_child(frame)
+	frame.layout_mode = 1 # Anchors
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Add some margin/padding?
+	frame.offset_left = -5
+	frame.offset_top = -5
+	frame.offset_right = 5
+	frame.offset_bottom = 5
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
@@ -230,6 +290,9 @@ func _process(delta: float) -> void:
 			
 	_update_movement(delta)
 	_update_shooting(delta)
+	_update_minefreak_spawn()
+	_update_arcane_spawn()
+	_update_graviton_spawn()
 	
 	# Handle wave firing
 	if _is_firing_waves:
@@ -756,6 +819,138 @@ func _get_default_direction(strategy: String, spawn_pos: Vector2) -> Vector2:
 		_:
 			return Vector2.DOWN
 
+func setup_minefreak(mod_data: Dictionary) -> void:
+	_minefreak_enabled = true
+	_minefreak_visuals = mod_data.get("visuals", {})
+	_minefreak_ability_config = mod_data.get("ability_config", {})
+
+func setup_arcane_enchanted(mod_data: Dictionary) -> void:
+	_arcane_enabled = true
+	_arcane_visuals = mod_data.get("visuals", {})
+	_arcane_ability_config = mod_data.get("ability_config", {})
+
+func setup_graviton(mod_data: Dictionary) -> void:
+	_graviton_enabled = true
+	_graviton_visuals = mod_data.get("visuals", {})
+	_graviton_ability_config = mod_data.get("ability_config", {})
+
+func _update_minefreak_spawn() -> void:
+	if not _minefreak_enabled:
+		return
+	
+	var spawn_config := {"ability_config": _minefreak_ability_config}
+	if not EnemyAbilityManager.can_spawn("mine_spawner", spawn_config, global_position):
+		return
+	
+	if MINE_SCENE == null:
+		return
+	
+	var mine = MINE_SCENE.instantiate()
+	if mine == null:
+		return
+	
+	# Configure mine from modifier visuals + ability config
+	mine.set("damage", int(_minefreak_ability_config.get("damage", 25)))
+	mine.set("mine_width", int(_minefreak_visuals.get("width", 40)))
+	mine.set("mine_height", int(_minefreak_visuals.get("height", 40)))
+	mine.set("visual_asset", str(_minefreak_visuals.get("ability_asset", "")))
+	mine.set("contact_sfx_path", str(_minefreak_visuals.get("contact_sfx", "")))
+	mine.set("explosion_asset", str(_minefreak_visuals.get("explosion_asset", "")))
+	
+	# Optional tuning hook if later added in data.
+	if _minefreak_ability_config.has("mine_hp"):
+		var hp := int(_minefreak_ability_config.get("mine_hp", 20))
+		mine.set("max_hp", hp)
+		mine.set("current_hp", hp)
+	if _minefreak_ability_config.has("scroll_speed"):
+		mine.set("scroll_speed", float(_minefreak_ability_config.get("scroll_speed", 100.0)))
+	if _minefreak_ability_config.has("lateral_speed"):
+		mine.set("lateral_speed", float(_minefreak_ability_config.get("lateral_speed", 40.0)))
+	if _minefreak_ability_config.has("spin_speed_deg"):
+		mine.set("spin_speed_deg", float(_minefreak_ability_config.get("spin_speed_deg", 60.0)))
+	
+	var container: Node = get_parent()
+	if container == null:
+		container = get_tree().current_scene
+	if container == null:
+		return
+	
+	container.add_child(mine)
+	if mine is Node2D:
+		(mine as Node2D).global_position = global_position
+		EnemyAbilityManager.register_spawn("mine_spawner", mine as Node2D, spawn_config)
+
+func _update_arcane_spawn() -> void:
+	if not _arcane_enabled:
+		return
+	
+	var spawn_config := {"ability_config": _arcane_ability_config}
+	if not EnemyAbilityManager.can_spawn("arcane_spawner", spawn_config, global_position):
+		return
+	
+	if ARCANE_ORB_SCENE == null:
+		return
+	
+	var orb = ARCANE_ORB_SCENE.instantiate()
+	if orb == null:
+		return
+	
+	# Configure Arcane Orb from modifier visuals + ability config
+	orb.set("damage", int(_arcane_ability_config.get("damage", 15)))
+	orb.set("rotation_speed", float(_arcane_ability_config.get("rotation_speed", 45.0)))
+	orb.set("laser_length_pct", float(_arcane_ability_config.get("laser_length_pct", 0.30)))
+	orb.set("duration", float(_arcane_ability_config.get("duration", 6.0)))
+	orb.set("orb_width", int(_arcane_visuals.get("width", 32)))
+	orb.set("orb_height", int(_arcane_visuals.get("height", 32)))
+	orb.set("ability_asset", str(_arcane_visuals.get("ability_asset", "")))
+	orb.set("laser_asset", str(_arcane_visuals.get("laser_asset", "")))
+	orb.set("contact_sfx_path", str(_arcane_visuals.get("contact_sfx", "")))
+	
+	if _arcane_ability_config.has("scroll_speed"):
+		orb.set("scroll_speed", float(_arcane_ability_config.get("scroll_speed", 90.0)))
+	
+	var container: Node = get_parent()
+	if container == null:
+		container = get_tree().current_scene
+	if container == null:
+		return
+	
+	container.add_child(orb)
+	if orb is Node2D:
+		(orb as Node2D).global_position = global_position
+		EnemyAbilityManager.register_spawn("arcane_spawner", orb as Node2D, spawn_config)
+
+func _update_graviton_spawn() -> void:
+	if not _graviton_enabled:
+		return
+	
+	var spawn_config := {
+		"ability_config": _graviton_ability_config,
+		"visuals": _graviton_visuals
+	}
+	if not EnemyAbilityManager.can_spawn("gravity_spawner", spawn_config, global_position):
+		return
+	
+	if GRAVITY_WELL_SCENE == null:
+		return
+	
+	var well = GRAVITY_WELL_SCENE.instantiate()
+	if well == null:
+		return
+	
+	var container: Node = get_parent()
+	if container == null:
+		container = get_tree().current_scene
+	if container == null:
+		return
+	
+	container.add_child(well)
+	if well is Node2D:
+		(well as Node2D).global_position = global_position
+		if well.has_method("setup"):
+			well.setup(spawn_config)
+		EnemyAbilityManager.register_spawn("gravity_spawner", well as Node2D, spawn_config)
+
 # =============================================================================
 # DAMAGE & DEATH
 # =============================================================================
@@ -787,59 +982,76 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 		die()
 
 func die() -> void:
-	#print("[Enemy] ", enemy_name, " died! Score: ", score)
+	enemy_died.emit(self)
 	
-	# VFX explosion
 	# VFX explosion
 	var on_death_asset: String = ""
 	var on_death_anim: String = ""
-	# To get this data, it should be in setup -> stored in class var?
-	# Better to check if available in valid scope or store it.
-	# For now, let's assume it isn't stored, but we can access it via DataManager if we kept the ID?
-	# Actually we didn't store the raw dict. Let's look up again or store it in setup.
-	# Optimization: Store it in setup.
-	
-	# Fallback (using class vars we need to add)
 	if "death_asset" in self: on_death_asset = get("death_asset")
 	if "death_anim" in self: on_death_anim = get("death_anim")
 	
 	VFXManager.spawn_explosion(global_position, 25, shape_visual.color, get_parent(), on_death_asset, on_death_anim)
 	VFXManager.screen_shake(3, 0.2)
 	
-	# Spawn loot si chance
-	if randf() <= loot_chance:
-		_spawn_loot()
+	# --- LOOT DROP LOGIC ---
+	# Config: Chance of Equipment vs PowerUp
+	# Let's say: 10% base chance for ANY loot.
+	# If loot drops: 20% Equipment, 80% PowerUp? Or separate rolls?
+	# Implementation: Separate rolls.
 	
-	enemy_died.emit(self)
+	# 1. Equipment (LootGenerator)
+	# Chance based on enemy strength/type?
+	# Using loot_chance * loot_quality_multiplier for Equipment
+	if randf() <= (loot_chance * 0.5): # Halve chance for equipment to balance
+		var level: int = 1
+		if App: level = App.current_level_index + 1
+		
+		var item: LootItem = LootGenerator.generate_loot(level, "", "", loot_quality_multiplier)
+		if item:
+			var drop_scene = load("res://scenes/LootDrop.tscn")
+			if drop_scene:
+				var drop = drop_scene.instantiate()
+				get_parent().call_deferred("add_child", drop)
+				drop.call_deferred("setup", item.to_dict(), global_position)
+	
+	# 2. PowerUps (Shield / Rapid Fire)
+	# Using loot_chance for PowerUps
+	if randf() <= loot_chance:
+		_spawn_powerup()
+	
 	queue_free()
 
-func _spawn_loot() -> void:
-	var item: Dictionary
-	
-	# Only Powerups: Shield or Rapid Fire
-	var type_roll = randf()
+func _spawn_powerup() -> void:
 	var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
+	if gameplay_config.is_empty():
+		return
+
+	# Roll Type
+	# 50/50 split between Shield and Rapid Fire
+	var type_roll = randf()
+	var item_data: Dictionary = {}
 	
 	if type_roll < 0.5:
-		item = {
+		item_data = {
 			"type": "powerup",
 			"effect": "shield",
-			"name": "Energy Shield",
-			"visual_asset": gameplay_config.get("shield", {}).get("asset", "")
+			"name": "Shield Module",
+			"visual_asset": str(gameplay_config.get("shield", {}).get("asset", ""))
 		}
 	else:
-		item = {
+		item_data = {
 			"type": "powerup",
 			"effect": "fire_rate",
 			"name": "Rapid Fire",
-			"visual_asset": gameplay_config.get("rapid_fire", {}).get("asset", "")
+			"visual_asset": str(gameplay_config.get("rapid_fire", {}).get("asset", ""))
 		}
-
-	# Spawn le visual
-	var loot_scene := load("res://scenes/LootDrop.tscn")
-	var loot: Area2D = loot_scene.instantiate()
-	get_parent().call_deferred("add_child", loot)
-	loot.setup.call_deferred(item, global_position)
+	
+	# Spawn Drop
+	var drop_scene = load("res://scenes/LootDrop.tscn")
+	if drop_scene:
+		var drop = drop_scene.instantiate()
+		get_parent().call_deferred("add_child", drop)
+		drop.call_deferred("setup", item_data, global_position)
 
 func _update_health_bar_color() -> void:
 	var hp_percent := float(current_hp) / float(max_hp)

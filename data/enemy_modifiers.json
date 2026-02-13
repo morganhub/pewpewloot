@@ -1,0 +1,142 @@
+{
+	"waller": {
+		"stats": {
+			"hp_mult": 1.5,
+			"damage_mult": 1.0,
+			"speed_mult": 1.0,
+			"scale": 1.1
+		},
+		"visuals": {
+			"ability_asset": "res://assets/modifiers/wall.png",
+			"health_bar_frame": "res://assets/ui/frames/elite_frame_blue.png",
+			"background_effect": "res://assets/vfx/aura_blue_grid.png",
+			"color_tint": "#8888FF",
+			"contact_sfx": "res://assets/sfx/combat/heavy_missile.ogg"
+		},
+		"abilities": [
+            "wall_spawner"
+		],
+		"max_per_screen": 4,
+		"minimum_spacing_x": 150,
+		"minimum_spacing_y": 350,
+		"spawn_interval": 7.0,
+		"loot_quality_bonus": 2.0
+	},
+	"minefreak": {
+		"stats": {
+			"hp_mult": 1.2,
+			"damage_mult": 1.0,
+			"speed_mult": 0.9,
+			"scale": 1.0
+		},
+		"visuals": {
+			"ability_asset": "res://assets/modifiers/mine.tres",
+			"width": 100,
+			"height": 100,
+			"health_bar_frame": "res://assets/ui/frames/elite_frame_red.png",
+			"color_tint": "#FF8800",
+			"contact_sfx": "res://assets/sfx/combat/mine_explosion.ogg",
+			"explosion_asset": ""
+		},
+		"abilities": [
+            "mine_spawner"
+		],
+		"ability_config": {
+			"spawn_interval": 1.0,
+			"max_per_screen": 8,
+			"damage": 150,
+			"scroll_speed": 70.0,
+			"lateral_speed": 30.0,
+			"spin_speed_deg": 45.0,
+			"minimum_spacing_x": 100,
+			"minimum_spacing_y": 100
+		},
+		"loot_quality_bonus": 2.0
+	},
+	"arcane_enchanted": {
+		"stats": {
+			"hp_mult": 1.4,
+			"damage_mult": 1.1,
+			"speed_mult": 1.0,
+			"scale": 1.1
+		},
+		"visuals": {
+			"ability_asset": "res://assets/missiles/blue_ball.png",
+			"laser_asset": "res://assets/missiles/sacred_missile.png",
+			"width": 32,
+			"height": 32,
+			"health_bar_frame": "res://assets/ui/frames/elite_frame_purple.png",
+			"color_tint": "#D000FF",
+			"contact_sfx": "res://assets/sfx/combat/laser_hum.ogg"
+		},
+		"abilities": [
+			"arcane_spawner"
+		],
+		"ability_config": {
+			"spawn_interval": 2.0,
+			"max_per_screen": 3,
+			"damage": 105,
+			"rotation_speed": 165.0,
+			"laser_length_pct": 0.4,
+			"duration": 16.0
+		},
+		"loot_quality_bonus": 2.0
+	},
+	"graviton": {
+		"stats": {
+			"hp_mult": 2.0,
+			"damage_mult": 1.0,
+			"speed_mult": 0.8,
+			"scale": 1.0
+		},
+		"visuals": {
+			"ability_asset": "res://assets/modifiers/graviton.tres",
+			"width": 164,
+			"height": 164,
+			"effect_radius": 350,
+			"color_tint": "#220033"
+		},
+		"abilities": [
+			"gravity_spawner"
+		],
+		"ability_config": {
+			"spawn_interval": 2.0,
+			"max_per_screen": 2,
+			"pull_strength": 1400.0,
+			"speed": 70.0,
+			"duration": 25.0,
+			"minimum_spacing_x": 250
+		},
+		"loot_quality_bonus": 2.0
+	},
+	"elite_berserker": {
+		"stats": {
+			"hp_mult": 2.0,
+			"damage_mult": 1.5,
+			"speed_mult": 1.3,
+			"scale": 1.2
+		},
+		"visuals": {
+			"health_bar_frame": "res://assets/ui/frames/elite_frame_red.png",
+			"background_effect": "res://assets/vfx/aura_red.png",
+			"color_tint": "#FF4444"
+		},
+		"abilities": [],
+		"loot_quality_bonus": 2.0
+	},
+	"elite_tank": {
+		"stats": {
+			"hp_mult": 3.0,
+			"damage_mult": 1.0,
+			"speed_mult": 0.8,
+			"scale": 1.4
+		},
+		"visuals": {
+			"health_bar_frame": "res://assets/ui/frames/elite_frame_blue.png",
+			"background_effect": "res://assets/vfx/aura_blue.png",
+			"color_tint": "#4444FF"
+		},
+		"abilities": [],
+		"loot_quality_bonus": 2.5
+	}
+}

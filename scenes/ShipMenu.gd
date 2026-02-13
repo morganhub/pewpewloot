@@ -45,7 +45,7 @@ var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time
 @onready var inventory_label: Label = $MarginContainer/ScrollContainer/Content/InventoryLabel
 @onready var inventory_grid: GridContainer = $MarginContainer/ScrollContainer/Content/InventoryGrid
 @onready var generate_item_button: Button = $MarginContainer/ScrollContainer/Content/DebugSection/GenerateItemButton
-@onready var back_button: Button = $MarginContainer/ScrollContainer/Content/Header/BackButton
+@onready var back_button: TextureButton = %BackButton
 
 # Popup
 @onready var item_popup: PanelContainer = $ItemPopup
@@ -146,10 +146,10 @@ func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
 	
 	# Load Back Button Texture
-	var sm_cfg: Dictionary = _game_config.get("ship_menu", {})
-	var bb_asset: String = str(sm_cfg.get("back_button", ""))
-	if bb_asset != "" and ResourceLoader.exists(bb_asset):
-		back_button.texture_normal = load(bb_asset)
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+	var back_icon_path: String = str(ui_icons.get("back_button", ""))
+	if back_icon_path != "" and ResourceLoader.exists(back_icon_path):
+		back_button.texture_normal = load(back_icon_path)
 
 	
 	
@@ -206,7 +206,6 @@ func _ready() -> void:
 	
 	# Force reload ships if empty (e.g. JSON edit while running)
 	if DataManager.get_ships().size() == 0:
-		print("[ShipMenu] Warning: No ships found in DataManager. Attempting reload...")
 		DataManager.reload_all()
 			
 	# Handle resize
@@ -333,6 +332,7 @@ func _update_background_parallax(scroll_val: float) -> void:
 
 
 func _setup_visuals() -> void:
+	var content_vbox = $MarginContainer/ScrollContainer/Content
 	# 1. Main Background
 	var ship_config: Dictionary = _game_config.get("ship_menu", {})
 	var main_config: Dictionary = _game_config.get("main_menu", {})
@@ -366,16 +366,24 @@ func _setup_visuals() -> void:
 	var sections_cfg: Dictionary = ship_config.get("sections", {})
 	
 	# Ship Selection (Covers the whole ship selector and stats)
+	var ship_section_node = content_vbox.get_node_or_null("ShipSection")
+	if ship_section_node:
+		var stats_idx = ship_stats_container.get_index() if ship_stats_container else -1
+		if stats_idx >= 0:
+			_add_spacer(ship_section_node, 20, "SpacerStats", stats_idx + 1)
+	
 	_apply_section_background("ShipSection", sections_cfg.get("ship_selection", {}))
 	
 	# Equipment Section (Group Label + Grid)
-	var content_vbox = $MarginContainer/ScrollContainer/Content
 	var equipment_nodes = []
 	if slots_label: equipment_nodes.append(slots_label)
 	if slots_grid: equipment_nodes.append(slots_grid)
 	
 	if not equipment_nodes.is_empty():
 		var eq_section = _ensure_group_node("EquipmentSection", equipment_nodes)
+		_add_spacer(eq_section, 10, "SpacerEqTitle", eq_section.get_node("SlotsLabel").get_index())
+		_add_spacer(eq_section, 20, "SpacerEqGrid", eq_section.get_node("SlotsGrid").get_index())
+		_add_spacer(eq_section, 30, "SpacerEqBottom")
 		_apply_section_background(eq_section.name, sections_cfg.get("equipment", {}))
 	
 	# Inventory Section (Group Label + Filters + Grid + Pagination)
@@ -391,6 +399,10 @@ func _setup_visuals() -> void:
 	
 	if not inventory_nodes.is_empty():
 		var inv_section = _ensure_group_node("InventorySection", inventory_nodes)
+		_add_spacer(inv_section, 10, "SpacerInvTitle", inv_section.get_node("InventoryLabel").get_index())
+		if filters:
+			filters.add_theme_constant_override("separation", 10)
+		_add_spacer(inv_section, 30, "SpacerInvGrid", inv_section.get_node("InventoryGrid").get_index())
 		_apply_section_background(inv_section.name, sections_cfg.get("inventory", {}))
 		
 	# Powers Section (Title + Content)
@@ -402,6 +414,8 @@ func _setup_visuals() -> void:
 	
 	if not powers_nodes.is_empty():
 		var p_section = _ensure_group_node("PowersSectionGroup", powers_nodes)
+		_add_spacer(p_section, 10, "SpacerPowerTop", 0)
+		_add_spacer(p_section, 10, "SpacerPowerBottom")
 		_apply_section_background(p_section.name, sections_cfg.get("powers", {}))
 
 	# 5. Section Titles Styling
@@ -413,9 +427,9 @@ func _setup_visuals() -> void:
 	
 	var titles = []
 	# Ship Title
-	var ship_sec = content_vbox.get_node_or_null("ShipSection")
-	if ship_sec:
-		var st = ship_sec.get_node_or_null("ShipTitleLabel")
+	var ss_node = content_vbox.get_node_or_null("ShipSection")
+	if ss_node:
+		var st = ss_node.get_node_or_null("ShipTitleLabel")
 		if st: titles.append(st)
 	
 	# Powers Title
@@ -459,13 +473,7 @@ func _setup_visuals() -> void:
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.icon = load(back_icon_path)
-		back_button.text = ""
-		back_button.flat = true
-		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		back_button.texture_normal = load(back_icon_path)
 		
 	# NEW: Arrow Icons (Left/Right)
 	var arrow_left_path: String = str(ui_icons.get("arrow_left", ""))
@@ -633,7 +641,6 @@ func _update_popup_buttons_style() -> void:
 		btn.custom_minimum_size = Vector2(w, h)
 		
 		if asset != "" and ResourceLoader.exists(asset):
-			print("[ShipMenu] Loading asset for ", key, ": ", asset)
 			var style = StyleBoxTexture.new()
 			var tex = load(asset)
 			style.texture = tex
@@ -651,7 +658,6 @@ func _update_popup_buttons_style() -> void:
 			# Only disable flat if we are using stylebox
 			btn.flat = false
 		else:
-			print("[ShipMenu] Asset not found for ", key, ": ", asset)
 			# If no asset, maybe keep default or flat
 			pass
 
@@ -689,7 +695,7 @@ func _calculate_layout_metrics() -> void:
 	var s_height: float = s_width * (8.34 / 7.0)
 	_ship_card_size = Vector2(s_width, s_height)
 	
-	var v_gap = GRID_GAP + 20
+	var v_gap = 40
 	
 	# Apply to grids
 	if slots_grid:
@@ -703,7 +709,7 @@ func _calculate_layout_metrics() -> void:
 		inventory_grid.add_theme_constant_override("v_separation", v_gap)
 		# Set minimum height for 3 rows to avoid yoyo effect
 		var inv_rows: int = 3
-		var min_inv_h: float = float(inv_rows) * _item_card_size.y + float(inv_rows - 1) * float(v_gap)
+		var min_inv_h: float = float(inv_rows) * _item_card_size.y + float(inv_rows - 1) * float(v_gap) + 30.0
 		inventory_grid.custom_minimum_size.y = min_inv_h
 	
 	# Apply separation to ship cards container
@@ -739,7 +745,7 @@ func _apply_translations() -> void:
 	inventory_label.text = inv_txt.to_upper()
 
 	generate_item_button.text = LocaleManager.translate("ship_menu_generate_item")
-	back_button.text = LocaleManager.translate("ship_menu_back")
+	# back_button is now a TextureButton, no text property
 	if popup_cancel_btn: popup_cancel_btn.text = LocaleManager.translate("item_popup_close")
 	
 	if popup_cancel_btn: popup_cancel_btn.text = LocaleManager.translate("item_popup_close")
@@ -779,11 +785,9 @@ func _load_ships() -> void:
 	
 	var all_ships := DataManager.get_ships()
 	if all_ships.size() == 0:
-		print("[ShipMenu] all_ships is empty. Reloading...")
 		DataManager.reload_all()
 		all_ships = DataManager.get_ships()
 		
-	print("[ShipMenu] Loaded ships count: ", all_ships.size())
 	var total_ships := all_ships.size()
 	var active_id: String = ProfileManager.get_active_ship_id()
 	var unlocked_ids := ProfileManager.get_unlocked_ships()
@@ -1185,9 +1189,8 @@ func _on_confirm_unlock_pressed() -> void:
 		unlock_popup.visible = false
 		_load_ships() # Refresh UI
 		_apply_translations() # Refresh crystals
-		print("[ShipMenu] Unlocked ship: ", selected_ship_id)
 	else:
-		print("[ShipMenu] Not enough crystals!")
+		pass# Not enough crystals!
 
 func _on_ship_scroll_left() -> void:
 	current_ship_page -= 1
@@ -1347,11 +1350,7 @@ func _update_inventory_grid() -> void:
 	var end_idx: int = int(min(start_idx + items_per_page, filtered.size()))
 	
 	# Mettre à jour le label
-	if filter_slot != "":
-		var slot_data := DataManager.get_slot(filter_slot)
-		inventory_label.text = LocaleManager.translate("ship_menu_inventory_filtered", {"slot": str(slot_data.get("name", filter_slot))})
-	else:
-		inventory_label.text = LocaleManager.translate("ship_menu_inventory")
+	inventory_label.text = LocaleManager.translate("ship_menu_inventory")
 	
 	# Créer les cartes d'items pour la page courante
 	for i in range(start_idx, end_idx):
@@ -1368,6 +1367,7 @@ func _create_item_card(item: Dictionary) -> Control:
 	var card = ItemCardScene.instantiate()
 	card.custom_minimum_size = _item_card_size
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	# Prepare config for ItemCard
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
@@ -1383,6 +1383,14 @@ func _create_item_card(item: Dictionary) -> Control:
 	
 	var slot_id = str(item.get("slot", ""))
 	card.setup_item(item, slot_id, config)
+
+	# Keep swipe scrolling active even when dragging on card content.
+	var card_content := card.get_node_or_null("Content")
+	if card_content is Control:
+		card_content.mouse_filter = Control.MOUSE_FILTER_PASS
+	var card_button := card.get_node_or_null("Button")
+	if card_button is Control:
+		card_button.mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	# Connect signal
 	card.card_pressed.connect(_on_card_pressed)
@@ -1451,7 +1459,6 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 				# It's a valid global slot, and ship didn't specify restrictions. Use it.
 				pass
 			else:
-				print("[ShipMenu] Error: No compatible slot found for ", target_slot)
 				return
 
 	# Check if slot is occupied (using resolved target_slot)
@@ -1465,7 +1472,6 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 	# Equip new
 	ProfileManager.equip_item(selected_ship_id, target_slot, item_id)
 	
-	print("[ShipMenu] Equipped ", item_id, " to ", target_slot)
 	
 	# Update UI but KEEP POPUP OPEN
 	_update_slot_buttons()
@@ -1481,7 +1487,6 @@ func _on_popup_unequip_requested(item_id: String, slot_id: String) -> void:
 	# Correctly pass slot_id instead of item_id
 	ProfileManager.unequip_item(selected_ship_id, slot_id)
 	
-	print("[ShipMenu] Unequipped item from ", slot_id)
 	
 	# Update UI but KEEP POPUP OPEN
 	_update_slot_buttons()
@@ -1524,14 +1529,10 @@ func _on_popup_recycle_pressed(item_id: String) -> void:
 	for s_key in loadout:
 		if str(loadout[s_key]) == item_id:
 			ProfileManager.unequip_item(selected_ship_id, s_key)
-			print("[ShipMenu] Auto-unequipped recycled item from ", s_key)
 			
 	if val > 0:
 		ProfileManager.add_crystals(val)
-		print("[ShipMenu] Recycled for ", val, " crystals")
-	
 	ProfileManager.remove_item_from_inventory(item_id)
-	print("[ShipMenu] Item deleted: ", item_id)
 	
 	if _item_details_popup: _item_details_popup.visible = false
 	_update_inventory_grid()
@@ -1611,9 +1612,9 @@ func _on_generate_item_pressed() -> void:
 			current_page = 0
 			_update_inventory_grid()
 		else:
-			print("[ShipMenu] Could not generate item: Inventory Full!")
+			pass # Could not generate item: Inventory Full!
 	else:
-		print("[ShipMenu] LootGenerator returned null!")
+		pass # LootGenerator returned null!
 
 # LEGACY GENERATION REMOVED - Using LootGenerator singleton
 			
@@ -2039,12 +2040,13 @@ func _on_multi_recycle_pressed() -> void:
 
 func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: int) -> void:
 	var popup = PanelContainer.new()
-	# Mimic size of UniqueSelectionPopup
-	popup.custom_minimum_size = Vector2(350, 200)
+	# Start with width only; height will fit content.
+	popup.custom_minimum_size = Vector2(420, 0)
 	
 	var pop_cfg = _game_config.get("popups", {})
 	var bg_cfg = pop_cfg.get("background", {})
 	var btn_cfg = pop_cfg.get("button", {})
+	var recycle_cfg = pop_cfg.get("recycle", {})
 	
 	var style = StyleBoxTexture.new()
 	var bg_asset = str(bg_cfg.get("asset", "res://assets/ui/popup_background.png"))
@@ -2052,16 +2054,18 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	popup.add_theme_stylebox_override("panel", style)
 	
 	var margin = MarginContainer.new()
-	# Override game.json huge margin, use 20 like UniqueSelectionPopup
-	var m_val = 20
+	# Keep extra safety padding so text/buttons never overlap popup frame.
+	var m_val = 40
 	margin.add_theme_constant_override("margin_left", m_val)
 	margin.add_theme_constant_override("margin_right", m_val)
 	margin.add_theme_constant_override("margin_top", m_val)
 	margin.add_theme_constant_override("margin_bottom", m_val)
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	popup.add_child(margin)
 	
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 20)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_child(vbox)
 	
 	var title = Label.new()
@@ -2073,10 +2077,13 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	# Message
 	var msg = Label.new()
 	var template = LocaleManager.translate("ship_menu_multi_recycle_confirm")
-	msg.text = template.replace("{count}", str(items_to_recycle.size())).replace("{crystals}", str(total_crystals))
+	var item_suffix := "s" if items_to_recycle.size() > 1 else ""
+	msg.text = template.replace("{count}", str(items_to_recycle.size())).replace("{crystals}", str(total_crystals)).replace("{item_suffix}", item_suffix)
 	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	msg.add_theme_font_size_override("font_size", int(bg_cfg.get("font_size", 24)))
+	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	msg.custom_minimum_size = Vector2(340, 0)
+	msg.add_theme_font_size_override("font_size", int(recycle_cfg.get("font_size", 16)))
 	msg.add_theme_color_override("font_color", Color.html(str(bg_cfg.get("text_color", "#000000"))))
 	msg.add_theme_constant_override("letter_spacing", int(bg_cfg.get("letter_spacing", 0)))
 	vbox.add_child(msg)
@@ -2138,9 +2145,18 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	popup.grow_vertical = Control.GROW_DIRECTION_BOTH
 	popup.z_index = 100 # Ensure on top
-	
-	# Force reset position to be sure (though preset should handle it with grow)
-	popup.position = (size - popup.custom_minimum_size) / 2.0
+
+	# Fit popup to content size (and clamp to viewport) to avoid stretched/tall deformation.
+	await get_tree().process_frame
+	var content_min: Vector2 = margin.get_combined_minimum_size()
+	var viewport_size := get_viewport_rect().size
+	var desired_w: float = clampf(maxf(420.0, content_min.x), 420.0, maxf(420.0, viewport_size.x - 40.0))
+	var desired_h: float = clampf(content_min.y, 0.0, maxf(200.0, viewport_size.y - 60.0))
+	popup.custom_minimum_size = Vector2(desired_w, desired_h)
+	popup.offset_left = -desired_w / 2.0
+	popup.offset_right = desired_w / 2.0
+	popup.offset_top = -desired_h / 2.0
+	popup.offset_bottom = desired_h / 2.0
 
 func _confirm_multi_recycle(item_ids: Array, crystals_earned: int) -> void:
 	for i_id in item_ids:
@@ -2148,6 +2164,12 @@ func _confirm_multi_recycle(item_ids: Array, crystals_earned: int) -> void:
 	ProfileManager.add_crystals(crystals_earned)
 	ProfileManager.save_to_disk()
 	_update_inventory_grid()
+	
+	# Refresh ship stats header immediately (includes crystals).
+	var ship_id := selected_ship_id if selected_ship_id != "" else ProfileManager.get_active_ship_id()
+	if ship_id != "":
+		_update_ship_info(ship_id)
+	
 	_apply_translations()
 
 func _update_filter_visuals() -> void:
@@ -2282,7 +2304,6 @@ func _on_popup_upgrade_pressed() -> void:
 	
 	var user_crystals = ProfileManager.get_crystals()
 	if user_crystals < cost:
-		print("[ShipMenu] Not enough crystals! Need: ", cost, " Have: ", user_crystals)
 		# TODO: Feedback visual "Not enough crystals"
 		return
 
@@ -2306,19 +2327,17 @@ func _on_popup_upgrade_pressed() -> void:
 	var loop_sound_path = str(sh_opts.get("upgrade_craft_sound", ""))
 	var loop_player: AudioStreamPlayer = null
 	if loop_sound_path != "" and ResourceLoader.exists(loop_sound_path):
-		print("[ShipMenu] Playing craft loop: ", loop_sound_path)
 		loop_player = AudioStreamPlayer.new()
 		loop_player.stream = load(loop_sound_path)
 		add_child(loop_player)
 		loop_player.play()
 	else:
-		print("[ShipMenu] Craft loop sound not found: ", loop_sound_path)
+		pass # Craft loop sound not found: 
 		
 	# 2. CRAFT ANIM
 	var craft_anim_path = str(sh_opts.get("upgrade_craft_anim", ""))
 	var craft_anim_node: AnimatedSprite2D = null
 	if craft_anim_path != "" and ResourceLoader.exists(craft_anim_path):
-		print("[ShipMenu] Playing craft anim: ", craft_anim_path)
 		var frames = load(craft_anim_path)
 		if frames is SpriteFrames:
 			craft_anim_node = AnimatedSprite2D.new()
@@ -2374,7 +2393,6 @@ func _on_popup_upgrade_pressed() -> void:
 	var mult_max = float(tier_data.get("multiplier_max", 1.10))
 	var multiplier = randf_range(mult_min, mult_max)
 	
-	print("[ShipMenu] Upgrade Roll: ", roll, " Tier: ", tier, " Mult: ", multiplier)
 	
 	# AUDIO FEEDBACK
 	sh_opts = _game_config.get("ship_menu", {})
@@ -2418,7 +2436,6 @@ func _on_popup_upgrade_pressed() -> void:
 		popup_upgrade_btn.disabled = false
 	
 	# Refresh UI
-	print("[ShipMenu] Item upgraded to level ", level + 1)
 	_show_item_popup(popup_item_id, popup_is_equipped, popup_slot_id)
 	_update_inventory_grid()
 	_update_slot_buttons()
@@ -2534,15 +2551,12 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 			# Direct match stats (new LootGenerator format)
 			if stat_key in ["power", "max_hp", "move_speed", "fire_rate", "missile_speed_pct", "special_damage"]:
 				final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + val
-				print("[ShipMenu] DEBUG Item Stat: ", stat_key, " +", val, " New Total: ", final_stats[stat_key])
 			elif stat_key in ["crit_chance", "dodge_chance"]:
 				# HEURISTIC: If val > 1.0, assume it's legacy integer (e.g. 4 for 4%) and divide by 100
 				if val > 1.0:
 					val = val / 100.0
-					print("[ShipMenu] DEBUG: Legacy ", stat_key, " detected. Converted to ", val)
 				
 				final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + val
-				print("[ShipMenu] DEBUG Item Stat: ", stat_key, " +", val, " New Total: ", final_stats[stat_key])
 			elif stat_key == "special_cd":
 				final_stats.special_cd = float(final_stats.get("special_cd", 10.0)) + val  # val is negative for reduction
 			# Legacy format fallbacks
@@ -2557,7 +2571,6 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 			elif stat_key == "cd_reduction":
 				final_stats.special_cd = max(1.0, float(final_stats.get("special_cd", 10.0)) * (1.0 - (val / 100.0)))
 	
-	print("[ShipMenu] DEBUG Final Stats: ", final_stats)
 	
 	# Composite Scores for UI
 	# Missile Score: (fire_rate + missile_speed_pct) * power (User requested formula)
@@ -2566,7 +2579,6 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 	var m_spd = float(final_stats.get("missile_speed_pct", 1.0))
 	var pwr = float(final_stats.get("power", 10.0))
 	final_stats.missile_score = int(round((fr + m_spd) * pwr))
-	print("[ShipMenu] DEBUG Missile Score: (", fr, " + ", m_spd, ") * ", pwr, " = ", final_stats.missile_score)
 	
 	# Special Score: damage / cooldown roughly
 	# Special Score: damage / cooldown roughly
@@ -2600,7 +2612,6 @@ func _calculate_levels_completed() -> int:
 
 func _add_stat_summary_item(parent: Control, label_text: String, value_text: String, cfg: Dictionary) -> void:
 	if not parent: return
-	# print("[ShipMenu] Adding stat summary ", label_text, " to ", parent.name)
 	
 	var item_hbox = HBoxContainer.new()
 	item_hbox.add_theme_constant_override("separation", 10)
@@ -2710,7 +2721,6 @@ func _add_detailed_stat(parent: Control, label_text: String, current_value: floa
 	
 	# Progress Bars
 	var pct = clamp(current_value / max(1.0, max_value), 0.0, 1.0)
-	print("[ShipMenu] DEBUG Bar '", label_text, "' Val:", current_value, " Max:", max_value, " Pct:", pct, " (", int(pct * 10), "/10 blocks)")
 	
 	var bar_control = Control.new()
 	bar_control.custom_minimum_size = Vector2(0, 28)
@@ -2819,7 +2829,9 @@ func _fix_mobile_scroll_recursive(node: Node) -> void:
 		# Si c'est purement visuel (Label, TextureRect, Panel, Barres, etc.)
 		# ET que ce n'est pas le ScrollContainer lui-même
 		elif not node is ScrollContainer and not node is VScrollBar and not node is HScrollBar:
-			node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			# Preserve explicit PASS already configured for swipe propagation.
+			if node.mouse_filter != Control.MOUSE_FILTER_PASS:
+				node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# On applique la même chose à tous les enfants (Récursion)
 	for child in node.get_children():
@@ -2860,3 +2872,18 @@ func _cleanup_orphaned_icons() -> void:
 						continue
 						
 					child.queue_free()
+
+
+func _add_spacer(parent: Control, height: float, s_name: String, index: int = -1) -> Control:
+	var existing = parent.get_node_or_null(s_name)
+	if existing:
+		existing.custom_minimum_size.y = height
+		return existing
+	var s = Control.new()
+	s.name = s_name
+	s.custom_minimum_size.y = height
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(s)
+	if index >= 0:
+		parent.move_child(s, index)
+	return s

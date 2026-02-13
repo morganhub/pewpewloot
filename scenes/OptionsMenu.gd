@@ -9,7 +9,7 @@ extends Control
 
 @onready var background_rect: TextureRect = $Background
 @onready var title_label: Label = $MarginContainer/VBoxContainer/Header/TitleLabel
-@onready var back_button: Button = $MarginContainer/VBoxContainer/Header/BackButton
+@onready var back_button: TextureButton = $MarginContainer/VBoxContainer/Header/BackButton
 @onready var language_label: Label = $MarginContainer/VBoxContainer/LanguageSection/LanguageLabel
 @onready var language_dropdown: OptionButton = $MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown
 
@@ -42,13 +42,7 @@ func _ready() -> void:
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.icon = load(back_icon_path)
-		back_button.text = ""
-		back_button.flat = true
-		back_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		back_button.texture_normal = load(back_icon_path)
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
@@ -104,10 +98,7 @@ func _apply_translations() -> void:
 	if music_label: music_label.text = LocaleManager.translate("options_music")
 	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
 	
-	if back_button.icon == null:
-		back_button.text = LocaleManager.translate("options_back")
-	else:
-		back_button.text = ""
+	# No back button text anymore as it is an icon
 
 # =============================================================================
 # CALLBACKS

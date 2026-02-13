@@ -1,104 +1,104 @@
 [gd_scene format=3 uid="uid://itempopup123"]
 
-[ext_resource type="Script" path="res://scenes/components/ItemDetailsPopup.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://c5wp7rlx1lpts" path="res://scenes/components/ItemDetailsPopup.gd" id="1_script"]
 
-[node name="ItemDetailsPopup" type="PanelContainer"]
+[node name="ItemDetailsPopup" type="PanelContainer" unique_id=847076073]
+custom_minimum_size = Vector2(480, 230)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -250.0
-offset_right = 200.0
-offset_bottom = 250.0
+offset_left = -240.0
+offset_top = -165.0
+offset_right = 240.0
+offset_bottom = 165.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=1097056467]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 50
 
-[node name="VBox" type="VBoxContainer" parent="Margin"]
+[node name="VBox" type="VBoxContainer" parent="Margin" unique_id=626959472]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Margin/VBox" unique_id=1329014330]
 layout_mode = 2
 theme_override_constants/separation = 15
 
-[node name="Header" type="HBoxContainer" parent="Margin/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 15
-
-[node name="Icon" type="TextureRect" parent="Margin/VBox/Header"]
+[node name="Icon" type="TextureRect" parent="Margin/VBox/Header" unique_id=728262320]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Info" type="VBoxContainer" parent="Margin/VBox/Header"]
+[node name="Info" type="VBoxContainer" parent="Margin/VBox/Header" unique_id=2127224967]
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 
-[node name="NameLabel" type="Label" parent="Margin/VBox/Header/Info"]
+[node name="NameLabel" type="Label" parent="Margin/VBox/Header/Info" unique_id=2004226253]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"HeaderLarge"
 text = "Item Name"
-horizontal_alignment = 0
 autowrap_mode = 3
 
-[node name="RarityLabel" type="Label" parent="Margin/VBox/Header/Info"]
+[node name="RarityLabel" type="Label" parent="Margin/VBox/Header/Info" unique_id=165278044]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Rarity - Level 1"
-horizontal_alignment = 0
 
-[node name="HSeparator" type="HSeparator" parent="Margin/VBox"]
+[node name="HSeparator" type="HSeparator" parent="Margin/VBox" unique_id=279222206]
 layout_mode = 2
 
-[node name="StatsScroll" type="ScrollContainer" parent="Margin/VBox"]
+[node name="StatsScroll" type="ScrollContainer" parent="Margin/VBox" unique_id=222640462]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="StatsBox" type="VBoxContainer" parent="Margin/VBox/StatsScroll"]
+[node name="StatsBox" type="VBoxContainer" parent="Margin/VBox/StatsScroll" unique_id=1065681356]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
-[node name="HSeparator2" type="HSeparator" parent="Margin/VBox"]
+[node name="HSeparator2" type="HSeparator" parent="Margin/VBox" unique_id=836743308]
 layout_mode = 2
 
-[node name="Actions" type="GridContainer" parent="Margin/VBox"]
+[node name="Actions" type="GridContainer" parent="Margin/VBox" unique_id=2046385609]
 unique_name_in_owner = true
 layout_mode = 2
-columns = 2
 theme_override_constants/h_separation = 15
-theme_override_constants/v_separation = 15
+theme_override_constants/v_separation = 8
+columns = 2
 
-[node name="UpgradeBtn" type="Button" parent="Margin/VBox/Actions"]
+[node name="UpgradeBtn" type="Button" parent="Margin/VBox/Actions" unique_id=558751164]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Upgrade"
 
-[node name="RecycleBtn" type="Button" parent="Margin/VBox/Actions"]
+[node name="RecycleBtn" type="Button" parent="Margin/VBox/Actions" unique_id=1631271124]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Recycle"
 
-[node name="EquipBtn" type="Button" parent="Margin/VBox/Actions"]
+[node name="EquipBtn" type="Button" parent="Margin/VBox/Actions" unique_id=549610061]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Equip"
 
-[node name="CloseBtn" type="Button" parent="Margin/VBox/Actions"]
+[node name="CloseBtn" type="Button" parent="Margin/VBox/Actions" unique_id=1990620708]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

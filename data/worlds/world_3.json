@@ -137,8 +137,7 @@
                     "hp_percent": 30,
                     "pattern": "phase_3_void_collapse"
                 }
-            ],
-            "loot_table": "boss_world_3"
+            ]
         }
     ],
     "unlock_condition": {

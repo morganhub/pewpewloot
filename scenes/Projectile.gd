@@ -417,9 +417,11 @@ func _spawn_explosion() -> void:
 	# Priority: asset_anim > asset > geometric (color)
 	VFXManager.spawn_explosion(global_position, size_val, Color(color_hex), get_parent(), asset_path, anim_path)
 
-func _on_area_entered(_area: Area2D) -> void:
-	# Collision avec d'autres projectiles (optionnel)
-	pass
+func _on_area_entered(area: Area2D) -> void:
+	# Collision avec les murs (Obstacle Waller)
+	if area.is_in_group("walls"):
+		# _spawn_explosion() # Disabled per request
+		deactivate("hit_wall")
 
 # =============================================================================
 # UTILITY

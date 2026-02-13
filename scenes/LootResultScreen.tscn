@@ -84,7 +84,7 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 
-[node name="StatsLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Panel" unique_id=1237312690]
+[node name="StatsContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Panel" unique_id=1237312690]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -92,9 +92,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Stats..."
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_constants/separation = 5
+alignment = 1
 
 [node name="Spacer" type="Control" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=572640404]
 layout_mode = 2
@@ -121,5 +120,68 @@ theme_override_font_sizes/font_size = 18
 text = "Recycler"
 icon_alignment = 1
 
+[node name="HSeparator2" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1860613718]
+layout_mode = 2
+
+[node name="SessionLootContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=780710581]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SessionTitle" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer" unique_id=575727419]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "BUTIN DE SESSION"
+horizontal_alignment = 1
+
+[node name="InventoryHBox" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer" unique_id=1926974066]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="PrevButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/InventoryHBox" unique_id=999590287]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+text = "<"
+
+[node name="ItemsGrid" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/InventoryHBox" unique_id=1083273812]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="NextButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/InventoryHBox" unique_id=476662037]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+text = ">"
+
+[node name="HSeparator3" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=971115424]
+layout_mode = 2
+
+[node name="NavigationButtons" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1287896151]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="RestartButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons" unique_id=8533450]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Recommencer"
+
+[node name="ExitButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons" unique_id=316260172]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Quitter"
+
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer/EquipButton" to="." method="_on_equip_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer/DisassembleButton" to="." method="_on_disassemble_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons/RestartButton" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons/ExitButton" to="." method="_on_exit_pressed"]

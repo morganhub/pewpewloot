@@ -15,7 +15,6 @@ var _slots: Array = []
 var _slot_ids: Array = []
 var _rarities: Array = []
 var _affixes: Dictionary = {}
-var _loot_tables: Dictionary = {}
 var _uniques: Array = []
 var _uniques_by_id: Dictionary = {} # unique_id -> data
 var _super_powers: Dictionary = {} # power_id -> data
@@ -377,7 +376,7 @@ func get_all_bosses() -> Array:
 	return _bosses.values()
 
 # =============================================================================
-# LOOT (slots, rarities, affixes, loot_tables, uniques)
+# LOOT (slots, rarities, affixes, uniques)
 # =============================================================================
 
 func _load_loot_data() -> void:
@@ -385,7 +384,6 @@ func _load_loot_data() -> void:
 	_slot_ids.clear()
 	_rarities.clear()
 	_affixes.clear()
-	_loot_tables.clear()
 	_uniques.clear()
 	_uniques_by_id.clear()
 	
@@ -407,9 +405,7 @@ func _load_loot_data() -> void:
 	if raw_affixes is Dictionary:
 		_affixes = raw_affixes as Dictionary
 	
-	# Loot tables
-	var tables_data := _load_json("res://data/loot/loot_tables.json")
-	_loot_tables = tables_data
+	# Boss unique pools are read directly from data/bosses.json -> bosses[].loot_table
 	
 	# Uniques
 	var uniques_data := _load_json("res://data/loot/uniques.json")
@@ -478,13 +474,6 @@ func get_affixes_for_slot(slot_id: String) -> Array:
 		result.append_array(slot_specific as Array)
 	
 	return result
-
-## Retourne une loot table par son ID
-func get_loot_table(table_id: String) -> Dictionary:
-	var raw: Variant = _loot_tables.get(table_id, {})
-	if raw is Dictionary:
-		return raw as Dictionary
-	return {}
 
 ## Retourne tous les uniques
 func get_uniques() -> Array:

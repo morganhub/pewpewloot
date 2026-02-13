@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3 uid="uid://loot_notification"]
+
+[ext_resource type="Script" path="res://scenes/ui/LootNotification.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://item_card" path="res://scenes/components/ItemCard.tscn" id="2_card"]
+
+[node name="LootNotification" type="Control"]
+custom_minimum_size = Vector2(110, 140)
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_script")
+
+[node name="Mover" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -70.0
+offset_bottom = 70.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="ItemCard" parent="Mover" instance=ExtResource("2_card")]
+layout_mode = 1
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2

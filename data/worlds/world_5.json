@@ -141,8 +141,7 @@
                     "hp_percent": 15,
                     "pattern": "phase_4_annihilation"
                 }
-            ],
-            "loot_table": "boss_world_5"
+            ]
         }
     ],
     "unlock_condition": {

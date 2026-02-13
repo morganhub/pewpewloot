@@ -52,11 +52,11 @@
 			"id": "primary",
 			"name": "Arme Principale",
 			"icon": {
-				"common": "",
-				"uncommon": "",
-				"rare": "",
-				"epic": "",
-				"legendary": ""
+				"common": "res://assets/items/primary/rocket_4.png",
+				"uncommon": "res://assets/items/primary/rocket_5.png",
+				"rare": "res://assets/items/primary/rocket_8.png",
+				"epic": "res://assets/items/primary/rocket_8_vertical.png",
+				"legendary": "res://assets/items/primary/rocket_6.png"
 			},
 			"description": "Modifie les tirs principaux"
 		},

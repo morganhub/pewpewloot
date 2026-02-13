@@ -12,9 +12,19 @@ var _rarity_config: Dictionary = {}
 var _affixes_pool: Array = []
 var _unique_items: Array = []
 var _slot_base_stats: Dictionary = {}
+var _boss_loot_quality_bonus: float = 25.0
 
 # Total weight for rarity selection
 var _total_rarity_weight: float = 0.0
+var _rarity_priority: Dictionary = {
+	"common": 0,
+	"uncommon": 1,
+	"rare": 2,
+	"epic": 3,
+	"legendary": 4,
+	"unique": 5
+}
+const _RARITY_ORDER: Array[String] = ["common", "uncommon", "rare", "epic", "legendary", "unique"]
 
 # =============================================================================
 # INITIALIZATION
@@ -54,6 +64,9 @@ func _load_loot_table() -> void:
 	var slots_raw: Variant = _loot_config.get("slot_base_stats", {})
 	if slots_raw is Dictionary:
 		_slot_base_stats = slots_raw
+
+	# Boss global quality bonus (+25 by default).
+	_boss_loot_quality_bonus = float(_loot_config.get("boss_loot_quality_bonus", 25.0))
 	
 	# Calculate total weight
 	_total_rarity_weight = 0.0
@@ -61,10 +74,23 @@ func _load_loot_table() -> void:
 		var cfg: Variant = _rarity_config.get(rarity_key, {})
 		if cfg is Dictionary:
 			_total_rarity_weight += float((cfg as Dictionary).get("weight", 0))
+
+	# Prefer uniques from DataManager (data/loot/uniques.json) over embedded config.
+	_refresh_unique_items_cache()
 	
 	print("[LootGenerator] Loaded. Rarities: ", _rarity_config.keys().size(), 
 		  " | Affixes: ", _affixes_pool.size(),
-		  " | Uniques: ", _unique_items.size())
+		  " | Uniques: ", _unique_items.size(),
+		  " | BossQualityBonus: ", _boss_loot_quality_bonus)
+
+func _refresh_unique_items_cache() -> void:
+	if DataManager:
+		var dm_uniques: Variant = DataManager.get_uniques()
+		if dm_uniques is Array and (dm_uniques as Array).size() > 0:
+			_unique_items = (dm_uniques as Array).duplicate(true)
+
+func get_boss_loot_quality_bonus() -> float:
+	return _boss_loot_quality_bonus
 
 # =============================================================================
 # MAIN GENERATION
@@ -74,9 +100,10 @@ func _load_loot_table() -> void:
 ## @param target_level: Player/World level (affects stat scaling)
 ## @param slot_type: Which equipment slot (e.g., "engine", "reactor"). Empty = random.
 ## @param force_rarity: Force a specific rarity (e.g., "legendary"). Empty = weighted random.
-func generate_loot(target_level: int, slot_type: String = "", force_rarity: String = "") -> LootItem:
+## @param quality_mult: quality bonus used to bias rarity upward.
+func generate_loot(target_level: int, slot_type: String = "", force_rarity: String = "", quality_mult: float = 1.0) -> LootItem:
 	# 1. Determine Rarity
-	var rarity_str: String = force_rarity if force_rarity != "" else _roll_rarity()
+	var rarity_str: String = force_rarity if force_rarity != "" else _roll_rarity(quality_mult)
 	
 	# 2. Unique Branch
 	if rarity_str == "unique":
@@ -85,28 +112,85 @@ func generate_loot(target_level: int, slot_type: String = "", force_rarity: Stri
 	# 3. Procedural Branch
 	return _generate_procedural_item(target_level, slot_type, rarity_str)
 
+## Generate loot specifically for bosses.
+## - Uses global bonus from loot_table.json (boss_loot_quality_bonus)
+## - Uses boss-specific unique pool from bosses.json -> loot_table
+func generate_boss_loot(target_level: int, boss_id: String, extra_quality_bonus: float = 0.0) -> LootItem:
+	var total_quality_bonus: float = maxf(0.0, _boss_loot_quality_bonus + extra_quality_bonus)
+	var rarity_str := _roll_rarity(total_quality_bonus)
+	var boss_unique_ids := _get_boss_unique_ids(boss_id)
+	
+	if rarity_str == "unique":
+		if boss_unique_ids.is_empty():
+			# Keep deterministic behavior: if no boss table is configured,
+			# degrade unique roll to legendary instead of leaking other boss uniques.
+			return _generate_procedural_item(target_level, "", "legendary")
+		return _generate_unique_item("", boss_unique_ids)
+	
+	return _generate_procedural_item(target_level, "", rarity_str)
+
 # =============================================================================
 # RARITY SELECTION
 # =============================================================================
 
-func _roll_rarity() -> String:
-	var roll := randf() * _total_rarity_weight
+func _roll_rarity(quality_mult: float = 1.0) -> String:
+	var quality_bonus: float = maxf(0.0, quality_mult)
+	var adjusted := _get_adjusted_rarity_weights(quality_bonus)
+	
+	var total_weight: float = 0.0
+	for rarity_id in _RARITY_ORDER:
+		total_weight += float(adjusted.get(rarity_id, 0.0))
+	
+	if total_weight <= 0.0:
+		return "rare"
+	
+	var roll := randf() * total_weight
 	var cumulative := 0.0
+	for rarity_id in _RARITY_ORDER:
+		cumulative += float(adjusted.get(rarity_id, 0.0))
+		if roll <= cumulative:
+			return rarity_id
 	
-	for rarity_key in _rarity_config.keys():
-		var cfg: Variant = _rarity_config.get(rarity_key, {})
+	return "rare"
+
+func _get_adjusted_rarity_weights(quality_bonus: float) -> Dictionary:
+	var weights := {
+		"common": 0.0,
+		"uncommon": 0.0,
+		"rare": 0.0,
+		"epic": 0.0,
+		"legendary": 0.0,
+		"unique": 0.0
+	}
+	
+	# Pull base weights from config
+	for rarity_id in _RARITY_ORDER:
+		var cfg: Variant = _rarity_config.get(rarity_id, {})
 		if cfg is Dictionary:
-			cumulative += float((cfg as Dictionary).get("weight", 0))
-			if roll <= cumulative:
-				return rarity_key
+			weights[rarity_id] = float((cfg as Dictionary).get("weight", 0.0))
 	
-	return "common" # Fallback
+	# Bias towards higher rarities with quality bonus.
+	weights["common"] = float(weights["common"]) * maxf(0.0, 1.0 - quality_bonus * 0.05)
+	weights["uncommon"] = float(weights["uncommon"]) * maxf(0.0, 1.0 - quality_bonus * 0.04)
+	weights["rare"] = float(weights["rare"]) * (1.0 + quality_bonus * 0.04)
+	weights["epic"] = float(weights["epic"]) * (1.0 + quality_bonus * 0.08)
+	weights["legendary"] = float(weights["legendary"]) * (1.0 + quality_bonus * 0.12)
+	weights["unique"] = float(weights["unique"]) * (1.0 + quality_bonus * 0.18)
+	
+	# Strict rule: if quality bonus exceeds 10, common/uncommon are forbidden.
+	if quality_bonus > 10.0:
+		weights["common"] = 0.0
+		weights["uncommon"] = 0.0
+	
+	return weights
 
 # =============================================================================
 # UNIQUE ITEM GENERATION
 # =============================================================================
 
-func _generate_unique_item(preferred_slot: String) -> LootItem:
+func _generate_unique_item(preferred_slot: String, allowed_unique_ids: Array = []) -> LootItem:
+	_refresh_unique_items_cache()
+	
 	if _unique_items.is_empty():
 		# No uniques defined, fallback to legendary
 		return _generate_procedural_item(1, preferred_slot, "legendary")
@@ -115,10 +199,18 @@ func _generate_unique_item(preferred_slot: String) -> LootItem:
 	var candidates: Array = []
 	for u in _unique_items:
 		if u is Dictionary:
-			if preferred_slot == "" or str((u as Dictionary).get("slot", "")) == preferred_slot:
-				candidates.append(u)
+			var u_dict := u as Dictionary
+			var u_id := str(u_dict.get("id", ""))
+			var slot_ok := preferred_slot == "" or str(u_dict.get("slot", "")) == preferred_slot
+			var allowed_ok := allowed_unique_ids.is_empty() or allowed_unique_ids.has(u_id)
+			if slot_ok and allowed_ok:
+				candidates.append(u_dict)
 	
 	if candidates.is_empty():
+		# If boss pool was requested but empty/invalid, fallback to legendary
+		# rather than pulling an unrelated unique from another boss.
+		if not allowed_unique_ids.is_empty():
+			return _generate_procedural_item(1, preferred_slot, "legendary")
 		candidates = _unique_items.duplicate()
 	
 	# Pick random unique
@@ -131,15 +223,58 @@ func _generate_unique_item(preferred_slot: String) -> LootItem:
 	item.level = 1 # Uniques don't scale by level
 	item.slot = str(unique_data.get("slot", ""))
 	item.is_unique = true
-	item.special_ability_id = str(unique_data.get("special_ability_id", ""))
-	item.asset = str(unique_data.get("icon", unique_data.get("asset", "")))
+	item.special_ability_id = str(unique_data.get("special_ability_id", unique_data.get("unique_power_id", "")))
+	item.source_boss_id = str(unique_data.get("source_boss", ""))
+	item.asset = str(unique_data.get("icon", unique_data.get("sprite", unique_data.get("asset", ""))))
 	
 	# Fixed stats
 	var stats_raw: Variant = unique_data.get("stats", {})
 	if stats_raw is Dictionary:
-		item.base_stats = (stats_raw as Dictionary).duplicate()
+		var normalized: Dictionary = {}
+		for raw_key in (stats_raw as Dictionary).keys():
+			var key := str(raw_key)
+			var value := float((stats_raw as Dictionary)[raw_key])
+			var mapped := _map_unique_stat_to_ship_stat(key, value)
+			var final_key: String = str(mapped.get("key", key))
+			var final_value: float = float(mapped.get("value", value))
+			normalized[final_key] = float(normalized.get(final_key, 0.0)) + final_value
+		item.base_stats = normalized
 	
 	return item
+
+func _map_unique_stat_to_ship_stat(stat_key: String, value: float) -> Dictionary:
+	match stat_key:
+		"damage":
+			return {"key": "power", "value": value}
+		"cooldown_reduction":
+			# Convert legacy percent-like value to the game's flat cooldown stat.
+			# Example: 10 -> -1.0s, 25 -> -2.5s
+			return {"key": "special_cd", "value": -absf(value) / 10.0}
+		"fire_rate":
+			# Legacy unique data often uses percent-like values (e.g. 10 for +10%).
+			if value > 1.0:
+				return {"key": "fire_rate", "value": value / 100.0}
+			return {"key": "fire_rate", "value": value}
+		_:
+			return {"key": stat_key, "value": value}
+
+func _get_boss_unique_ids(boss_id: String) -> Array:
+	var ids: Array = []
+	if not DataManager:
+		return ids
+	
+	var boss_data := DataManager.get_boss(boss_id)
+	if boss_data.is_empty():
+		return ids
+	
+	var raw_table: Variant = boss_data.get("loot_table", [])
+	if raw_table is Array:
+		for entry in raw_table:
+			var id := str(entry).strip_edges()
+			if id != "":
+				ids.append(id)
+	
+	return ids
 
 # =============================================================================
 # PROCEDURAL ITEM GENERATION
@@ -273,6 +408,7 @@ func _generate_item_name(item: LootItem) -> String:
 
 ## Get all available unique items
 func get_unique_items() -> Array:
+	_refresh_unique_items_cache()
 	return _unique_items.duplicate()
 
 ## Get rarity config (for debug/UI)

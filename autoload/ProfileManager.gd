@@ -158,7 +158,22 @@ func delete_profile(profile_id: String) -> void:
 
 	save_to_disk()
 
-# =============================================================================
+## Calcule la valeur de recyclage d'un item
+func calculate_recycle_value(item: Dictionary) -> int:
+	var rarity = str(item.get("rarity", "common"))
+	var level = int(item.get("level", 1))
+	var base_val: int = 5
+	match rarity:
+		"common": base_val = 5
+		"uncommon": base_val = 15
+		"rare": base_val = 40
+		"epic": base_val = 100
+		"legendary": base_val = 250
+		"unique": base_val = 500
+	var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
+	return int(float(base_val) * multiplier)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PROGRESSION MONDES/NIVEAUX
 # =============================================================================
 
@@ -329,7 +344,7 @@ func get_upgrade_cost(current_level: int) -> int:
 		return 0  # Max level atteint
 	return int(10.0 * pow(float(current_level), 1.5))
 
-## Upgrade un item (augmente son level)
+## Upgrade un item (augmente son level et ses stats)
 func upgrade_item(item_id: String) -> bool:
 	var item := get_item_by_id(item_id)
 	if item.is_empty():
@@ -337,19 +352,46 @@ func upgrade_item(item_id: String) -> bool:
 	
 	var current_level := int(item.get("level", 1))
 	if current_level >= 10:
-		push_warning("[ProfileManager] Item already at max level!")
 		return false
 	
-	var cost := get_upgrade_cost(current_level)
+	var upgrade_data = DataManager.get_level_upgrade_data(current_level)
+	var next_data = upgrade_data.get("upgrade_to_next", {})
+	var cost := int(next_data.get("cost", 999999))
+	
 	if not spend_crystals(cost):
-		push_warning("[ProfileManager] Not enough crystals to upgrade!")
 		return false
 	
-	# Mettre à jour le level
+	# Logic Upgrade (Stats)
+	var roll = randf() * 100.0
+	var tier = "decent"
+	# Weights: Decent 40, Great 45, Perfect 15
+	if roll < 40: tier = "decent"
+	elif roll < 85: tier = "great"
+	else: tier = "perfect"
+	
+	var tiers_cfg = next_data.get("tiers", {})
+	var tier_data = tiers_cfg.get(tier, {})
+	var mult_min = float(tier_data.get("multiplier_min", 1.05))
+	var mult_max = float(tier_data.get("multiplier_max", 1.10))
+	var multiplier = randf_range(mult_min, mult_max)
+	
+	var stats = item.get("stats", {}).duplicate()
+	for key in stats:
+		var val = float(stats[key])
+		# Heuristic: if small integer, increment or keep as float?
+		# Match ShipMenu logic
+		if val < 5.0 and val > 1.0:
+			stats[key] = val * multiplier
+		else:
+			# Large numbers (HP, Shield, Damage)
+			stats[key] = ceil(val * multiplier)
+	
+	# Update globally
 	var inv := get_inventory()
 	for i in range(inv.size()):
 		if inv[i] is Dictionary and str(inv[i].get("id", "")) == item_id:
 			inv[i]["level"] = current_level + 1
+			inv[i]["stats"] = stats
 			_update_active_profile("inventory", inv)
 			return true
 	
@@ -387,6 +429,11 @@ func get_all_equipped_item_ids() -> Array:
 					if item_id != "" and not equipped.has(item_id):
 						equipped.append(item_id)
 	return equipped
+
+## Vérifie si un item est équipé sur n'importe quel vaisseau
+func is_item_equipped(item_id: String) -> bool:
+	var equipped := get_all_equipped_item_ids()
+	return equipped.has(item_id)
 
 ## Équipe un item sur un slot pour un vaisseau
 func equip_item(ship_id: String, slot: String, item_id: String) -> void:

@@ -407,11 +407,12 @@ func add_fire_rate_boost(duration: float) -> void:
 	var bonus_pct = float(power_up_config.get("rapid_fire", {}).get("bonus", 50.0))
 	
 	# Apply boost: New Rate = Base Rate * (1 + bonus/100)
-	# Note: fire_rate is DELAY (seconds). So we DIVIDE by multiplier.
+	# Note: fire_rate is RATE (Attacks/Sec) based on logic in _fire().
+	# To make faster, we MULTIPLY rate.
 	var multiplier = 1.0 + (bonus_pct / 100.0)
 	if multiplier <= 0.1: multiplier = 1.0 # Safety
 	
-	fire_rate = _base_fire_rate / multiplier
+	fire_rate = _base_fire_rate * multiplier
 	
 	# Visual feedback
 	VFXManager.spawn_floating_text(global_position, "RAPID FIRE! +" + str(int(bonus_pct)) + "%", Color.YELLOW, get_parent())
@@ -520,19 +521,24 @@ func _check_shield_impact(body: Node) -> void:
 	if body.has_method("get") and body.get("is_player_projectile") == false:
 		_apply_shield_impact(body)
 
-func _apply_shield_impact(projectile: Node) -> void:
-	if not shield or not shield_active: return
+func absorb_damage_with_shield(amount: int, impact_world_pos: Vector2 = Vector2.ZERO) -> int:
+	if amount <= 0:
+		return 0
+	if not shield_active or shield_energy <= 0:
+		return amount
+	if not shield or not is_instance_valid(shield):
+		return amount
 	
-	# Determine damage
-	var dmg = 10.0
-	if projectile.has_method("get_damage"):
-		dmg = projectile.get_damage()
-	elif "damage" in projectile:
-		dmg = float(projectile.damage)
-		
-	# Absorb
-	shield_energy -= dmg
-	shield_changed.emit(shield_energy, shield_max_energy)
+	var incoming := float(amount)
+	var absorbed := minf(shield_energy, incoming)
+	shield_energy -= absorbed
+	var remaining := incoming - absorbed
+	
+	# Keep UI synced to current shield value.
+	if shield_energy > 0.0:
+		shield_changed.emit(shield_energy, shield_max_energy)
+	else:
+		shield_changed.emit(0.0, shield_max_energy)
 	
 	# Play SFX (Shield Hit)
 	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
@@ -541,57 +547,24 @@ func _apply_shield_impact(projectile: Node) -> void:
 		AudioManager.play_sfx(sfx_path, 0.1)
 	
 	# Update Color based on health (Low Energy Warning)
-	if shield:
+	if shield.has_method("update_material"):
 		var pct = shield_energy / shield_max_energy
 		if pct < 0.3:
 			shield.update_material("_color_shield", Color(1.0, 0.0, 0.0)) # Red Alert
 		else:
-			# Ensure we are at base color (in case we healed somehow, or just to be safe)
 			var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
 			var visual_config = gameplay_config.get("shield", {}).get("visual", {})
 			var base_col_str = str(visual_config.get("color_shield", "#00CCFF"))
 			shield.update_material("_color_shield", Color(base_col_str))
 	
-	# Visual Impact Calculation
-	# Projectile is 2D (Global Pos), Shield is 3D (in SubViewport)
-	# We need to map the 2D projectile hit relative to the Player center to the 3D Shield surface
-	
-	if projectile is Node2D:
-		var rel_pos = projectile.global_position - self.global_position
-		# Map 2D relative (X right, Y down) to 3D local (X right, Y up usually)
-		# Shield is a sphere of diameter X.
-		# Let's assume 1:1 mapping for simplicity first, scaled by some factor if needed.
-		# Note: In 3D layer, Y is Up. Screen Y is Down. So we invert Y.
-		var impact_local = Vector3(rel_pos.x, -rel_pos.y, 0.5) 
-		
-		# Normalize to surface? The shader usually expects a point on/near surface.
-		# If sphere radius is 1.0 (local), we might need to normalize.
-		# But 'impact' function seems to take a point and handle it.
-		# Let's try converting this local 3D offset to global 3D for the shield function if it expects global.
-		
-		# Getting Shield 3D global position is tricky inside SubViewport.
-		# But wait, shield.impact(pos) doc says "starting a new impact animation".
-		# Looking at shield.gd: "if relative_impact_position: impact_pos = to_local(pos)"
-		# By default relative_impact_position is false, so it expects GLOBAL 3D position.
-		
-		# Our Shield is at (0,0,0) in the SubViewport's world.
-		# Camera is at (0,0,2).
-		# So a local offset of (x, y, z) is basically the global position in that 3D world.
-		
-		# Scale down? The 2D coordinates are in pixels (e.g. 50px).
-		# The 3D sphere is likely size 1.0 or similar (MeshInstance).
-		# We need to scaling factor.
+	# Visual impact
+	if shield.has_method("impact"):
+		var rel_pos = impact_world_pos - self.global_position
 		var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
 		var shield_dia = float(gameplay_config.get("shield", {}).get("shield_diameter", 150.0))
-		var scale_factor = 2.0 / shield_dia # Map diameter pixels to approx size 2.0 (radius 1.0)
-		
+		var scale_factor = 2.0 / shield_dia
 		var impact_3d = Vector3(rel_pos.x * scale_factor, -rel_pos.y * scale_factor, 0.5)
-		
-		print("[Player] Impact 2D Rel: ", rel_pos, " -> 3D: ", impact_3d)
 		shield.impact(impact_3d)
-	else:
-		# Fallback
-		shield.impact(Vector3(0, 0, 1))
 	
 	if shield_energy <= 0:
 		# Break Shield
@@ -603,11 +576,10 @@ func _apply_shield_impact(projectile: Node) -> void:
 		
 		# Collapse sequence
 		get_tree().create_timer(0.2).timeout.connect(func():
-			if shield: 
+			if shield:
 				shield.collapse()
-				# Hide container after collapse animation (approx 1s)
 				get_tree().create_timer(1.0).timeout.connect(func():
-					if shield and not shield_active: # Double check
+					if shield and not shield_active:
 						shield.visible = false
 						if shield.get_parent() is SubViewport:
 							var container = shield.get_parent().get_parent()
@@ -615,6 +587,26 @@ func _apply_shield_impact(projectile: Node) -> void:
 								container.visible = false
 				)
 		)
+	
+	return int(ceil(remaining))
+
+func _apply_shield_impact(projectile: Node) -> void:
+	if not shield or not shield_active:
+		return
+	
+	# Determine damage
+	var dmg = 10.0
+	if projectile.has_method("get_damage"):
+		dmg = projectile.get_damage()
+	elif "damage" in projectile:
+		dmg = float(projectile.damage)
+	
+	var impact_world_pos := global_position
+	if projectile is Node2D:
+		impact_world_pos = projectile.global_position
+	
+	# Keep existing behavior for projectiles: shield absorbs impact.
+	absorb_damage_with_shield(int(round(dmg)), impact_world_pos)
 
 
 
@@ -656,12 +648,31 @@ func _handle_movement(delta: float) -> void:
 			else:
 				velocity = Vector2.ZERO
 	
+	# 1. Clamp Input-based Movement strictly to screen
+	var viewport_size := get_viewport_rect().size
+	# Margin for joystick drag
+	var margin_y = 20.0
+	
+	# Clamp position BEFORE physics (stops user dragging out)
+	# Allow going down ONLY if pushed by physics (checked later)
+	# Actually, physics step happens in move_and_slide.
+	# If we clamp here, we clamp the input result.
+	if global_position.y > viewport_size.y - margin_y:
+		global_position.y = viewport_size.y - margin_y
+	
 	move_and_slide()
 	
-	# Clamper à l'écran
-	var viewport_size := get_viewport_rect().size
+	# 2. Strict X Clamp
 	global_position.x = clampf(global_position.x, 20, viewport_size.x - 20)
-	global_position.y = clampf(global_position.y, 20, viewport_size.y - 20)
+	
+	# 3. Y Clamp - Top only (Prevent going up off screen)
+	if global_position.y < 20:
+		global_position.y = 20
+		
+	# 4. Check death by "Crushing" (Pushed off screen bottom by Wall)
+	# Significant margin to avoid accidental death on edge
+	if global_position.y > viewport_size.y + 50:
+		take_damage(99999)
 
 func _handle_shooting(delta: float) -> void:
 	# --- DEBUG PATTERN ROTATION - START ---
@@ -873,25 +884,6 @@ func _spawn_salvo(pattern_data: Dictionary, speed: float, damage: int) -> void:
 func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int, pattern_data: Dictionary) -> void:
 	var is_critical := randf() <= crit_chance
 	var final_dmg := dmg * (2 if is_critical else 1)
-	
-	# --- DEBUG LOG REQUESTED BY USER ---
-	var sound_path = str(pattern_data.get("sound", ""))
-	var visual_data = pattern_data.get("visual_data", {})
-	var anim_path = str(visual_data.get("asset_anim", ""))
-	var sprite_path = str(visual_data.get("asset", ""))
-	
-	var sound_status = "none"
-	if sound_path != "":
-		sound_status = "ok" if ResourceLoader.exists(sound_path) else "FAIL"
-	
-	var gfx_status = "fallback (shape)"
-	if anim_path != "":
-		gfx_status = "anim ok" if ResourceLoader.exists(anim_path) else "anim FAIL"
-	elif sprite_path != "":
-		gfx_status = "sprite ok" if ResourceLoader.exists(sprite_path) else "sprite FAIL"
-	
-	print("[%d] - Missile shot - asset sound {%s} - asset gfx {%s}" % [Time.get_ticks_msec(), sound_status, gfx_status])
-	# -----------------------------------
 	
 	# Clamp position roughly
 	# Warning: clamp might screw up off-screen spawning (screen_bottom/screen_top)
