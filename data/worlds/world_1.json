@@ -32,7 +32,7 @@
 			"waves": [
 				{
 					"time": 2.0,
-					"enemy_id": "scout_basic",
+					"enemy_id": "woop_dive",
 					"count": 30,
 					"interval": 0.5,
 					"pattern_id": "bezier_curve",
