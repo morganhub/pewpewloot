@@ -196,25 +196,25 @@ func _update_ui() -> void:
 	if disassemble_btn.icon == null:
 		disassemble_btn.text = "♻️ Recycler (+" + str(val) + " 💎)"
 
-func _set_boss_loot_section_visible(visible: bool) -> void:
+func _set_boss_loot_section_visible(is_visible: bool) -> void:
 	if top_separator:
-		top_separator.visible = visible
+		top_separator.visible = is_visible
 	if item_name_label:
-		item_name_label.visible = visible
+		item_name_label.visible = is_visible
 	if item_type_label:
-		item_type_label.visible = visible
+		item_type_label.visible = is_visible
 	if item_stats_panel:
-		item_stats_panel.visible = visible
+		item_stats_panel.visible = is_visible
 	if item_spacer:
-		item_spacer.visible = visible
+		item_spacer.visible = is_visible
 	if boss_buttons_container:
-		boss_buttons_container.visible = visible
+		boss_buttons_container.visible = is_visible
 	if mid_separator:
-		mid_separator.visible = visible
+		mid_separator.visible = is_visible
 	if equip_btn:
-		equip_btn.visible = visible
+		equip_btn.visible = is_visible
 	if disassemble_btn:
-		disassemble_btn.visible = visible
+		disassemble_btn.visible = is_visible
 
 func _add_stat_row(stat_key: String, value: Variant) -> void:
 	var stat_icons = {
@@ -237,12 +237,12 @@ func _add_stat_row(stat_key: String, value: Variant) -> void:
 	# Icon
 	var icon_path = str(stat_icons.get(stat_key, ""))
 	if icon_path != "" and ResourceLoader.exists(icon_path):
-		var tr = TextureRect.new()
-		tr.texture = load(icon_path)
-		tr.custom_minimum_size = Vector2(24, 24)
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		hbox.add_child(tr)
+		var icon_rect = TextureRect.new()
+		icon_rect.texture = load(icon_path)
+		icon_rect.custom_minimum_size = Vector2(24, 24)
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		hbox.add_child(icon_rect)
 	
 	# Label
 	var lbl = Label.new()

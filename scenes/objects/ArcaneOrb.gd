@@ -50,17 +50,20 @@ func _process(delta: float) -> void:
 
 func _setup_orb_visual() -> void:
 	var tex: Texture2D = null
+	var frames: SpriteFrames = null
 	if ability_asset != "" and ResourceLoader.exists(ability_asset):
 		var res = load(ability_asset)
-		if res is Texture2D:
+		if res is SpriteFrames:
+			frames = res as SpriteFrames
+		elif res is Texture2D:
 			tex = res as Texture2D
+	if frames != null:
+		_apply_orb_frames(frames)
+		return
+	
 	if tex == null:
 		tex = _create_solid_texture(Color("#D000FF"))
-	
-	orb_sprite.texture = tex
-	var tex_size := tex.get_size()
-	if tex_size.x > 0.0 and tex_size.y > 0.0:
-		orb_sprite.scale = Vector2(float(orb_width) / tex_size.x, float(orb_height) / tex_size.y)
+	_apply_orb_texture(tex)
 
 func _setup_orb_hitbox() -> void:
 	var shape := CircleShape2D.new()
@@ -69,8 +72,7 @@ func _setup_orb_hitbox() -> void:
 
 func _setup_laser() -> void:
 	var viewport_width := get_viewport_rect().size.x
-	var half_length := maxf(24.0, viewport_width * laser_length_pct)
-	var total_length := half_length * 2.0
+	var total_length := maxf(24.0, viewport_width * laser_length_pct)
 	var thickness := maxf(4.0, beam_thickness)
 	
 	var rect := RectangleShape2D.new()
@@ -78,17 +80,20 @@ func _setup_laser() -> void:
 	beam_shape.shape = rect
 	
 	var tex: Texture2D = null
+	var frames: SpriteFrames = null
 	if laser_asset != "" and ResourceLoader.exists(laser_asset):
 		var res = load(laser_asset)
-		if res is Texture2D:
+		if res is SpriteFrames:
+			frames = res as SpriteFrames
+		elif res is Texture2D:
 			tex = res as Texture2D
+	if frames != null:
+		_apply_beam_frames(frames, total_length, thickness)
+		return
+	
 	if tex == null:
 		tex = _create_solid_texture(Color("#A040FF"))
-	
-	beam_sprite.texture = tex
-	var tex_size := tex.get_size()
-	if tex_size.x > 0.0 and tex_size.y > 0.0:
-		beam_sprite.scale = Vector2(total_length / tex_size.x, thickness / tex_size.y)
+	_apply_beam_texture(tex, total_length, thickness)
 
 func _on_orb_body_entered(body: Node2D) -> void:
 	_try_damage_player(body)
@@ -126,3 +131,95 @@ func _create_solid_texture(color: Color) -> Texture2D:
 	var img := Image.create(2, 2, false, Image.FORMAT_RGBA8)
 	img.fill(color)
 	return ImageTexture.create_from_image(img)
+
+func _apply_orb_texture(tex: Texture2D) -> void:
+	var orb_anim: AnimatedSprite2D = get_node_or_null("OrbAnim")
+	if orb_anim:
+		orb_anim.visible = false
+	
+	orb_sprite.visible = true
+	orb_sprite.texture = tex
+	var used := _get_effective_used_rect(tex)
+	if used.size.x > 0.0 and used.size.y > 0.0:
+		orb_sprite.scale = Vector2(float(orb_width) / used.size.x, float(orb_height) / used.size.y)
+		orb_sprite.offset = _get_centering_offset(tex.get_size(), used)
+
+func _apply_orb_frames(frames: SpriteFrames) -> void:
+	orb_sprite.visible = false
+	
+	var orb_anim: AnimatedSprite2D = get_node_or_null("OrbAnim")
+	if orb_anim == null:
+		orb_anim = AnimatedSprite2D.new()
+		orb_anim.name = "OrbAnim"
+		add_child(orb_anim)
+	
+	orb_anim.visible = true
+	orb_anim.sprite_frames = frames
+	var anim_name := _get_default_anim_name(frames)
+	if anim_name != "":
+		orb_anim.play(anim_name)
+		var frame_tex = frames.get_frame_texture(anim_name, 0)
+		if frame_tex:
+			var used := _get_effective_used_rect(frame_tex)
+			if used.size.x > 0.0 and used.size.y > 0.0:
+				orb_anim.scale = Vector2(float(orb_width) / used.size.x, float(orb_height) / used.size.y)
+				orb_anim.offset = _get_centering_offset(frame_tex.get_size(), used)
+
+func _apply_beam_texture(tex: Texture2D, total_length: float, thickness: float) -> void:
+	var beam_anim: AnimatedSprite2D = laser_hitbox.get_node_or_null("BeamAnim")
+	if beam_anim:
+		beam_anim.visible = false
+	
+	beam_sprite.visible = true
+	beam_sprite.texture = tex
+	var used := _get_effective_used_rect(tex)
+	if used.size.x > 0.0 and used.size.y > 0.0:
+		beam_sprite.scale = Vector2(total_length / used.size.x, thickness / used.size.y)
+		beam_sprite.offset = _get_centering_offset(tex.get_size(), used)
+
+func _apply_beam_frames(frames: SpriteFrames, total_length: float, thickness: float) -> void:
+	beam_sprite.visible = false
+	
+	var beam_anim: AnimatedSprite2D = laser_hitbox.get_node_or_null("BeamAnim")
+	if beam_anim == null:
+		beam_anim = AnimatedSprite2D.new()
+		beam_anim.name = "BeamAnim"
+		laser_hitbox.add_child(beam_anim)
+	
+	beam_anim.visible = true
+	beam_anim.sprite_frames = frames
+	var anim_name := _get_default_anim_name(frames)
+	if anim_name != "":
+		beam_anim.play(anim_name)
+		var frame_tex = frames.get_frame_texture(anim_name, 0)
+		if frame_tex:
+			var used := _get_effective_used_rect(frame_tex)
+			if used.size.x > 0.0 and used.size.y > 0.0:
+				beam_anim.scale = Vector2(total_length / used.size.x, thickness / used.size.y)
+				beam_anim.offset = _get_centering_offset(frame_tex.get_size(), used)
+
+func _get_default_anim_name(frames: SpriteFrames) -> String:
+	if frames.has_animation("default"):
+		return "default"
+	var names := frames.get_animation_names()
+	if names.size() > 0:
+		return str(names[0])
+	return ""
+
+func _get_effective_used_rect(tex: Texture2D) -> Rect2:
+	if tex == null:
+		return Rect2(0, 0, 0, 0)
+	var full_size := Vector2(tex.get_size())
+	var fallback := Rect2(Vector2.ZERO, full_size)
+	var img: Image = tex.get_image()
+	if img == null:
+		return fallback
+	var used := img.get_used_rect()
+	if used.size.x <= 0.0 or used.size.y <= 0.0:
+		return fallback
+	return Rect2(used.position, used.size)
+
+func _get_centering_offset(texture_size: Vector2i, used_rect: Rect2) -> Vector2:
+	var texture_center := Vector2(texture_size) * 0.5
+	var used_center := used_rect.position + used_rect.size * 0.5
+	return texture_center - used_center

@@ -13,6 +13,10 @@ var _current_wave_index: int = 0
 var _level_time: float = 0.0
 var _is_active: bool = false
 var _pending_spawns: Array = [] # {time, enemy_id, pattern_id}
+var _available_move_pattern_ids: Array[String] = []
+
+const DEFAULT_MOVE_PATTERN_ID := "linear_cross_fast"
+const DEBUG_WAVE_PATTERN_LOG := true
 
 func setup(level_id: String) -> void:
 	_current_level_data = DataManager.get_level_data(level_id)
@@ -24,6 +28,7 @@ func setup(level_id: String) -> void:
 	_current_wave_index = 0
 	_level_time = 0.0
 	_pending_spawns.clear()
+	_refresh_move_pattern_pool()
 	_is_active = true
 	
 	print("[WaveManager] Setup level: ", level_id, " with ", _waves.size(), " waves.")
@@ -70,7 +75,9 @@ func _start_wave(wave: Dictionary) -> void:
 	var enemy_id: String = str(wave.get("enemy_id", "enemy_basic"))
 	var count: int = int(wave.get("count", 1))
 	var interval: float = float(wave.get("interval", 1.0))
-	var pattern_id: String = str(wave.get("pattern_id", "straight_down"))
+	var pattern_id: String = _pick_random_move_pattern_id()
+	if DEBUG_WAVE_PATTERN_LOG:
+		print("[WaveManager] Wave ", _current_wave_index, " enemy=", enemy_id, " random_pattern=", pattern_id)
 	
 	# Optional modifier
 	var modifier_id: String = str(wave.get("enemy_modifier_id", ""))
@@ -82,10 +89,37 @@ func _start_wave(wave: Dictionary) -> void:
 			"delay": spawn_delay,
 			"enemy_id": enemy_id,
 			"pattern_id": pattern_id,
-			"modifier_id": modifier_id,
-			"origin_x": wave.get("origin_x", "50%"),
-			"origin_y": wave.get("origin_y", -50)
+			"modifier_id": modifier_id
 		})
+
+func _refresh_move_pattern_pool() -> void:
+	_available_move_pattern_ids.clear()
+	var all_patterns: Array = DataManager.get_all_move_patterns()
+	for pattern in all_patterns:
+		if pattern is Dictionary:
+			var p_dict: Dictionary = pattern as Dictionary
+			var pattern_id: String = str(p_dict.get("id", ""))
+			if pattern_id != "":
+				_available_move_pattern_ids.append(pattern_id)
+
+	if _available_move_pattern_ids.is_empty():
+		_available_move_pattern_ids.append(DEFAULT_MOVE_PATTERN_ID)
+
+func _pick_random_move_pattern_id() -> String:
+	if _available_move_pattern_ids.is_empty():
+		_refresh_move_pattern_pool()
+	var idx: int = randi() % _available_move_pattern_ids.size()
+	return _available_move_pattern_ids[idx]
+
+func _get_random_spawn_position() -> Vector2:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var margin_x: float = 50.0
+	var min_x: float = margin_x
+	var max_x: float = maxf(margin_x, viewport_size.x - margin_x)
+	var x: float = randf_range(min_x, max_x)
+	# Spawn near top edge, inside visible screen bounds.
+	var y: float = randf_range(0.0, 80.0)
+	return Vector2(x, y)
 
 func _process_pending_spawns(delta: float) -> void:
 	for i in range(_pending_spawns.size() - 1, -1, -1):
@@ -97,8 +131,10 @@ func _process_pending_spawns(delta: float) -> void:
 			_pending_spawns.remove_at(i)
 
 func _trigger_spawn(spawn_info: Dictionary) -> void:
-	var enemy_data := DataManager.get_enemy(spawn_info["enemy_id"]).duplicate()
+	var enemy_id: String = str(spawn_info.get("enemy_id", ""))
+	var enemy_data := DataManager.get_enemy(enemy_id).duplicate()
 	if enemy_data.is_empty():
+		push_warning("[WaveManager] Unknown enemy_id in wave: " + enemy_id)
 		return
 		
 	# Override pattern si défini dans la vague
@@ -109,28 +145,7 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 	if spawn_info.get("modifier_id", "") != "":
 		enemy_data["modifier_id"] = spawn_info["modifier_id"]
 
-	# Calculer la position de spawn
-	var viewport_size := get_viewport().get_visible_rect().size
-	var spawn_pos := Vector2.ZERO
-	
-	# X
-	var ox = spawn_info.get("origin_x", "50%")
-	if ox is String and ox == "random":
-		spawn_pos.x = randf_range(50, viewport_size.x - 50)
-	elif ox is String and ox.ends_with("%"):
-		var pct := float(ox.replace("%", "")) / 100.0
-		spawn_pos.x = viewport_size.x * pct
-	else:
-		spawn_pos.x = float(ox)
-		
-	# Y
-	var oy = spawn_info.get("origin_y", -50)
-	if oy is String and oy == "random":
-		spawn_pos.y = randf_range(50, viewport_size.y - 50)
-	elif oy is String and oy.ends_with("%"):
-		var pct := float(oy.replace("%", "")) / 100.0
-		spawn_pos.y = viewport_size.y * pct
-	else:
-		spawn_pos.y = float(oy)
+	# Spawn position is now randomized per enemy spawn.
+	var spawn_pos: Vector2 = _get_random_spawn_position()
 
 	spawn_enemy.emit(enemy_data, spawn_pos)

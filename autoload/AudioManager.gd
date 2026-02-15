@@ -167,25 +167,25 @@ func play_sfx(path: String, pitch_rng: float = 0.0) -> void:
 
 func _get_available_sfx_player() -> AudioStreamPlayer:
 	# Chercher un player libre
-	for p in _sfx_players:
-		if not p.playing:
-			return p
+	for sfx_player in _sfx_players:
+		if not sfx_player.playing:
+			return sfx_player
 			
 	# Si aucun libre et pas encore au max, en créer un
 	if _sfx_players.size() < MAX_SFX_PLAYERS:
-		var p = AudioStreamPlayer.new()
-		p.name = "SFXPlayer_" + str(_sfx_players.size())
+		var new_player = AudioStreamPlayer.new()
+		new_player.name = "SFXPlayer_" + str(_sfx_players.size())
 		if AudioServer.get_bus_index("SFX") != -1:
-			p.bus = "SFX"
+			new_player.bus = "SFX"
 		else:
-			p.bus = "Master"
-		add_child(p)
-		_sfx_players.append(p)
-		return p
+			new_player.bus = "Master"
+		add_child(new_player)
+		_sfx_players.append(new_player)
+		return new_player
 		
 	# Sinon, recycler le plus ancien (le premier de la liste qui n'est pas forcément fini mais bon)
 	# On pourrait faire un index tournant
-	var p = _sfx_players[0]
+	var recycled_player = _sfx_players[0]
 	_sfx_players.pop_front()
-	_sfx_players.push_back(p)
-	return p
+	_sfx_players.push_back(recycled_player)
+	return recycled_player

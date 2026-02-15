@@ -3,7 +3,7 @@
 		"background": "res://assets/ui/main_menu_bg.jpg",
 		"background_anim": "",
 		"music": "res://assets/music/neon.ogg",
-		"logo": "res://assets/logo/logo_ppl.png",
+		"logo": "res://assets/logo/pewpewloot.png",
 		"logo_anim": "",
 		"logo_width_pct": 0.7,
 		"logo_height_pct": 0.4
@@ -394,10 +394,12 @@
 		"power_ups": {
 			"shield": {
 				"asset": "res://assets/ui/icons/shield.png",
+				"width": 70,
+				"height": 70,
 				"shield_absorb": 100,
 				"shield_diameter": 750,
 				"visual": {
-					"color_shield": "#d3158e",
+					"color_shield": "#150be2",
 					"color_brightness_shield": 15.0,
 					"intensity_shield": 3.0,
 					"glow_strength": 0.5,
@@ -409,8 +411,15 @@
 			},
 			"rapid_fire": {
 				"asset": "res://assets/ui/icons/missile.png",
+				"width": 70,
+				"height": 70,
 				"bonus": 250
 			}
+		},
+		"loot": {
+			"asset": "res://assets/ui/icons/all.png",
+			"width": 70,
+			"height": 70
 		},
 		"sfx": {
 			"gain": {

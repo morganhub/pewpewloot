@@ -18,6 +18,8 @@ extends Control
 @onready var music_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/MusicBox/MusicSlider
 @onready var sfx_label: Label = $MarginContainer/VBoxContainer/SoundSection/SFXBox/Label
 @onready var sfx_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/SFXBox/SFXSlider
+@onready var screenshake_label: Label = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/Label
+@onready var screenshake_checkbox: CheckBox = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/ScreenShakeCheckbox
 
 var _game_config: Dictionary = {}
 
@@ -30,6 +32,7 @@ func _ready() -> void:
 	_setup_background()
 	_setup_language_dropdown()
 	_setup_audio_sliders()
+	_setup_screenshake_toggle()
 	_apply_translations()
 	
 	# Connect signals
@@ -37,6 +40,7 @@ func _ready() -> void:
 	language_dropdown.item_selected.connect(_on_language_selected)
 	music_slider.value_changed.connect(_on_music_volume_changed)
 	sfx_slider.value_changed.connect(_on_sfx_volume_changed)
+	screenshake_checkbox.toggled.connect(_on_screenshake_toggled)
 	
 	# Setup Back Button Icon
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
@@ -90,6 +94,11 @@ func _setup_audio_sliders() -> void:
 	if music_slider: music_slider.value = vol_music
 	if sfx_slider: sfx_slider.value = vol_sfx
 
+func _setup_screenshake_toggle() -> void:
+	var enabled := bool(ProfileManager.get_setting("screenshake_enabled", true))
+	if screenshake_checkbox:
+		screenshake_checkbox.button_pressed = enabled
+
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
 	language_label.text = LocaleManager.translate("options_language")
@@ -97,6 +106,7 @@ func _apply_translations() -> void:
 	if sound_label: sound_label.text = LocaleManager.translate("options_sound")
 	if music_label: music_label.text = LocaleManager.translate("options_music")
 	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
+	if screenshake_label: screenshake_label.text = LocaleManager.translate("options_screenshake")
 	
 	# No back button text anymore as it is an icon
 
@@ -129,3 +139,6 @@ func _on_music_volume_changed(value: float) -> void:
 func _on_sfx_volume_changed(value: float) -> void:
 	AudioManager.set_sfx_volume(value)
 	ProfileManager.set_setting("sfx_volume", value)
+
+func _on_screenshake_toggled(enabled: bool) -> void:
+	ProfileManager.set_setting("screenshake_enabled", enabled)

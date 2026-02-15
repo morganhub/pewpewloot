@@ -19,7 +19,7 @@ static func _ensure_loaded() -> void:
 		var error = json.parse(text)
 		if error == OK:
 			_data = json.data
-			print("[EnemyModifiers] Loaded ", _data.size(), " modifiers.")
+			#print("[EnemyModifiers] Loaded ", _data.size(), " modifiers.")
 		else:
 			push_error("[EnemyModifiers] JSON Parse Error: " + json.get_error_message())
 	else:
@@ -39,7 +39,8 @@ static func apply_modifier(enemy: Node2D, modifier_id: String) -> void:
 		push_warning("[EnemyModifiers] Modifier not found: " + modifier_id)
 		return
 		
-	print("[EnemyModifiers] Applying ", modifier_id, " to ", enemy.name)
+	#print("[EnemyModifiers] Applying ", modifier_id, " to ", enemy.name)
+	var abilities = mod_data.get("abilities", [])
 	
 	# 1. Apply Stats
 	var stats = mod_data.get("stats", {})
@@ -57,7 +58,8 @@ static func apply_modifier(enemy: Node2D, modifier_id: String) -> void:
 	# Tint
 	var tint = visuals.get("color_tint", "")
 	if tint != "":
-		enemy.modulate = Color(tint)
+		if "suppressor_shield" not in abilities:
+			enemy.modulate = Color(tint)
 		
 	# Aura (Background Effect)
 	var aura_path = str(visuals.get("background_effect", ""))
@@ -75,7 +77,6 @@ static func apply_modifier(enemy: Node2D, modifier_id: String) -> void:
 		enemy.loot_quality_multiplier = quality_bonus
 
 	# 4. Abilities
-	var abilities = mod_data.get("abilities", [])
 	if "wall_spawner" in abilities:
 		_attach_wall_spawner(enemy, mod_data)
 	if "mine_spawner" in abilities and enemy.has_method("setup_minefreak"):
@@ -84,6 +85,8 @@ static func apply_modifier(enemy: Node2D, modifier_id: String) -> void:
 		enemy.setup_arcane_enchanted(mod_data)
 	if "gravity_spawner" in abilities and enemy.has_method("setup_graviton"):
 		enemy.setup_graviton(mod_data)
+	if "suppressor_shield" in abilities and enemy.has_method("setup_suppressor"):
+		enemy.setup_suppressor(mod_data)
 
 static func _attach_wall_spawner(enemy: Node2D, mod_data: Dictionary) -> void:
 	var spawner_script = load("res://scenes/abilities/WallSpawner.gd")

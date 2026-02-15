@@ -27,7 +27,7 @@
 			"hp_mult": 1.2,
 			"damage_mult": 1.0,
 			"speed_mult": 0.9,
-			"scale": 1.0
+			"scale": 1.3
 		},
 		"visuals": {
 			"ability_asset": "res://assets/modifiers/mine.tres",
@@ -51,7 +51,7 @@
 			"minimum_spacing_x": 100,
 			"minimum_spacing_y": 100
 		},
-		"loot_quality_bonus": 2.0
+		"loot_quality_bonus": 4.0
 	},
 	"arcane_enchanted": {
 		"stats": {
@@ -61,10 +61,10 @@
 			"scale": 1.1
 		},
 		"visuals": {
-			"ability_asset": "res://assets/missiles/blue_ball.png",
-			"laser_asset": "res://assets/missiles/sacred_missile.png",
-			"width": 32,
-			"height": 32,
+			"ability_asset": "res://assets/modifiers/arcane_orb.tres",
+			"laser_asset": "res://assets/modifiers/arcane_beam.tres",
+			"width": 100,
+			"height": 100,
 			"health_bar_frame": "res://assets/ui/frames/elite_frame_purple.png",
 			"color_tint": "#D000FF",
 			"contact_sfx": "res://assets/sfx/combat/laser_hum.ogg"
@@ -73,10 +73,10 @@
 			"arcane_spawner"
 		],
 		"ability_config": {
-			"spawn_interval": 2.0,
-			"max_per_screen": 3,
-			"damage": 105,
-			"rotation_speed": 165.0,
+			"spawn_interval": 5.0,
+			"max_per_screen": 2,
+			"damage": 55,
+			"rotation_speed": 125.0,
 			"laser_length_pct": 0.4,
 			"duration": 16.0
 		},
@@ -102,10 +102,32 @@
 		"ability_config": {
 			"spawn_interval": 2.0,
 			"max_per_screen": 2,
-			"pull_strength": 1400.0,
+			"pull_strength": 300.0,
 			"speed": 70.0,
-			"duration": 25.0,
-			"minimum_spacing_x": 250
+			"duration": 15.0,
+			"minimum_spacing_x": 350
+		},
+		"loot_quality_bonus": 4.0
+	},
+	"suppressor": {
+		"stats": {
+			"hp_mult": 1.0,
+			"damage_mult": 1.0,
+			"speed_mult": 1.0,
+			"scale": 1.0
+		},
+		"visuals": {
+			"shield_scene_path": "res://addons/nojoule-energy-shield/shield_sphere.tscn",
+			"shield_diameter": 140.0,
+			"health_bar_frame": "res://assets/ui/frames/elite_frame_blue.png",
+			"color_tint": "#0088FF"
+		},
+		"abilities": [
+			"suppressor_shield"
+		],
+		"ability_config": {
+			"shield_hp": 800,
+			"deflect_sfx": "res://assets/sfx/combat/shield_hit.ogg"
 		},
 		"loot_quality_bonus": 2.0
 	},

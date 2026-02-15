@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dryi2lffa523i"]
 
 [ext_resource type="Script" uid="uid://bu1ywck4kx5ny" path="res://scenes/OptionsMenu.gd" id="1_options"]
-[ext_resource type="Texture2D" uid="uid://c8l7m1x4p6k2j" path="res://assets/ui/slider_grabber_30.tres" id="2_grabber"]
+[ext_resource type="Texture2D" path="res://assets/ui/slider_grabber_30.tres" id="2_grabber"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
 content_margin_left = 4.0
@@ -172,6 +172,24 @@ theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_area_hi
 max_value = 1.0
 step = 0.05
 value = 1.0
+
+[node name="ScreenShakeBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SoundSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Screen Shake"
+horizontal_alignment = 2
+
+[node name="ScreenShakeCheckbox" type="CheckBox" parent="MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+button_pressed = true
+text = ""
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1608799950]
 layout_mode = 2

@@ -50,8 +50,8 @@ func _load_game_config() -> void:
 
 func _setup_background() -> void:
 	var world := App.get_world(world_id)
-	var theme: Dictionary = world.get("theme", {})
-	var bg_path: String = str(theme.get("background", ""))
+	var world_theme: Dictionary = world.get("theme", {})
+	var bg_path: String = str(world_theme.get("background", ""))
 	
 	if bg_path != "" and ResourceLoader.exists(bg_path):
 		var bg_node = get_node_or_null("Background")
@@ -222,8 +222,8 @@ func _on_level_card_clicked(level_index: int) -> void:
 	switcher.goto_screen("res://scenes/Game.tscn")
 
 func _get_active_progress() -> Dictionary:
-	var p := ProfileManager.get_active_profile()
-	var prog: Variant = p.get("progress", {})
+	var profile := ProfileManager.get_active_profile()
+	var prog: Variant = profile.get("progress", {})
 	if prog is Dictionary:
 		return prog as Dictionary
 	return {}

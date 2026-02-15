@@ -11,6 +11,7 @@ func _ready() -> void:
 var settings: Dictionary = {
 	"music_volume": 1.0,
 	"sfx_volume": 1.0,
+	"screenshake_enabled": true,
 	"locale": "en"
 }
 
@@ -74,7 +75,7 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		if unlocked is Array and (unlocked as Array).size() > 0:
 			migrated["active_ship_id"] = str((unlocked as Array)[0])
 		else:
-			migrated["active_ship_id"] = "ship_car"
+			migrated["active_ship_id"] = _get_fallback_ship_id(_get_available_ship_ids())
 		needs_save = true
 	
 	# Migration: inventory
@@ -91,6 +92,23 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	if not migrated.has("crystals"):
 		migrated["crystals"] = 0
 		needs_save = true
+	
+	# Keep profile ship references valid if ship IDs changed in ships.json.
+	if _can_validate_ship_ids():
+		var normalized_unlocked := _sanitize_unlocked_ships(migrated.get("ships_unlocked", []))
+		if migrated.get("ships_unlocked", []) != normalized_unlocked:
+			migrated["ships_unlocked"] = normalized_unlocked
+			needs_save = true
+		
+		var valid_ids := _get_available_ship_ids()
+		var active_id := str(migrated.get("active_ship_id", ""))
+		var resolved_active := _resolve_ship_id(active_id)
+		if resolved_active == "":
+			migrated["active_ship_id"] = str(normalized_unlocked[0]) if normalized_unlocked.size() > 0 else _get_fallback_ship_id(valid_ids)
+			needs_save = true
+		elif resolved_active != active_id:
+			migrated["active_ship_id"] = resolved_active
+			needs_save = true
 	
 	if needs_save:
 		print("[ProfileManager] Migrated profile: ", str(migrated.get("name", "unknown")))
@@ -129,14 +147,16 @@ func set_active_profile(profile_id: String) -> void:
 
 func create_profile(profile_name: String, portrait_id: int) -> String:
 	var id := str(Time.get_unix_time_from_system()) + "_" + str(randi())
+	var default_unlocked: Array = _sanitize_unlocked_ships(DataManager.get_default_unlocked_ships())
+	var default_active: String = str(default_unlocked[0]) if default_unlocked.size() > 0 else _get_fallback_ship_id(_get_available_ship_ids())
 
 	var profile := {
 		"id": id,
 		"name": profile_name,
 		"portrait_id": portrait_id,
 		"progress": _create_default_progress(),
-		"ships_unlocked": DataManager.get_default_unlocked_ships().duplicate(),
-		"active_ship_id": DataManager.get_default_unlocked_ships()[0] if DataManager.get_default_unlocked_ships().size() > 0 else "ship_car",
+		"ships_unlocked": default_unlocked,
+		"active_ship_id": default_active,
 		"inventory": [],
 		"loadouts": {},
 		"crystals": 0
@@ -243,33 +263,117 @@ func _apply_progress_to_active_profile(new_progress: Dictionary) -> void:
 # VAISSEAUX
 # =============================================================================
 
+func _can_validate_ship_ids() -> bool:
+	return DataManager != null and DataManager.has_method("get_ships") and DataManager.get_ships().size() > 0
+
+func _get_available_ship_ids() -> Array:
+	var ids: Array = []
+	if DataManager == null or not DataManager.has_method("get_ships"):
+		return ids
+	var ships := DataManager.get_ships()
+	for ship in ships:
+		if ship is Dictionary:
+			var ship_id := str((ship as Dictionary).get("id", ""))
+			if ship_id != "" and not ids.has(ship_id):
+				ids.append(ship_id)
+	return ids
+
+func _get_fallback_ship_id(valid_ids: Array) -> String:
+	if DataManager != null and DataManager.has_method("get_default_unlocked_ships"):
+		var defaults := DataManager.get_default_unlocked_ships()
+		if defaults is Array:
+			for raw_id in defaults:
+				var ship_id := str(raw_id)
+				if valid_ids.has(ship_id):
+					return ship_id
+	if valid_ids.size() > 0:
+		return str(valid_ids[0])
+	return "ship_car"
+
+func _sanitize_unlocked_ships(raw_unlocked: Variant) -> Array:
+	var valid_ids := _get_available_ship_ids()
+	var sanitized: Array = []
+	if raw_unlocked is Array:
+		var unlocked_array := raw_unlocked as Array
+		for raw_id in unlocked_array:
+			var ship_id := _resolve_ship_id(str(raw_id))
+			if ship_id != "" and valid_ids.has(ship_id) and not sanitized.has(ship_id):
+				sanitized.append(ship_id)
+	if sanitized.is_empty():
+		var fallback := _get_fallback_ship_id(valid_ids)
+		if fallback != "":
+			sanitized.append(fallback)
+	return sanitized
+
+func _resolve_ship_id(raw_ship_id: String) -> String:
+	if raw_ship_id == "":
+		return ""
+	if not _can_validate_ship_ids():
+		return raw_ship_id
+	var ship := DataManager.get_ship(raw_ship_id)
+	if ship.is_empty():
+		return ""
+	return str(ship.get("id", ""))
+
 ## Retourne le vaisseau actif du profil
 func get_active_ship_id() -> String:
 	var profile := get_active_profile()
-	return str(profile.get("active_ship_id", "ship_car"))
+	var active_id := str(profile.get("active_ship_id", ""))
+	if not _can_validate_ship_ids():
+		return active_id if active_id != "" else "ship_car"
+	
+	var resolved_active := _resolve_ship_id(active_id)
+	if resolved_active != "":
+		return resolved_active
+	
+	var valid_ids := _get_available_ship_ids()
+	var unlocked_ids := get_unlocked_ships()
+	if unlocked_ids.size() > 0:
+		return str(unlocked_ids[0])
+	
+	return _get_fallback_ship_id(valid_ids)
 
 ## Change le vaisseau actif
 func set_active_ship(ship_id: String) -> void:
-	_update_active_profile("active_ship_id", ship_id)
+	if ship_id == "":
+		return
+	var resolved_id := ship_id
+	if _can_validate_ship_ids():
+		resolved_id = _resolve_ship_id(ship_id)
+		if resolved_id == "":
+			push_warning("[ProfileManager] Unknown ship_id in set_active_ship: " + ship_id)
+			return
+	_update_active_profile("active_ship_id", resolved_id)
 
 ## Retourne la liste des vaisseaux débloqués
 func get_unlocked_ships() -> Array:
 	var profile := get_active_profile()
 	var unlocked: Variant = profile.get("ships_unlocked", [])
-	if unlocked is Array:
-		return unlocked as Array
-	return []
+	if not _can_validate_ship_ids():
+		if unlocked is Array:
+			return unlocked as Array
+		return []
+	return _sanitize_unlocked_ships(unlocked)
 
 ## Débloque un vaisseau
 func unlock_ship(ship_id: String) -> void:
+	if ship_id == "":
+		return
+	var resolved_id := ship_id
+	if _can_validate_ship_ids():
+		resolved_id = _resolve_ship_id(ship_id)
+		if resolved_id == "":
+			push_warning("[ProfileManager] Unknown ship_id in unlock_ship: " + ship_id)
+			return
+	
 	var profile := get_active_profile()
 	var unlocked: Variant = profile.get("ships_unlocked", [])
 	var ships_array: Array = []
 	if unlocked is Array:
 		ships_array = (unlocked as Array).duplicate()
 	
-	if not ships_array.has(ship_id):
-		ships_array.append(ship_id)
+	if not ships_array.has(resolved_id):
+		ships_array.append(resolved_id)
 		_update_active_profile("ships_unlocked", ships_array)
 
 # =============================================================================

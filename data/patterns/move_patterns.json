@@ -1,192 +1,212 @@
 {
-	"patterns": [
-		{
-			"id": "enter_hover_leave",
-			"name": "Entrée-Attente-Sortie",
-			"type": "enter_hover_leave",
-			"speed": 100,
-			"hover_duration": 4.0,
-			"target_y": 150,
-			"description": "Entre, reste sur place, puis part"
-		},
-		{
-			"id": "loop_center",
-			"name": "Looping Central",
-			"type": "loop_center",
-			"speed": 150,
-			"loop_radius": 100,
-			"loop_count": 1,
-			"description": "Va au centre, fait un looping, puis part"
-		},
-		{
-			"id": "straight_down",
-			"name": "Descente directe",
-			"type": "linear",
-			"direction": {
-				"x": 0,
-				"y": 1
-			},
-			"speed": 75,
-			"description": "Descend tout droit vers le bas"
-		},
-		{
-			"id": "zigzag_horizontal",
-			"name": "Zigzag horizontal",
-			"type": "zigzag",
-			"direction": {
-				"x": 1,
-				"y": 0.5
-			},
-			"speed": 60,
-			"amplitude": 50,
-			"frequency": 2.0,
-			"description": "Se déplace en zigzag horizontal"
-		},
-		{
-			"id": "circle_clockwise",
-			"name": "Cercle horaire",
-			"type": "circular",
-			"direction": {
-				"x": 0,
-				"y": 0.5
-			},
-			"speed": 45,
-			"radius": 80,
-			"angular_speed": 2.0,
-			"clockwise": true,
-			"description": "Tourne en cercle (sens horaire)"
-		},
-		{
-			"id": "circle_counterclockwise",
-			"name": "Cercle anti-horaire",
-			"type": "circular",
-			"direction": {
-				"x": 0,
-				"y": 0.5
-			},
-			"speed": 45,
-			"radius": 80,
-			"angular_speed": 2.0,
-			"clockwise": false,
-			"description": "Tourne en cercle (sens anti-horaire)"
-		},
-		{
-			"id": "wave_horizontal",
-			"name": "Vague horizontale",
-			"type": "sine_wave",
-			"direction": {
-				"x": 0,
-				"y": 1
-			},
-			"speed": 52.5,
-			"amplitude": 100,
-			"frequency": 1.5,
-			"description": "Descend en faisant des vagues"
-		},
-		{
-			"id": "diagonal_left",
-			"name": "Diagonale gauche",
-			"type": "linear",
-			"direction": {
-				"x": -0.7,
-				"y": 1
-			},
-			"speed": 67.5,
-			"description": "Descend en diagonale vers la gauche"
-		},
-		{
-			"id": "diagonal_right",
-			"name": "Diagonale droite",
-			"type": "linear",
-			"direction": {
-				"x": 0.7,
-				"y": 1
-			},
-			"speed": 67.5,
-			"description": "Descend en diagonale vers la droite"
-		},
-		{
-			"id": "stationary",
-			"name": "Stationnaire",
-			"type": "static",
-			"direction": {
-				"x": 0,
-				"y": 0
-			},
-			"speed": 0,
-			"description": "Ne bouge pas"
-		},
-		{
-			"id": "rush_player",
-			"name": "Rush vers joueur",
-			"type": "homing",
-			"direction": {
-				"x": 0,
-				"y": 1
-			},
-			"speed": 112.5,
-			"turn_rate": 3.0,
-			"description": "Fonce vers le joueur"
-		},
-		{
-			"id": "bounce_horizontal",
-			"name": "Rebond horizontal",
-			"type": "bounce",
-			"direction": {
-				"x": 1,
-				"y": 0.3
-			},
-			"speed": 75,
-			"bounce_on_edges": true,
-			"description": "Rebondit sur les bords"
-		},
-		{
-			"id": "figure_eight",
-			"name": "Figure en huit",
-			"type": "figure_eight",
-			"speed": 80,
-			"radius": 60,
-			"description": "Se déplace en forme de huit"
-		},
-		{
-			"id": "random_strafe",
-			"name": "Strafing aléatoire",
-			"type": "random_strafe",
-			"speed": 100,
-			"strafe_interval": 1.5,
-			"strafe_distance": 80,
-			"direction": {
-				"x": 0,
-				"y": 0.3
-			},
-			"description": "Se déplace aléatoirement latéralement tout en descendant"
-		},
-		{
-			"id": "bezier_curve",
-			"name": "Courbe de Bézier",
-			"type": "bezier_curve",
-			"speed": 90,
-			"control_offset_x": 150,
-			"control_offset_y": 100,
-			"description": "Suit une courbe de Bézier quadratique"
-		},
-		{
-			"id": "swoop_dive",
-			"name": "Piqué en arc",
-			"type": "swoop_dive",
-			"speed": 120,
-			"swoop_depth": 200,
-			"swoop_width": 100,
-			"description": "Descend en arc, puis pique vers le joueur"
-		},
-		{
-			"id": "spiral_inward",
-			"name": "Spirale vers le centre",
-			"type": "spiral_inward",
-			"speed": 60,
-			"initial_radius": 200,
-			"spiral_speed": 30,
-			"description": "Spirale vers le centre de l'écran"
-		}
-	]
+  "patterns": [
+	{
+	  "id": "linear_cross_fast",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/linear_cross_fast.tres",
+	  "speed": 260,
+	  "loop": false,
+	  "rotate_to_path": true,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "description": "Ligne diagonale rapide"
+	},
+	{
+	  "id": "sine_wave_vertical",
+	  "type": "proc",
+	  "proc_func": "sine_wave_vertical",
+	  "speed": 130,
+	  "loop": true,
+	  "amplitude": 120,
+	  "frequency": 2.2,
+	  "path_anchor": "spawn",
+	  "description": "Sinusoide verticale infinie",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "u_turn_retreat",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/u_turn_retreat.tres",
+	  "speed": 120,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "staircase_descent",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/staircase_descent.tres",
+	  "speed": 110,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "loop_de_loop_center",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/loop_de_loop_center.tres",
+	  "speed": 140,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "double_loop_horizontal",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/double_loop_horizontal.tres",
+	  "speed": 125,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "figure_eight_vertical",
+	  "type": "proc",
+	  "proc_func": "figure_eight_vertical",
+	  "speed": 120,
+	  "loop": true,
+	  "radius": 90,
+	  "path_anchor": "spawn",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "tear_drop_attack",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/tear_drop_attack.tres",
+	  "speed": 135,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "impatient_circle",
+	  "type": "proc",
+	  "proc_func": "impatient_circle",
+	  "speed": 135,
+	  "loop": false,
+	  "radius": 70,
+	  "orbit_turns": 1.6,
+	  "charge_distance": 900,
+	  "path_anchor": "spawn",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "boomerang_bottom",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/boomerang_bottom.tres",
+	  "speed": 130,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "screen_hugger_left",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/screen_hugger_left.tres",
+	  "speed": 95,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "cross_screen_dive",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/cross_screen_dive.tres",
+	  "speed": 170,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "stop_and_go_zigzag",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/stop_and_go_zigzag.tres",
+	  "speed": 105,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "heart_shape",
+	  "type": "proc",
+	  "proc_func": "heart_shape",
+	  "speed": 110,
+	  "loop": true,
+	  "scale": 8.5,
+	  "path_anchor": "spawn",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "dna_helix",
+	  "type": "proc",
+	  "proc_func": "dna_helix",
+	  "speed": 135,
+	  "loop": true,
+	  "amplitude": 90,
+	  "tightness": 5.5,
+	  "path_anchor": "spawn",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "butterfly_wings",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/butterfly_wings.tres",
+	  "speed": 120,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "square_patrol",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/square_patrol.tres",
+	  "speed": 100,
+	  "loop": true,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "spirograph_flower",
+	  "type": "proc",
+	  "proc_func": "spirograph_flower",
+	  "speed": 110,
+	  "loop": true,
+	  "spiro_R": 90,
+	  "spiro_r": 30,
+	  "spiro_d": 55,
+	  "path_anchor": "spawn",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "cobra_strike",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/cobra_strike.tres",
+	  "speed": 160,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	},
+	{
+	  "id": "bouncing_dvd",
+	  "type": "resource",
+	  "path": "res://data/patterns/paths/bouncing_dvd.tres",
+	  "speed": 145,
+	  "loop": false,
+	  "fit_to_viewport": true,
+	  "path_anchor": "viewport",
+	  "rotate_to_path": true
+	}
+  ]
 }

@@ -3,28 +3,29 @@
 		{
 			"id": "scout_basic",
 			"name": "Éclaireur",
-			"hp": 20,
+			"hp": 70,
 			"size": {
-				"width": 50,
-				"height": 80
+				"width": 45,
+				"height": 75
 			},
 			"visual": {
 				"color": "#FF4444",
 				"shape": "circle",
-				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": ""
+				"asset": "",
+				"asset_anim": "res://assets/enemies/voidoss.tres"
 			},
 			"move_pattern_id": "enter_hover_leave",
+			"base_speed": 4.0,
 			"missile_pattern_id": "single_straight",
 			"missile_id": "missile_default",
-			"fire_rate": 2.0,
+			"fire_rate": 5.2,
 			"score": 10,
 			"loot_chance": 0.1
 		},
 		{
 			"id": "fighter_aggressive",
 			"name": "Chasseur",
-			"hp": 40,
+			"hp": 120,
 			"size": {
 				"width": 35,
 				"height": 35
@@ -36,7 +37,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "figure_eight",
-			"missile_pattern_id": "triple_spread",
+			"base_speed": 2.0,
+			"missile_pattern_id": "aimed_player",
+			"missile_id": "missile_default",
 			"fire_rate": 1.5,
 			"score": 25,
 			"loot_chance": 0.15
@@ -44,7 +47,7 @@
 		{
 			"id": "bomber_heavy",
 			"name": "Bombardier",
-			"hp": 60,
+			"hp": 160,
 			"size": {
 				"width": 45,
 				"height": 40
@@ -56,7 +59,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "straight_down",
+			"base_speed": 1.0,
 			"missile_pattern_id": "burst_5",
+			"missile_id": "missile_default",
 			"fire_rate": 3.0,
 			"score": 40,
 			"loot_chance": 0.2
@@ -76,7 +81,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "circle_clockwise",
+			"base_speed": 1.0,
 			"missile_pattern_id": "circle_8",
+			"missile_id": "missile_default",
 			"fire_rate": 4.0,
 			"score": 50,
 			"loot_chance": 0.25
@@ -96,7 +103,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "random_strafe",
+			"base_speed": 1.0,
 			"missile_pattern_id": "aimed_player",
+			"missile_id": "missile_default",
 			"fire_rate": 2.5,
 			"score": 35,
 			"loot_chance": 0.18
@@ -116,7 +125,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "straight_down",
+			"base_speed": 1.0,
 			"missile_pattern_id": "cone_forward",
+			"missile_id": "missile_default",
 			"fire_rate": 2.0,
 			"score": 60,
 			"loot_chance": 0.3
@@ -136,7 +147,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "rush_player",
+			"base_speed": 1.0,
 			"missile_pattern_id": "double_side",
+			"missile_id": "missile_default",
 			"fire_rate": 1.0,
 			"score": 20,
 			"loot_chance": 0.12
@@ -156,7 +169,9 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "stationary",
+			"base_speed": 1.0,
 			"missile_pattern_id": "spiral_continuous",
+			"missile_id": "missile_default",
 			"fire_rate": 0.5,
 			"score": 70,
 			"loot_chance": 0.35
@@ -176,6 +191,7 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "bezier_curve",
+			"base_speed": 1.0,
 			"missile_pattern_id": "homing_barrage",
 			"missile_id": "missile_homing",
 			"fire_rate": 1.2,
@@ -197,6 +213,7 @@
 				"asset_anim": ""
 			},
 			"move_pattern_id": "bounce_horizontal",
+			"base_speed": 1.0,
 			"missile_pattern_id": "wave_pattern",
 			"fire_rate": 1.8,
 			"score": 45,

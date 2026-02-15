@@ -37,6 +37,12 @@ var _target: Node2D = null
 # Visual
 @onready var visual: Polygon2D = $Visual
 @onready var collision: CollisionShape2D = $CollisionShape2D
+var _pulsating_enabled: bool = false
+var _pulsating_size: float = 1.0
+var _pulsating_frequency: float = 1.0
+var _base_polygon_scale: Vector2 = Vector2.ONE
+var _base_sprite_scale: Vector2 = Vector2.ONE
+var _base_anim_sprite_scale: Vector2 = Vector2.ONE
 
 # TODO: Remplacer Polygon2D par Sprite2D quand les assets seront disponibles
 # @onready var sprite: Sprite2D = $Sprite2D
@@ -146,50 +152,46 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	var asset_path: String = str(visual_data.get("asset", ""))
 	var asset_anim: String = str(visual_data.get("asset_anim", ""))
 	var use_asset: bool = false
+	_pulsating_enabled = bool(visual_data.get("pulsating", false))
+	_pulsating_size = clampf(float(visual_data.get("pulsating_size", 1.0)), 0.0, 10.0)
+	_pulsating_frequency = maxf(float(visual_data.get("pulsating_frequency", 1.0)), 0.0)
+	
+	# Reset visual scales because projectiles are pooled and reused.
+	visual.scale = Vector2.ONE
+	var reset_sprite: Sprite2D = get_node_or_null("Sprite2D")
+	if reset_sprite:
+		reset_sprite.scale = Vector2.ONE
+	var reset_anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+	if reset_anim_sprite:
+		reset_anim_sprite.scale = Vector2.ONE
 	
 
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames = load(asset_anim)
-		if frames is SpriteFrames:
+		var frames_res: Resource = load(asset_anim)
+		if frames_res is SpriteFrames:
+			var frames: SpriteFrames = frames_res as SpriteFrames
 			use_asset = true
 			visual.visible = false
-			
-			var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
-			if not anim_sprite:
-				anim_sprite = AnimatedSprite2D.new()
-				anim_sprite.name = "AnimatedSprite2D"
-				add_child(anim_sprite)
-			
-			anim_sprite.visible = true
-			anim_sprite.modulate = Color.WHITE
-			anim_sprite.sprite_frames = frames
-			anim_sprite.stop()
-			anim_sprite.frame = 0
-			anim_sprite.play("default")
-			
-			# Scale to match target size
-			var frame_tex = frames.get_frame_texture("default", 0)
-			if frame_tex:
-				var f_size = frame_tex.get_size()
-				anim_sprite.scale = Vector2(final_width / f_size.x, final_height / f_size.y)
-
-			
-			# Hide static sprite if exists
-			var static_sprite: Sprite2D = get_node_or_null("Sprite2D")
-			if static_sprite: static_sprite.visible = false
+			_apply_sprite_frames_visual(frames, final_width, final_height)
 
 	# Priority 2: Static Sprite (asset)
 	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
-		var texture = load(asset_path)
-		if texture:
+		var asset_res: Resource = load(asset_path)
+		if asset_res is SpriteFrames:
+			use_asset = true
+			visual.visible = false
+			_apply_sprite_frames_visual(asset_res as SpriteFrames, final_width, final_height)
+		elif asset_res is Texture2D:
+			var texture: Texture2D = asset_res as Texture2D
 			use_asset = true
 			visual.visible = false
 			
 			# Hide anim sprite if exists
 			var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
-			if anim_sprite: anim_sprite.visible = false
+			if anim_sprite:
+				anim_sprite.visible = false
 			
 			var sprite: Sprite2D = get_node_or_null("Sprite2D")
 			if not sprite:
@@ -201,9 +203,11 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 			sprite.texture = texture
 			
 			# Scale to match target size
-			var tex_size = texture.get_size()
+			var tex_size: Vector2 = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
 				sprite.scale = Vector2(final_width / tex_size.x, final_height / tex_size.y)
+		else:
+			push_warning("[Projectile] Unsupported visual asset type: " + str(asset_res.get_class()) + " (" + asset_path + ")")
 
 	
 	# Priority 3: Fallback Polygon2D shape
@@ -225,6 +229,20 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 		var shape_type: String = str(visual_data.get("shape", "circle"))
 		visual.polygon = _create_shape_polygon(shape_type, final_width, final_height)
 
+	# Cache baseline scales for pulsating animation.
+	_base_polygon_scale = visual.scale
+	var sprite_ref: Sprite2D = get_node_or_null("Sprite2D")
+	if sprite_ref:
+		_base_sprite_scale = sprite_ref.scale
+	else:
+		_base_sprite_scale = Vector2.ONE
+	var anim_sprite_ref: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+	if anim_sprite_ref:
+		_base_anim_sprite_scale = anim_sprite_ref.scale
+	else:
+		_base_anim_sprite_scale = Vector2.ONE
+	_update_pulsating_visual()
+
 	
 	# Collision - use average of width/height
 	var avg_size: float = (final_width + final_height) / 2.0
@@ -237,6 +255,46 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	
 	show()
 	set_process(true)
+
+func _apply_sprite_frames_visual(frames: SpriteFrames, final_width: float, final_height: float) -> void:
+	if frames == null:
+		return
+	
+	var anim_names: PackedStringArray = frames.get_animation_names()
+	if anim_names.is_empty():
+		push_warning("[Projectile] SpriteFrames has no animation.")
+		return
+	
+	var anim_name: StringName = StringName(anim_names[0])
+	if frames.get_frame_count(anim_name) <= 0:
+		push_warning("[Projectile] SpriteFrames animation has no frame: " + String(anim_name))
+		return
+	
+	var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+	if not anim_sprite:
+		anim_sprite = AnimatedSprite2D.new()
+		anim_sprite.name = "AnimatedSprite2D"
+		add_child(anim_sprite)
+	
+	anim_sprite.visible = true
+	anim_sprite.modulate = Color.WHITE
+	anim_sprite.sprite_frames = frames
+	anim_sprite.animation = anim_name
+	anim_sprite.stop()
+	anim_sprite.frame = 0
+	anim_sprite.play()
+	
+	# Scale to match target size
+	var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if frame_tex:
+		var f_size: Vector2 = frame_tex.get_size()
+		if f_size.x > 0 and f_size.y > 0:
+			anim_sprite.scale = Vector2(final_width / f_size.x, final_height / f_size.y)
+	
+	# Hide static sprite if exists
+	var static_sprite: Sprite2D = get_node_or_null("Sprite2D")
+	if static_sprite:
+		static_sprite.visible = false
 
 func _create_shape_polygon(shape_type: String, width: float, height: float) -> PackedVector2Array:
 	match shape_type:
@@ -265,13 +323,13 @@ func _create_shape_polygon(shape_type: String, width: float, height: float) -> P
 		_:
 			return _create_circle_polygon(max(width, height) / 2.0)
 
-func deactivate(reason: String = "unknown") -> void:
+func deactivate(_reason: String = "unknown") -> void:
 	# Remove debug
 	var debug = get_node_or_null("DEBUG_SQUARE")
 	if debug: debug.queue_free()
 	
 	if is_active:
-		# print("[Projectile #%d] Deactivated: reason=%s" % [_debug_id, reason])
+		# print("[Projectile #%d] Deactivated: reason=%s" % [_debug_id, _reason])
 		is_active = false
 		hide()
 		set_process(false)
@@ -295,6 +353,8 @@ func _process(delta: float) -> void:
 	if _time_alive >= _max_lifetime:
 		deactivate("lifetime")
 		return
+	
+	_update_pulsating_visual()
 	
 	# Movement selon trajectory
 	match _trajectory_type:
@@ -426,6 +486,30 @@ func _on_area_entered(area: Area2D) -> void:
 # =============================================================================
 # UTILITY
 # =============================================================================
+
+func _get_pulsating_multiplier() -> float:
+	if not _pulsating_enabled:
+		return 1.0
+	if _pulsating_frequency <= 0.0:
+		return 1.0
+	if is_equal_approx(_pulsating_size, 1.0):
+		return 1.0
+	
+	var cycle_time: float = fmod(_time_alive, _pulsating_frequency) / _pulsating_frequency
+	var eased_value: float = 0.5 - (0.5 * cos(cycle_time * TAU))
+	return lerpf(1.0, _pulsating_size, eased_value)
+
+func _update_pulsating_visual() -> void:
+	var pulse_scale: float = _get_pulsating_multiplier()
+	visual.scale = _base_polygon_scale * pulse_scale
+	
+	var sprite: Sprite2D = get_node_or_null("Sprite2D")
+	if sprite:
+		sprite.scale = _base_sprite_scale * pulse_scale
+	
+	var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+	if anim_sprite:
+		anim_sprite.scale = _base_anim_sprite_scale * pulse_scale
 
 func _create_circle_polygon(radius: float) -> PackedVector2Array:
 	var points: PackedVector2Array = []

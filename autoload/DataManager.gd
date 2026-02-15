@@ -164,8 +164,18 @@ func get_ships() -> Array:
 ## Retourne un vaisseau par son ID
 func get_ship(ship_id: String) -> Dictionary:
 	for ship in _ships:
-		if ship is Dictionary and ship.get("id", "") == ship_id:
-			return ship as Dictionary
+		if not (ship is Dictionary):
+			continue
+		var ship_dict := ship as Dictionary
+		var current_id := str(ship_dict.get("id", ""))
+		if current_id == ship_id:
+			return ship_dict
+		var aliases: Variant = ship_dict.get("aliases", [])
+		if aliases is Array:
+			var alias_array := aliases as Array
+			for alias in alias_array:
+				if str(alias) == ship_id:
+					return ship_dict
 	return {}
 
 ## Retourne les IDs des vaisseaux débloqués par défaut

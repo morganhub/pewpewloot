@@ -1,147 +1,148 @@
 {
-    "id": "world_3",
-    "name": "Soleil noir",
-    "description": "Un système solaire mort, dominé par une étoile éteinte et des créatures solaires.",
-    "order": 3,
-    "theme": {
-        "background": "res://assets/backgrounds/black_sun.png",
-        "music": "res://assets/music/world_3.ogg",
-        "color_palette": "#1a1a2e"
-    },
-    "levels": [
+  "id": "world_3",
+  "name": "Soleil noir",
+  "description": "Un système solaire mort, dominé par une étoile éteinte et des créatures solaires.",
+  "order": 3,
+  "theme": {
+    "background": "res://assets/backgrounds/black_sun.png",
+    "music": "res://assets/music/world_3.ogg",
+    "color_palette": "#1a1a2e"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "name": "Approche",
+      "type": "normal",
+      "duration_sec": 140,
+      "waves": [
         {
-            "index": 0,
-            "name": "Approche",
-            "type": "normal",
-            "duration_sec": 140,
-            "waves": [
-                {
-                    "enemy_id": "solar_moth",
-                    "count": 8,
-                    "delay": 1.5
-                },
-                {
-                    "enemy_id": "dark_scout",
-                    "count": 4,
-                    "delay": 8.0
-                }
-            ],
-            "events": []
+          "enemy_id": "solar_moth",
+          "count": 8,
+          "delay": 1.5
         },
         {
-            "index": 1,
-            "name": "Corona morte",
-            "type": "normal",
-            "duration_sec": 160,
-            "waves": [
-                {
-                    "enemy_id": "dark_scout",
-                    "count": 6,
-                    "delay": 2.0
-                },
-                {
-                    "enemy_id": "void_fighter",
-                    "count": 4,
-                    "delay": 10.0
-                }
-            ],
-            "events": [
-                {
-                    "type": "solar_flare",
-                    "trigger_time": 80
-                }
-            ]
-        },
-        {
-            "index": 2,
-            "name": "Champ gravitationnel",
-            "type": "normal",
-            "duration_sec": 170,
-            "waves": [
-                {
-                    "enemy_id": "void_fighter",
-                    "count": 5,
-                    "delay": 3.0
-                },
-                {
-                    "enemy_id": "gravity_mine",
-                    "count": 6,
-                    "delay": 12.0
-                }
-            ],
-            "events": []
-        },
-        {
-            "index": 3,
-            "name": "L'œil du vide",
-            "type": "normal",
-            "duration_sec": 180,
-            "waves": [
-                {
-                    "enemy_id": "solar_moth",
-                    "count": 10,
-                    "delay": 1.0
-                },
-                {
-                    "enemy_id": "void_fighter",
-                    "count": 6,
-                    "delay": 8.0
-                },
-                {
-                    "enemy_id": "void_elite",
-                    "count": 2,
-                    "delay": 20.0
-                }
-            ],
-            "events": []
-        },
-        {
-            "index": 4,
-            "name": "Horizon des événements",
-            "type": "normal",
-            "duration_sec": 200,
-            "waves": [
-                {
-                    "enemy_id": "void_elite",
-                    "count": 4,
-                    "delay": 5.0
-                },
-                {
-                    "enemy_id": "gravity_mine",
-                    "count": 8,
-                    "delay": 15.0
-                }
-            ],
-            "events": [
-                {
-                    "type": "gravity_pull",
-                    "trigger_time": 120
-                }
-            ]
-        },
-        {
-            "index": 5,
-            "name": "L'Éclipse",
-            "type": "boss",
-            "boss_id": "eclipse_entity",
-            "phases": [
-                {
-                    "hp_percent": 100,
-                    "pattern": "phase_1_gravity"
-                },
-                {
-                    "hp_percent": 60,
-                    "pattern": "phase_2_solar_storm"
-                },
-                {
-                    "hp_percent": 30,
-                    "pattern": "phase_3_void_collapse"
-                }
-            ]
+          "enemy_id": "dark_scout",
+          "count": 4,
+          "delay": 8.0
         }
-    ],
-    "unlock_condition": {
-        "type": "boss_kill",
-        "boss_id": "necropolis_overlord"
+      ],
+      "events": []
+    },
+    {
+      "index": 1,
+      "name": "Corona morte",
+      "type": "normal",
+      "duration_sec": 160,
+      "waves": [
+        {
+          "enemy_id": "dark_scout",
+          "count": 6,
+          "delay": 2.0
+        },
+        {
+          "enemy_id": "void_fighter",
+          "count": 4,
+          "delay": 10.0
+        }
+      ],
+      "events": [
+        {
+          "type": "solar_flare",
+          "trigger_time": 80
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "Champ gravitationnel",
+      "type": "normal",
+      "duration_sec": 170,
+      "waves": [
+        {
+          "enemy_id": "void_fighter",
+          "count": 5,
+          "delay": 3.0
+        },
+        {
+          "enemy_id": "gravity_mine",
+          "count": 6,
+          "delay": 12.0
+        }
+      ],
+      "events": []
+    },
+    {
+      "index": 3,
+      "name": "L'œil du vide",
+      "type": "normal",
+      "duration_sec": 180,
+      "waves": [
+        {
+          "enemy_id": "solar_moth",
+          "count": 10,
+          "delay": 1.0
+        },
+        {
+          "enemy_id": "void_fighter",
+          "count": 6,
+          "delay": 8.0
+        },
+        {
+          "enemy_id": "void_elite",
+          "count": 2,
+          "delay": 20.0
+        }
+      ],
+      "events": []
+    },
+    {
+      "index": 4,
+      "name": "Horizon des événements",
+      "type": "normal",
+      "duration_sec": 200,
+      "waves": [
+        {
+          "enemy_id": "void_elite",
+          "count": 4,
+          "delay": 5.0
+        },
+        {
+          "enemy_id": "gravity_mine",
+          "count": 8,
+          "delay": 15.0
+        }
+      ],
+      "events": [
+        {
+          "type": "gravity_pull",
+          "trigger_time": 120
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "name": "L'Éclipse",
+      "type": "boss",
+      "boss_id": "eclipse_entity",
+      "phases": [
+        {
+          "hp_percent": 100,
+          "pattern": "phase_1_gravity"
+        },
+        {
+          "hp_percent": 60,
+          "pattern": "phase_2_solar_storm"
+        },
+        {
+          "hp_percent": 30,
+          "pattern": "phase_3_void_collapse"
+        }
+      ]
     }
+  ],
+  "unlock_condition": {
+    "type": "boss_kill",
+    "boss_id": "necropolis_overlord"
+  }
 }
+

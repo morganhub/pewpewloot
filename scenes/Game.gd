@@ -12,6 +12,8 @@ extends Node2D
 @onready var hud_container: Control = $UI/HUD
 @onready var camera: Camera2D = $Camera2D
 
+const SCROLLING_LAYER_SCRIPT: Script = preload("res://scenes/ScrollingLayer.gd")
+
 var player: CharacterBody2D = null
 var hud: CanvasLayer = null
 var boss_hud: Control = null
@@ -20,6 +22,10 @@ var pause_menu: Control = null
 var enemies_killed: int = 0
 var boss_spawned: bool = false
 var session_loot: Array = [] # Track items collected in this session
+var active_boss: CharacterBody2D = null
+var _end_session_started: bool = false
+var _player_death_registered: bool = false
+var _wave_total_with_boss: int = 0
 
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
@@ -44,8 +50,8 @@ func _ready() -> void:
 	
 	# Music
 	var world = App.get_world(current_world_id)
-	var theme = world.get("theme", {})
-	var music = str(theme.get("music", ""))
+	var world_theme = world.get("theme", {})
+	var music = str(world_theme.get("music", ""))
 	if music != "":
 		App.play_music(music)
 	else:
@@ -88,36 +94,35 @@ func _setup_background() -> void:
 	# 1. FAR LAYER (0.2x, JPG Opaque, Tiling)
 	var far_path: String = str(bgs.get("far_layer", ""))
 	if far_path != "":
-		_create_layer(bg_container, far_path, base_speed * 0.2, viewport_size)
+		_create_layer(bg_container, far_path, base_speed * 0.2, viewport_size, false)
 	
 	# 2. MID LAYER (1.0x, PNG Alpha, Random/Tiling)
 	var mid_layers := _flatten_layers(bgs.get("mid_layer", []))
 	for path in mid_layers:
-		_create_layer(bg_container, path, base_speed * 1.0, viewport_size)
+		_create_layer(bg_container, path, base_speed * 1.0, viewport_size, true)
 	
 	# 3. NEAR LAYER (2.5x, PNG Alpha, Fast/Blur)
 	var near_layers := _flatten_layers(bgs.get("near_layer", []))
 	for path in near_layers:
-		_create_layer(bg_container, path, base_speed * 2.5, viewport_size)
+		_create_layer(bg_container, path, base_speed * 2.5, viewport_size, true)
 
-func _create_layer(parent: Node, path: String, speed: float, viewport_size: Vector2) -> void:
+func _create_layer(parent: Node, path: String, speed: float, viewport_size: Vector2, use_add_blend: bool) -> void:
 	if path == "": return
 	
-	# Preload texture to prevent "popping" during gameplay
-	# Using ResourceLoader ensures texture is fully loaded before use
+	# Preload resource to prevent "popping" during gameplay.
+	# Supports Texture2D (.png, .jpg, AnimatedTexture .tres) and SpriteFrames (.tres).
 	if not ResourceLoader.exists(path):
-		push_warning("[Game] Background texture does not exist: " + path)
+		push_warning("[Game] Background resource does not exist: " + path)
 		return
 		
-	var tex: Texture2D = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	var layer_resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
 	
-	if tex:
-		var layer_script = load("res://scenes/ScrollingLayer.gd")
-		var layer = layer_script.new()
+	if layer_resource:
+		var layer: Node = SCROLLING_LAYER_SCRIPT.new()
 		parent.add_child(layer)
-		layer.setup(tex, speed, viewport_size)
+		layer.call("setup", layer_resource, speed, viewport_size, use_add_blend)
 	else:
-		push_warning("[Game] Could not load background texture: " + path)
+		push_warning("[Game] Could not load background resource: " + path)
 
 func _flatten_layers(data: Variant) -> Array:
 	var result: Array = []
@@ -203,7 +208,16 @@ func _spawn_player() -> void:
 	player.tree_exiting.connect(_on_player_died)
 
 func _on_player_died() -> void:
+	if _end_session_started or _player_death_registered:
+		return
+	
+	_player_death_registered = true
 	print("[Game] Player died! Game Over.")
+	
+	# Empêche le boss d'être tué après la mort du joueur (ex: projectile déjà en vol).
+	if is_instance_valid(active_boss):
+		if active_boss.has_method("set_invincible"):
+			active_boss.call("set_invincible", true)
 	
 	# Show Game Over Overlay
 	var overlay_scene := load("res://scenes/ui/GameOverOverlay.tscn")
@@ -246,10 +260,31 @@ func _start_enemy_spawner() -> void:
 	
 	wave_manager.spawn_enemy.connect(_on_wave_enemy_spawn)
 	wave_manager.level_completed.connect(_on_level_completed)
+	wave_manager.wave_started.connect(_on_wave_started)
 	
 	# Démarrer le niveau actuel
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)
+	_configure_wave_counter(level_id)
 	wave_manager.setup(level_id)
+
+func _configure_wave_counter(level_id: String) -> void:
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	var waves_variant: Variant = level_data.get("waves", [])
+	var waves_count: int = 0
+	if waves_variant is Array:
+		waves_count = (waves_variant as Array).size()
+	
+	var boss_id: String = str(level_data.get("boss_id", ""))
+	var has_boss: bool = boss_id != ""
+	_wave_total_with_boss = waves_count + (1 if has_boss else 0)
+	
+	if hud and hud.has_method("configure_wave_counter"):
+		hud.call("configure_wave_counter", _wave_total_with_boss)
+
+func _on_wave_started(wave_index: int) -> void:
+	var current_wave: int = wave_index + 1
+	if hud and hud.has_method("update_wave_counter"):
+		hud.call("update_wave_counter", current_wave)
 
 func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	# Instancier l'ennemi
@@ -293,6 +328,8 @@ func _on_enemy_died(enemy: CharacterBody2D) -> void:
 func _spawn_boss(boss_id: String) -> void:
 	boss_spawned = true
 	print("[Game] BOSS INCOMING: ", boss_id)
+	if hud and hud.has_method("update_wave_counter"):
+		hud.call("update_wave_counter", _wave_total_with_boss)
 	
 	# Arrêter le spawn d'ennemis normaux
 	_stop_all_timers()
@@ -314,6 +351,7 @@ func _spawn_boss(boss_id: String) -> void:
 	game_layer.add_child(boss)
 	boss.global_position = spawn_pos
 	boss.setup(boss_data)
+	active_boss = boss
 	
 	# Afficher la barre de vie du boss dans le HUD existant
 	if hud:
@@ -323,13 +361,21 @@ func _spawn_boss(boss_id: String) -> void:
 	boss.boss_died.connect(_on_boss_died)
 	boss.health_changed.connect(_on_boss_health_changed)
 	
-	VFXManager.screen_shake(15, 0.8)
+	if bool(ProfileManager.get_setting("screenshake_enabled", true)):
+		VFXManager.screen_shake(15, 0.8)
 
 func _on_boss_health_changed(new_hp: int, max_hp: int) -> void:
 	if hud:
 		hud.update_boss_health(new_hp, max_hp)
 
 func _on_boss_died(boss: CharacterBody2D) -> void:
+	if _player_death_registered:
+		print("[Game] Boss died after player death; ignoring victory flow.")
+		return
+	
+	if _end_session_started:
+		return
+	
 	print("[Game] BOSS DEFEATED!")
 	if hud:
 		hud.add_score(boss.score)
@@ -339,10 +385,16 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 		player.is_invincible = true
 		if player.has_method("set_can_shoot"):
 			player.set_can_shoot(false)
+	
+	active_boss = null
 			
 	_show_end_session_screen(true)
 
 func _show_end_session_screen(is_victory: bool = true) -> void:
+	if _end_session_started:
+		return
+	_end_session_started = true
+	
 	# Disable spawning/shooting immediately
 	if player and player.has_method("set_can_shoot"):
 		player.set_can_shoot(false)

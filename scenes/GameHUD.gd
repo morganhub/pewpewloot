@@ -12,6 +12,7 @@ signal unique_requested
 @onready var hp_label: Label = $TopLeft/HPLabel
 # Shield Bar (Dynamic)
 var shield_bar: ProgressBar = null
+var wave_label: Label = null
 
 # TopRight
 @onready var score_label: Label = $TopRight/ScoreLabel
@@ -37,6 +38,8 @@ var shield_bar: ProgressBar = null
 # State
 var _score: int = 0
 var _player: Node2D = null
+var _wave_current: int = 0
+var _wave_total: int = 0
 
 # =============================================================================
 # LIFECYCLE
@@ -396,6 +399,48 @@ func _setup_shield_bar() -> void:
 		top_left.move_child(shield_bar, idx + 1)
 	
 	shield_bar.visible = true # ALWAYS VISIBLE
+	_setup_wave_label(top_left, shield_bar)
+
+func _setup_wave_label(top_left: Control, bar_ref: Control) -> void:
+	if wave_label and is_instance_valid(wave_label):
+		return
+	
+	wave_label = Label.new()
+	wave_label.name = "WaveLabel"
+	wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	wave_label.text = ""
+	wave_label.visible = false
+	top_left.add_child(wave_label)
+	
+	if bar_ref:
+		var idx: int = bar_ref.get_index()
+		top_left.move_child(wave_label, idx + 1)
+	
+	wave_label.add_theme_font_size_override("font_size", 18)
+	wave_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95, 1.0))
+
+func configure_wave_counter(total_waves: int) -> void:
+	_wave_total = maxi(0, total_waves)
+	_wave_current = 0
+	_refresh_wave_label()
+
+func update_wave_counter(current_wave: int) -> void:
+	_wave_current = maxi(0, current_wave)
+	_refresh_wave_label()
+
+func _refresh_wave_label() -> void:
+	if not wave_label:
+		return
+	if _wave_total <= 0:
+		wave_label.visible = false
+		return
+	
+	var clamped_current: int = clampi(_wave_current, 0, _wave_total)
+	wave_label.visible = true
+	wave_label.text = LocaleManager.translate(
+		"game_wave_progress",
+		{"current": str(clamped_current), "total": str(_wave_total)}
+	)
 
 func _on_shield_changed(current: float, max_val: float) -> void:
 	if not shield_bar: return

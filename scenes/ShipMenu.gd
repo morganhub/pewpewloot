@@ -794,6 +794,12 @@ func _load_ships() -> void:
 	
 	if selected_ship_id == "":
 		selected_ship_id = active_id
+	if DataManager.get_ship(selected_ship_id).is_empty():
+		selected_ship_id = active_id
+	if DataManager.get_ship(selected_ship_id).is_empty() and total_ships > 0:
+		var first_ship: Variant = all_ships[0]
+		if first_ship is Dictionary:
+			selected_ship_id = str((first_ship as Dictionary).get("id", ""))
 	
 	# Validate page index
 	var total_pages: int = ceil(total_ships / float(_ship_visible_count))
@@ -891,10 +897,12 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	var icon_wrapper := Control.new()
 	icon_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_wrapper.custom_minimum_size = _ship_card_size
+	icon_wrapper.pivot_offset = _ship_card_size / 2.0
 	card.add_child(icon_wrapper) 
 	
 	var visual: Dictionary = ship_data.get("visual", {})
 	var visual_asset: String = str(visual.get("asset", ""))
+	var visual_anim: String = str(visual.get("asset_anim", ""))
 	
 	var icon_rect := TextureRect.new()
 	icon_rect.name = "ShipIcon"
@@ -903,23 +911,41 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	icon_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
-	# Important: Le pivot doit être au centre pour la rotation et le scale
-	icon_rect.pivot_offset = _ship_card_size / 2.0
 	icon_wrapper.add_child(icon_rect)
 	
-	if visual_asset != "" and ResourceLoader.exists(visual_asset):
+	var has_animated_icon := false
+	if visual_anim != "" and ResourceLoader.exists(visual_anim):
+		var frames = load(visual_anim)
+		if frames is SpriteFrames:
+			has_animated_icon = true
+			var anim_sprite := AnimatedSprite2D.new()
+			anim_sprite.name = "ShipIconAnim"
+			anim_sprite.sprite_frames = frames
+			anim_sprite.centered = true
+			anim_sprite.position = _ship_card_size / 2.0
+			anim_sprite.play("default")
+			var frame_tex = frames.get_frame_texture("default", 0)
+			if frame_tex:
+				var f_size = frame_tex.get_size()
+				if f_size.x > 0.0 and f_size.y > 0.0:
+					var fit_scale := minf(_ship_card_size.x / f_size.x, _ship_card_size.y / f_size.y) * 0.8
+					anim_sprite.scale = Vector2(fit_scale, fit_scale)
+			icon_wrapper.add_child(anim_sprite)
+	
+	icon_rect.visible = not has_animated_icon
+	if not has_animated_icon and visual_asset != "" and ResourceLoader.exists(visual_asset):
 		icon_rect.texture = load(visual_asset)
 		
 	# 5. État Initial (Pre-set)
 	if is_selected:
-		icon_rect.rotation_degrees = 180.0
-		icon_rect.scale = Vector2(1.0, 1.0)
+		icon_wrapper.rotation_degrees = 180.0
+		icon_wrapper.scale = Vector2(1.0, 1.0)
 	else:
-		icon_rect.rotation_degrees = 0.0
-		icon_rect.scale = Vector2(0.8, 0.8)
+		icon_wrapper.rotation_degrees = 0.0
+		icon_wrapper.scale = Vector2(0.8, 0.8)
 
 	if not is_unlocked:
-		icon_rect.modulate = Color(0.2, 0.2, 0.2, 1)
+		icon_wrapper.modulate = Color(0.2, 0.2, 0.2, 1)
 	
 	# 6. LOGIQUE D'ANIMATION
 	var was_previously_selected := (ship_id == _previous_selected_ship_id and _previous_selected_ship_id != "")
@@ -927,23 +953,23 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	if not _is_initial_load:
 		if is_selected and not was_previously_selected:
 			# Reset avant animation
-			icon_rect.rotation_degrees = 0.0
-			icon_rect.scale = Vector2(0.8, 0.8)
+			icon_wrapper.rotation_degrees = 0.0
+			icon_wrapper.scale = Vector2(0.8, 0.8)
 			
 			var tw = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw.tween_property(icon_rect, "rotation_degrees", 180.0, 0.8)
-			tw.tween_property(icon_rect, "scale", Vector2(1.0, 1.0), 0.8)
+			tw.tween_property(icon_wrapper, "rotation_degrees", 180.0, 0.8)
+			tw.tween_property(icon_wrapper, "scale", Vector2(1.0, 1.0), 0.8)
 			
 		elif not is_selected and was_previously_selected:
 			var tw = create_tween()
 			tw.set_parallel(true)
 			tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw.tween_property(icon_rect, "rotation_degrees", 180.0, 0.0)
+			tw.tween_property(icon_wrapper, "rotation_degrees", 180.0, 0.0)
 
-			tw.tween_property(icon_rect, "scale", Vector2(1, 1), 0.0)
+			tw.tween_property(icon_wrapper, "scale", Vector2(1, 1), 0.0)
 
-			tw.chain().tween_property(icon_rect, "rotation_degrees", 0.0, 1.0)
-			tw.parallel().tween_property(icon_rect, "scale", Vector2(0.8, 0.8), 1.0)
+			tw.chain().tween_property(icon_wrapper, "rotation_degrees", 0.0, 1.0)
+			tw.parallel().tween_property(icon_wrapper, "scale", Vector2(0.8, 0.8), 1.0)
 			
 	# 7. Bouton Invisible pour l'interaction
 	var btn := Button.new()
@@ -973,6 +999,7 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	
 	# Metadata & Finalisation
 	card.set_meta("ship_id", ship_id)
+	card.set_meta("price", int(ship_data.get("crystal_price", 0)))
 	ship_cards_container.add_child(card)
 	
 func _on_ship_card_pressed(ship_id: String) -> void:
@@ -1003,11 +1030,14 @@ func _on_ship_card_pressed(ship_id: String) -> void:
 	_update_locking_ui(selected_ship_id)
 
 func _show_purchase_overlay(ship_id: String) -> void:
+	var ship_data := DataManager.get_ship(ship_id)
+	if ship_data.is_empty():
+		return
+	var price := int(ship_data.get("crystal_price", 0))
+	
 	# Trouver la carte du vaisseau
 	for card in ship_cards_container.get_children():
 		if card.has_meta("ship_id") and card.get_meta("ship_id") == ship_id:
-			var price := int(card.get_meta("price"))
-			
 			# Vérifier si un overlay existe déjà
 			var existing_overlay: Node = card.get_node_or_null("PurchaseOverlay")
 			if existing_overlay:

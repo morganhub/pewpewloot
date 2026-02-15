@@ -421,8 +421,6 @@ func add_fire_rate_boost(duration: float) -> void:
 func _process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_shooting(delta)
-	_handle_movement(delta)
-	_handle_shooting(delta)
 	_handle_contact_damage(delta)
 	_handle_shield_regen(delta)
 	
@@ -487,7 +485,7 @@ func _on_hitbox_body_exited(body: Node2D) -> void:
 # SHIELD LOGIC
 # =============================================================================
 
-func _handle_shield_regen(delta: float) -> void:
+func _handle_shield_regen(_delta: float) -> void:
 	# Pas de regen automatique dans ce mode "Pickup"
 	pass
 
@@ -612,16 +610,19 @@ func _apply_shield_impact(projectile: Node) -> void:
 
 # INPUT STATE
 var input_provider: Object = null # GameHUD ou autre
+var _external_displacement: Vector2 = Vector2.ZERO
+
+func apply_external_displacement(offset: Vector2) -> void:
+	_external_displacement += offset
 
 func _handle_movement(delta: float) -> void:
 	var use_joystick := false
-	var joystick_output := Vector2.ZERO
+	var has_external_force := _external_displacement.length_squared() > 0.000001
 	
 	# Vérifier si on a un provider de joystick actif
 	if input_provider and input_provider.has_method("is_joystick_active"):
 		if input_provider.is_joystick_active():
 			use_joystick = true
-			joystick_output = input_provider.get_joystick_output()
 	
 	if use_joystick:
 		# 1:1 Direct Drag Movement (Touch Follow)
@@ -640,7 +641,9 @@ func _handle_movement(delta: float) -> void:
 		else:
 			on_mobile = OS.has_feature("mobile")
 			
-		if not on_mobile:
+		# If an external force (e.g. GravityWell) is active this frame, skip cursor recentering.
+		# This keeps the pull effect visible even when the mouse is static.
+		if not on_mobile and not has_external_force:
 			var mouse_pos := get_global_mouse_position()
 			var distance := global_position.distance_to(mouse_pos)
 			if distance > 5:  # Dead zone
@@ -661,6 +664,11 @@ func _handle_movement(delta: float) -> void:
 		global_position.y = viewport_size.y - margin_y
 	
 	move_and_slide()
+	
+	# Apply external forces (e.g. graviton pull) after input movement.
+	if _external_displacement != Vector2.ZERO:
+		global_position += _external_displacement
+		_external_displacement = Vector2.ZERO
 	
 	# 2. Strict X Clamp
 	global_position.x = clampf(global_position.x, 20, viewport_size.x - 20)
@@ -920,7 +928,8 @@ func take_damage(amount: int) -> void:
 	
 	# Feedback visuel
 	VFXManager.flash_sprite(self, Color.RED, 0.15)
-	VFXManager.screen_shake(5, 0.15)
+	if bool(ProfileManager.get_setting("screenshake_enabled", true)):
+		VFXManager.screen_shake(5, 0.15)
 	
 	if current_hp <= 0:
 		die()

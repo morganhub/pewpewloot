@@ -16,14 +16,6 @@ var _boss_loot_quality_bonus: float = 25.0
 
 # Total weight for rarity selection
 var _total_rarity_weight: float = 0.0
-var _rarity_priority: Dictionary = {
-	"common": 0,
-	"uncommon": 1,
-	"rare": 2,
-	"epic": 3,
-	"legendary": 4,
-	"unique": 5
-}
 const _RARITY_ORDER: Array[String] = ["common", "uncommon", "rare", "epic", "legendary", "unique"]
 
 # =============================================================================

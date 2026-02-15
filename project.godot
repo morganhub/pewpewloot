@@ -13,7 +13,10 @@ config_version=5
 config/name="Pewpewloot"
 run/main_scene="uid://de1j4fstvvd6v"
 config/features=PackedStringArray("4.6", "Mobile")
-config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/stretch_mode=0
+boot_splash/image="res://assets/logo/app_icon.png"
+config/icon="res://assets/logo/app_icon.png"
 
 [autoload]
 

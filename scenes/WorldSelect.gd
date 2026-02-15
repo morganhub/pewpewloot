@@ -185,8 +185,8 @@ func _on_world_card_clicked(world_id: String) -> void:
 	switcher.goto_screen("res://scenes/LevelSelect.tscn")
 
 func _get_active_progress() -> Dictionary:
-	var p := ProfileManager.get_active_profile()
-	var prog: Variant = p.get("progress", {})
+	var profile := ProfileManager.get_active_profile()
+	var prog: Variant = profile.get("progress", {})
 	if prog is Dictionary:
 		return prog as Dictionary
 	return {}

@@ -128,3 +128,11 @@ size_flags_horizontal = 4
 custom_minimum_size = Vector2(300, 50)
 theme_override_font_sizes/font_size = 18
 text = "Changer de profil"
+
+[node name="GeneratePatternsButton" type="Button" parent="BottomSection"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(300, 46)
+theme_override_font_sizes/font_size = 16
+text = "Generate Move Paths"

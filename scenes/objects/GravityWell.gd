@@ -66,19 +66,27 @@ func _physics_process(delta: float) -> void:
 	_pull_players(delta)
 
 func _pull_players(delta: float) -> void:
-	for body in get_overlapping_bodies():
-		if not (body is CharacterBody2D):
+	var players := get_tree().get_nodes_in_group("player")
+	for player_node in players:
+		if not (player_node is CharacterBody2D):
 			continue
-		var player := body as CharacterBody2D
-		if not player.is_in_group("player"):
-			continue
+		var player := player_node as CharacterBody2D
 		
 		var to_center := global_position - player.global_position
-		if to_center.length_squared() <= 0.0001:
+		var distance := to_center.length()
+		if distance <= 0.0001 or distance > effect_radius:
 			continue
 		
-		var direction := to_center.normalized()
-		player.velocity += direction * pull_strength * delta
+		var direction := to_center / distance
+		var radius := maxf(effect_radius, 1.0)
+		var falloff := clampf(1.0 - (distance / radius), 0.15, 1.0)
+		# Apply instant pull (no persistent velocity imprint after despawn).
+		var pull_step := minf(pull_strength * falloff * delta, distance)
+		var pull_offset := direction * pull_step
+		if player.has_method("apply_external_displacement"):
+			player.call("apply_external_displacement", pull_offset)
+		else:
+			player.global_position += pull_offset
 
 func _apply_visual() -> void:
 	if ability_asset != "" and ResourceLoader.exists(ability_asset):

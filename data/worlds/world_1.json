@@ -1,230 +1,235 @@
 {
-	"id": "world_1",
-	"name": "Ceinture d'astéroïdes",
-	"description": "Un champ d'astéroïdes aux confins du système solaire, peuplé de pirates et de drones autonomes.",
-	"order": 1,
-	"theme": {
-		"background": "res://assets/backgrounds/asteroids.png",
-		"music": "res://assets/music/acceleration.ogg",
-		"color_palette": "#3a4f6f"
-	},
-	"levels": [
+  "id": "world_1",
+  "name": "Ceinture d'astéroïdes",
+  "description": "Un champ d'astéroïdes aux confins du système solaire, peuplé de pirates et de drones autonomes.",
+  "order": 1,
+  "theme": {
+	"background": "res://assets/backgrounds/far_layer/space.jpg",
+	"music": "res://assets/music/acceleration.ogg",
+	"color_palette": "#3a4f6f"
+  },
+  "levels": [
+	{
+	  "index": 0,
+	  "id": "world_1_lvl_0",
+	  "name": "Avant-poste",
+	  "type": "normal",
+	  "duration_sec": 120,
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/far_layer/space.jpg",
+		"far_layer": "res://assets/backgrounds/far_layer/space.jpg",
+		"mid_layer": [
+		  [
+            "res://assets/backgrounds/layer_2/shooting_stars_1.jpg"
+		  ]
+		],
+		"near_layer": [
+		  [
+            "res://assets/backgrounds/layer_2/shooting_stars_1.jpg"
+		  ]
+		]
+	  },
+	  "waves": [
 		{
-			"index": 0,
-			"id": "world_1_lvl_0",
-			"name": "Avant-poste",
-			"type": "normal",
-			"duration_sec": 120,
-			"backgrounds": {
-				"card": "res://assets/backgrounds/level_cards/world1_lvl0.png",
-				"far_layer": "res://assets/backgrounds/far_layer/canyon.jpg",
-				"mid_layer": [
-					[
-						"res://assets/backgrounds/layer_2/clouds.png"
-					]
-				],
-				"near_layer": [
-					[
-						"res://assets/backgrounds/layer_2/clouds.png"
-					]
-				]
-			},
-			"waves": [
-				{
-					"time": 2.0,
-					"enemy_id": "woop_dive",
-					"count": 30,
-					"interval": 0.5,
-					"pattern_id": "bezier_curve",
-					"origin_x": "40%",
-					"origin_y": -100,
-					"enemy_modifier_id": "graviton"
-				},
-				{
-					"time": 20.0,
-					"enemy_id": "scout_basic",
-					"count": 30,
-					"interval": 1.5,
-					"pattern_id": "swoop_dive",
-					"origin_x": "30%",
-					"origin_y": -300,
-					"enemy_modifier_id": "minefreak"
-				}
-			],
-			"boss_id": "boss_world1",
-			"events": []
+		  "time": 2.0,
+		  "enemy_id": "scout_basic",
+		  "count": 30,
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
 		},
 		{
-			"index": 1,
-			"id": "world_1_lvl_1",
-			"name": "Couloir de débris",
-			"type": "normal",
-			"duration_sec": 140,
-			"backgrounds": {
-				"card": "",
-				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
-				"mid_layer": [
-					[
-						"res://assets/backgrounds/layer_2/clouds.png"
-					]
-				],
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"time": 2.0,
-					"enemy_id": "scout_basic",
-					"count": 6,
-					"interval": 0.8,
-					"pattern_id": "zigzag_horizontal",
-					"origin_x": "50%",
-					"origin_y": -50
-				},
-				{
-					"time": 10.0,
-					"enemy_id": "fighter_aggressive",
-					"count": 3,
-					"interval": 1.5,
-					"pattern_id": "diagonal_right",
-					"origin_x": "10%",
-					"origin_y": 50
-				}
-			],
-			"events": []
+		  "time": 24.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 30,
+		  "interval": 0.7,
+		  "enemy_modifier_id": "graviton"
 		},
 		{
-			"index": 2,
-			"id": "world_1_lvl_2",
-			"name": "Zone minée",
-			"type": "normal",
-			"duration_sec": 150,
-			"backgrounds": {
-				"card": "",
-				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
-				"mid_layer": [],
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"time": 3.0,
-					"enemy_id": "fighter_aggressive",
-					"count": 4,
-					"interval": 1.0,
-					"pattern_id": "straight_down",
-					"origin_x": "random"
-				},
-				{
-					"time": 15.0,
-					"enemy_id": "bomber_heavy",
-					"count": 2,
-					"interval": 2.0,
-					"pattern_id": "straight_down"
-				}
-			],
-			"events": [
-				{
-					"type": "minefield",
-					"trigger_time": 60
-				}
-			]
+		  "time": 40.0,
+		  "enemy_id": "scout_basic",
+		  "count": 30,
+		  "interval": 0.7,
+		  "enemy_modifier_id": "minefreak"
 		},
 		{
-			"index": 3,
-			"id": "world_1_lvl_3",
-			"name": "Embuscade",
-			"type": "normal",
-			"duration_sec": 160,
-			"backgrounds": {
-				"card": "",
-				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
-				"mid_layer": [],
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"time": 5.0,
-					"enemy_id": "scout_basic",
-					"count": 8,
-					"interval": 0.5,
-					"pattern_id": "rush_player",
-					"origin_x": -50,
-					"origin_y": "30%"
-				},
-				{
-					"time": 20.0,
-					"enemy_id": "fighter_aggressive",
-					"count": 5,
-					"interval": 1.0,
-					"pattern_id": "circle_clockwise"
-				},
-				{
-					"time": 40.0,
-					"enemy_id": "fighter_aggressive",
-					"count": 1,
-					"interval": 0,
-					"pattern_id": "stationary"
-				}
-			],
-			"events": []
+		  "time": 70.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 30,
+		  "interval": 0.7,
+		  "enemy_modifier_id": "elite_berserker"
 		},
 		{
-			"index": 4,
-			"id": "world_1_lvl_4",
-			"name": "La Forteresse",
-			"type": "normal",
-			"duration_sec": 180,
-			"backgrounds": {
-				"card": "",
-				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
-				"mid_layer": [],
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"time": 2.0,
-					"enemy_id": "fighter_aggressive",
-					"count": 6,
-					"interval": 0.8,
-					"pattern_id": "wave_horizontal"
-				},
-				{
-					"time": 12.0,
-					"enemy_id": "bomber_heavy",
-					"count": 3,
-					"interval": 2.0,
-					"pattern_id": "straight_down"
-				},
-				{
-					"time": 30.0,
-					"enemy_id": "interceptor_diagonal",
-					"count": 2,
-					"interval": 1.5,
-					"pattern_id": "diagonal_right"
-				}
-			],
-			"events": [
-				{
-					"type": "laser_grid",
-					"trigger_time": 90
-				}
-			]
+		  "time": 90.0,
+		  "enemy_id": "scout_basic",
+		  "count": 30,
+		  "interval": 0.7,
+		  "enemy_modifier_id": "arcane_enchanted"
 		},
 		{
-			"index": 5,
-			"id": "world_1_lvl_5",
-			"name": "Le Gardien",
-			"type": "boss",
-			"boss_id": "boss_world1",
-			"backgrounds": {
-				"card": "",
-				"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
-				"mid_layer": [],
-				"near_layer": []
-			},
-			"waves": []
+		  "time": 110.0,
+		  "enemy_id": "scout_basic",
+		  "count": 30,
+		  "interval": 0.7,
+		  "enemy_modifier_id": "waller"
 		}
-	],
-	"unlock_condition": {
-		"type": "initial"
+	  ],
+	  "boss_id": "boss_world1",
+	  "events": []
+	},
+	{
+	  "index": 1,
+	  "id": "world_1_lvl_1",
+	  "name": "Couloir de débris",
+	  "type": "normal",
+	  "duration_sec": 180,
+	  "backgrounds": {
+		"card": "",
+		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"mid_layer": [
+		  [
+            "res://assets/backgrounds/layer_2/clouds.png"
+		  ]
+		],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 2.0,
+		  "enemy_id": "scout_basic",
+		  "count": 6,
+		  "interval": 0.8
+		},
+		{
+		  "time": 10.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 3,
+		  "interval": 1.5
+		}
+	  ],
+	  "events": []
+	},
+	{
+	  "index": 2,
+	  "id": "world_1_lvl_2",
+	  "name": "Zone minée",
+	  "type": "normal",
+	  "duration_sec": 150,
+	  "backgrounds": {
+		"card": "",
+		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 3.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 4,
+		  "interval": 1.0
+		},
+		{
+		  "time": 15.0,
+		  "enemy_id": "bomber_heavy",
+		  "count": 2,
+		  "interval": 2.0
+		}
+	  ],
+	  "events": [
+		{
+		  "type": "minefield",
+		  "trigger_time": 60
+		}
+	  ]
+	},
+	{
+	  "index": 3,
+	  "id": "world_1_lvl_3",
+	  "name": "Embuscade",
+	  "type": "normal",
+	  "duration_sec": 160,
+	  "backgrounds": {
+		"card": "",
+		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 5.0,
+		  "enemy_id": "scout_basic",
+		  "count": 8,
+		  "interval": 0.5
+		},
+		{
+		  "time": 20.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 5,
+		  "interval": 1.0
+		},
+		{
+		  "time": 40.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 1,
+		  "interval": 0
+		}
+	  ],
+	  "events": []
+	},
+	{
+	  "index": 4,
+	  "id": "world_1_lvl_4",
+	  "name": "La Forteresse",
+	  "type": "normal",
+	  "duration_sec": 180,
+	  "backgrounds": {
+		"card": "",
+		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": [
+		{
+		  "time": 2.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 6,
+		  "interval": 0.8
+		},
+		{
+		  "time": 12.0,
+		  "enemy_id": "bomber_heavy",
+		  "count": 3,
+		  "interval": 2.0
+		},
+		{
+		  "time": 30.0,
+		  "enemy_id": "interceptor_diagonal",
+		  "count": 2,
+		  "interval": 1.5
+		}
+	  ],
+	  "events": [
+		{
+		  "type": "laser_grid",
+		  "trigger_time": 90
+		}
+	  ]
+	},
+	{
+	  "index": 5,
+	  "id": "world_1_lvl_5",
+	  "name": "Le Gardien",
+	  "type": "boss",
+	  "boss_id": "boss_world1",
+	  "backgrounds": {
+		"card": "",
+		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"mid_layer": [],
+		"near_layer": []
+	  },
+	  "waves": []
 	}
+  ],
+  "unlock_condition": {
+	"type": "initial"
+  }
 }

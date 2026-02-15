@@ -16,10 +16,13 @@
 				"color": "#FFFF00",
 				"shape": "circle",
 				"size": 8,
-				"width_pct": 0.025,
-				"height_pct": 0.025,
-				"asset": "res://assets/missiles/blue_ball.png",
-				"asset_anim": ""
+				"width_pct": 0.06,
+				"height_pct": 0.06,
+				"pulsating": true,
+				"pulsating_size": 1.15,
+				"pulsating_frequency": 1.6,
+				"asset": "",
+				"asset_anim": "res://assets/missiles/blue_energy.tres"
 			},
 			"sound": "",
 			"explosion": {}
@@ -28,17 +31,20 @@
 			"id": "missile_car",
 			"name": "Car Missile",
 			"type": "basic",
-			"speed": 150,
-			"acceleration": 50,
+			"speed": 280,
+			"acceleration": 100,
 			"animation_type": "loop",
 			"visual": {
 				"color": "#FF0000",
 				"shape": "circle",
 				"size": 10,
-				"width_pct": 0.02,
-				"height_pct": 0.06,
+				"width_pct": 0.04,
+				"height_pct": 0.04,
+				"pulsating": true,
+				"pulsating_size": 1.15,
+				"pulsating_frequency": 1.6,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/sacred_missile.tres"
+				"asset_anim": "res://assets/missiles/energy_ball.tres"
 			},
 			"sound": "res://assets/sfx/combat/very_weak_laser.ogg",
 			"explosion": {}
@@ -56,6 +62,9 @@
 				"size": 10,
 				"width_pct": 0.03,
 				"height_pct": 0.03,
+				"pulsating": false,
+				"pulsating_size": 1.0,
+				"pulsating_frequency": 1.0,
 				"asset": "",
 				"asset_anim": ""
 			},
@@ -78,6 +87,9 @@
 				"size": 8,
 				"width_pct": 0.020,
 				"height_pct": 0.020,
+				"pulsating": false,
+				"pulsating_size": 1.0,
+				"pulsating_frequency": 1.0,
 				"asset": "",
 				"asset_anim": "res://assets/missiles/sacred_missile.tres"
 			},

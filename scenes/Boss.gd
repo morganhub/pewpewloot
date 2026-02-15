@@ -466,7 +466,7 @@ func _get_spawn_positions(strategy: String, count: int) -> Array:
 			positions.append(Vector2(viewport_size.x - 30, viewport_size.y - 30))
 		
 		"flanking":
-			var half: int = count / 2
+			var half: int = int(floor(float(count) * 0.5))
 			var step_y: float = viewport_size.y / max(1, half)
 			for i in range(half):
 				positions.append(Vector2(-20, step_y * i + step_y / 2))

@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://qf3wq0t5ptk7"]
+
+[ext_resource type="Curve2D" uid="uid://b1ug5hh4aiwmy" path="res://data/patterns/paths/impatient_circle.tres" id="1_acs4t"]
+
+[node name="PathTest" type="Node2D" unique_id=382349124]
+
+[node name="Path2D" type="Path2D" parent="." unique_id=1572478910]
+position = Vector2(380.40845, -56.106785)
+scale = Vector2(1.9593865, 1.5582721)
+curve = ExtResource("1_acs4t")
