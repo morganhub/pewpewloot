@@ -21,10 +21,20 @@ func get_stat_modifier(stat_name: String) -> float:
 		if skill_data.get("type", "") != "stat_modifier":
 			continue
 		var params: Dictionary = skill_data.get("params", {})
-		if str(params.get("stat", "")) == stat_name:
+		var skill_stat: String = str(params.get("stat", ""))
+		if _stat_matches(skill_stat, stat_name):
 			total_bonus += float(params.get("bonus_per_rank", 0.0)) * rank
 
 	return total_bonus
+
+func _stat_matches(skill_stat: String, requested_stat: String) -> bool:
+	if skill_stat == requested_stat:
+		return true
+	if requested_stat == "power" and skill_stat == "damage":
+		return true
+	if requested_stat == "damage" and skill_stat == "power":
+		return true
+	return false
 
 # =============================================================================
 # MAGIC TREE
@@ -104,16 +114,46 @@ func get_projectile_modifier() -> Dictionary:
 					result["aura_type"] = str(p["aura_type"])
 					result["aura_radius"] = float(p.get("aura_radius", 120))
 					result["aura_slow_percent"] = float(p.get("aura_slow_percent", 0.20))
+				if p.has("aura_asset"):
+					result["aura_asset"] = str(p.get("aura_asset", ""))
+				if p.has("aura_asset_anim"):
+					result["aura_asset_anim"] = str(p.get("aura_asset_anim", ""))
+				if p.has("aura_asset_anim_duration"):
+					result["aura_asset_anim_duration"] = float(p.get("aura_asset_anim_duration", 0.0))
+				if p.has("aura_asset_anim_loop"):
+					result["aura_asset_anim_loop"] = bool(p.get("aura_asset_anim_loop", true))
+				if p.has("aura_asset_size"):
+					result["aura_asset_size"] = float(p.get("aura_asset_size", 220.0))
 				if p.has("freeze_duration"):
 					result["freeze_enabled"] = true
 					result["freeze_aura_time"] = float(p.get("freeze_aura_time", 2.0))
 					result["freeze_hit_count"] = int(p.get("freeze_hit_count", 10))
 					result["freeze_duration"] = float(p.get("freeze_duration", 2.0))
+				if p.has("freeze_mark_asset"):
+					result["freeze_mark_asset"] = str(p.get("freeze_mark_asset", ""))
+				if p.has("freeze_mark_asset_anim"):
+					result["freeze_mark_asset_anim"] = str(p.get("freeze_mark_asset_anim", ""))
+				if p.has("freeze_mark_asset_anim_duration"):
+					result["freeze_mark_asset_anim_duration"] = float(p.get("freeze_mark_asset_anim_duration", 0.0))
+				if p.has("freeze_mark_asset_anim_loop"):
+					result["freeze_mark_asset_anim_loop"] = bool(p.get("freeze_mark_asset_anim_loop", true))
+				if p.has("freeze_mark_size"):
+					result["freeze_mark_size"] = float(p.get("freeze_mark_size", 52.0))
 				if p.has("shatter_damage_pct"):
 					result["shatter_enabled"] = true
 					result["shatter_damage_pct"] = float(p.get("shatter_damage_pct", 0.5))
 					result["shatter_radius"] = float(p.get("shatter_radius", 80))
 					result["shatter_projectile_count"] = int(p.get("shatter_projectile_count", 6))
+				if p.has("shard_asset"):
+					result["shard_asset"] = str(p.get("shard_asset", ""))
+				if p.has("shard_asset_anim"):
+					result["shard_asset_anim"] = str(p.get("shard_asset_anim", ""))
+				if p.has("shard_asset_anim_duration"):
+					result["shard_asset_anim_duration"] = float(p.get("shard_asset_anim_duration", 0.0))
+				if p.has("shard_asset_anim_loop"):
+					result["shard_asset_anim_loop"] = bool(p.get("shard_asset_anim_loop", true))
+				if p.has("shard_asset_size"):
+					result["shard_asset_size"] = float(p.get("shard_asset_size", 12.0))
 				if p.has("aura_radius_bonus"):
 					result["aura_radius_bonus"] = float(p.get("aura_radius_bonus", 0.5))
 					result["freeze_dot_dps"] = float(p.get("freeze_dot_dps", 5))
@@ -128,10 +168,28 @@ func get_projectile_modifier() -> Dictionary:
 					result["pool_damage_per_sec"] = float(p.get("pool_damage_per_sec", 8))
 					result["pool_duration"] = float(p.get("pool_duration", 3.0))
 					result["pool_radius"] = float(p.get("pool_radius", 50))
+				if p.has("pool_asset"):
+					result["pool_asset"] = str(p.get("pool_asset", ""))
+				if p.has("pool_asset_anim"):
+					result["pool_asset_anim"] = str(p.get("pool_asset_anim", ""))
+				if p.has("pool_asset_anim_duration"):
+					result["pool_asset_anim_duration"] = float(p.get("pool_asset_anim_duration", 0.0))
+				if p.has("pool_asset_anim_loop"):
+					result["pool_asset_anim_loop"] = bool(p.get("pool_asset_anim_loop", true))
+				if p.has("pool_asset_size"):
+					result["pool_asset_size"] = float(p.get("pool_asset_size", 150.0))
 				if p.has("contagion_radius"):
 					result["contagion_enabled"] = true
 					result["contagion_radius"] = float(p.get("contagion_radius", 80))
 					result["contagion_dot_duration"] = float(p.get("contagion_dot_duration", 3.0))
+				if p.has("contagion_asset"):
+					result["contagion_asset"] = str(p.get("contagion_asset", ""))
+				if p.has("contagion_asset_anim"):
+					result["contagion_asset_anim"] = str(p.get("contagion_asset_anim", ""))
+				if p.has("contagion_asset_anim_duration"):
+					result["contagion_asset_anim_duration"] = float(p.get("contagion_asset_anim_duration", 0.0))
+				if p.has("contagion_asset_anim_loop"):
+					result["contagion_asset_anim_loop"] = bool(p.get("contagion_asset_anim_loop", true))
 				if p.has("vulnerability_bonus"):
 					result["corrosive_enabled"] = true
 					result["vulnerability_bonus"] = float(p.get("vulnerability_bonus", 0.25))
@@ -148,6 +206,16 @@ func get_projectile_modifier() -> Dictionary:
 					result["singularity_chance"] = float(p.get("singularity_chance", 0.10))
 					result["singularity_duration"] = float(p.get("singularity_duration", 1.0))
 					result["singularity_radius"] = float(p.get("singularity_radius", 80))
+				if p.has("singularity_asset"):
+					result["singularity_asset"] = str(p.get("singularity_asset", ""))
+				if p.has("singularity_asset_anim"):
+					result["singularity_asset_anim"] = str(p.get("singularity_asset_anim", ""))
+				if p.has("singularity_asset_anim_duration"):
+					result["singularity_asset_anim_duration"] = float(p.get("singularity_asset_anim_duration", 0.0))
+				if p.has("singularity_asset_anim_loop"):
+					result["singularity_asset_anim_loop"] = bool(p.get("singularity_asset_anim_loop", true))
+				if p.has("singularity_asset_size"):
+					result["singularity_asset_size"] = float(p.get("singularity_asset_size", 180.0))
 				if p.has("void_radius_bonus"):
 					result["void_radius_bonus"] = float(p.get("void_radius_bonus", 0.5))
 				if p.has("singularity_damage_base"):
@@ -158,6 +226,16 @@ func get_projectile_modifier() -> Dictionary:
 					result["deflection_enabled"] = true
 					result["deflection_aura_radius"] = float(p.get("deflection_aura_radius", 100))
 					result["deflection_strength"] = float(p.get("deflection_strength", 0.3))
+				if p.has("deflection_aura_asset"):
+					result["deflection_aura_asset"] = str(p.get("deflection_aura_asset", ""))
+				if p.has("deflection_aura_asset_anim"):
+					result["deflection_aura_asset_anim"] = str(p.get("deflection_aura_asset_anim", ""))
+				if p.has("deflection_aura_asset_anim_duration"):
+					result["deflection_aura_asset_anim_duration"] = float(p.get("deflection_aura_asset_anim_duration", 0.0))
+				if p.has("deflection_aura_asset_anim_loop"):
+					result["deflection_aura_asset_anim_loop"] = bool(p.get("deflection_aura_asset_anim_loop", true))
+				if p.has("deflection_aura_asset_size"):
+					result["deflection_aura_asset_size"] = float(p.get("deflection_aura_asset_size", 180.0))
 
 	return result
 

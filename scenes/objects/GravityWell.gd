@@ -1,6 +1,8 @@
 extends Area2D
 
 @export var ability_asset: String = ""
+@export var ability_asset_duration: float = 0.0
+@export var ability_asset_loop: bool = true
 @export var orb_width: int = 64
 @export var orb_height: int = 64
 @export var effect_radius: float = 250.0
@@ -34,6 +36,8 @@ func setup(config: Dictionary) -> void:
 		ability_cfg = config
 	
 	ability_asset = str(visuals.get("ability_asset", ability_asset))
+	ability_asset_duration = maxf(0.0, float(visuals.get("ability_asset_duration", ability_asset_duration)))
+	ability_asset_loop = bool(visuals.get("ability_asset_loop", ability_asset_loop))
 	orb_width = int(visuals.get("width", orb_width))
 	orb_height = int(visuals.get("height", orb_height))
 	effect_radius = float(visuals.get("effect_radius", effect_radius))
@@ -162,8 +166,18 @@ func _apply_animated_visual(frames: SpriteFrames) -> void:
 			anim_name = str(names[0])
 	
 	if frames.has_animation(anim_name):
-		anim_sprite.play(anim_name)
-		var frame_tex := frames.get_frame_texture(anim_name, 0)
+		var played_anim: StringName = VFXManager.play_sprite_frames(
+			anim_sprite,
+			frames,
+			StringName(anim_name),
+			ability_asset_loop,
+			maxf(0.0, ability_asset_duration)
+		)
+		if played_anim == &"":
+			return
+		var frame_tex: Texture2D = null
+		if anim_sprite.sprite_frames:
+			frame_tex = anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
 		if frame_tex:
 			var f_size := frame_tex.get_size()
 			if f_size.x > 0.0 and f_size.y > 0.0:

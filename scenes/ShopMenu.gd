@@ -94,7 +94,6 @@ func _populate_packs() -> void:
 		var p: Dictionary = pack as Dictionary
 		var crystals: int = int(p.get("crystals", 0))
 		var price: float = float(p.get("price_usd", 0.0))
-		var pack_id: String = str(p.get("id", ""))
 		
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(200, 100)

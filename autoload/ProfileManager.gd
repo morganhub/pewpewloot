@@ -14,6 +14,7 @@ var settings: Dictionary = {
 	"music_volume": 1.0,
 	"sfx_volume": 1.0,
 	"screenshake_enabled": true,
+	"show_health_bar_values": true,
 	"locale": "en"
 }
 
@@ -446,6 +447,10 @@ func add_item_to_inventory(item: Dictionary) -> bool:
 ## Vérifie si l'inventaire est plein
 func is_inventory_full() -> bool:
 	return get_inventory().size() >= MAX_INVENTORY_SIZE
+
+## Retourne la taille maximale de l'inventaire
+func get_max_inventory_size() -> int:
+	return MAX_INVENTORY_SIZE
 
 ## Supprime un item de l'inventaire par son ID
 func remove_item_from_inventory(item_id: String) -> void:

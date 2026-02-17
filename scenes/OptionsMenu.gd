@@ -19,7 +19,9 @@ extends Control
 @onready var sfx_label: Label = $MarginContainer/VBoxContainer/SoundSection/SFXBox/Label
 @onready var sfx_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/SFXBox/SFXSlider
 @onready var screenshake_label: Label = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/Label
-@onready var screenshake_checkbox: CheckBox = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/ScreenShakeCheckbox
+@onready var screenshake_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/ScreenShakeCheckbox
+@onready var health_values_label: Label = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/Label
+@onready var health_values_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/HealthValuesCheckbox
 
 var _game_config: Dictionary = {}
 
@@ -33,6 +35,7 @@ func _ready() -> void:
 	_setup_language_dropdown()
 	_setup_audio_sliders()
 	_setup_screenshake_toggle()
+	_setup_health_values_toggle()
 	_apply_translations()
 	
 	# Connect signals
@@ -41,6 +44,7 @@ func _ready() -> void:
 	music_slider.value_changed.connect(_on_music_volume_changed)
 	sfx_slider.value_changed.connect(_on_sfx_volume_changed)
 	screenshake_checkbox.toggled.connect(_on_screenshake_toggled)
+	health_values_checkbox.toggled.connect(_on_health_values_toggled)
 	
 	# Setup Back Button Icon
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
@@ -98,6 +102,20 @@ func _setup_screenshake_toggle() -> void:
 	var enabled := bool(ProfileManager.get_setting("screenshake_enabled", true))
 	if screenshake_checkbox:
 		screenshake_checkbox.button_pressed = enabled
+		_refresh_toggle_button_text(screenshake_checkbox, enabled)
+
+func _setup_health_values_toggle() -> void:
+	var enabled: bool = bool(ProfileManager.get_setting("show_health_bar_values", true))
+	if health_values_checkbox:
+		health_values_checkbox.button_pressed = enabled
+		_refresh_toggle_button_text(health_values_checkbox, enabled)
+
+func _refresh_toggle_button_text(btn: Button, enabled: bool) -> void:
+	if not btn:
+		return
+	var on_text: String = LocaleManager.translate("options_toggle_on")
+	var off_text: String = LocaleManager.translate("options_toggle_off")
+	btn.text = on_text if enabled else off_text
 
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
@@ -107,6 +125,9 @@ func _apply_translations() -> void:
 	if music_label: music_label.text = LocaleManager.translate("options_music")
 	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
 	if screenshake_label: screenshake_label.text = LocaleManager.translate("options_screenshake")
+	if health_values_label: health_values_label.text = LocaleManager.translate("options_health_bar_values")
+	_refresh_toggle_button_text(screenshake_checkbox, screenshake_checkbox.button_pressed if screenshake_checkbox else false)
+	_refresh_toggle_button_text(health_values_checkbox, health_values_checkbox.button_pressed if health_values_checkbox else false)
 	
 	# No back button text anymore as it is an icon
 
@@ -142,3 +163,8 @@ func _on_sfx_volume_changed(value: float) -> void:
 
 func _on_screenshake_toggled(enabled: bool) -> void:
 	ProfileManager.set_setting("screenshake_enabled", enabled)
+	_refresh_toggle_button_text(screenshake_checkbox, enabled)
+
+func _on_health_values_toggled(enabled: bool) -> void:
+	ProfileManager.set_setting("show_health_bar_values", enabled)
+	_refresh_toggle_button_text(health_values_checkbox, enabled)

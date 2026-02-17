@@ -9,7 +9,11 @@ extends Area2D
 @export var orb_height: int = 32
 @export var beam_thickness: float = 18.0
 @export var ability_asset: String = ""
+@export var ability_asset_duration: float = 0.0
+@export var ability_asset_loop: bool = true
 @export var laser_asset: String = ""
+@export var laser_asset_duration: float = 0.0
+@export var laser_asset_loop: bool = true
 @export var contact_sfx_path: String = ""
 @export var contact_cooldown_sec: float = 0.35
 
@@ -154,11 +158,20 @@ func _apply_orb_frames(frames: SpriteFrames) -> void:
 		add_child(orb_anim)
 	
 	orb_anim.visible = true
-	orb_anim.sprite_frames = frames
 	var anim_name := _get_default_anim_name(frames)
 	if anim_name != "":
-		orb_anim.play(anim_name)
-		var frame_tex = frames.get_frame_texture(anim_name, 0)
+		var played_anim: StringName = VFXManager.play_sprite_frames(
+			orb_anim,
+			frames,
+			StringName(anim_name),
+			ability_asset_loop,
+			maxf(0.0, ability_asset_duration)
+		)
+		if played_anim == &"":
+			return
+		var frame_tex: Texture2D = null
+		if orb_anim.sprite_frames:
+			frame_tex = orb_anim.sprite_frames.get_frame_texture(played_anim, 0)
 		if frame_tex:
 			var used := _get_effective_used_rect(frame_tex)
 			if used.size.x > 0.0 and used.size.y > 0.0:
@@ -187,11 +200,20 @@ func _apply_beam_frames(frames: SpriteFrames, total_length: float, thickness: fl
 		laser_hitbox.add_child(beam_anim)
 	
 	beam_anim.visible = true
-	beam_anim.sprite_frames = frames
 	var anim_name := _get_default_anim_name(frames)
 	if anim_name != "":
-		beam_anim.play(anim_name)
-		var frame_tex = frames.get_frame_texture(anim_name, 0)
+		var played_anim: StringName = VFXManager.play_sprite_frames(
+			beam_anim,
+			frames,
+			StringName(anim_name),
+			laser_asset_loop,
+			maxf(0.0, laser_asset_duration)
+		)
+		if played_anim == &"":
+			return
+		var frame_tex: Texture2D = null
+		if beam_anim.sprite_frames:
+			frame_tex = beam_anim.sprite_frames.get_frame_texture(played_anim, 0)
 		if frame_tex:
 			var used := _get_effective_used_rect(frame_tex)
 			if used.size.x > 0.0 and used.size.y > 0.0:

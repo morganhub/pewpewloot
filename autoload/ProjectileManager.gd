@@ -62,11 +62,28 @@ func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, dam
 	var projectile: Area2D = _player_pool.pop_back() # Cast explicite
 	_active_player_projectiles.append(projectile)
 	
+	var vp_size = get_viewport().get_visible_rect().size
+	if _projectile_container and Engine.is_in_physics_frame():
+		# Important: avoid physics query flush errors when called from collision callbacks.
+		_projectile_container.call_deferred("add_child", projectile)
+		call_deferred(
+			"_activate_projectile_deferred",
+			projectile,
+			pos,
+			direction,
+			speed,
+			damage,
+			pattern_data,
+			is_critical,
+			vp_size,
+			p_skill_modifiers
+		)
+		return
+	
 	if _projectile_container:
 		# Note: Le parent est retiré dans _return_to_pool, donc c'est safe ici
 		_projectile_container.add_child(projectile)
 	
-	var vp_size = get_viewport().get_visible_rect().size
 	projectile.activate(pos, direction, speed, damage, pattern_data, is_critical, vp_size, p_skill_modifiers)
 
 func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, damage: int, pattern_data: Dictionary = {}) -> void:
@@ -77,11 +94,42 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 	var projectile: Area2D = _enemy_pool.pop_back() # Cast explicite
 	_active_enemy_projectiles.append(projectile)
 	
+	var vp_size = get_viewport().get_visible_rect().size
+	if _projectile_container and Engine.is_in_physics_frame():
+		_projectile_container.call_deferred("add_child", projectile)
+		call_deferred(
+			"_activate_projectile_deferred",
+			projectile,
+			pos,
+			direction,
+			speed,
+			damage,
+			pattern_data,
+			false,
+			vp_size,
+			{}
+		)
+		return
+	
 	if _projectile_container:
 		_projectile_container.add_child(projectile)
 	
-	var vp_size = get_viewport().get_visible_rect().size
 	projectile.activate(pos, direction, speed, damage, pattern_data, false, vp_size)
+
+func _activate_projectile_deferred(
+	projectile: Area2D,
+	pos: Vector2,
+	direction: Vector2,
+	speed: float,
+	damage: int,
+	pattern_data: Dictionary,
+	is_critical: bool,
+	vp_size: Vector2,
+	p_skill_modifiers: Dictionary
+) -> void:
+	if not is_instance_valid(projectile):
+		return
+	projectile.activate(pos, direction, speed, damage, pattern_data, is_critical, vp_size, p_skill_modifiers)
 
 # =============================================================================
 # DEACTIVATE

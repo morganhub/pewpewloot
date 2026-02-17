@@ -87,6 +87,7 @@ var _damage_vulnerability: float = 0.0 # Extra damage taken (0.25 = +25%)
 var _chill_hit_count: int = 0 # Hits received while chilled (for Deep Freeze)
 var _aura_exposure_time: float = 0.0 # Time spent in player aura (for Deep Freeze)
 var _is_poisoned: bool = false
+var _freeze_mark_node: Node2D = null
 var path_follow: PathFollow2D = null
 
 # TODO: Remplacer par Sprite2D
@@ -149,6 +150,8 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 	var visual_data: Variant = enemy_data.get("visual", {})
 	var asset_path: String = ""
 	var asset_anim: String = ""
+	var asset_anim_duration: float = 0.0
+	var asset_anim_loop: bool = true
 	var color_hex: String = "#FF4444"
 	var shape_type: String = "circle"
 	
@@ -156,6 +159,8 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 		var v_dict := visual_data as Dictionary
 		asset_path = str(v_dict.get("asset", ""))
 		asset_anim = str(v_dict.get("asset_anim", ""))
+		asset_anim_duration = maxf(0.0, float(v_dict.get("asset_anim_duration", 0.0)))
+		asset_anim_loop = bool(v_dict.get("asset_anim_loop", true))
 		color_hex = str(v_dict.get("color", "#FF4444"))
 		shape_type = str(v_dict.get("shape", "circle"))
 
@@ -163,7 +168,7 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames = load(asset_anim)
+		var frames: Resource = load(asset_anim)
 		if frames is SpriteFrames:
 			use_asset = true
 			shape_visual.visible = false
@@ -175,11 +180,18 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 				visual_container.add_child(anim_sprite)
 			
 			anim_sprite.visible = true
-			anim_sprite.sprite_frames = frames
-			anim_sprite.play("default")
+			var played_anim: StringName = VFXManager.play_sprite_frames(
+				anim_sprite,
+				frames as SpriteFrames,
+				&"default",
+				asset_anim_loop,
+				asset_anim_duration
+			)
 			
 			# Scale
-			var frame_tex = frames.get_frame_texture("default", 0)
+			var frame_tex: Texture2D = null
+			if played_anim != &"" and anim_sprite.sprite_frames:
+				frame_tex = anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				anim_sprite.scale = Vector2(width / f_size.x, height / f_size.y) * 1.2
@@ -245,6 +257,8 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 	var visual_data_v: Dictionary = enemy_data.get("visual", {})
 	set("death_asset", str(visual_data_v.get("on_death_asset", "")))
 	set("death_anim", str(visual_data_v.get("on_death_asset_anim", "")))
+	set("death_anim_duration", float(visual_data_v.get("on_death_asset_anim_duration", 0.0)))
+	set("death_anim_loop", bool(visual_data_v.get("on_death_asset_anim_loop", false)))
 
 func get_contact_damage() -> int:
 	# Retourne les dégâts de collision (similaire à un missile par défaut)
@@ -563,7 +577,7 @@ func _build_proc_impatient_circle(pattern_data: Dictionary) -> Curve2D:
 
 func _build_proc_heart_shape(pattern_data: Dictionary) -> Curve2D:
 	var curve: Curve2D = Curve2D.new()
-	var scale: float = float(pattern_data.get("scale", 10.0))
+	var heart_scale: float = float(pattern_data.get("scale", 10.0))
 	var center: Vector2 = _dict_to_vector(pattern_data.get("center_offset", {"x": 0.0, "y": 200.0}))
 	var steps: int = maxi(40, int(pattern_data.get("steps", 140)))
 
@@ -571,7 +585,7 @@ func _build_proc_heart_shape(pattern_data: Dictionary) -> Curve2D:
 		var t: float = (float(i) / float(steps)) * TAU
 		var x: float = 16.0 * pow(sin(t), 3.0)
 		var y: float = 13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)
-		var point: Vector2 = center + Vector2(x * scale, -y * scale)
+		var point: Vector2 = center + Vector2(x * heart_scale, -y * heart_scale)
 		curve.add_point(point)
 
 	return curve
@@ -599,7 +613,7 @@ func _build_proc_spirograph_flower(pattern_data: Dictionary) -> Curve2D:
 	var r_small: float = maxf(float(pattern_data.get("spiro_r", 30.0)), 1.0)
 	var d: float = float(pattern_data.get("spiro_d", 55.0))
 	var turns: float = maxf(float(pattern_data.get("turns", 6.0)), 1.0)
-	var scale: float = float(pattern_data.get("scale", 1.0))
+	var flower_scale: float = float(pattern_data.get("scale", 1.0))
 	var center: Vector2 = _dict_to_vector(pattern_data.get("center_offset", {"x": 0.0, "y": 260.0}))
 	var steps: int = maxi(60, int(pattern_data.get("steps", 220)))
 
@@ -608,7 +622,7 @@ func _build_proc_spirograph_flower(pattern_data: Dictionary) -> Curve2D:
 		var k: float = (r_big - r_small) / r_small
 		var x: float = (r_big - r_small) * cos(t) + d * cos(k * t)
 		var y: float = (r_big - r_small) * sin(t) - d * sin(k * t)
-		curve.add_point(center + Vector2(x, y) * scale)
+		curve.add_point(center + Vector2(x, y) * flower_scale)
 
 	return curve
 
@@ -1186,8 +1200,12 @@ func _update_minefreak_spawn() -> void:
 	mine.set("mine_width", int(_minefreak_visuals.get("width", 40)))
 	mine.set("mine_height", int(_minefreak_visuals.get("height", 40)))
 	mine.set("visual_asset", str(_minefreak_visuals.get("ability_asset", "")))
+	mine.set("visual_asset_duration", float(_minefreak_visuals.get("ability_asset_duration", 0.0)))
+	mine.set("visual_asset_loop", bool(_minefreak_visuals.get("ability_asset_loop", true)))
 	mine.set("contact_sfx_path", str(_minefreak_visuals.get("contact_sfx", "")))
 	mine.set("explosion_asset", str(_minefreak_visuals.get("explosion_asset", "")))
+	mine.set("explosion_asset_duration", float(_minefreak_visuals.get("explosion_asset_duration", 0.0)))
+	mine.set("explosion_asset_loop", bool(_minefreak_visuals.get("explosion_asset_loop", false)))
 	
 	# Optional tuning hook if later added in data.
 	if _minefreak_ability_config.has("mine_hp"):
@@ -1235,7 +1253,11 @@ func _update_arcane_spawn() -> void:
 	orb.set("orb_width", int(_arcane_visuals.get("width", 32)))
 	orb.set("orb_height", int(_arcane_visuals.get("height", 32)))
 	orb.set("ability_asset", str(_arcane_visuals.get("ability_asset", "")))
+	orb.set("ability_asset_duration", float(_arcane_visuals.get("ability_asset_duration", 0.0)))
+	orb.set("ability_asset_loop", bool(_arcane_visuals.get("ability_asset_loop", true)))
 	orb.set("laser_asset", str(_arcane_visuals.get("laser_asset", "")))
+	orb.set("laser_asset_duration", float(_arcane_visuals.get("laser_asset_duration", 0.0)))
+	orb.set("laser_asset_loop", bool(_arcane_visuals.get("laser_asset_loop", true)))
 	orb.set("contact_sfx_path", str(_arcane_visuals.get("contact_sfx", "")))
 	
 	if _arcane_ability_config.has("scroll_speed"):
@@ -1330,10 +1352,25 @@ func die() -> void:
 	# VFX explosion
 	var on_death_asset: String = ""
 	var on_death_anim: String = ""
+	var on_death_anim_duration: float = 0.0
+	var on_death_anim_loop: bool = false
 	if "death_asset" in self: on_death_asset = get("death_asset")
 	if "death_anim" in self: on_death_anim = get("death_anim")
+	if "death_anim_duration" in self: on_death_anim_duration = float(get("death_anim_duration"))
+	if "death_anim_loop" in self: on_death_anim_loop = bool(get("death_anim_loop"))
 	
-	VFXManager.spawn_explosion(global_position, 25, shape_visual.color, get_parent(), on_death_asset, on_death_anim)
+	VFXManager.spawn_explosion(
+		global_position,
+		25,
+		shape_visual.color,
+		get_parent(),
+		on_death_asset,
+		on_death_anim,
+		-1.0,
+		0.3,
+		on_death_anim_duration,
+		on_death_anim_loop
+	)
 	VFXManager.screen_shake(3, 0.2)
 	
 	# --- LOOT DROP LOGIC ---
@@ -1345,7 +1382,11 @@ func die() -> void:
 	# 1. Equipment (LootGenerator)
 	# Chance based on enemy strength/type?
 	# Using loot_chance * loot_quality_multiplier for Equipment
-	if randf() <= (loot_chance * 0.5): # Halve chance for equipment to balance
+	var utility_bonuses: Dictionary = SkillManager.get_utility_bonuses()
+	var drop_rate_bonus: float = float(utility_bonuses.get("drop_rate_bonus", 0.0))
+	var drop_multiplier: float = maxf(0.0, 1.0 + drop_rate_bonus)
+	var equipment_drop_chance: float = clampf((loot_chance * 0.5) * drop_multiplier, 0.0, 1.0)
+	if randf() <= equipment_drop_chance: # Halve chance for equipment to balance
 		var level: int = 1
 		if App: level = App.current_level_index + 1
 		
@@ -1359,7 +1400,8 @@ func die() -> void:
 	
 	# 2. PowerUps (Shield / Rapid Fire)
 	# Using loot_chance for PowerUps
-	if randf() <= loot_chance:
+	var powerup_drop_chance: float = clampf(loot_chance * drop_multiplier, 0.0, 1.0)
+	if randf() <= powerup_drop_chance:
 		_spawn_powerup()
 	
 	queue_free()
@@ -1500,6 +1542,7 @@ func _remove_status_effect(effect: StatusEffect) -> void:
 			_update_status_visual()
 		StatusEffect.Type.FREEZE:
 			is_frozen = false
+			_clear_freeze_mark_visual()
 			_recalculate_slow()
 			_update_status_visual()
 		StatusEffect.Type.POISON:
@@ -1539,6 +1582,7 @@ func _recalculate_slow() -> void:
 func _apply_freeze() -> void:
 	is_frozen = true
 	move_speed = 0.0
+	_apply_freeze_mark_visual()
 	_update_status_visual()
 
 func _update_status_visual() -> void:
@@ -1583,7 +1627,115 @@ func _spread_contagion(proj_mod: Dictionary) -> void:
 				enemy.apply_status_effect(poison)
 	
 	# VFX: Contagion explosion
-	VFXManager.spawn_explosion(global_position, radius * 0.5, Color(0.4, 1.0, 0.2, 0.6), get_parent())
+	var contagion_asset: String = str(proj_mod.get("contagion_asset", ""))
+	var contagion_asset_anim: String = str(proj_mod.get("contagion_asset_anim", ""))
+	var contagion_asset_anim_duration: float = maxf(0.0, float(proj_mod.get("contagion_asset_anim_duration", 0.0)))
+	var contagion_asset_anim_loop: bool = bool(proj_mod.get("contagion_asset_anim_loop", false))
+	VFXManager.spawn_explosion(
+		global_position,
+		radius * 0.5,
+		Color(0.4, 1.0, 0.2, 0.6),
+		get_parent(),
+		contagion_asset,
+		contagion_asset_anim,
+		-1.0,
+		0.3,
+		contagion_asset_anim_duration,
+		contagion_asset_anim_loop
+	)
+
+func _apply_freeze_mark_visual() -> void:
+	_clear_freeze_mark_visual()
+	if not visual_container:
+		return
+
+	var proj_mod: Dictionary = SkillManager.get_projectile_modifier()
+	var mark_asset: String = str(proj_mod.get("freeze_mark_asset", ""))
+	var mark_anim: String = str(proj_mod.get("freeze_mark_asset_anim", ""))
+	var mark_anim_duration: float = maxf(0.0, float(proj_mod.get("freeze_mark_asset_anim_duration", 0.0)))
+	var mark_anim_loop: bool = bool(proj_mod.get("freeze_mark_asset_anim_loop", true))
+	var mark_size: float = maxf(12.0, float(proj_mod.get("freeze_mark_size", 52.0)))
+
+	var marker := Node2D.new()
+	marker.name = "FreezeMark"
+	marker.z_index = -2
+
+	var visual_node: Node2D = _build_status_visual_node(
+		mark_anim,
+		mark_asset,
+		mark_size,
+		Color(0.75, 0.92, 1.0, 0.85),
+		mark_anim_duration,
+		mark_anim_loop
+	)
+	if visual_node:
+		marker.add_child(visual_node)
+	else:
+		var ring := Polygon2D.new()
+		var points: PackedVector2Array = []
+		var segments: int = 20
+		var radius: float = mark_size * 0.5
+		for i in range(segments):
+			var angle: float = (float(i) / float(segments)) * TAU
+			points.append(Vector2(cos(angle), sin(angle)) * radius)
+		ring.polygon = points
+		ring.color = Color(0.65, 0.88, 1.0, 0.35)
+		marker.add_child(ring)
+
+	visual_container.add_child(marker)
+	_freeze_mark_node = marker
+
+func _clear_freeze_mark_visual() -> void:
+	if _freeze_mark_node and is_instance_valid(_freeze_mark_node):
+		_freeze_mark_node.queue_free()
+	_freeze_mark_node = null
+
+func _build_status_visual_node(
+	anim_path: String,
+	asset_path: String,
+	target_size: float,
+	tint: Color,
+	anim_duration: float = 0.0,
+	anim_loop: bool = true
+) -> Node2D:
+	if anim_path != "" and ResourceLoader.exists(anim_path):
+		var anim_res: Resource = load(anim_path)
+		if anim_res is SpriteFrames:
+			var frames: SpriteFrames = anim_res as SpriteFrames
+			var anim_sprite := AnimatedSprite2D.new()
+			var anim_name: StringName = VFXManager.play_sprite_frames(
+				anim_sprite,
+				frames,
+				&"default",
+				anim_loop,
+				anim_duration
+			)
+			if anim_name != &"":
+				anim_sprite.modulate = tint
+				var tex: Texture2D = null
+				if anim_sprite.sprite_frames:
+					tex = anim_sprite.sprite_frames.get_frame_texture(anim_name, 0)
+				if tex:
+					var tex_size: Vector2 = tex.get_size()
+					if tex_size.x > 0.0 and tex_size.y > 0.0:
+						var scale_factor: float = target_size / maxf(tex_size.x, tex_size.y)
+						anim_sprite.scale = Vector2.ONE * scale_factor
+				return anim_sprite
+
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var tex_res: Resource = load(asset_path)
+		if tex_res is Texture2D:
+			var texture: Texture2D = tex_res as Texture2D
+			var sprite := Sprite2D.new()
+			sprite.texture = texture
+			sprite.modulate = tint
+			var tex_size_2d: Vector2 = texture.get_size()
+			if tex_size_2d.x > 0.0 and tex_size_2d.y > 0.0:
+				var scale_factor_2d: float = target_size / maxf(tex_size_2d.x, tex_size_2d.y)
+				sprite.scale = Vector2.ONE * scale_factor_2d
+			return sprite
+
+	return null
 
 func increment_chill_hit_count() -> void:
 	_chill_hit_count += 1

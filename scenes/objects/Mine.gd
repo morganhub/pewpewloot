@@ -8,8 +8,12 @@ extends Area2D
 @export var mine_width: int = 40
 @export var mine_height: int = 40
 @export var visual_asset: String = ""
+@export var visual_asset_duration: float = 0.0
+@export var visual_asset_loop: bool = true
 @export var contact_sfx_path: String = ""
 @export var explosion_asset: String = ""
+@export var explosion_asset_duration: float = 0.0
+@export var explosion_asset_loop: bool = false
 
 var current_hp: int = 20
 var _exploded: bool = false
@@ -90,7 +94,18 @@ func _explode() -> void:
 	var container := get_parent()
 	if container:
 		var fx_size: float = maxf(float(mine_width), float(mine_height)) * 0.6
-		VFXManager.spawn_explosion(global_position, fx_size, Color("#FF8800"), container, asset_path, asset_anim)
+		VFXManager.spawn_explosion(
+			global_position,
+			fx_size,
+			Color("#FF8800"),
+			container,
+			asset_path,
+			asset_anim,
+			-1.0,
+			0.3,
+			maxf(0.0, explosion_asset_duration),
+			explosion_asset_loop
+		)
 	
 	queue_free()
 
@@ -154,10 +169,15 @@ func _apply_animated_visual(frames: SpriteFrames) -> void:
 		add_child(anim_sprite)
 	
 	anim_sprite.visible = true
-	anim_sprite.sprite_frames = frames
-	if frames.has_animation("default"):
-		anim_sprite.play("default")
-		var frame_tex := frames.get_frame_texture("default", 0)
+	var anim_name: StringName = VFXManager.play_sprite_frames(
+		anim_sprite,
+		frames,
+		&"default",
+		visual_asset_loop,
+		maxf(0.0, visual_asset_duration)
+	)
+	if anim_name != &"" and anim_sprite.sprite_frames:
+		var frame_tex: Texture2D = anim_sprite.sprite_frames.get_frame_texture(anim_name, 0)
 		if frame_tex:
 			var f_size := frame_tex.get_size()
 			if f_size.x > 0.0 and f_size.y > 0.0:

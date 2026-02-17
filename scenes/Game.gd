@@ -443,6 +443,16 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 			item = generated_item.to_dict()
 		else:
 			push_warning("[Game] Boss reward generation failed, result screen will show no item.")
+
+		var utility_bonuses: Dictionary = SkillManager.get_utility_bonuses()
+		var extra_loot_chance: float = clampf(float(utility_bonuses.get("boss_extra_loot_chance", 0.0)), 0.0, 1.0)
+		if extra_loot_chance > 0.0 and randf() <= extra_loot_chance:
+			var bonus_item: LootItem = LootGenerator.generate_boss_loot(target_level, boss_id)
+			if bonus_item:
+				var bonus_dict: Dictionary = bonus_item.to_dict()
+				ProfileManager.add_item_to_inventory(bonus_dict)
+				session_loot.append(bonus_dict)
+				print("[Game] Bonus boss loot granted by Jackpot skill: ", bonus_dict.get("id", "unknown"))
 	
 	
 	# 3. Setup and show Result Screen

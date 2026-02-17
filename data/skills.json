@@ -1,462 +1,421 @@
 {
-	"respec_cost_base": 100,
-	"xp_curve_base": 100,
-	"xp_curve_exponent": 1.5,
-	"trees": {
-		"magic": {
-			"name": "Magic",
-			"exclusive": true,
-			"description": "Modify your projectiles with elemental effects. Choose ONE specialization.",
-			"branches": {
-				"frozen": {
-					"name": "Cryo",
-					"icon": "res://assets/ui/skills/branch_frozen.png",
-					"color": "#88DDFF",
-					"levels": [
-						{
-							"id": "frozen_1",
-							"type": "gameplay_modifier",
-							"title": "Frostbite Shots",
-							"description": "Projectiles turn ice-blue. Each impact slows the enemy by 15% (stacks 3x).",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "",
-							"params": {
-								"missile_override": "missile_ice",
-								"on_hit_effect": "chill_slow",
-								"slow_percent": 0.15,
-								"max_stacks": 3
-							}
-						},
-						{
-							"id": "frozen_2",
-							"type": "gameplay_modifier",
-							"title": "Arctic Aura",
-							"description": "A permanent frost aura surrounds your ship. Enemies inside are slowed.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "frozen_1",
-							"params": {
-								"aura_type": "ice_aura",
-								"aura_radius": 120,
-								"aura_slow_percent": 0.20
-							}
-						},
-						{
-							"id": "frozen_3",
-							"type": "gameplay_modifier",
-							"title": "Deep Freeze",
-							"description": "Enemies that stay 2s in the aura or receive 10 hits are Frozen (immobile) for 2s.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "frozen_2",
-							"params": {
-								"freeze_aura_time": 2.0,
-								"freeze_hit_count": 10,
-								"freeze_duration": 2.0
-							}
-						},
-						{
-							"id": "frozen_4",
-							"type": "gameplay_modifier",
-							"title": "Ice Shards",
-							"description": "Shooting a Frozen enemy shatters ice shards that damage nearby enemies (AoE).",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "frozen_3",
-							"params": {
-								"shatter_damage_pct": 0.5,
-								"shatter_radius": 80,
-								"shatter_projectile_count": 6
-							}
-						},
-						{
-							"id": "frozen_5",
-							"type": "gameplay_modifier",
-							"title": "Blizzard",
-							"description": "Increases aura radius by 50% and applies a cold DoT to Frozen enemies.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "frozen_4",
-							"params": {
-								"aura_radius_bonus": 0.5,
-								"freeze_dot_dps": 5
-							}
-						}
-					]
-				},
-				"poison": {
-					"name": "Toxin",
-					"icon": "res://assets/ui/skills/branch_poison.png",
-					"color": "#66FF44",
-					"levels": [
-						{
-							"id": "poison_1",
-							"type": "gameplay_modifier",
-							"title": "Venom Rounds",
-							"description": "Projectiles turn green. Applies a DoT dealing 20% of hit damage over 3s.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "",
-							"params": {
-								"missile_override": "missile_poison",
-								"on_hit_effect": "poison_dot",
-								"dot_percent": 0.20,
-								"dot_duration": 3.0
-							}
-						},
-						{
-							"id": "poison_2",
-							"type": "gameplay_modifier",
-							"title": "Toxic Pool",
-							"description": "If a missile doesn't kill or crits, it leaves a toxic pool. Enemies inside take damage.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "poison_1",
-							"params": {
-								"pool_damage_per_sec": 8,
-								"pool_duration": 3.0,
-								"pool_radius": 50
-							}
-						},
-						{
-							"id": "poison_3",
-							"type": "gameplay_modifier",
-							"title": "Contagion",
-							"description": "Enemies that die while poisoned explode and poison nearby enemies.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "poison_2",
-							"params": {
-								"contagion_radius": 80,
-								"contagion_dot_duration": 3.0
-							}
-						},
-						{
-							"id": "poison_4",
-							"type": "gameplay_modifier",
-							"title": "Corrosive Acid",
-							"description": "Poison also reduces enemy armor — they take 25% more damage from direct hits.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "poison_3",
-							"params": {
-								"vulnerability_bonus": 0.25
-							}
-						},
-						{
-							"id": "poison_5",
-							"type": "gameplay_modifier",
-							"title": "Plague Spreader",
-							"description": "Increases toxic pool size by 50% and DoT duration by 2s.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "poison_4",
-							"params": {
-								"pool_radius_bonus": 0.5,
-								"dot_duration_bonus": 2.0
-							}
-						}
-					]
-				},
-				"void": {
-					"name": "Singularity",
-					"icon": "res://assets/ui/skills/branch_void.png",
-					"color": "#AA44FF",
-					"levels": [
-						{
-							"id": "void_1",
-							"type": "gameplay_modifier",
-							"title": "Gravity Bolts",
-							"description": "Projectiles turn purple/black. Slight reverse knockback (micro-pull) on impact.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "",
-							"params": {
-								"missile_override": "missile_void",
-								"on_hit_effect": "void_pull",
-								"pull_strength": 30.0
-							}
-						},
-						{
-							"id": "void_2",
-							"type": "gameplay_modifier",
-							"title": "Singularity Chance",
-							"description": "10% chance on impact to create a mini black hole attracting enemies for 1s.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "void_1",
-							"params": {
-								"singularity_chance": 0.10,
-								"singularity_duration": 1.0,
-								"singularity_radius": 80
-							}
-						},
-						{
-							"id": "void_3",
-							"type": "gameplay_modifier",
-							"title": "Event Horizon",
-							"description": "Increases the attraction radius of all void effects by 50%.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "void_2",
-							"params": {
-								"void_radius_bonus": 0.5
-							}
-						},
-						{
-							"id": "void_4",
-							"type": "gameplay_modifier",
-							"title": "Spaghettification",
-							"description": "Enemies closer to the black hole center take exponentially more damage.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "void_3",
-							"params": {
-								"singularity_damage_base": 5,
-								"singularity_damage_exponent": 2.0
-							}
-						},
-						{
-							"id": "void_5",
-							"type": "gameplay_modifier",
-							"title": "Void Walker",
-							"description": "Your ship gains a passive aura that slightly attracts enemy projectiles to orbit around you without hitting.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "void_4",
-							"params": {
-								"deflection_aura_radius": 100,
-								"deflection_strength": 0.3
-							}
-						}
-					]
-				}
-			}
-		},
-		"utility": {
-			"name": "Utility",
-			"exclusive": false,
-			"description": "Passive bonuses for economy, loot, and survivability.",
-			"branches": {
-				"loot": {
-					"name": "Fortune",
-					"icon": "res://assets/ui/skills/branch_loot.png",
-					"color": "#FFD700",
-					"levels": [
-						{
-							"id": "loot_1",
-							"type": "loot_modifier",
-							"title": "Lucky Charm",
-							"description": "Increases global drop frequency by 5%.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "",
-							"params": {
-								"drop_rate_bonus": 0.05
-							}
-						},
-						{
-							"id": "loot_2",
-							"type": "loot_modifier",
-							"title": "Crystal Magnet",
-							"description": "Increases crystal pickup radius significantly.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "loot_1",
-							"params": {
-								"crystal_magnet_radius": 150
-							}
-						},
-						{
-							"id": "loot_3",
-							"type": "loot_modifier",
-							"title": "Appraiser",
-							"description": "Increases the chance that dropped items have higher rarity.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "loot_2",
-							"params": {
-								"loot_quality_bonus": 5.0
-							}
-						},
-						{
-							"id": "loot_4",
-							"type": "loot_modifier",
-							"title": "Recycler",
-							"description": "Recycling items yields 20% more crystals.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "loot_3",
-							"params": {
-								"recycle_bonus": 0.20
-							}
-						},
-						{
-							"id": "loot_5",
-							"type": "loot_modifier",
-							"title": "Jackpot",
-							"description": "Bosses have a 25% chance to drop an additional item.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "loot_4",
-							"params": {
-								"boss_extra_loot_chance": 0.25
-							}
-						}
-					]
-				},
-				"powers": {
-					"name": "Tech",
-					"icon": "res://assets/ui/skills/branch_powers.png",
-					"color": "#00DDFF",
-					"levels": [
-						{
-							"id": "powers_1",
-							"type": "gameplay_modifier",
-							"title": "Vacuum",
-							"description": "Auto-pickup: items fly toward the player at close range.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "",
-							"params": {
-								"vacuum_radius": 80
-							}
-						},
-						{
-							"id": "powers_2",
-							"type": "gameplay_modifier",
-							"title": "Shield Reflector",
-							"description": "Active shield has 10% chance to reflect enemy projectiles.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "powers_1",
-							"params": {
-								"reflect_chance": 0.90
-							}
-						},
-						{
-							"id": "powers_3",
-							"type": "gameplay_modifier",
-							"title": "Power Extender",
-							"description": "Temporary power-ups (fire rate boost, etc.) last 2s longer.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "powers_2",
-							"params": {
-								"powerup_duration_bonus": 2.0
-							}
-						},
-						{
-							"id": "powers_4",
-							"type": "gameplay_modifier",
-							"title": "Overcharge",
-							"description": "Power-up effects are 20% more intense.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "powers_3",
-							"params": {
-								"powerup_intensity_bonus": 0.20
-							}
-						},
-						{
-							"id": "powers_5",
-							"type": "gameplay_modifier",
-							"title": "Emergency Protocol",
-							"description": "When shield breaks, emits a shockwave that pushes back enemies. 20s cooldown.",
-							"cost": 1,
-							"max_rank": 1,
-							"prerequisite": "powers_4",
-							"params": {
-								"shockwave_radius": 150,
-								"shockwave_force": 300,
-								"shockwave_cooldown": 20.0
-							}
-						}
-					]
-				}
-			}
-		},
-		"pew_pew": {
-			"name": "Pew Pew",
-			"exclusive": false,
-			"unlock_requirement": 15,
-			"infinite": true,
-			"description": "Paragon bonuses. Repeatable stat boosts unlocked at Profile Level 15.",
-			"branches": {
-				"stat_boosts": {
-					"name": "Paragon",
-					"icon": "res://assets/ui/skills/branch_paragon.png",
-					"color": "#FF6600",
-					"levels": [
-						{
-							"id": "paragon_damage",
-							"type": "stat_modifier",
-							"title": "Raw Power",
-							"description": "+1% Global Damage per rank.",
-							"cost": 1,
-							"max_rank": 999,
-							"prerequisite": "",
-							"params": {
-								"stat": "damage",
-								"bonus_per_rank": 1
-							}
-						},
-						{
-							"id": "paragon_hp",
-							"type": "stat_modifier",
-							"title": "Vitality",
-							"description": "+2% Max HP per rank.",
-							"cost": 1,
-							"max_rank": 999,
-							"prerequisite": "",
-							"params": {
-								"stat": "max_hp",
-								"bonus_per_rank": 2
-							}
-						},
-						{
-							"id": "paragon_shield",
-							"type": "stat_modifier",
-							"title": "Flux Capacity",
-							"description": "+2% Max Shield per rank.",
-							"cost": 1,
-							"max_rank": 999,
-							"prerequisite": "",
-							"params": {
-								"stat": "shield_max",
-								"bonus_per_rank": 2
-							}
-						},
-						{
-							"id": "paragon_crit",
-							"type": "stat_modifier",
-							"title": "Precision",
-							"description": "+0.5% Crit Chance per rank.",
-							"cost": 1,
-							"max_rank": 999,
-							"prerequisite": "",
-							"params": {
-								"stat": "crit_chance",
-								"bonus_per_rank": 0.5
-							}
-						},
-						{
-							"id": "paragon_fire_rate",
-							"type": "stat_modifier",
-							"title": "Haste",
-							"description": "+0.5% Fire Rate per rank.",
-							"cost": 1,
-							"max_rank": 999,
-							"prerequisite": "",
-							"params": {
-								"stat": "fire_rate",
-								"bonus_per_rank": 0.5
-							}
-						}
-					]
-				}
-			}
-		}
-	}
+  "respec_cost_base": 100,
+  "xp_curve_base": 100,
+  "xp_curve_exponent": 1.5,
+  "trees": {
+    "magic": {
+      "exclusive": true,
+      "branches": {
+        "frozen": {
+          "icon": "res://assets/ui/skills/branch_frozen.png",
+          "color": "#88DDFF",
+          "levels": [
+            {
+              "id": "frozen_1",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "",
+              "params": {
+                "missile_override": "missile_ice",
+                "on_hit_effect": "chill_slow",
+                "slow_percent": 0.15,
+                "max_stacks": 3
+              }
+            },
+            {
+              "id": "frozen_2",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "frozen_1",
+              "params": {
+                "aura_type": "ice_aura",
+                "aura_radius": 220,
+                "aura_slow_percent": 80,
+                "aura_asset_anim": "res://assets/skills/frost_aura.tres",
+                "aura_asset_anim_duration": 1.0,
+                "aura_asset_anim_loop": true,
+                "aura_asset_size": 240
+              }
+            },
+            {
+              "id": "frozen_3",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "frozen_2",
+              "params": {
+                "freeze_aura_time": 2.0,
+                "freeze_hit_count": 10,
+                "freeze_duration": 2.0,
+                "freeze_mark_asset_anim": "res://assets/missiles/blue_energy.tres",
+                "freeze_mark_asset_anim_duration": 0.0,
+                "freeze_mark_asset_anim_loop": true,
+                "freeze_mark_size": 58
+              }
+            },
+            {
+              "id": "frozen_4",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "frozen_3",
+              "params": {
+                "shatter_damage_pct": 0.5,
+                "shatter_radius": 80,
+                "shatter_projectile_count": 6,
+                "shard_asset": "res://assets/missiles/blue_ball.png",
+                "shard_asset_size": 16
+              }
+            },
+            {
+              "id": "frozen_5",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "frozen_4",
+              "params": {
+                "aura_radius_bonus": 0.5,
+                "freeze_dot_dps": 5
+              }
+            }
+          ]
+        },
+        "poison": {
+          "icon": "res://assets/ui/skills/branch_poison.png",
+          "color": "#66FF44",
+          "levels": [
+            {
+              "id": "poison_1",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "",
+              "params": {
+                "missile_override": "missile_poison",
+                "on_hit_effect": "poison_dot",
+                "dot_percent": 0.2,
+                "dot_duration": 3.0
+              }
+            },
+            {
+              "id": "poison_2",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "poison_1",
+              "params": {
+                "pool_damage_per_sec": 8,
+                "pool_duration": 3.0,
+                "pool_radius": 50,
+                "pool_asset_anim": "res://assets/missiles/missile_poison.tres",
+                "pool_asset_anim_duration": 0.0,
+                "pool_asset_anim_loop": true,
+                "pool_asset_size": 160
+              }
+            },
+            {
+              "id": "poison_3",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "poison_2",
+              "params": {
+                "contagion_radius": 80,
+                "contagion_dot_duration": 3.0,
+                "contagion_asset_anim": "res://assets/missiles/missile_poison.tres",
+                "contagion_asset_anim_duration": 0.6,
+                "contagion_asset_anim_loop": false
+              }
+            },
+            {
+              "id": "poison_4",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "poison_3",
+              "params": {
+                "vulnerability_bonus": 0.25
+              }
+            },
+            {
+              "id": "poison_5",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "poison_4",
+              "params": {
+                "pool_radius_bonus": 0.5,
+                "dot_duration_bonus": 2.0
+              }
+            }
+          ]
+        },
+        "void": {
+          "icon": "res://assets/ui/skills/branch_void.png",
+          "color": "#AA44FF",
+          "levels": [
+            {
+              "id": "void_1",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "",
+              "params": {
+                "missile_override": "missile_void",
+                "on_hit_effect": "void_pull",
+                "pull_strength": 30.0
+              }
+            },
+            {
+              "id": "void_2",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "void_1",
+              "params": {
+                "singularity_chance": 0.1,
+                "singularity_duration": 1.0,
+                "singularity_radius": 80,
+                "singularity_asset_anim": "res://assets/modifiers/graviton.tres",
+                "singularity_asset_anim_duration": 0.0,
+                "singularity_asset_anim_loop": true,
+                "singularity_asset_size": 190
+              }
+            },
+            {
+              "id": "void_3",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "void_2",
+              "params": {
+                "void_radius_bonus": 0.5
+              }
+            },
+            {
+              "id": "void_4",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "void_3",
+              "params": {
+                "singularity_damage_base": 5,
+                "singularity_damage_exponent": 2.0
+              }
+            },
+            {
+              "id": "void_5",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "void_4",
+              "params": {
+                "deflection_aura_radius": 100,
+                "deflection_strength": 0.3,
+                "deflection_aura_asset_anim": "res://assets/modifiers/arcane_orb.tres",
+                "deflection_aura_asset_anim_duration": 0.0,
+                "deflection_aura_asset_anim_loop": true,
+                "deflection_aura_asset_size": 210
+              }
+            }
+          ]
+        }
+      }
+    },
+    "utility": {
+      "exclusive": false,
+      "branches": {
+        "loot": {
+          "icon": "res://assets/ui/skills/branch_loot.png",
+          "color": "#FFD700",
+          "levels": [
+            {
+              "id": "loot_1",
+              "type": "loot_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "",
+              "params": {
+                "drop_rate_bonus": 0.05
+              }
+            },
+            {
+              "id": "loot_2",
+              "type": "loot_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "loot_1",
+              "params": {
+                "crystal_magnet_radius": 150
+              }
+            },
+            {
+              "id": "loot_3",
+              "type": "loot_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "loot_2",
+              "params": {
+                "loot_quality_bonus": 5.0
+              }
+            },
+            {
+              "id": "loot_4",
+              "type": "loot_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "loot_3",
+              "params": {
+                "recycle_bonus": 0.2
+              }
+            },
+            {
+              "id": "loot_5",
+              "type": "loot_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "loot_4",
+              "params": {
+                "boss_extra_loot_chance": 0.25
+              }
+            }
+          ]
+        },
+        "powers": {
+          "icon": "res://assets/ui/skills/branch_powers.png",
+          "color": "#00DDFF",
+          "levels": [
+            {
+              "id": "powers_1",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "",
+              "params": {
+                "vacuum_radius": 80
+              }
+            },
+            {
+              "id": "powers_2",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "powers_1",
+              "params": {
+                "reflect_chance": 0.1
+              }
+            },
+            {
+              "id": "powers_3",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "powers_2",
+              "params": {
+                "powerup_duration_bonus": 2.0
+              }
+            },
+            {
+              "id": "powers_4",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "powers_3",
+              "params": {
+                "powerup_intensity_bonus": 0.2
+              }
+            },
+            {
+              "id": "powers_5",
+              "type": "gameplay_modifier",
+              "cost": 1,
+              "max_rank": 1,
+              "prerequisite": "powers_4",
+              "params": {
+                "shockwave_radius": 150,
+                "shockwave_force": 300,
+                "shockwave_cooldown": 20.0,
+                "shockwave_duration": 0.6,
+                "shockwave_asset_anim": "res://assets/vfx/mine_explosion.tres",
+                "shockwave_asset_anim_duration": 0.6,
+                "shockwave_asset_anim_loop": false,
+                "shockwave_asset_size": 260
+              }
+            }
+          ]
+        }
+      }
+    },
+    "pew_pew": {
+      "exclusive": false,
+      "unlock_requirement": 15,
+      "infinite": true,
+      "branches": {
+        "stat_boosts": {
+          "icon": "res://assets/ui/skills/branch_paragon.png",
+          "color": "#FF6600",
+          "levels": [
+            {
+              "id": "paragon_damage",
+              "type": "stat_modifier",
+              "cost": 1,
+              "max_rank": 999,
+              "prerequisite": "",
+              "params": {
+                "stat": "damage",
+                "bonus_per_rank": 1
+              }
+            },
+            {
+              "id": "paragon_hp",
+              "type": "stat_modifier",
+              "cost": 1,
+              "max_rank": 999,
+              "prerequisite": "",
+              "params": {
+                "stat": "max_hp",
+                "bonus_per_rank": 2
+              }
+            },
+            {
+              "id": "paragon_shield",
+              "type": "stat_modifier",
+              "cost": 1,
+              "max_rank": 999,
+              "prerequisite": "",
+              "params": {
+                "stat": "shield_max",
+                "bonus_per_rank": 2
+              }
+            },
+            {
+              "id": "paragon_crit",
+              "type": "stat_modifier",
+              "cost": 1,
+              "max_rank": 999,
+              "prerequisite": "",
+              "params": {
+                "stat": "crit_chance",
+                "bonus_per_rank": 0.5
+              }
+            },
+            {
+              "id": "paragon_fire_rate",
+              "type": "stat_modifier",
+              "cost": 1,
+              "max_rank": 999,
+              "prerequisite": "",
+              "params": {
+                "stat": "fire_rate",
+                "bonus_per_rank": 0.5
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
 }
+

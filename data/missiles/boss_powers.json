@@ -20,6 +20,8 @@
 				"color": "#FFCC00",
 				"asset": "res://assets/missiles/blue_ball.png",
 				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true,
 				"safe_zones": {
 					"count": 2,
 					"width_degrees": 25
@@ -45,7 +47,9 @@
 				"wave_delay": 0.4,
 				"color": "#FFFFFF",
 				"asset": "res://assets/missiles/blue_ball.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			}
 		}
 	]

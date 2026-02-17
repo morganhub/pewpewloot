@@ -31,12 +31,16 @@
 		},
 		"visuals": {
 			"ability_asset": "res://assets/modifiers/mine.tres",
+			"ability_asset_duration": 0.0,
+			"ability_asset_loop": true,
 			"width": 100,
 			"height": 100,
 			"health_bar_frame": "res://assets/ui/frames/elite_frame_red.png",
 			"color_tint": "#FF8800",
 			"contact_sfx": "res://assets/sfx/combat/mine_explosion.ogg",
-			"explosion_asset": ""
+			"explosion_asset": "",
+			"explosion_asset_duration": 0.6,
+			"explosion_asset_loop": false
 		},
 		"abilities": [
             "mine_spawner"
@@ -62,7 +66,11 @@
 		},
 		"visuals": {
 			"ability_asset": "res://assets/modifiers/arcane_orb.tres",
+			"ability_asset_duration": 0.0,
+			"ability_asset_loop": true,
 			"laser_asset": "res://assets/modifiers/arcane_beam.tres",
+			"laser_asset_duration": 0.0,
+			"laser_asset_loop": true,
 			"width": 100,
 			"height": 100,
 			"health_bar_frame": "res://assets/ui/frames/elite_frame_purple.png",
@@ -91,6 +99,8 @@
 		},
 		"visuals": {
 			"ability_asset": "res://assets/modifiers/graviton.tres",
+			"ability_asset_duration": 0.0,
+			"ability_asset_loop": true,
 			"width": 164,
 			"height": 164,
 			"effect_radius": 350,

@@ -17,6 +17,7 @@ extends Control
 
 var _game_config: Dictionary = {}
 var world_id: String = ""
+var _inventory_warning_label: Label = null
 
 # =============================================================================
 # LIFECYCLE
@@ -30,6 +31,8 @@ func _ready() -> void:
 	world_id = App.current_world_id
 	
 	_update_header()
+	_setup_inventory_warning_ui()
+	_update_inventory_warning_ui()
 	_setup_background()
 	_load_levels()
 	
@@ -72,6 +75,47 @@ func _update_header() -> void:
 	var ship := DataManager.get_ship(ship_id)
 	var ship_name := str(ship.get("name", ship_id))
 	ship_label.text = "🚀 " + ship_name
+
+func _setup_inventory_warning_ui() -> void:
+	var existing_label: Label = get_node_or_null("InventoryWarningLabel") as Label
+	if existing_label:
+		_inventory_warning_label = existing_label
+		return
+	
+	var warning_label := Label.new()
+	warning_label.name = "InventoryWarningLabel"
+	warning_label.visible = false
+	warning_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	warning_label.z_index = 100
+	warning_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	warning_label.offset_top = 112.0
+	warning_label.offset_bottom = 138.0
+	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	warning_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	warning_label.add_theme_font_size_override("font_size", 16)
+	warning_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.2, 1.0))
+	warning_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
+	warning_label.add_theme_constant_override("outline_size", 3)
+	add_child(warning_label)
+	move_child(warning_label, get_child_count() - 1)
+	_inventory_warning_label = warning_label
+
+func _update_inventory_warning_ui() -> void:
+	if not _inventory_warning_label:
+		return
+	var is_full: bool = ProfileManager.is_inventory_full()
+	_inventory_warning_label.visible = is_full
+	if not is_full:
+		return
+	var current_size: int = ProfileManager.get_inventory().size()
+	var max_size: int = ProfileManager.get_max_inventory_size()
+	_inventory_warning_label.text = LocaleManager.translate(
+		"inventory_full_warning_level_select",
+		{
+			"current": str(current_size),
+			"max": str(max_size)
+		}
+	)
 
 func _load_levels() -> void:
 	# Clear existing cards

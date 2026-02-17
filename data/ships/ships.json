@@ -21,7 +21,9 @@
 				"color": "#FF4444",
 				"shape": "rectangle",
 				"asset": "",
-				"asset_anim": "res://assets/ships/countryman.tres"
+				"asset_anim": "res://assets/ships/countryman.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",
@@ -51,7 +53,9 @@
 				"color": "#4444FF",
 				"shape": "triangle",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/swordwing.tres"
+				"asset_anim": "res://assets/enemies/swordwing.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
@@ -78,7 +82,9 @@
 				"color": "#AA44FF",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": "res://assets/ships/beetMech.tres"
+				"asset_anim": "res://assets/ships/beetMech.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
@@ -105,7 +111,9 @@
 				"color": "#FFFF44",
 				"shape": "diamond",
 				"asset": "res://assets/ships/ecraseur.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",
@@ -132,7 +140,9 @@
 				"color": "#FFFF44",
 				"shape": "diamond",
 				"asset": "res://assets/ships/ecraseur.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",

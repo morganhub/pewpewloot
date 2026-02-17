@@ -35,6 +35,8 @@ var shield = null # Initialized manually
 var shield_max_energy: float = 100.0
 var shield_energy: float = 100.0
 var shield_regen_timer: float = 0.0
+const ICE_AURA_SCENE: PackedScene = preload("res://scenes/effects/IceAura.tscn")
+const DEFLECTION_TICK_INTERVAL: float = 0.03
 
 # =============================================================================
 # STATE
@@ -56,6 +58,11 @@ var _can_shoot: bool = true
 
 var visual_container: Node2D = null
 var shape_visual: Polygon2D = null
+var _ice_aura_node: Node2D = null
+var _deflection_aura_root: Node2D = null
+var _deflection_radius: float = 0.0
+var _deflection_strength: float = 0.0
+var _deflection_tick_timer: float = 0.0
 
 # Contact Damage
 var _contact_timer: float = 0.0
@@ -79,6 +86,7 @@ func _ready() -> void:
 	_setup_visual()
 	_setup_shield()
 	_apply_utility_skill_bonuses()
+	_setup_magic_skill_effects()
 	# Spawn at bottom of screen with margin (works for all screen sizes)
 	var viewport_size := get_viewport_rect().size
 	var ship_size := 84.0  # Approximate ship height
@@ -192,8 +200,13 @@ func activate_shield() -> void:
 		
 	# Refresh stats just in case
 	var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
-	var base_absorb = float(gameplay_config.get("shield", {}).get("shield_absorb", 100.0))
-	shield_max_energy = base_absorb # Apply multipliers here if any
+	var base_absorb: float = float(gameplay_config.get("shield", {}).get("shield_absorb", 100.0))
+	var shield_paragon_bonus_pct: float = 0.0
+	if SkillManager:
+		shield_paragon_bonus_pct = SkillManager.get_stat_modifier("shield_max")
+	shield_max_energy = base_absorb * (1.0 + shield_paragon_bonus_pct / 100.0)
+	if _skill_overcharge_bonus > 0.0:
+		shield_max_energy *= (1.0 + _skill_overcharge_bonus)
 	
 	if shield_active:
 		# Refresh energy
@@ -263,6 +276,8 @@ func _setup_visual() -> void:
 	
 	var asset_path: String = str(visual_dict.get("asset", ""))
 	var asset_anim: String = str(visual_dict.get("asset_anim", ""))
+	var asset_anim_duration: float = maxf(0.0, float(visual_dict.get("asset_anim_duration", 0.0)))
+	var asset_anim_loop: bool = bool(visual_dict.get("asset_anim_loop", true))
 	var use_asset: bool = false
 	
 	var width: float = 84.0
@@ -270,7 +285,7 @@ func _setup_visual() -> void:
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames = load(asset_anim)
+		var frames: Resource = load(asset_anim)
 		if frames is SpriteFrames:
 			use_asset = true
 			shape_visual.visible = false
@@ -282,10 +297,17 @@ func _setup_visual() -> void:
 				visual_container.add_child(anim_sprite)
 			
 			anim_sprite.visible = true
-			anim_sprite.sprite_frames = frames
-			anim_sprite.play("default")
+			var played_anim: StringName = VFXManager.play_sprite_frames(
+				anim_sprite,
+				frames as SpriteFrames,
+				&"default",
+				asset_anim_loop,
+				asset_anim_duration
+			)
 			
-			var frame_tex = frames.get_frame_texture("default", 0)
+			var frame_tex: Texture2D = null
+			if played_anim != &"" and anim_sprite.sprite_frames:
+				frame_tex = anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				var scale_x = width / f_size.x
@@ -402,17 +424,19 @@ func use_unique() -> void:
 			unique_cd_current = unique_cd_max
 
 func add_fire_rate_boost(duration: float) -> void:
-	_fire_rate_boost_timer = duration
+	var final_duration: float = maxf(0.1, duration + _skill_power_extender_bonus)
+	_fire_rate_boost_timer = final_duration
 	
 	# Fetch bonus pct
 	var gameplay_config = DataManager.get_game_data().get("gameplay", {})
 	var power_up_config = gameplay_config.get("power_ups", {})
-	var bonus_pct = float(power_up_config.get("rapid_fire", {}).get("bonus", 50.0))
+	var bonus_pct: float = float(power_up_config.get("rapid_fire", {}).get("bonus", 50.0))
 	
 	# Apply boost: New Rate = Base Rate * (1 + bonus/100)
 	# Note: fire_rate is RATE (Attacks/Sec) based on logic in _fire().
 	# To make faster, we MULTIPLY rate.
-	var multiplier = 1.0 + (bonus_pct / 100.0)
+	var intensity_bonus: float = maxf(0.0, _skill_overcharge_bonus)
+	var multiplier: float = 1.0 + ((bonus_pct / 100.0) * (1.0 + intensity_bonus))
 	if multiplier <= 0.1: multiplier = 1.0 # Safety
 	
 	fire_rate = _base_fire_rate * multiplier
@@ -426,6 +450,9 @@ func _process(delta: float) -> void:
 	_handle_shooting(delta)
 	_handle_contact_damage(delta)
 	_handle_shield_regen(delta)
+	_update_deflection_aura(delta)
+	if _skill_emergency_cooldown_remaining > 0.0:
+		_skill_emergency_cooldown_remaining = maxf(0.0, _skill_emergency_cooldown_remaining - delta)
 	
 	# Cooldowns
 	if special_cd_current > 0:
@@ -572,6 +599,7 @@ func absorb_damage_with_shield(amount: int, impact_world_pos: Vector2 = Vector2.
 		shield_active = false
 		shield_energy = 0
 		shield_changed.emit(0, shield_max_energy)
+		_trigger_emergency_shockwave()
 		
 		print("[Player] 💥 SHIELD BREAK! Collapsing...")
 		
@@ -987,19 +1015,6 @@ func take_damage(amount: int) -> void:
 	if bool(ProfileManager.get_setting("screenshake_enabled", true)):
 		VFXManager.screen_shake(5, 0.15)
 	
-	# --- Skill Tree: Emergency Protocol ---
-	if current_hp <= 0 and _skill_emergency_protocol and not _emergency_triggered:
-		_emergency_triggered = true
-		current_hp = int(max_hp * 0.20) # Survive with 20% HP
-		set_invincible(true)
-		VFXManager.spawn_floating_text(global_position, "EMERGENCY!", Color.ORANGE_RED, get_parent())
-		# 2 second invincibility window
-		get_tree().create_timer(2.0).timeout.connect(func():
-			if is_instance_valid(self):
-				set_invincible(false)
-		)
-		return
-	
 	if current_hp <= 0:
 		die()
 
@@ -1022,22 +1037,44 @@ var _skill_magnet_radius_bonus: float = 0.0
 var _skill_vacuum_radius: float = 0.0
 var _skill_power_extender_bonus: float = 0.0
 var _skill_overcharge_bonus: float = 0.0
-var _skill_emergency_protocol: bool = false
 var _skill_reflect_chance: float = 0.0
-var _emergency_triggered: bool = false
+var _skill_emergency_enabled: bool = false
+var _skill_shockwave_radius: float = 0.0
+var _skill_shockwave_force: float = 0.0
+var _skill_shockwave_cooldown: float = 20.0
+var _skill_shockwave_duration: float = 0.6
+var _skill_shockwave_asset: String = ""
+var _skill_shockwave_asset_anim: String = ""
+var _skill_shockwave_asset_anim_duration: float = 0.0
+var _skill_shockwave_asset_anim_loop: bool = false
+var _skill_shockwave_size: float = 240.0
+var _skill_emergency_cooldown_remaining: float = 0.0
 
 func _apply_utility_skill_bonuses() -> void:
 	var bonuses: Dictionary = SkillManager.get_utility_bonuses()
-	_skill_magnet_radius_bonus = float(bonuses.get("magnet_radius_bonus", 0.0))
+	_skill_magnet_radius_bonus = float(bonuses.get("crystal_magnet_radius", bonuses.get("magnet_radius_bonus", 0.0)))
 	_skill_vacuum_radius = float(bonuses.get("vacuum_radius", 0.0))
-	_skill_power_extender_bonus = float(bonuses.get("power_duration_bonus", 0.0))
-	_skill_overcharge_bonus = float(bonuses.get("overcharge_bonus", 0.0))
-	_skill_emergency_protocol = bool(bonuses.get("emergency_protocol", false))
-	_skill_reflect_chance = float(bonuses.get("reflect_chance", 0.0))
+	_skill_power_extender_bonus = float(bonuses.get("powerup_duration_bonus", bonuses.get("power_duration_bonus", 0.0)))
+	_skill_overcharge_bonus = float(bonuses.get("powerup_intensity_bonus", bonuses.get("overcharge_bonus", 0.0)))
+	_skill_reflect_chance = clampf(float(bonuses.get("reflect_chance", 0.0)), 0.0, 1.0)
+	_skill_shockwave_radius = float(bonuses.get("shockwave_radius", 0.0))
+	_skill_shockwave_force = float(bonuses.get("shockwave_force", 0.0))
+	_skill_shockwave_cooldown = maxf(0.1, float(bonuses.get("shockwave_cooldown", 20.0)))
+	_skill_shockwave_duration = maxf(0.05, float(bonuses.get("shockwave_duration", 0.6)))
+	_skill_shockwave_asset = str(bonuses.get("shockwave_asset", ""))
+	_skill_shockwave_asset_anim = str(bonuses.get("shockwave_asset_anim", ""))
+	_skill_shockwave_asset_anim_duration = maxf(0.0, float(bonuses.get("shockwave_asset_anim_duration", _skill_shockwave_duration)))
+	_skill_shockwave_asset_anim_loop = bool(bonuses.get("shockwave_asset_anim_loop", false))
+	_skill_shockwave_size = maxf(20.0, float(bonuses.get("shockwave_asset_size", 240.0)))
+	_skill_emergency_enabled = _skill_shockwave_radius > 0.0 and _skill_shockwave_force > 0.0
 
 ## Returns the magnet radius bonus from the skill tree (used by LootDrop.gd)
 func get_magnet_radius_bonus() -> float:
 	return _skill_magnet_radius_bonus
+
+## Returns the vacuum radius bonus from the skill tree (used by LootDrop.gd)
+func get_vacuum_radius_bonus() -> float:
+	return _skill_vacuum_radius
 
 ## Returns the power duration bonus from the skill tree (used by PowerManager)
 func get_power_duration_bonus() -> float:
@@ -1046,6 +1083,243 @@ func get_power_duration_bonus() -> float:
 ## Returns the overcharge bonus from the skill tree (used by PowerManager)
 func get_overcharge_bonus() -> float:
 	return _skill_overcharge_bonus
+
+func _setup_magic_skill_effects() -> void:
+	var mods: Dictionary = SkillManager.get_projectile_modifier()
+	_setup_ice_aura(mods)
+	_setup_deflection_aura(mods)
+
+func _setup_ice_aura(mods: Dictionary) -> void:
+	if _ice_aura_node and is_instance_valid(_ice_aura_node):
+		_ice_aura_node.queue_free()
+		_ice_aura_node = null
+
+	if str(mods.get("branch", "")) != "frozen":
+		return
+	if not mods.has("aura_type"):
+		return
+	if ICE_AURA_SCENE == null:
+		return
+
+	var aura_instance: Node = ICE_AURA_SCENE.instantiate()
+	if not (aura_instance is Node2D):
+		return
+	var aura_node: Node2D = aura_instance as Node2D
+	add_child(aura_node)
+	_ice_aura_node = aura_node
+
+	if _ice_aura_node.has_method("setup"):
+		var radius: float = float(mods.get("aura_radius", 120.0))
+		radius *= (1.0 + float(mods.get("aura_radius_bonus", 0.0)))
+		var slow_pct: float = float(mods.get("aura_slow_percent", 0.2))
+		var freeze_time: float = float(mods.get("freeze_aura_time", 0.0))
+		var freeze_duration: float = float(mods.get("freeze_duration", 2.0))
+		var freeze_dot: float = float(mods.get("freeze_dot_dps", 0.0))
+		var visual_data: Dictionary = {
+			"asset": str(mods.get("aura_asset", "")),
+			"asset_anim": str(mods.get("aura_asset_anim", "")),
+			"asset_anim_duration": float(mods.get("aura_asset_anim_duration", 0.0)),
+			"asset_anim_loop": bool(mods.get("aura_asset_anim_loop", true)),
+			"size": float(mods.get("aura_asset_size", radius * 2.0))
+		}
+		_ice_aura_node.call("setup", radius, slow_pct, freeze_time, freeze_duration, freeze_dot, visual_data)
+
+func _setup_deflection_aura(mods: Dictionary) -> void:
+	if _deflection_aura_root and is_instance_valid(_deflection_aura_root):
+		_deflection_aura_root.queue_free()
+		_deflection_aura_root = null
+
+	_deflection_radius = 0.0
+	_deflection_strength = 0.0
+	_deflection_tick_timer = 0.0
+
+	if str(mods.get("branch", "")) != "void":
+		return
+	if not bool(mods.get("deflection_enabled", false)):
+		return
+
+	_deflection_radius = maxf(8.0, float(mods.get("deflection_aura_radius", 100.0)))
+	_deflection_strength = clampf(float(mods.get("deflection_strength", 0.3)), 0.0, 1.0)
+	var visual_data: Dictionary = {
+		"asset": str(mods.get("deflection_aura_asset", "")),
+		"asset_anim": str(mods.get("deflection_aura_asset_anim", "")),
+		"asset_anim_duration": float(mods.get("deflection_aura_asset_anim_duration", 0.0)),
+		"asset_anim_loop": bool(mods.get("deflection_aura_asset_anim_loop", true)),
+		"size": float(mods.get("deflection_aura_asset_size", _deflection_radius * 2.0))
+	}
+	_deflection_aura_root = _create_aura_visual_node("DeflectionAuraVisual", _deflection_radius, visual_data, Color(0.75, 0.55, 1.0, 0.55))
+	if _deflection_aura_root:
+		_deflection_aura_root.z_index = -7
+		add_child(_deflection_aura_root)
+
+func _update_deflection_aura(delta: float) -> void:
+	if _deflection_radius <= 0.0 or _deflection_strength <= 0.0:
+		return
+	if _deflection_aura_root and is_instance_valid(_deflection_aura_root):
+		_deflection_aura_root.global_position = global_position
+
+	_deflection_tick_timer += delta
+	if _deflection_tick_timer < DEFLECTION_TICK_INTERVAL:
+		return
+	_deflection_tick_timer = 0.0
+
+	if not ProjectileManager:
+		return
+
+	var enemy_projectiles: Variant = ProjectileManager.get("_active_enemy_projectiles")
+	if not (enemy_projectiles is Array):
+		return
+
+	for projectile_value in (enemy_projectiles as Array):
+		if not (projectile_value is Area2D):
+			continue
+		var projectile: Area2D = projectile_value as Area2D
+		if not is_instance_valid(projectile):
+			continue
+		var is_active_val: Variant = projectile.get("is_active")
+		if not bool(is_active_val):
+			continue
+
+		var to_player: Vector2 = global_position - projectile.global_position
+		var distance: float = to_player.length()
+		if distance <= 1.0 or distance > _deflection_radius:
+			continue
+
+		var toward_player: Vector2 = to_player / distance
+		var tangent: Vector2 = Vector2(-toward_player.y, toward_player.x)
+		var influence: float = clampf((1.0 - (distance / _deflection_radius)) * _deflection_strength, 0.0, 0.9)
+		var current_direction: Vector2 = Vector2.ZERO
+		var direction_value: Variant = projectile.get("direction")
+		if direction_value is Vector2:
+			current_direction = (direction_value as Vector2).normalized()
+		if current_direction == Vector2.ZERO:
+			current_direction = tangent
+
+		var new_direction: Vector2 = current_direction.lerp(tangent, influence).normalized()
+		if new_direction != Vector2.ZERO:
+			projectile.set("direction", new_direction)
+			projectile.global_position += tangent * (50.0 * influence * DEFLECTION_TICK_INTERVAL)
+
+func _trigger_emergency_shockwave() -> void:
+	if not _skill_emergency_enabled:
+		return
+	if _skill_emergency_cooldown_remaining > 0.0:
+		return
+
+	_skill_emergency_cooldown_remaining = _skill_shockwave_cooldown
+
+	var enemies: Array = get_tree().get_nodes_in_group("enemies")
+	for enemy_value in enemies:
+		if not (enemy_value is Node2D):
+			continue
+		var enemy: Node2D = enemy_value as Node2D
+		if not is_instance_valid(enemy):
+			continue
+
+		var offset: Vector2 = enemy.global_position - global_position
+		var distance: float = offset.length()
+		if distance <= 0.0001 or distance > _skill_shockwave_radius:
+			continue
+
+		var falloff: float = 1.0 - (distance / _skill_shockwave_radius)
+		var push: Vector2 = offset.normalized() * (_skill_shockwave_force * falloff)
+		if enemy.has_method("apply_external_displacement"):
+			enemy.call("apply_external_displacement", push)
+		else:
+			enemy.global_position += push * 0.04
+
+	if VFXManager:
+		var size: float = maxf(_skill_shockwave_size, _skill_shockwave_radius * 0.6)
+		var emergency_text: String = "EMERGENCY"
+		if LocaleManager and LocaleManager.has_method("translate"):
+			emergency_text = LocaleManager.translate("skills.skill.powers_5.title")
+		VFXManager.spawn_explosion(
+			global_position,
+			size,
+			Color(0.5, 0.9, 1.0, 0.7),
+			get_parent(),
+			_skill_shockwave_asset,
+			_skill_shockwave_asset_anim,
+			_skill_shockwave_duration,
+			0.35,
+			_skill_shockwave_asset_anim_duration,
+			_skill_shockwave_asset_anim_loop
+		)
+		VFXManager.spawn_floating_text(global_position, emergency_text, Color(0.7, 1.0, 1.0), get_parent())
+
+func _create_aura_visual_node(node_name: String, radius: float, visual_data: Dictionary, tint: Color) -> Node2D:
+	var root := Node2D.new()
+	root.name = node_name
+	root.global_position = global_position
+
+	var asset_anim: String = str(visual_data.get("asset_anim", ""))
+	var asset: String = str(visual_data.get("asset", ""))
+	var asset_anim_duration: float = maxf(0.0, float(visual_data.get("asset_anim_duration", 0.0)))
+	var asset_anim_loop: bool = bool(visual_data.get("asset_anim_loop", true))
+	var target_size: float = maxf(20.0, float(visual_data.get("size", radius * 2.0)))
+
+	var visual_node: Node2D = _build_visual_node(asset_anim, asset, target_size, tint, asset_anim_duration, asset_anim_loop)
+	if visual_node:
+		root.add_child(visual_node)
+		return root
+
+	var ring := Polygon2D.new()
+	var points: PackedVector2Array = []
+	var segments: int = 24
+	for i in range(segments):
+		var angle: float = (float(i) / float(segments)) * TAU
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	ring.polygon = points
+	ring.color = Color(tint.r, tint.g, tint.b, 0.22)
+	root.add_child(ring)
+	return root
+
+func _build_visual_node(
+	asset_anim: String,
+	asset: String,
+	target_size: float,
+	tint: Color,
+	anim_duration: float = 0.0,
+	anim_loop: bool = true
+) -> Node2D:
+	if asset_anim != "" and ResourceLoader.exists(asset_anim):
+		var anim_res: Resource = load(asset_anim)
+		if anim_res is SpriteFrames:
+			var frames: SpriteFrames = anim_res as SpriteFrames
+			var anim_sprite := AnimatedSprite2D.new()
+			var anim_name: StringName = VFXManager.play_sprite_frames(
+				anim_sprite,
+				frames,
+				&"default",
+				anim_loop,
+				anim_duration
+			)
+			if anim_name != &"":
+				anim_sprite.modulate = tint
+				var frame_tex: Texture2D = null
+				if anim_sprite.sprite_frames:
+					frame_tex = anim_sprite.sprite_frames.get_frame_texture(anim_name, 0)
+				if frame_tex:
+					var frame_size: Vector2 = frame_tex.get_size()
+					if frame_size.x > 0.0 and frame_size.y > 0.0:
+						var scale_factor: float = target_size / maxf(frame_size.x, frame_size.y)
+						anim_sprite.scale = Vector2.ONE * scale_factor
+				return anim_sprite
+
+	if asset != "" and ResourceLoader.exists(asset):
+		var tex_res: Resource = load(asset)
+		if tex_res is Texture2D:
+			var texture: Texture2D = tex_res as Texture2D
+			var sprite := Sprite2D.new()
+			sprite.texture = texture
+			sprite.modulate = tint
+			var tex_size: Vector2 = texture.get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				var scale_factor: float = target_size / maxf(tex_size.x, tex_size.y)
+				sprite.scale = Vector2.ONE * scale_factor
+			return sprite
+
+	return null
 
 func _create_shape_polygon(shape_type: String, width: float, height: float) -> PackedVector2Array:
 	match shape_type:

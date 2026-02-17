@@ -110,7 +110,9 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 			"color": color_hex,
 			"shape": "circle",
 			"asset": str(proj_data.get("asset", "")),
-			"asset_anim": str(proj_data.get("asset_anim", ""))
+			"asset_anim": str(proj_data.get("asset_anim", "")),
+			"asset_anim_duration": float(proj_data.get("asset_anim_duration", 0.0)),
+			"asset_anim_loop": bool(proj_data.get("asset_anim_loop", true))
 		}
 	}
 	

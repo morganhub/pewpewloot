@@ -99,6 +99,8 @@ func _setup_logo() -> void:
 	var menu_config: Dictionary = _game_config.get("main_menu", {})
 	var logo_path: String = str(menu_config.get("logo", ""))
 	var logo_anim_path: String = str(menu_config.get("logo_anim", ""))
+	var logo_anim_duration: float = maxf(0.0, float(menu_config.get("logo_anim_duration", 0.0)))
+	var logo_anim_loop: bool = bool(menu_config.get("logo_anim_loop", true))
 	var width_pct: float = float(menu_config.get("logo_width_pct", 0.5))
 	var height_pct: float = float(menu_config.get("logo_height_pct", 0.2))
 	
@@ -121,10 +123,15 @@ func _setup_logo() -> void:
 	
 	# Priority 1: Animated Logo
 	if logo_anim_path != "" and ResourceLoader.exists(logo_anim_path):
-		var frames = load(logo_anim_path)
+		var frames: Resource = load(logo_anim_path)
 		if frames is SpriteFrames and logo_anim:
-			logo_anim.sprite_frames = frames
-			logo_anim.play("default")
+			VFXManager.play_sprite_frames(
+				logo_anim,
+				frames as SpriteFrames,
+				&"default",
+				logo_anim_loop,
+				logo_anim_duration
+			)
 			
 			# Center and scale (contain) animation in container
 			if not logo_anim_container.resized.is_connected(_center_logo_anim):
@@ -170,7 +177,10 @@ func _center_logo_anim() -> void:
 		# Containment logic for AnimatedSprite2D
 		var frames = logo_anim.sprite_frames
 		if frames:
-			var frame_tex = frames.get_frame_texture("default", 0)
+			var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
+			var frame_tex: Texture2D = null
+			if anim_name != &"":
+				frame_tex = frames.get_frame_texture(anim_name, 0)
 			if frame_tex:
 				var tex_size = frame_tex.get_size()
 				if tex_size.x > 0 and tex_size.y > 0:
@@ -190,6 +200,8 @@ func _setup_buttons() -> void:
 func _setup_single_button(button: Button, config: Dictionary, translation_key: String) -> void:
 	var asset_path: String = str(config.get("asset", ""))
 	var asset_anim: String = str(config.get("asset_anim", ""))
+	var asset_anim_duration: float = maxf(0.0, float(config.get("asset_anim_duration", 0.0)))
+	var asset_anim_loop: bool = bool(config.get("asset_anim_loop", true))
 	var show_text: bool = bool(config.get("show_text", true))
 	var text_color_hex: String = str(config.get("text_color", "#FFFFFF"))
 	
@@ -205,7 +217,7 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 	
 	# 1. GESTION ASSET ANIMÉ (Priorité 1)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames = load(asset_anim)
+		var frames: Resource = load(asset_anim)
 		if frames is SpriteFrames:
 			has_visual_bg = true
 			# Style transparent pour le bouton (plus de cadre gris)
@@ -215,8 +227,13 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 			# Ajouter AnimatedSprite2D
 			var anim = AnimatedSprite2D.new()
 			anim.name = "BgAnim"
-			anim.sprite_frames = frames
-			anim.play("default")
+			VFXManager.play_sprite_frames(
+				anim,
+				frames as SpriteFrames,
+				&"default",
+				asset_anim_loop,
+				asset_anim_duration
+			)
 			anim.show_behind_parent = true 
 			button.add_child(anim)
 			

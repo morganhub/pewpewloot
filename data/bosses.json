@@ -17,7 +17,9 @@
 				"color": "#880000",
 				"shape": "hexagon",
 				"asset": "res://assets/bosses/boar.png",
-				"asset_anim": "res://assets/bosses/boar.tres"
+				"asset_anim": "res://assets/bosses/boar.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"sounds": {
 				"asset": "res://assets/sounds/boss_roar.wav",

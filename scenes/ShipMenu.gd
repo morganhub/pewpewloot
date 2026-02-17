@@ -85,7 +85,6 @@ var _filter_icon_buttons: Dictionary = {} # slot_id -> TextureButton
 var selected_ship_id: String = ""
 var selected_slot: String = ""
 var _game_config: Dictionary = {} # Initialized empty, loaded in _ready
-var _recycle_value: int = 0
 var slot_buttons: Dictionary = {}  # slot_id -> Button
 var inventory_cards: Array = []  # Array of item card Controls
 
@@ -535,7 +534,6 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 	if bg_path == "" or not ResourceLoader.exists(bg_path):
 		return
 	
-	var content_vbox = $MarginContainer/ScrollContainer/Content
 	# Look in Content or anywhere else
 	var section_node = get_node_or_null("MarginContainer/ScrollContainer/Content/" + section_node_name)
 	if not section_node:
@@ -548,9 +546,9 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 	var parent = section_node.get_parent()
 	if parent and parent.name == section_node_name + "Wrapper":
 		# Already wrapped, just update texture
-		var style = parent.get_theme_stylebox("panel")
-		if style is StyleBoxTexture:
-			style.texture = load(bg_path)
+		var existing_style = parent.get_theme_stylebox("panel")
+		if existing_style is StyleBoxTexture:
+			existing_style.texture = load(bg_path)
 		return
 	
 	var wrapper = PanelContainer.new()
@@ -558,13 +556,13 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 	wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrapper.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	var style = StyleBoxTexture.new()
-	style.texture = load(bg_path)
-	style.content_margin_left = 15
-	style.content_margin_right = 15
-	style.content_margin_top = 15
-	style.content_margin_bottom = 15
-	wrapper.add_theme_stylebox_override("panel", style)
+	var wrapper_style = StyleBoxTexture.new()
+	wrapper_style.texture = load(bg_path)
+	wrapper_style.content_margin_left = 15
+	wrapper_style.content_margin_right = 15
+	wrapper_style.content_margin_top = 15
+	wrapper_style.content_margin_bottom = 15
+	wrapper.add_theme_stylebox_override("panel", wrapper_style)
 	
 	var idx = section_node.get_index()
 	parent.add_child(wrapper)
@@ -886,7 +884,8 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	var asset_animation: String = str(ship_select_cfg.get("asset_animation", ""))
 	var asset_selected: String = str(ship_select_cfg.get("asset_selected", ""))
 	var asset_unselected: String = str(ship_select_cfg.get("asset_unselected", ""))
-	var anim_duration_cfg: float = float(ship_select_cfg.get("animation_duration", 0.0))
+	var anim_duration_cfg: float = maxf(0.0, float(ship_select_cfg.get("asset_animation_duration", ship_select_cfg.get("animation_duration", 0.0))))
+	var anim_loop_cfg: bool = bool(ship_select_cfg.get("asset_animation_loop", false))
 	var anim_w_cfg: float = float(ship_select_cfg.get("animation_width", 0.0))
 	var anim_h_cfg: float = float(ship_select_cfg.get("animation_height", 0.0))
 	
@@ -901,21 +900,21 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	if is_selected:
 		# Selected: play animation once, then freeze on the last frame
 		if asset_animation != "" and ResourceLoader.exists(asset_animation):
-			var frames = load(asset_animation)
+			var frames: Resource = load(asset_animation)
 			if frames is SpriteFrames:
 				var anim = AnimatedSprite2D.new()
-				anim.sprite_frames = frames
 				anim.centered = true
 				anim.position = _ship_card_size / 2.0
 				# Scale down to fit card size
-				var first_anim_nm: StringName = _get_first_spriteframes_animation(frames)
+				var frame_data: SpriteFrames = frames as SpriteFrames
+				var first_anim_nm: StringName = _get_first_spriteframes_animation(frame_data)
 				
 				# Determine source size for scaling: use config if present, else texture size
 				var src_size := Vector2.ZERO
 				if anim_w_cfg > 0.0 and anim_h_cfg > 0.0:
 					src_size = Vector2(anim_w_cfg, anim_h_cfg)
 				else:
-					var first_tex: Texture2D = _get_spriteframes_first_frame(frames)
+					var first_tex: Texture2D = _get_spriteframes_first_frame(frame_data)
 					if first_tex:
 						src_size = first_tex.get_size()
 				
@@ -923,25 +922,17 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 					var fit_scale := minf(_ship_card_size.x / src_size.x, _ship_card_size.y / src_size.y)
 					anim.scale = Vector2(fit_scale, fit_scale)
 				
-				# Adjust speed_scale to match desired animation_duration
-				if anim_duration_cfg > 0.0 and first_anim_nm != &"":
-					var fps: float = frames.get_animation_speed(first_anim_nm)
-					var fc: int = frames.get_frame_count(first_anim_nm)
-					if fps > 0.0 and fc > 0:
-						var natural_dur: float = float(fc) / fps
-						anim.speed_scale = natural_dur / anim_duration_cfg
 				bg_rect.add_child(anim)
-				# Play once, then stop on the very last frame
+				var selected_anim_name: StringName = &"default"
 				if first_anim_nm != &"":
-					frames.set_animation_loop(first_anim_nm, false)
-					var last_frame_idx: int = frames.get_frame_count(first_anim_nm) - 1
-					anim.play("default")
-					anim.animation_finished.connect(func():
-						anim.frame = last_frame_idx
-						anim.pause()
-					)
-				else:
-					anim.play("default")
+					selected_anim_name = first_anim_nm
+				VFXManager.play_sprite_frames(
+					anim,
+					frame_data,
+					selected_anim_name,
+					anim_loop_cfg,
+					anim_duration_cfg
+				)
 		else:
 			# Fallback: use asset_selected PNG if no animation
 			if asset_selected != "" and ResourceLoader.exists(asset_selected):
@@ -962,6 +953,8 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	var visual: Dictionary = ship_data.get("visual", {})
 	var visual_asset: String = str(visual.get("asset", ""))
 	var visual_anim: String = str(visual.get("asset_anim", ""))
+	var visual_anim_duration: float = maxf(0.0, float(visual.get("asset_anim_duration", 0.0)))
+	var visual_anim_loop: bool = bool(visual.get("asset_anim_loop", true))
 	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
 	var ship_sel_cfg: Dictionary = ship_menu_cfg.get("ship_selection", {}) if ship_menu_cfg.get("ship_selection") is Dictionary else {}
 	var allow_animated: bool = bool(ship_sel_cfg.get("animated", true))
@@ -987,7 +980,7 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	if asset_res is SpriteFrames:
 		anim_frames = asset_res as SpriteFrames
 	elif visual_anim != "" and ResourceLoader.exists(visual_anim):
-		var anim_res = load(visual_anim)
+		var anim_res: Resource = load(visual_anim)
 		if anim_res is SpriteFrames:
 			anim_frames = anim_res as SpriteFrames
 	
@@ -999,10 +992,15 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 		has_animated_icon = true
 		var anim_sprite := AnimatedSprite2D.new()
 		anim_sprite.name = "ShipIconAnim"
-		anim_sprite.sprite_frames = anim_frames
 		anim_sprite.centered = true
 		anim_sprite.position = _ship_card_size / 2.0
-		anim_sprite.play(first_anim_name)
+		VFXManager.play_sprite_frames(
+			anim_sprite,
+			anim_frames,
+			first_anim_name,
+			visual_anim_loop,
+			visual_anim_duration
+		)
 		if first_frame_tex:
 			var f_size = first_frame_tex.get_size()
 			if f_size.x > 0.0 and f_size.y > 0.0:
@@ -1376,7 +1374,7 @@ func _create_slot_buttons() -> void:
 			card.setup_empty(slot_id, slot_name, config)
 			
 			# Connect signal
-			card.card_pressed.connect(func(i, s): _on_slot_pressed(s))
+			card.card_pressed.connect(func(_i, s): _on_slot_pressed(s))
 			
 			slots_grid.add_child(card)
 			slot_buttons[slot_id] = card # Store the ItemCard instance
@@ -1541,10 +1539,10 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 		candidates.sort() # Ensure missile_1 comes before missile_2
 		
 		# Pick first empty, or just first
-		var loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
+		var loadout_for_resolution = ProfileManager.get_loadout_for_ship(selected_ship_id)
 		var best_slot = ""
 		for cand in candidates:
-			if not loadout.has(cand) or str(loadout[cand]) == "":
+			if not loadout_for_resolution.has(cand) or str(loadout_for_resolution[cand]) == "":
 				best_slot = cand
 				break
 		
@@ -1566,8 +1564,8 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 				return
 
 	# Check if slot is occupied (using resolved target_slot)
-	var loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
-	var current_equipped = str(loadout.get(target_slot, ""))
+	var ship_loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
+	var current_equipped = str(ship_loadout.get(target_slot, ""))
 	
 	if current_equipped != "":
 		# Unequip current (pass SLOT ID)
@@ -2440,13 +2438,20 @@ func _on_popup_upgrade_pressed() -> void:
 		
 	# 2. CRAFT ANIM
 	var craft_anim_path = str(sh_opts.get("upgrade_craft_anim", ""))
+	var craft_anim_duration: float = maxf(0.0, float(sh_opts.get("upgrade_craft_anim_duration", 0.0)))
+	var craft_anim_loop: bool = bool(sh_opts.get("upgrade_craft_anim_loop", true))
 	var craft_anim_node: AnimatedSprite2D = null
 	if craft_anim_path != "" and ResourceLoader.exists(craft_anim_path):
-		var frames = load(craft_anim_path)
+		var frames: Resource = load(craft_anim_path)
 		if frames is SpriteFrames:
 			craft_anim_node = AnimatedSprite2D.new()
-			craft_anim_node.sprite_frames = frames
-			craft_anim_node.play("default")
+			VFXManager.play_sprite_frames(
+				craft_anim_node,
+				frames as SpriteFrames,
+				&"default",
+				craft_anim_loop,
+				craft_anim_duration
+			)
 			# No Z-index, put behind text (child 0)
 			# craft_anim_node.z_index = 20 
 			craft_anim_node.scale = Vector2(2.0, 2.0)
@@ -2551,13 +2556,20 @@ func _show_upgrade_feedback(tier: String, label_text: String) -> void:
 	# 1. Background Anim (Tier Based)
 	var sh_opts: Dictionary = _game_config.get("ship_menu", {})
 	var anim_path = str(sh_opts.get("upgrade_anim_" + tier, ""))
+	var anim_duration: float = maxf(0.0, float(sh_opts.get("upgrade_anim_" + tier + "_duration", 0.0)))
+	var anim_loop: bool = bool(sh_opts.get("upgrade_anim_" + tier + "_loop", false))
 	
 	if anim_path != "" and ResourceLoader.exists(anim_path):
-		var frames = load(anim_path)
+		var frames: Resource = load(anim_path)
 		if frames is SpriteFrames:
 			var anim = AnimatedSprite2D.new()
-			anim.sprite_frames = frames
-			anim.play("default")
+			VFXManager.play_sprite_frames(
+				anim,
+				frames as SpriteFrames,
+				&"default",
+				anim_loop,
+				anim_duration
+			)
 			anim.scale = Vector2(2.0, 2.0)
 			
 			item_popup.add_child(anim)
@@ -2799,6 +2811,8 @@ func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int
 	
 	var icon_res: Resource = load(icon_path)
 	var repeat_seconds: float = maxf(0.0, float(cfg.get("animation_repeat_seconds", 0.0)))
+	var icon_anim_duration: float = maxf(0.0, float(cfg.get("icon_anim_duration", 0.0)))
+	var icon_anim_loop: bool = bool(cfg.get("icon_anim_loop", repeat_seconds <= 0.0))
 	
 	if icon_res is Texture2D:
 		var icon = TextureRect.new()
@@ -2817,10 +2831,6 @@ func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int
 			return
 		
 		var frames_for_playback: SpriteFrames = source_frames
-		var duplicated = source_frames.duplicate(true)
-		if duplicated is SpriteFrames:
-			frames_for_playback = duplicated as SpriteFrames
-			frames_for_playback.set_animation_loop(anim_name, repeat_seconds <= 0.0)
 		
 		var anim = AnimatedSprite2D.new()
 		anim.sprite_frames = frames_for_playback
@@ -2835,19 +2845,34 @@ func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int
 				anim.scale = Vector2(fit_scale, fit_scale)
 		
 		icon_parent.add_child(anim)
-		_play_ship_stat_icon(anim, anim_name, repeat_seconds)
+		_play_ship_stat_icon(anim, anim_name, repeat_seconds, icon_anim_duration, icon_anim_loop)
 
-func _play_ship_stat_icon(anim: AnimatedSprite2D, anim_name: StringName, repeat_seconds: float) -> void:
+func _play_ship_stat_icon(
+	anim: AnimatedSprite2D,
+	anim_name: StringName,
+	repeat_seconds: float,
+	play_duration: float,
+	play_loop: bool
+) -> void:
 	if not anim:
 		return
 	
-	anim.play(anim_name)
+	var source_frames: SpriteFrames = anim.sprite_frames
+	if source_frames == null:
+		return
+	VFXManager.play_sprite_frames(anim, source_frames, anim_name, play_loop, play_duration)
 	if repeat_seconds <= 0.0:
 		return
 	
-	_repeat_ship_stat_icon(anim, anim_name, repeat_seconds)
+	_repeat_ship_stat_icon(anim, anim_name, repeat_seconds, play_duration, play_loop)
 
-func _repeat_ship_stat_icon(anim: AnimatedSprite2D, anim_name: StringName, repeat_seconds: float) -> void:
+func _repeat_ship_stat_icon(
+	anim: AnimatedSprite2D,
+	anim_name: StringName,
+	repeat_seconds: float,
+	play_duration: float,
+	play_loop: bool
+) -> void:
 	while is_instance_valid(anim):
 		var tree := anim.get_tree()
 		if tree == null:
@@ -2855,8 +2880,10 @@ func _repeat_ship_stat_icon(anim: AnimatedSprite2D, anim_name: StringName, repea
 		await tree.create_timer(repeat_seconds).timeout
 		if not is_instance_valid(anim):
 			return
-		anim.frame = 0
-		anim.play(anim_name)
+		var source_frames: SpriteFrames = anim.sprite_frames
+		if source_frames == null:
+			return
+		VFXManager.play_sprite_frames(anim, source_frames, anim_name, play_loop, play_duration)
 
 func _add_detailed_stat(parent: Control, label_text: String, current_value: float, max_value: float, cfg: Dictionary, bar_color_hex: String) -> void:
 	var item_hbox = HBoxContainer.new()

@@ -155,6 +155,10 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	
 	var asset_path: String = str(visual_data.get("asset", ""))
 	var asset_anim: String = str(visual_data.get("asset_anim", ""))
+	var asset_anim_duration: float = maxf(0.0, float(visual_data.get("asset_anim_duration", 0.0)))
+	var asset_anim_loop: bool = bool(visual_data.get("asset_anim_loop", true))
+	var asset_duration: float = maxf(0.0, float(visual_data.get("asset_duration", asset_anim_duration)))
+	var asset_loop: bool = bool(visual_data.get("asset_loop", asset_anim_loop))
 	var use_asset: bool = false
 	_pulsating_enabled = bool(visual_data.get("pulsating", false))
 	_pulsating_size = clampf(float(visual_data.get("pulsating_size", 1.0)), 0.0, 10.0)
@@ -178,7 +182,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 			var frames: SpriteFrames = frames_res as SpriteFrames
 			use_asset = true
 			visual.visible = false
-			_apply_sprite_frames_visual(frames, final_width, final_height)
+			_apply_sprite_frames_visual(frames, final_width, final_height, asset_anim_loop, asset_anim_duration)
 
 	# Priority 2: Static Sprite (asset)
 	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
@@ -186,7 +190,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 		if asset_res is SpriteFrames:
 			use_asset = true
 			visual.visible = false
-			_apply_sprite_frames_visual(asset_res as SpriteFrames, final_width, final_height)
+			_apply_sprite_frames_visual(asset_res as SpriteFrames, final_width, final_height, asset_loop, asset_duration)
 		elif asset_res is Texture2D:
 			var texture: Texture2D = asset_res as Texture2D
 			use_asset = true
@@ -260,7 +264,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	show()
 	set_process(true)
 
-func _apply_sprite_frames_visual(frames: SpriteFrames, final_width: float, final_height: float) -> void:
+func _apply_sprite_frames_visual(frames: SpriteFrames, final_width: float, final_height: float, loop: bool = true, duration: float = 0.0) -> void:
 	if frames == null:
 		return
 	
@@ -282,14 +286,21 @@ func _apply_sprite_frames_visual(frames: SpriteFrames, final_width: float, final
 	
 	anim_sprite.visible = true
 	anim_sprite.modulate = Color.WHITE
-	anim_sprite.sprite_frames = frames
-	anim_sprite.animation = anim_name
-	anim_sprite.stop()
-	anim_sprite.frame = 0
-	anim_sprite.play()
+	var played_anim: StringName = VFXManager.play_sprite_frames(
+		anim_sprite,
+		frames,
+		anim_name,
+		loop,
+		duration
+	)
+	if played_anim == &"":
+		return
 	
 	# Scale to match target size
-	var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+	var playback_frames: SpriteFrames = anim_sprite.sprite_frames
+	var frame_tex: Texture2D = null
+	if playback_frames:
+		frame_tex = playback_frames.get_frame_texture(played_anim, 0)
 	if frame_tex:
 		var f_size: Vector2 = frame_tex.get_size()
 		if f_size.x > 0 and f_size.y > 0:
@@ -477,11 +488,24 @@ func _spawn_explosion() -> void:
 	
 	var size_val: float = float(_explosion_data.get("size", 20))
 	var anim_path: String = str(_explosion_data.get("asset_anim", ""))
+	var anim_duration: float = maxf(0.0, float(_explosion_data.get("asset_anim_duration", 0.0)))
+	var anim_loop: bool = bool(_explosion_data.get("asset_anim_loop", false))
 	var asset_path: String = str(_explosion_data.get("asset", ""))
 	var color_hex: String = str(_explosion_data.get("color", "#FFAA00"))
 	
 	# Priority: asset_anim > asset > geometric (color)
-	VFXManager.spawn_explosion(global_position, size_val, Color(color_hex), get_parent(), asset_path, anim_path)
+	VFXManager.spawn_explosion(
+		global_position,
+		size_val,
+		Color(color_hex),
+		get_parent(),
+		asset_path,
+		anim_path,
+		-1.0,
+		0.3,
+		anim_duration,
+		anim_loop
+	)
 
 func _on_area_entered(area: Area2D) -> void:
 	# Collision avec les murs (Obstacle Waller)
@@ -576,57 +600,84 @@ func _apply_void_effects(body: Node2D) -> void:
 			_spawn_singularity(global_position)
 
 func _spawn_ice_shards(body: Node2D) -> void:
-	var shard_count := int(skill_modifiers.get("shatter_projectile_count", 6))
-	var _shard_radius := float(skill_modifiers.get("shatter_radius", 80))
-	var shard_dmg := int(float(damage) * float(skill_modifiers.get("shatter_damage_pct", 0.5)))
+	var shard_count: int = int(skill_modifiers.get("shatter_projectile_count", 6))
+	var _shard_radius: float = float(skill_modifiers.get("shatter_radius", 80))
+	var shard_dmg: int = int(float(damage) * float(skill_modifiers.get("shatter_damage_pct", 0.5)))
+	var shard_visual: Dictionary = {
+		"color": "#88DDFF",
+		"shape": "diamond",
+		"size": float(skill_modifiers.get("shard_asset_size", 5.0)),
+		"asset": str(skill_modifiers.get("shard_asset", "")),
+		"asset_anim": str(skill_modifiers.get("shard_asset_anim", "")),
+		"asset_anim_duration": float(skill_modifiers.get("shard_asset_anim_duration", 0.0)),
+		"asset_anim_loop": bool(skill_modifiers.get("shard_asset_anim_loop", true))
+	}
 
 	# Spawn small projectiles in a radial pattern from the frozen enemy
 	for i in range(shard_count):
-		var angle := (float(i) / float(shard_count)) * TAU
-		var dir := Vector2(cos(angle), sin(angle))
-		var shard_pattern := {
+		var angle: float = (float(i) / float(shard_count)) * TAU
+		var dir: Vector2 = Vector2(cos(angle), sin(angle))
+		var shard_pattern: Dictionary = {
 			"trajectory": "straight",
-			"visual_data": {
-				"color": "#88DDFF",
-				"shape": "diamond",
-				"size": 5
-			}
+			"visual_data": shard_visual
 		}
 		ProjectileManager.spawn_player_projectile(
 			body.global_position, dir, 200.0, shard_dmg, shard_pattern, false
 		)
 
 func _spawn_toxic_pool(pos: Vector2) -> void:
-	var pool_scene := load("res://scenes/effects/ToxicPool.tscn")
-	if pool_scene:
-		var pool: Node2D = pool_scene.instantiate()
+	var pool_scene_res: Resource = load("res://scenes/effects/ToxicPool.tscn")
+	if pool_scene_res is PackedScene:
+		var pool_scene: PackedScene = pool_scene_res as PackedScene
+		var pool_node: Node = pool_scene.instantiate()
+		if not (pool_node is Node2D):
+			return
+		var pool: Node2D = pool_node as Node2D
 		var container := get_parent()
 		if container:
 			container.call_deferred("add_child", pool)
 			pool.call_deferred("set_global_position", pos)
 			if pool.has_method("setup"):
-				var pool_radius := float(skill_modifiers.get("pool_radius", 50))
+				var pool_radius: float = float(skill_modifiers.get("pool_radius", 50))
 				pool_radius *= (1.0 + float(skill_modifiers.get("pool_radius_bonus", 0.0)))
-				var pool_duration := float(skill_modifiers.get("pool_duration", 3.0))
-				var pool_dps := float(skill_modifiers.get("pool_damage_per_sec", 8))
-				pool.call_deferred("setup", pool_radius, pool_duration, pool_dps)
+				var pool_duration: float = float(skill_modifiers.get("pool_duration", 3.0))
+				var pool_dps: float = float(skill_modifiers.get("pool_damage_per_sec", 8))
+				var visual_data: Dictionary = {
+					"asset": str(skill_modifiers.get("pool_asset", "")),
+					"asset_anim": str(skill_modifiers.get("pool_asset_anim", "")),
+					"asset_anim_duration": float(skill_modifiers.get("pool_asset_anim_duration", 0.0)),
+					"asset_anim_loop": bool(skill_modifiers.get("pool_asset_anim_loop", true)),
+					"size": float(skill_modifiers.get("pool_asset_size", pool_radius * 2.0))
+				}
+				pool.call_deferred("setup", pool_radius, pool_duration, pool_dps, visual_data)
 
 func _spawn_singularity(pos: Vector2) -> void:
-	var singularity_scene := load("res://scenes/effects/Singularity.tscn")
-	if singularity_scene:
-		var singularity: Node2D = singularity_scene.instantiate()
+	var singularity_scene_res: Resource = load("res://scenes/effects/Singularity.tscn")
+	if singularity_scene_res is PackedScene:
+		var singularity_scene: PackedScene = singularity_scene_res as PackedScene
+		var singularity_node: Node = singularity_scene.instantiate()
+		if not (singularity_node is Node2D):
+			return
+		var singularity: Node2D = singularity_node as Node2D
 		var container := get_parent()
 		if container:
 			container.call_deferred("add_child", singularity)
 			singularity.call_deferred("set_global_position", pos)
 			if singularity.has_method("setup"):
-				var s_radius := float(skill_modifiers.get("singularity_radius", 80))
+				var s_radius: float = float(skill_modifiers.get("singularity_radius", 80))
 				s_radius *= (1.0 + float(skill_modifiers.get("void_radius_bonus", 0.0)))
-				var s_duration := float(skill_modifiers.get("singularity_duration", 1.0))
-				var s_dmg_base := float(skill_modifiers.get("singularity_damage_base", 5))
-				var s_dmg_exp := float(skill_modifiers.get("singularity_damage_exponent", 2.0))
-				var has_spaghetti := bool(skill_modifiers.get("spaghettification_enabled", false))
-				singularity.call_deferred("setup", s_radius, s_duration, s_dmg_base, s_dmg_exp, has_spaghetti)
+				var s_duration: float = float(skill_modifiers.get("singularity_duration", 1.0))
+				var s_dmg_base: float = float(skill_modifiers.get("singularity_damage_base", 5))
+				var s_dmg_exp: float = float(skill_modifiers.get("singularity_damage_exponent", 2.0))
+				var has_spaghetti: bool = bool(skill_modifiers.get("spaghettification_enabled", false))
+				var visual_data: Dictionary = {
+					"asset": str(skill_modifiers.get("singularity_asset", "")),
+					"asset_anim": str(skill_modifiers.get("singularity_asset_anim", "")),
+					"asset_anim_duration": float(skill_modifiers.get("singularity_asset_anim_duration", 0.0)),
+					"asset_anim_loop": bool(skill_modifiers.get("singularity_asset_anim_loop", true)),
+					"size": float(skill_modifiers.get("singularity_asset_size", s_radius * 2.0))
+				}
+				singularity.call_deferred("setup", s_radius, s_duration, s_dmg_base, s_dmg_exp, has_spaghetti, visual_data)
 
 # =============================================================================
 # UTILITY

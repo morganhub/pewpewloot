@@ -35,7 +35,7 @@ func _ready() -> void:
 	button.button_down.connect(_on_button_down)
 	button.button_up.connect(_on_button_up)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if _press_start_time > 0 and not _long_press_triggered:
 		if Time.get_ticks_msec() - _press_start_time >= LONG_PRESS_DURATION:
 			_long_press_triggered = true
@@ -146,14 +146,14 @@ func setup_empty(p_slot_id: String, slot_name: String, config: Dictionary = {}) 
 
 func _set_background(path: String, is_empty: bool = false) -> void:
 	if path != "" and ResourceLoader.exists(path):
-		var style = StyleBoxTexture.new()
-		style.texture = load(path)
-		add_theme_stylebox_override("panel", style)
+		var texture_style = StyleBoxTexture.new()
+		texture_style.texture = load(path)
+		add_theme_stylebox_override("panel", texture_style)
 	else:
-		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0.2, 0.2, 0.2, 1) if is_empty else Color(0.1, 0.1, 0.1, 1)
-		style.set_corner_radius_all(4)
-		add_theme_stylebox_override("panel", style)
+		var flat_style = StyleBoxFlat.new()
+		flat_style.bg_color = Color(0.2, 0.2, 0.2, 1) if is_empty else Color(0.1, 0.1, 0.1, 1)
+		flat_style.set_corner_radius_all(4)
+		add_theme_stylebox_override("panel", flat_style)
 
 func _set_icon(path: String) -> void:
 	# Clean up previous animation

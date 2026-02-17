@@ -123,9 +123,17 @@
 			"dodge_chance": "#501dc5"
 		},
 		"upgrade_anim_decent": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_anim_decent_duration": 1.0,
+		"upgrade_anim_decent_loop": false,
 		"upgrade_anim_great": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_anim_great_duration": 1.0,
+		"upgrade_anim_great_loop": false,
 		"upgrade_anim_perfect": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_anim_perfect_duration": 1.0,
+		"upgrade_anim_perfect_loop": false,
 		"upgrade_craft_anim": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_craft_anim_duration": 0.0,
+		"upgrade_craft_anim_loop": true,
 		"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
 		"upgrade_sound": "res://assets/sfx/upgrade_success.ogg",
 		"ship_stats": {
@@ -158,6 +166,8 @@
 			},
 			"shop": {
 				"icon_asset": "res://assets/ui/cart.tres",
+				"icon_anim_duration": 1.0,
+				"icon_anim_loop": false,
 				"icon_height": 40,
 				"icon_width": 40,
 				"font_size": 22,
@@ -248,6 +258,8 @@
 	"ship_options": {
 		"ship_select_button": {
 			"asset_animation": "res://assets/ui/ship_select_background_selected.tres",
+			"asset_animation_duration": 1.5,
+			"asset_animation_loop": false,
 			"asset_selected": "res://assets/ui/ship_select_background_selected.png",
 			"asset_unselected": "res://assets/ui/ship_select_background.png",
 			"animation_duration": 1.5,
@@ -424,14 +436,46 @@
 	},
 	"gameplay": {
 		"bars": {
-			"height": 40,
+			"height": 60,
 			"text_color": "#FFFFFF",
 			"text_size": 24,
 			"hp": {
-				"asset": "res://assets/ui/bars/hp_bar_bg.png"
+				"asset": "",
+				"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
+				"background_asset_duration": 0.0,
+				"background_asset_loop": true,
+				"fill_asset": "res://assets/ui/bars/hp_fill.png",
+				"fill_asset_duration": 0.0,
+				"fill_asset_loop": true,
+				"fill_render_mode": "reveal_mask",
+				"fill_mode": "tile_fit",
+				"fill_mode_vertical": "stretch",
+				"fill_margin_left": 0,
+				"fill_margin_right": 0,
+				"fill_margin_top": 0,
+				"fill_margin_bottom": 0,
+				"frame_asset": "",
+				"frame_asset_duration": 0.0,
+				"frame_asset_loop": true
 			},
 			"shield": {
-				"asset": "res://assets/ui/bars/shield_bar_bg.png"
+				"asset": "g",
+				"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
+				"background_asset_duration": 0.0,
+				"background_asset_loop": true,
+				"fill_asset": "res://assets/ui/bars/shield_bar.png",
+				"fill_asset_duration": 0.0,
+				"fill_asset_loop": true,
+				"fill_render_mode": "reveal_mask",
+				"fill_mode": "tile_fit",
+				"fill_mode_vertical": "stretch",
+				"fill_margin_left": 0,
+				"fill_margin_right": 0,
+				"fill_margin_top": 0,
+				"fill_margin_bottom": 0,
+				"frame_asset": "",
+				"frame_asset_duration": 0.0,
+				"frame_asset_loop": true
 			}
 		},
 		"power_ups": {
@@ -474,6 +518,167 @@
 				"enemy": "res://assets/sfx/combat/very_weak_hit.ogg",
 				"boss": "res://assets/sfx/combat/enemy_hit.ogg"
 			}
+		}
+	},
+	"SkillsMenu": {
+		"background": "#0B1020",
+		"title": {
+			"font_size": 44,
+			"text_color": "#FFFFFF"
+		},
+		"subtitle": {
+			"font_size": 22,
+			"text_color": "#C2C9E8"
+		},
+		"level": {
+			"background": "#172544",
+			"text_size": 30,
+			"text_color": "#D6E4FF"
+		},
+		"available_points": {
+			"background": "#4A2F10",
+			"text_size": 30,
+			"text_color": "#FFD56B"
+		},
+		"skills": {
+			"buttons": {
+				"magic": {
+					"background": "#3554A8",
+					"text_size": 22,
+					"text_color": "#FFFFFF"
+				},
+				"utility": {
+					"background": "#278F55",
+					"text_size": 22,
+					"text_color": "#FFFFFF"
+				},
+				"pew_pew": {
+					"background": "#B65C1E",
+					"text_size": 22,
+					"text_color": "#FFFFFF"
+				}
+			},
+			"blocks": {
+				"cryo": {
+					"background": "#13283D",
+					"locked_icon": {
+						"asset": "res://assets/ui/buttons/btn_close.png",
+						"width": 28,
+						"height": 28
+					},
+					"title": {
+						"icon_asset": "",
+						"text_size": 28,
+						"text_color": "#88DDFF"
+					},
+					"skills": {
+						"skill_icon_size": 34,
+						"text_color": "#D6E4FF",
+						"title_text_size": 22,
+						"description_text_size": 17
+					}
+				},
+				"toxin": {
+					"background": "#17361B",
+					"locked_icon": {
+						"asset": "res://assets/ui/buttons/btn_close.png",
+						"width": 28,
+						"height": 28
+					},
+					"title": {
+						"icon_asset": "",
+						"text_size": 28,
+						"text_color": "#66FF44"
+					},
+					"skills": {
+						"skill_icon_size": 34,
+						"text_color": "#E1FFE1",
+						"title_text_size": 22,
+						"description_text_size": 17
+					}
+				},
+				"singularity": {
+					"background": "#24163D",
+					"locked_icon": {
+						"asset": "res://assets/ui/buttons/btn_close.png",
+						"width": 28,
+						"height": 28
+					},
+					"title": {
+						"icon_asset": "",
+						"text_size": 28,
+						"text_color": "#B785FF"
+					},
+					"skills": {
+						"skill_icon_size": 34,
+						"text_color": "#E8DAFF",
+						"title_text_size": 22,
+						"description_text_size": 17
+					}
+				},
+				"fortune": {
+					"background": "#3A2E12",
+					"locked_icon": {
+						"asset": "res://assets/ui/buttons/btn_close.png",
+						"width": 28,
+						"height": 28
+					},
+					"title": {
+						"icon_asset": "",
+						"text_size": 28,
+						"text_color": "#FFD700"
+					},
+					"skills": {
+						"skill_icon_size": 34,
+						"text_color": "#FFF3CD",
+						"title_text_size": 22,
+						"description_text_size": 17
+					}
+				},
+				"tech": {
+					"background": "#0F3240",
+					"locked_icon": {
+						"asset": "res://assets/ui/buttons/btn_close.png",
+						"width": 28,
+						"height": 28
+					},
+					"title": {
+						"icon_asset": "",
+						"text_size": 28,
+						"text_color": "#00DDFF"
+					},
+					"skills": {
+						"skill_icon_size": 34,
+						"text_color": "#D5F9FF",
+						"title_text_size": 22,
+						"description_text_size": 17
+					}
+				},
+				"perfection": {
+					"background": "#402312",
+					"locked_icon": {
+						"asset": "res://assets/ui/buttons/btn_close.png",
+						"width": 28,
+						"height": 28
+					},
+					"title": {
+						"icon_asset": "",
+						"text_size": 28,
+						"text_color": "#FF8A3D"
+					},
+					"skills": {
+						"skill_icon_size": 34,
+						"text_color": "#FFE7D6",
+						"title_text_size": 22,
+						"description_text_size": 17
+					}
+				}
+			}
+		},
+		"respec": {
+			"background": "#4A2632",
+			"text_size": 22,
+			"text_color": "#FFFFFF"
 		}
 	}
 }

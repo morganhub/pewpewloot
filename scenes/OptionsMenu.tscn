@@ -184,12 +184,32 @@ layout_mode = 2
 text = "Screen Shake"
 horizontal_alignment = 2
 
-[node name="ScreenShakeCheckbox" type="CheckBox" parent="MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox"]
-custom_minimum_size = Vector2(56, 56)
+[node name="ScreenShakeCheckbox" type="Button" parent="MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox"]
+custom_minimum_size = Vector2(220, 56)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 20
+toggle_mode = true
 button_pressed = true
-text = ""
+text = "ON"
+
+[node name="HealthValuesBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SoundSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SoundSection/HealthValuesBox"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Bar Values"
+horizontal_alignment = 2
+
+[node name="HealthValuesCheckbox" type="Button" parent="MarginContainer/VBoxContainer/SoundSection/HealthValuesBox"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+toggle_mode = true
+button_pressed = true
+text = "ON"
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1608799950]
 layout_mode = 2

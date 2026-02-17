@@ -12,7 +12,9 @@
 				"color": "#FF4444",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/voidoss.tres"
+				"asset_anim": "res://assets/enemies/voidoss.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "enter_hover_leave",
 			"base_speed": 4.0,
@@ -34,7 +36,9 @@
 				"color": "#FF2222",
 				"shape": "triangle",
 				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "figure_eight",
 			"base_speed": 2.0,
@@ -56,7 +60,9 @@
 				"color": "#DD3333",
 				"shape": "rectangle",
 				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "straight_down",
 			"base_speed": 1.0,
@@ -78,7 +84,9 @@
 				"color": "#FF6644",
 				"shape": "circle",
 				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "circle_clockwise",
 			"base_speed": 1.0,
@@ -100,7 +108,9 @@
 				"color": "#FF8844",
 				"shape": "diamond",
 				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "random_strafe",
 			"base_speed": 1.0,
@@ -122,7 +132,9 @@
 				"color": "#CC2222",
 				"shape": "rectangle",
 				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "straight_down",
 			"base_speed": 1.0,
@@ -144,7 +156,9 @@
 				"color": "#FF5555",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "rush_player",
 			"base_speed": 1.0,
@@ -166,7 +180,9 @@
 				"color": "#AA2222",
 				"shape": "hexagon",
 				"asset": "",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "stationary",
 			"base_speed": 1.0,
@@ -188,7 +204,9 @@
 				"color": "#FF3344",
 				"shape": "triangle",
 				"asset": "",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "bezier_curve",
 			"base_speed": 1.0,
@@ -210,7 +228,9 @@
 				"color": "#EE4444",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": ""
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
 			},
 			"move_pattern_id": "bounce_horizontal",
 			"base_speed": 1.0,

@@ -106,6 +106,8 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	var visual_data: Variant = boss_data.get("visual", {})
 	var asset_path: String = ""
 	var asset_anim: String = ""
+	var asset_anim_duration: float = 0.0
+	var asset_anim_loop: bool = true
 	var color_hex: String = "#AA44FF"
 	var shape_type: String = "hexagon"
 	
@@ -113,6 +115,8 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		var v_dict := visual_data as Dictionary
 		asset_path = str(v_dict.get("asset", ""))
 		asset_anim = str(v_dict.get("asset_anim", ""))
+		asset_anim_duration = maxf(0.0, float(v_dict.get("asset_anim_duration", 0.0)))
+		asset_anim_loop = bool(v_dict.get("asset_anim_loop", true))
 		color_hex = str(v_dict.get("color", "#AA44FF"))
 		shape_type = str(v_dict.get("shape", "hexagon"))
 	
@@ -120,7 +124,7 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var sprite_frames := load(asset_anim)
+		var sprite_frames: Resource = load(asset_anim)
 		if sprite_frames is SpriteFrames:
 			use_asset = true
 			shape_visual.visible = false
@@ -132,11 +136,18 @@ func _setup_visual(boss_data: Dictionary) -> void:
 				visual_container.add_child(anim_sprite)
 			
 			anim_sprite.visible = true
-			anim_sprite.sprite_frames = sprite_frames
-			anim_sprite.play("default")
+			var played_anim: StringName = VFXManager.play_sprite_frames(
+				anim_sprite,
+				sprite_frames as SpriteFrames,
+				&"default",
+				asset_anim_loop,
+				asset_anim_duration
+			)
 			
 			# Scale to size
-			var frame_tex = sprite_frames.get_frame_texture("default", 0)
+			var frame_tex: Texture2D = null
+			if played_anim != &"" and anim_sprite.sprite_frames:
+				frame_tex = anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				anim_sprite.scale = Vector2(width / f_size.x, height / f_size.y) * 1.5
