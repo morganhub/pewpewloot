@@ -31,6 +31,7 @@ VFXManager="*res://autoload/VFXManager.gd"
 PowerManager="*res://autoload/PowerManager.gd"
 LootGenerator="*res://autoload/LootGenerator.gd"
 StatsCalculator="*res://autoload/StatsCalculator.gd"
+SkillManager="*res://autoload/SkillManager.gd"
 
 [display]
 

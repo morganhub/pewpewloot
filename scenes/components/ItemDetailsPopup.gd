@@ -205,21 +205,27 @@ func _add_stat_row(stat_name: String, value: float) -> void:
 	
 	var val_lbl = Label.new()
 	
-	# Percent logic: if < 1.0 or specific key
-	var is_percent = false
-	if value <= 1.0 and value > 0: is_percent = true # Heuristic
-	if stat_name.ends_with("chance") or stat_name.ends_with("pct") or stat_name in ["damage_reduction", "cooldown_reduction", "fire_rate", "missile_damage", "loot_radius", "xp_multiplier"]:
-		is_percent = true
-		
-	# Override for known Flat stats just in case
-	if stat_name in ["max_hp", "shield_capacity", "speed", "shield_regen", "dash_charges", "projectile_count", "missile_count", "pierce_count"]:
-		is_percent = false
+	# Percent stats: values are stored in 1-100 format, display directly as X%
+	var percent_stats: Array[String] = [
+		"crit_chance", "crit_damage", "dodge_chance", "damage_reduction",
+		"fire_rate", "missile_damage", "missile_speed_pct",
+		"loot_radius", "xp_multiplier", "mark_damage_bonus"
+	]
+	
+	var is_percent := stat_name in percent_stats
 	
 	if is_percent:
-		var pct_val = value * 100.0
-		val_lbl.text = "%.1f%%" % pct_val
+		if absf(value - roundf(value)) < 0.01:
+			val_lbl.text = "%d%%" % int(value)
+		else:
+			val_lbl.text = "%.1f%%" % value
+	elif stat_name == "special_cd" and value < 0:
+		val_lbl.text = "%.1fs" % value
 	else:
-		val_lbl.text = "%d" % int(value)
+		if absf(value - roundf(value)) < 0.01:
+			val_lbl.text = "%d" % int(value)
+		else:
+			val_lbl.text = "%.1f" % value
 	
 	hbox.add_child(name_lbl)
 	hbox.add_child(val_lbl)

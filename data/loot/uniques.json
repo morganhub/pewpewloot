@@ -9,7 +9,7 @@
             "description": "Le noyau pulsant du Gardien. Génère de l'énergie quand vous êtes touché.",
             "stats": {
                 "energy_regen": 5,
-                "cooldown_reduction": 10
+                "special_cd": -1.0
             },
             "unique_power_id": "unique_meteor_storm",
             "unique_effect": {
@@ -46,7 +46,7 @@
             "description": "Alimenté par les âmes perdues de la Nécropole.",
             "stats": {
                 "energy_regen": 8,
-                "cooldown_reduction": 15
+                "special_cd": -1.5
             },
             "unique_effect": {
                 "id": "soul_harvest",
@@ -81,7 +81,7 @@
             "sprite": "res://assets/items/unique_void_primary.png",
             "description": "Tire des projectiles qui absorbent la lumière.",
             "stats": {
-                "damage": 12,
+                "power": 12,
                 "fire_rate": 10
             },
             "unique_power_id": "unique_laser_beam",
@@ -101,8 +101,8 @@
             "description": "Le noyau de calcul qui contrôlait le Nexus entier.",
             "stats": {
                 "energy_regen": 15,
-                "cooldown_reduction": 25,
-                "damage": 10
+                "special_cd": -2.5,
+                "power": 10
             },
             "unique_effect": {
                 "id": "reality_overwrite",

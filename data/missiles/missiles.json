@@ -95,6 +95,78 @@
 			},
 			"sound": "res://assets/sfx/combat/laser_shot.ogg",
 			"explosion": {}
+		},
+		{
+			"id": "missile_ice",
+			"name": "Ice Missile",
+			"type": "basic",
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#88DDFF",
+				"shape": "circle",
+				"size": 8,
+				"width_pct": 0.06,
+				"height_pct": 0.06,
+				"pulsating": true,
+				"pulsating_size": 1.2,
+				"pulsating_frequency": 2.0,
+				"asset": "",
+				"asset_anim": ""
+			},
+			"sound": "",
+			"explosion": {
+				"size": 18,
+				"color": "#88DDFF"
+			}
+		},
+		{
+			"id": "missile_poison",
+			"name": "Poison Missile",
+			"type": "basic",
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#66FF44",
+				"shape": "circle",
+				"size": 8,
+				"width_pct": 0.03,
+				"height_pct": 0.07,
+				"pulsating": true,
+				"pulsating_size": 1.01,
+				"pulsating_frequency": 1.4,
+				"asset": "",
+				"asset_anim": "res://assets/missiles/missile_poison.tres"
+			},
+			"sound": "",
+			"explosion": {
+				"size": 18,
+				"color": "#66FF44"
+			}
+		},
+		{
+			"id": "missile_void",
+			"name": "Void Missile",
+			"type": "basic",
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#AA44FF",
+				"shape": "diamond",
+				"size": 9,
+				"width_pct": 0.055,
+				"height_pct": 0.055,
+				"pulsating": true,
+				"pulsating_size": 1.25,
+				"pulsating_frequency": 2.5,
+				"asset": "",
+				"asset_anim": ""
+			},
+			"sound": "",
+			"explosion": {
+				"size": 22,
+				"color": "#7722CC"
+			}
 		}
 	]
 }

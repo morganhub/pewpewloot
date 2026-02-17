@@ -22,6 +22,7 @@ var _unique_powers: Dictionary = {} # power_id -> data
 var _boss_powers: Dictionary = {} # power_id -> data
 var _effects: Dictionary = {} # effect_id -> data
 var _game_config: Dictionary = {} # game.json data
+var _skills: Dictionary = {} # skills.json data
 
 var _default_unlocked_ships: Array = []
 
@@ -41,6 +42,7 @@ func _load_all_data() -> void:
 	_load_levels()
 	_load_level_modifiers()
 	_load_effects()
+	_load_skills()
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
 	print("[DataManager] Ships: ", _ships.size())
@@ -52,6 +54,69 @@ func _load_all_data() -> void:
 	print("[DataManager] Rarities: ", _rarities.size())
 	print("[DataManager] Uniques: ", _uniques.size())
 
+
+# =============================================================================
+# SKILLS DATA (skills.json)
+# =============================================================================
+
+func _load_skills() -> void:
+	var data := _load_json("res://data/skills.json")
+	if not data.is_empty():
+		_skills = data
+		print("[DataManager] Skills loaded: ", _skills.get("trees", {}).keys())
+
+func get_skills_config() -> Dictionary:
+	return _skills
+
+func get_skill_trees() -> Dictionary:
+	return _skills.get("trees", {})
+
+func get_skill_tree(tree_id: String) -> Dictionary:
+	return _skills.get("trees", {}).get(tree_id, {})
+
+func get_skill(skill_id: String) -> Dictionary:
+	var trees: Dictionary = _skills.get("trees", {})
+	for tree_id in trees:
+		var tree_data: Dictionary = trees[tree_id]
+		var branches: Dictionary = tree_data.get("branches", {})
+		for branch_id in branches:
+			var branch: Dictionary = branches[branch_id]
+			var levels: Array = branch.get("levels", [])
+			for level in levels:
+				if level is Dictionary and str(level.get("id", "")) == skill_id:
+					return level
+	return {}
+
+func get_skill_branch_for_id(skill_id: String) -> String:
+	var trees: Dictionary = _skills.get("trees", {})
+	for tree_id in trees:
+		var branches: Dictionary = trees[tree_id].get("branches", {})
+		for branch_id in branches:
+			var levels: Array = branches[branch_id].get("levels", [])
+			for level in levels:
+				if level is Dictionary and str(level.get("id", "")) == skill_id:
+					return branch_id
+	return ""
+
+func get_skill_tree_for_id(skill_id: String) -> String:
+	var trees: Dictionary = _skills.get("trees", {})
+	for tree_id in trees:
+		var branches: Dictionary = trees[tree_id].get("branches", {})
+		for branch_id in branches:
+			var levels: Array = branches[branch_id].get("levels", [])
+			for level in levels:
+				if level is Dictionary and str(level.get("id", "")) == skill_id:
+					return tree_id
+	return ""
+
+func get_respec_cost_base() -> int:
+	return int(_skills.get("respec_cost_base", 100))
+
+func get_xp_curve_base() -> int:
+	return int(_skills.get("xp_curve_base", 100))
+
+func get_xp_curve_exponent() -> float:
+	return float(_skills.get("xp_curve_exponent", 1.5))
 
 # =============================================================================
 # GAME CONFIG (game.json)
@@ -397,21 +462,26 @@ func _load_loot_data() -> void:
 	_uniques.clear()
 	_uniques_by_id.clear()
 	
-	# Affixes.json contient slots, rarities, et affixes
-	var affixes_data := _load_json("res://data/loot/affixes.json")
+	# loot_table.json contient slots, rarity_config, et affixes (consolidated)
+	var loot_data := _load_json("res://data/loot_table.json")
 	
-	var raw_slots: Variant = affixes_data.get("slots", [])
+	var raw_slots: Variant = loot_data.get("slots", [])
 	if raw_slots is Array:
 		_slots = raw_slots as Array
 		for slot in _slots:
 			if slot is Dictionary:
 				_slot_ids.append(str((slot as Dictionary).get("id", "")))
 	
-	var raw_rarities: Variant = affixes_data.get("rarities", [])
-	if raw_rarities is Array:
-		_rarities = raw_rarities as Array
+	# Build rarities array from rarity_config dict for backward compatibility
+	var rarity_config: Variant = loot_data.get("rarity_config", {})
+	if rarity_config is Dictionary:
+		for rarity_id in (rarity_config as Dictionary).keys():
+			var cfg: Dictionary = (rarity_config as Dictionary)[rarity_id]
+			var rarity_entry := {"id": rarity_id}
+			rarity_entry.merge(cfg)
+			_rarities.append(rarity_entry)
 	
-	var raw_affixes: Variant = affixes_data.get("affixes", {})
+	var raw_affixes: Variant = loot_data.get("affixes", {})
 	if raw_affixes is Dictionary:
 		_affixes = raw_affixes as Dictionary
 	

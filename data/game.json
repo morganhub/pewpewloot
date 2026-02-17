@@ -42,6 +42,11 @@
 	"ship_menu": {
 		"background": "res://assets/backgrounds/menus/ship_background.jpg",
 		"back_button": "res://assets/ui/back_arrow.png",
+		"ship_selection": {
+			"width": 165,
+			"height": 165,
+			"animated": false
+		},
 		"sections": {
 			"ship_selection": {
 				"background": "res://assets/backgrounds/menus/equipment.jpg"
@@ -92,13 +97,15 @@
 			"max_hp": 3000,
 			"move_speed": 1000,
 			"missile": 1000,
-			"crit_chance": 0.50,
-			"dodge_chance": 0.30
+			"crit_chance": 50,
+			"dodge_chance": 30,
+			"damage_reduction": 75
 		},
 		"stat_icons": {
 			"power": "res://assets/ui/icons/power.png",
 			"level": "res://assets/ui/icons/trophy.png",
 			"crystals": "res://assets/ui/icons/crystal.png",
+			"shop": "res://assets/ui/cart.png",
 			"hp": "res://assets/ui/icons/heart.png",
 			"speed": "res://assets/ui/icons/speed.png",
 			"missile": "res://assets/ui/icons/missile.png",
@@ -128,7 +135,8 @@
 				"icon_width": 30,
 				"font_size": 22,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"level": {
 				"icon_asset": "res://assets/ui/icons/level.png",
@@ -136,7 +144,8 @@
 				"icon_width": 30,
 				"font_size": 22,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"crystals": {
 				"icon_asset": "res://assets/ui/icons/crystals.png",
@@ -144,7 +153,17 @@
 				"icon_width": 30,
 				"font_size": 22,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"shop": {
+				"icon_asset": "res://assets/ui/cart.tres",
+				"icon_height": 40,
+				"icon_width": 40,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 10
 			},
 			"hp": {
 				"icon_asset": "res://assets/ui/icons/hp.png",
@@ -152,7 +171,8 @@
 				"icon_width": 24,
 				"font_size": 16,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"speed": {
 				"icon_asset": "res://assets/ui/icons/speed.png",
@@ -160,7 +180,8 @@
 				"icon_width": 24,
 				"font_size": 16,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"missile": {
 				"icon_asset": "res://assets/ui/icons/missile.png",
@@ -168,7 +189,8 @@
 				"icon_width": 24,
 				"font_size": 16,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"crit_chance": {
 				"icon_asset": "res://assets/ui/icons/crit.png",
@@ -176,7 +198,8 @@
 				"icon_width": 24,
 				"font_size": 16,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"dodge_chance": {
 				"icon_asset": "res://assets/ui/icons/dodge.png",
@@ -184,7 +207,8 @@
 				"icon_width": 24,
 				"font_size": 16,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			},
 			"special": {
 				"icon_asset": "res://assets/ui/icons/special.png",
@@ -192,7 +216,8 @@
 				"icon_width": 24,
 				"font_size": 16,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
 			}
 		}
 	},
@@ -222,8 +247,14 @@
 	},
 	"ship_options": {
 		"ship_select_button": {
+			"asset_animation": "res://assets/ui/ship_select_background_selected.tres",
 			"asset_selected": "res://assets/ui/ship_select_background_selected.png",
 			"asset_unselected": "res://assets/ui/ship_select_background.png",
+			"animation_duration": 1.5,
+			"animation_width": 323,
+			"animation_height": 328,
+			"static_width": 165,
+			"static_height": 165,
 			"text_color": "#000000",
 			"font_size": 18,
 			"letter_spacing": 2
@@ -340,28 +371,35 @@
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 15
+			"letter_spacing": 12
 		},
 		"ship": {
 			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 15
+			"letter_spacing": 12
 		},
 		"options": {
 			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 15
+			"letter_spacing": 12
 		},
 		"quit": {
 			"asset": "res://assets/ui/buttons/button_large.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 15
+			"letter_spacing": 12
+		},
+		"skills": {
+			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"letter_spacing": 10
 		},
 		"change_profile": {
 			"asset": "res://assets/ui/button.png",
@@ -379,6 +417,11 @@
 		"#3a6f6f",
 		"#6f4f3a"
 	],
+	"score": {
+		"text_size": 20,
+		"text_color": "#FFFFFF",
+		"asset": "res://assets/ui/score_bg.png"
+	},
 	"gameplay": {
 		"bars": {
 			"height": 40,

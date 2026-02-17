@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://vacuum_radius"]
+
+[ext_resource type="Script" path="res://scenes/effects/VacuumRadius.gd" id="1"]
+
+[node name="VacuumRadius" type="Area2D"]
+script = ExtResource("1")

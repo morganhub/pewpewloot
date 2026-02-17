@@ -26,6 +26,7 @@ var active_boss: CharacterBody2D = null
 var _end_session_started: bool = false
 var _player_death_registered: bool = false
 var _wave_total_with_boss: int = 0
+var session_xp: int = 0  # XP accumulated this session (= score)
 
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
@@ -321,6 +322,9 @@ func _on_enemy_died(enemy: CharacterBody2D) -> void:
 	if hud:
 		hud.add_score(enemy.score)
 	
+	# Track XP (Score = XP)
+	session_xp += int(enemy.score)
+	
 	enemies_killed += 1
 	
 	# Note: Le boss spawn est maintenant géré par WaveManager -> _on_level_completed
@@ -380,6 +384,9 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 	if hud:
 		hud.add_score(boss.score)
 	
+	# Track XP
+	session_xp += int(boss.score)
+	
 	# Rendre le joueur invincible pour éviter de mourir pendant le popup de loot
 	if player:
 		player.is_invincible = true
@@ -409,6 +416,16 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 	
 	await get_tree().create_timer(3.0).timeout
 	
+	# --- Skill Tree: Grant session XP ---
+	var xp_before := ProfileManager.get_player_xp()
+	var level_before := ProfileManager.get_player_level()
+	if session_xp > 0:
+		ProfileManager.gain_xp(session_xp)
+	var xp_after := ProfileManager.get_player_xp()
+	var level_after := ProfileManager.get_player_level()
+	var xp_gained := session_xp
+	var _levels_gained := level_after - level_before
+	
 	# 2. Main Reward (Boss Loot) - Only on Victory
 	var item := {}
 	if is_victory:
@@ -434,6 +451,9 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 		var loot_screen: Control = loot_screen_scene.instantiate()
 		hud_container.add_child(loot_screen)
 		loot_screen.setup(item, session_loot, is_victory)
+		# Pass XP data for display
+		if loot_screen.has_method("set_xp_data"):
+			loot_screen.set_xp_data(xp_gained, xp_before, xp_after, level_before, level_after)
 		loot_screen.finished.connect(_return_to_home)
 		loot_screen.restart_requested.connect(_on_restart_requested)
 		loot_screen.exit_requested.connect(_on_level_select_requested)

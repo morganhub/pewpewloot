@@ -686,14 +686,31 @@ func _calculate_layout_metrics() -> void:
 	# Marge réduite pour maximiser l'espace
 	var ship_margin: float = 40.0 
 	
-	var ship_avail: float = screen_width - ship_margin - float((ship_visible_count - 1) * ship_gap)
-	var s_width: float = floor(ship_avail / float(ship_visible_count))
+	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
+	var ship_sel_cfg: Dictionary = ship_menu_cfg.get("ship_selection", {}) if ship_menu_cfg.get("ship_selection") is Dictionary else {}
+	var cfg_width: float = float(ship_sel_cfg.get("width", 0))
+	var cfg_height: float = float(ship_sel_cfg.get("height", 0))
+	var ship_ratio: float = (8.34 / 7.0)
 	
-	# Safety subtract
-	s_width -= 1.0
+	var s_width: float = 0.0
+	var s_height: float = 0.0
+	if cfg_width > 0.0 and cfg_height > 0.0:
+		s_width = cfg_width
+		s_height = cfg_height
+	elif cfg_width > 0.0:
+		s_width = cfg_width
+		s_height = s_width * ship_ratio
+	elif cfg_height > 0.0:
+		s_height = cfg_height
+		s_width = s_height / ship_ratio
+	else:
+		var ship_avail: float = screen_width - ship_margin - float((ship_visible_count - 1) * ship_gap)
+		s_width = floor(ship_avail / float(ship_visible_count))
+		# Safety subtract
+		s_width -= 1.0
+		s_height = s_width * ship_ratio
 	
-	var s_height: float = s_width * (8.34 / 7.0)
-	_ship_card_size = Vector2(s_width, s_height)
+	_ship_card_size = Vector2(maxf(1.0, s_width), maxf(1.0, s_height))
 	
 	var v_gap = 40
 	
@@ -866,9 +883,12 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	# 2. Récupération des assets
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
 	var ship_select_cfg: Dictionary = ship_opts.get("ship_select_button", {}) if ship_opts.get("ship_select_button") is Dictionary else {}
+	var asset_animation: String = str(ship_select_cfg.get("asset_animation", ""))
 	var asset_selected: String = str(ship_select_cfg.get("asset_selected", ""))
 	var asset_unselected: String = str(ship_select_cfg.get("asset_unselected", ""))
-	var bg_asset: String = asset_selected if is_selected else asset_unselected
+	var anim_duration_cfg: float = float(ship_select_cfg.get("animation_duration", 0.0))
+	var anim_w_cfg: float = float(ship_select_cfg.get("animation_width", 0.0))
+	var anim_h_cfg: float = float(ship_select_cfg.get("animation_height", 0.0))
 	
 	# 3. LAYER 1: Background
 	var bg_rect = TextureRect.new()
@@ -878,18 +898,57 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	
-	if bg_asset != "" and ResourceLoader.exists(bg_asset):
-		if bg_asset.ends_with(".tres"):
-			var frames = load(bg_asset)
+	if is_selected:
+		# Selected: play animation once, then freeze on the last frame
+		if asset_animation != "" and ResourceLoader.exists(asset_animation):
+			var frames = load(asset_animation)
 			if frames is SpriteFrames:
 				var anim = AnimatedSprite2D.new()
 				anim.sprite_frames = frames
-				anim.play("default")
 				anim.centered = true
 				anim.position = _ship_card_size / 2.0
+				# Scale down to fit card size
+				var first_anim_nm: StringName = _get_first_spriteframes_animation(frames)
+				
+				# Determine source size for scaling: use config if present, else texture size
+				var src_size := Vector2.ZERO
+				if anim_w_cfg > 0.0 and anim_h_cfg > 0.0:
+					src_size = Vector2(anim_w_cfg, anim_h_cfg)
+				else:
+					var first_tex: Texture2D = _get_spriteframes_first_frame(frames)
+					if first_tex:
+						src_size = first_tex.get_size()
+				
+				if src_size.x > 0 and src_size.y > 0:
+					var fit_scale := minf(_ship_card_size.x / src_size.x, _ship_card_size.y / src_size.y)
+					anim.scale = Vector2(fit_scale, fit_scale)
+				
+				# Adjust speed_scale to match desired animation_duration
+				if anim_duration_cfg > 0.0 and first_anim_nm != &"":
+					var fps: float = frames.get_animation_speed(first_anim_nm)
+					var fc: int = frames.get_frame_count(first_anim_nm)
+					if fps > 0.0 and fc > 0:
+						var natural_dur: float = float(fc) / fps
+						anim.speed_scale = natural_dur / anim_duration_cfg
 				bg_rect.add_child(anim)
+				# Play once, then stop on the very last frame
+				if first_anim_nm != &"":
+					frames.set_animation_loop(first_anim_nm, false)
+					var last_frame_idx: int = frames.get_frame_count(first_anim_nm) - 1
+					anim.play("default")
+					anim.animation_finished.connect(func():
+						anim.frame = last_frame_idx
+						anim.pause()
+					)
+				else:
+					anim.play("default")
 		else:
-			bg_rect.texture = load(bg_asset)
+			# Fallback: use asset_selected PNG if no animation
+			if asset_selected != "" and ResourceLoader.exists(asset_selected):
+				bg_rect.texture = load(asset_selected)
+	else:
+		if asset_unselected != "" and ResourceLoader.exists(asset_unselected):
+			bg_rect.texture = load(asset_unselected)
 	card.add_child(bg_rect)
 	
 	# 4. LAYER 2: Ship Visual (Le fix est ici)
@@ -903,6 +962,9 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	var visual: Dictionary = ship_data.get("visual", {})
 	var visual_asset: String = str(visual.get("asset", ""))
 	var visual_anim: String = str(visual.get("asset_anim", ""))
+	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
+	var ship_sel_cfg: Dictionary = ship_menu_cfg.get("ship_selection", {}) if ship_menu_cfg.get("ship_selection") is Dictionary else {}
+	var allow_animated: bool = bool(ship_sel_cfg.get("animated", true))
 	
 	var icon_rect := TextureRect.new()
 	icon_rect.name = "ShipIcon"
@@ -913,64 +975,55 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	
 	icon_wrapper.add_child(icon_rect)
 	
+	var asset_res: Resource = null
+	if visual_asset != "" and ResourceLoader.exists(visual_asset):
+		asset_res = load(visual_asset)
+	
+	var static_texture: Texture2D = null
+	if asset_res is Texture2D:
+		static_texture = asset_res as Texture2D
+	
+	var anim_frames: SpriteFrames = null
+	if asset_res is SpriteFrames:
+		anim_frames = asset_res as SpriteFrames
+	elif visual_anim != "" and ResourceLoader.exists(visual_anim):
+		var anim_res = load(visual_anim)
+		if anim_res is SpriteFrames:
+			anim_frames = anim_res as SpriteFrames
+	
 	var has_animated_icon := false
-	if visual_anim != "" and ResourceLoader.exists(visual_anim):
-		var frames = load(visual_anim)
-		if frames is SpriteFrames:
-			has_animated_icon = true
-			var anim_sprite := AnimatedSprite2D.new()
-			anim_sprite.name = "ShipIconAnim"
-			anim_sprite.sprite_frames = frames
-			anim_sprite.centered = true
-			anim_sprite.position = _ship_card_size / 2.0
-			anim_sprite.play("default")
-			var frame_tex = frames.get_frame_texture("default", 0)
-			if frame_tex:
-				var f_size = frame_tex.get_size()
-				if f_size.x > 0.0 and f_size.y > 0.0:
-					var fit_scale := minf(_ship_card_size.x / f_size.x, _ship_card_size.y / f_size.y) * 0.8
-					anim_sprite.scale = Vector2(fit_scale, fit_scale)
-			icon_wrapper.add_child(anim_sprite)
+	var first_anim_name: StringName = _get_first_spriteframes_animation(anim_frames)
+	var first_frame_tex: Texture2D = _get_spriteframes_first_frame(anim_frames)
+	
+	if allow_animated and anim_frames != null and first_anim_name != &"":
+		has_animated_icon = true
+		var anim_sprite := AnimatedSprite2D.new()
+		anim_sprite.name = "ShipIconAnim"
+		anim_sprite.sprite_frames = anim_frames
+		anim_sprite.centered = true
+		anim_sprite.position = _ship_card_size / 2.0
+		anim_sprite.play(first_anim_name)
+		if first_frame_tex:
+			var f_size = first_frame_tex.get_size()
+			if f_size.x > 0.0 and f_size.y > 0.0:
+				var fit_scale := minf(_ship_card_size.x / f_size.x, _ship_card_size.y / f_size.y) * 0.8
+				anim_sprite.scale = Vector2(fit_scale, fit_scale)
+		icon_wrapper.add_child(anim_sprite)
 	
 	icon_rect.visible = not has_animated_icon
-	if not has_animated_icon and visual_asset != "" and ResourceLoader.exists(visual_asset):
-		icon_rect.texture = load(visual_asset)
+	if not has_animated_icon:
+		if static_texture:
+			icon_rect.texture = static_texture
+		elif first_frame_tex:
+			# animated=false: fallback to first frame when no static texture is provided
+			icon_rect.texture = first_frame_tex
 		
 	# 5. État Initial (Pre-set)
-	if is_selected:
-		icon_wrapper.rotation_degrees = 180.0
-		icon_wrapper.scale = Vector2(1.0, 1.0)
-	else:
-		icon_wrapper.rotation_degrees = 0.0
-		icon_wrapper.scale = Vector2(0.8, 0.8)
-
 	if not is_unlocked:
 		icon_wrapper.modulate = Color(0.2, 0.2, 0.2, 1)
 	
-	# 6. LOGIQUE D'ANIMATION
-	var was_previously_selected := (ship_id == _previous_selected_ship_id and _previous_selected_ship_id != "")
+	# 6. LOGIQUE D'ANIMATION (réservé pour futur usage)
 	
-	if not _is_initial_load:
-		if is_selected and not was_previously_selected:
-			# Reset avant animation
-			icon_wrapper.rotation_degrees = 0.0
-			icon_wrapper.scale = Vector2(0.8, 0.8)
-			
-			var tw = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw.tween_property(icon_wrapper, "rotation_degrees", 180.0, 0.8)
-			tw.tween_property(icon_wrapper, "scale", Vector2(1.0, 1.0), 0.8)
-			
-		elif not is_selected and was_previously_selected:
-			var tw = create_tween()
-			tw.set_parallel(true)
-			tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw.tween_property(icon_wrapper, "rotation_degrees", 180.0, 0.0)
-
-			tw.tween_property(icon_wrapper, "scale", Vector2(1, 1), 0.0)
-
-			tw.chain().tween_property(icon_wrapper, "rotation_degrees", 0.0, 1.0)
-			tw.parallel().tween_property(icon_wrapper, "scale", Vector2(0.8, 0.8), 1.0)
-			
 	# 7. Bouton Invisible pour l'interaction
 	var btn := Button.new()
 	btn.flat = true
@@ -1001,6 +1054,27 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	card.set_meta("ship_id", ship_id)
 	card.set_meta("price", int(ship_data.get("crystal_price", 0)))
 	ship_cards_container.add_child(card)
+
+func _get_first_spriteframes_animation(frames: SpriteFrames) -> StringName:
+	if frames == null:
+		return &""
+	if frames.has_animation(&"default"):
+		return &"default"
+	var names: PackedStringArray = frames.get_animation_names()
+	if names.is_empty():
+		return &""
+	return StringName(names[0])
+
+func _get_spriteframes_first_frame(frames: SpriteFrames) -> Texture2D:
+	var anim_name: StringName = _get_first_spriteframes_animation(frames)
+	if anim_name == &"":
+		return null
+	if frames.get_frame_count(anim_name) <= 0:
+		return null
+	var frame_tex = frames.get_frame_texture(anim_name, 0)
+	if frame_tex is Texture2D:
+		return frame_tex as Texture2D
+	return null
 	
 func _on_ship_card_pressed(ship_id: String) -> void:
 	# Prevent re-selecting the same ship
@@ -1122,11 +1196,12 @@ func _update_ship_info(ship_id: String) -> void:
 	# Helper to merge icon override
 	var get_cfg = func(key: String) -> Dictionary:
 		var cfg = stat_cfgs.get(key, {}).duplicate()
-		if stat_icons_override.has(key):
+		var cfg_icon = str(cfg.get("icon_asset", ""))
+		if (cfg_icon == "" or not ResourceLoader.exists(cfg_icon)) and stat_icons_override.has(key):
 			cfg["icon_asset"] = stat_icons_override[key]
 		return cfg
 	
-	# 2. SUMMARY ROW (Power, Levels, Crystals)
+	# 2. SUMMARY ROW (Power, Crystals, Shop)
 	var summary_row = HBoxContainer.new()
 	summary_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	summary_row.add_theme_constant_override("separation", 30)
@@ -1138,9 +1213,8 @@ func _update_ship_info(ship_id: String) -> void:
 	# Crystals
 	_add_stat_summary_item(summary_row, "CRISTAUX", str(ProfileManager.get_crystals()), get_cfg.call("crystals"))
 	
-	# Levels (Worlds unlocked * 6 + current max_level)
-	var levels_count = _calculate_levels_completed()
-	_add_stat_summary_item(summary_row, "NIVEAUX", str(levels_count), get_cfg.call("level"))
+	# Shop (icon only)
+	_add_stat_summary_shop_button(summary_row, get_cfg.call("shop"))
 	
 	# 3. DETAILED STATS GRID
 	var grid = HBoxContainer.new()
@@ -1165,13 +1239,13 @@ func _update_ship_info(ship_id: String) -> void:
 	
 	_add_detailed_stat(col1, hp_label, final_stats.max_hp, max_hp, get_cfg.call("hp"), colors.get("hp", "#ffffff"))
 	# Right Column: Crit, Dodge, Special
-	# Display percentage for crit/dodge
-	var crit_val = final_stats.crit_chance * 100
-	var dodge_val = final_stats.dodge_chance * 100
+	# Values already in 1-100 format
+	var crit_val = final_stats.crit_chance
+	var dodge_val = final_stats.dodge_chance
 	
 	# Dynamic Max: Ensure bar isn't pegged if value exceeds default max
-	var max_crit = max(float(max_vals.get("crit_chance", 0.5) * 100), crit_val * 1.2)
-	var max_dodge = max(float(max_vals.get("dodge_chance", 0.5) * 100), dodge_val * 1.2)
+	var max_crit = max(float(max_vals.get("crit_chance", 50)), crit_val * 1.2)
+	var max_dodge = max(float(max_vals.get("dodge_chance", 30)), dodge_val * 1.2)
 	var max_special = max(float(max_vals.get("special", 100)), float(final_stats.special_score) * 1.2)
 	var max_speed = max(float(max_vals.get("move_speed", 300)), float(final_stats.move_speed) * 1.2)
 	var max_missile = max(float(max_vals.get("missile", 100)), float(final_stats.missile_score) * 1.2)
@@ -2442,7 +2516,7 @@ func _on_popup_upgrade_pressed() -> void:
 	for key in stats:
 		var val = float(stats[key])
 		# Apply multiplier and ceil to ensure progress
-		# Special handling for small values (crit/dodge 0.05) vs big (power 100)
+		# Special handling for small values (fire_rate 0.3) vs big (power 100, crit 5)
 		if val < 1.0 and val > 0.0:
 			# Percentage-like stats: simple multiply keeps them small
 			stats[key] = val * multiplier
@@ -2579,13 +2653,10 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 			# Legacy items may use: "hp", "speed", "dodge", "cd_reduction"
 			
 			# Direct match stats (new LootGenerator format)
-			if stat_key in ["power", "max_hp", "move_speed", "fire_rate", "missile_speed_pct", "special_damage"]:
+			if stat_key in ["power", "max_hp", "move_speed", "fire_rate", "missile_speed_pct", "special_damage", "damage_reduction"]:
 				final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + val
 			elif stat_key in ["crit_chance", "dodge_chance"]:
-				# HEURISTIC: If val > 1.0, assume it's legacy integer (e.g. 4 for 4%) and divide by 100
-				if val > 1.0:
-					val = val / 100.0
-				
+				# Values are stored in 1-100 format, add directly
 				final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + val
 			elif stat_key == "special_cd":
 				final_stats.special_cd = float(final_stats.get("special_cd", 10.0)) + val  # val is negative for reduction
@@ -2596,8 +2667,7 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 				final_stats.max_hp = float(final_stats.get("max_hp", 100)) + val
 			elif stat_key == "dodge":
 				var d_val = val
-				if d_val > 1.0: d_val /= 100.0
-				final_stats.dodge_chance = float(final_stats.get("dodge_chance", 0.02)) + d_val
+				final_stats.dodge_chance = float(final_stats.get("dodge_chance", 2.0)) + d_val
 			elif stat_key == "cd_reduction":
 				final_stats.special_cd = max(1.0, float(final_stats.get("special_cd", 10.0)) * (1.0 - (val / 100.0)))
 	
@@ -2606,9 +2676,9 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 	# Missile Score: (fire_rate + missile_speed_pct) * power (User requested formula)
 	# Note: fire_rate here is refire delay (0.5 etc), but user wants to add it.
 	var fr = float(final_stats.get("fire_rate", 0.5))
-	var m_spd = float(final_stats.get("missile_speed_pct", 1.0))
+	var m_spd = float(final_stats.get("missile_speed_pct", 100.0))
 	var pwr = float(final_stats.get("power", 10.0))
-	final_stats.missile_score = int(round((fr + m_spd) * pwr))
+	final_stats.missile_score = int(round((fr + m_spd / 100.0) * pwr))
 	
 	# Special Score: damage / cooldown roughly
 	# Special Score: damage / cooldown roughly
@@ -2659,27 +2729,7 @@ func _add_stat_summary_item(parent: Control, label_text: String, value_text: Str
 		icon_control.custom_minimum_size = Vector2(w, h)
 		icon_control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_hbox.add_child(icon_control)
-		
-		# Support AnimatedSprite2D (.tres) or Texture (.png)
-		if icon_path.ends_with(".tres"):
-			var frames = load(icon_path)
-			if frames is SpriteFrames:
-				var anim = AnimatedSprite2D.new()
-				anim.sprite_frames = frames
-				anim.play("default")
-				anim.position = Vector2(w/2.0, h/2.0)
-				anim.centered = true
-				# Scale anim if needed? usually pixel art, maybe scale node
-				var anim_scale = w / 32.0 # Approximation if base is 32
-				anim.scale = Vector2(anim_scale, anim_scale)
-				icon_control.add_child(anim)
-		else:
-			var icon = TextureRect.new()
-			icon.texture = load(icon_path)
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon_control.add_child(icon)
+		_add_ship_stat_icon(icon_control, icon_path, w, h, cfg)
 		
 	var text_vbox = VBoxContainer.new()
 	text_vbox.add_theme_constant_override("separation", -2)
@@ -2702,6 +2752,112 @@ func _add_stat_summary_item(parent: Control, label_text: String, value_text: Str
 	item_hbox.add_child(text_vbox)
 	parent.add_child(item_hbox)
 
+func _add_stat_summary_shop_button(parent: Control, cfg: Dictionary) -> void:
+	if not parent: return
+	
+	var item_hbox = HBoxContainer.new()
+	item_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	item_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	parent.add_child(item_hbox)
+	
+	var icon_path = str(cfg.get("icon_asset", ""))
+	if icon_path == "" or not ResourceLoader.exists(icon_path):
+		var ui_icons: Dictionary = _game_config.get("ui_icons", {})
+		var fallback_shop_icon = str(ui_icons.get("shop_icon", ""))
+		if fallback_shop_icon != "" and ResourceLoader.exists(fallback_shop_icon):
+			icon_path = fallback_shop_icon
+	
+	if icon_path == "" or not ResourceLoader.exists(icon_path):
+		var default_icon = "res://assets/ui/icons/crystal.png"
+		if ResourceLoader.exists(default_icon):
+			icon_path = default_icon
+	
+	var w = int(cfg.get("icon_width", 30) * 2.2)
+	var h = int(cfg.get("icon_height", 30) * 2.2)
+	
+	var shop_btn := TextureButton.new()
+	shop_btn.custom_minimum_size = Vector2(w, h)
+	shop_btn.ignore_texture_size = true
+	shop_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	shop_btn.pressed.connect(_on_shop_button_pressed)
+	item_hbox.add_child(shop_btn)
+	
+	if icon_path == "" or not ResourceLoader.exists(icon_path):
+		return
+	
+	var icon_control = Control.new()
+	icon_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_control.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shop_btn.add_child(icon_control)
+	_add_ship_stat_icon(icon_control, icon_path, w, h, cfg)
+
+func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int, cfg: Dictionary) -> void:
+	if not icon_parent:
+		return
+	if icon_path == "" or not ResourceLoader.exists(icon_path):
+		return
+	
+	var icon_res: Resource = load(icon_path)
+	var repeat_seconds: float = maxf(0.0, float(cfg.get("animation_repeat_seconds", 0.0)))
+	
+	if icon_res is Texture2D:
+		var icon = TextureRect.new()
+		icon.texture = icon_res as Texture2D
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_parent.add_child(icon)
+		return
+	
+	if icon_res is SpriteFrames:
+		var source_frames := icon_res as SpriteFrames
+		var anim_name: StringName = _get_first_spriteframes_animation(source_frames)
+		if anim_name == &"":
+			return
+		
+		var frames_for_playback: SpriteFrames = source_frames
+		var duplicated = source_frames.duplicate(true)
+		if duplicated is SpriteFrames:
+			frames_for_playback = duplicated as SpriteFrames
+			frames_for_playback.set_animation_loop(anim_name, repeat_seconds <= 0.0)
+		
+		var anim = AnimatedSprite2D.new()
+		anim.sprite_frames = frames_for_playback
+		anim.centered = true
+		anim.position = Vector2(w / 2.0, h / 2.0)
+		
+		var frame_tex = _get_spriteframes_first_frame(frames_for_playback)
+		if frame_tex:
+			var frame_size = frame_tex.get_size()
+			if frame_size.x > 0.0 and frame_size.y > 0.0:
+				var fit_scale := minf(float(w) / frame_size.x, float(h) / frame_size.y)
+				anim.scale = Vector2(fit_scale, fit_scale)
+		
+		icon_parent.add_child(anim)
+		_play_ship_stat_icon(anim, anim_name, repeat_seconds)
+
+func _play_ship_stat_icon(anim: AnimatedSprite2D, anim_name: StringName, repeat_seconds: float) -> void:
+	if not anim:
+		return
+	
+	anim.play(anim_name)
+	if repeat_seconds <= 0.0:
+		return
+	
+	_repeat_ship_stat_icon(anim, anim_name, repeat_seconds)
+
+func _repeat_ship_stat_icon(anim: AnimatedSprite2D, anim_name: StringName, repeat_seconds: float) -> void:
+	while is_instance_valid(anim):
+		var tree := anim.get_tree()
+		if tree == null:
+			return
+		await tree.create_timer(repeat_seconds).timeout
+		if not is_instance_valid(anim):
+			return
+		anim.frame = 0
+		anim.play(anim_name)
+
 func _add_detailed_stat(parent: Control, label_text: String, current_value: float, max_value: float, cfg: Dictionary, bar_color_hex: String) -> void:
 	var item_hbox = HBoxContainer.new()
 	item_hbox.add_theme_constant_override("separation", 10)
@@ -2719,25 +2875,7 @@ func _add_detailed_stat(parent: Control, label_text: String, current_value: floa
 		icon_control.custom_minimum_size = Vector2(w, h)
 		icon_control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_hbox.add_child(icon_control)
-		
-		if icon_path.ends_with(".tres"):
-			var frames = load(icon_path)
-			if frames is SpriteFrames:
-				var anim = AnimatedSprite2D.new()
-				anim.sprite_frames = frames
-				anim.play("default")
-				anim.position = Vector2(w/2.0, h/2.0)
-				anim.centered = true
-				var anim_scale = w / 24.0 
-				anim.scale = Vector2(anim_scale, anim_scale)
-				icon_control.add_child(anim)
-		else:
-			var icon = TextureRect.new()
-			icon.texture = load(icon_path)
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon_control.add_child(icon)
+		_add_ship_stat_icon(icon_control, icon_path, w, h, cfg)
 		
 	var content_vbox = VBoxContainer.new()
 	content_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2770,8 +2908,7 @@ func _add_detailed_stat(parent: Control, label_text: String, current_value: floa
 	var val_str: String = ""
 	if current_value is float:
 		if label_text in ["CRIT CHANCE", "DODGE"]: # Removed MISSILE from here
-			# Crit/Dodge are 0.0-1.0 usually but passed as *100 in caller?
-			# Caller passes: final_stats.crit_chance * 100. So it's 5.0 for 5%.
+			# Crit/Dodge stored in 1-100 format, display directly as percentage
 			val_str = str(snapped(current_value, 0.1))
 			if val_str.ends_with(".0"): val_str = val_str.left(-2)
 			val_str += "%"

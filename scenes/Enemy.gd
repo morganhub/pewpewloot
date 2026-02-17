@@ -78,6 +78,15 @@ var _suppressor_shield: Area2D = null
 @onready var health_bar: ProgressBar = $HealthBar
 @onready var collision: CollisionShape2D = $CollisionShape2D
 var path_2d: Path2D = null
+
+# Status Effects
+var status_effects: Array = [] # Array of StatusEffect
+var is_frozen: bool = false
+var _base_move_speed: float = 100.0
+var _damage_vulnerability: float = 0.0 # Extra damage taken (0.25 = +25%)
+var _chill_hit_count: int = 0 # Hits received while chilled (for Deep Freeze)
+var _aura_exposure_time: float = 0.0 # Time spent in player aura (for Deep Freeze)
+var _is_poisoned: bool = false
 var path_follow: PathFollow2D = null
 
 # TODO: Remplacer par Sprite2D
@@ -102,6 +111,7 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	var base_pattern_speed: float = float(_move_pattern_data.get("speed", 100.0))
 	var enemy_speed_mult: float = float(enemy_data.get("base_speed", 1.0))
 	move_speed = base_pattern_speed * maxf(enemy_speed_mult, 0.0)
+	_base_move_speed = move_speed
 	
 	# Missile pattern
 	missile_pattern_id = str(enemy_data.get("missile_pattern_id", "single_straight"))
@@ -293,6 +303,7 @@ func set_health_bar_frame(path: String) -> void:
 # =============================================================================
 
 func _process(delta: float) -> void:
+	_process_status_effects(delta)
 	_update_movement(delta)
 	_update_shooting(delta)
 	_update_minefreak_spawn()
@@ -1277,7 +1288,12 @@ func _update_graviton_spawn() -> void:
 # =============================================================================
 
 func take_damage(amount: int, is_critical: bool = false) -> void:
-	current_hp -= amount
+	# Apply vulnerability bonus from corrosive
+	var effective_amount := amount
+	if _damage_vulnerability > 0.0:
+		effective_amount = int(float(amount) * (1.0 + _damage_vulnerability))
+
+	current_hp -= effective_amount
 	current_hp = maxi(0, current_hp)
 	
 	health_bar.value = current_hp
@@ -1303,6 +1319,12 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 		die()
 
 func die() -> void:
+	# Check Contagion (poison spreads on death)
+	if _is_poisoned:
+		var proj_mod := SkillManager.get_projectile_modifier()
+		if proj_mod.get("contagion_enabled", false):
+			_spread_contagion(proj_mod)
+
 	enemy_died.emit(self)
 	
 	# VFX explosion
@@ -1390,6 +1412,190 @@ func _update_health_bar_color() -> void:
 		health_bar.modulate = Color.YELLOW
 	else:
 		health_bar.modulate = Color.RED
+
+# =============================================================================
+# STATUS EFFECTS
+# =============================================================================
+
+func apply_status_effect(effect: StatusEffect) -> void:
+	# Check if we already have this effect type
+	for existing in status_effects:
+		if existing.type == effect.type:
+			if effect.type == StatusEffect.Type.CHILL:
+				existing.add_stack()
+				_apply_slow()
+				return
+			elif effect.type == StatusEffect.Type.POISON:
+				existing.remaining_time = existing.duration # Refresh
+				return
+			elif effect.type == StatusEffect.Type.CORROSIVE:
+				existing.remaining_time = existing.duration
+				return
+			elif effect.type == StatusEffect.Type.VOID_PULL:
+				existing.params = effect.params # Update target
+				existing.remaining_time = effect.duration
+				return
+			elif effect.type == StatusEffect.Type.FREEZE:
+				existing.remaining_time = existing.duration
+				return
+	
+	# Add new effect
+	status_effects.append(effect)
+	
+	match effect.type:
+		StatusEffect.Type.CHILL:
+			_apply_slow()
+			_update_status_visual()
+		StatusEffect.Type.FREEZE:
+			_apply_freeze()
+		StatusEffect.Type.POISON:
+			_is_poisoned = true
+			_update_status_visual()
+		StatusEffect.Type.CORROSIVE:
+			_damage_vulnerability = effect.get_vulnerability()
+			_update_status_visual()
+		StatusEffect.Type.VOID_PULL:
+			pass # Handled in _process_status_effects
+
+func _process_status_effects(delta: float) -> void:
+	if status_effects.is_empty():
+		return
+	
+	var expired_effects: Array = []
+	
+	for effect in status_effects:
+		var result: Dictionary = effect.tick(delta)
+		
+		# Apply tick damage (Poison)
+		if int(result.get("damage", 0)) > 0:
+			var tick_dmg := int(result["damage"])
+			current_hp -= tick_dmg
+			current_hp = maxi(0, current_hp)
+			health_bar.value = current_hp
+			_update_health_bar_color()
+			if current_hp <= 0:
+				die()
+				return
+		
+		# Void pull movement
+		if effect.type == StatusEffect.Type.VOID_PULL and not is_frozen:
+			var pull_target: Vector2 = effect.params.get("pull_target", global_position)
+			var pull_str: float = float(effect.params.get("pull_strength", 30.0))
+			var pull_dir := (pull_target - global_position).normalized()
+			global_position += pull_dir * pull_str * delta
+		
+		if result.get("expired", false):
+			expired_effects.append(effect)
+	
+	# Remove expired effects
+	for effect in expired_effects:
+		_remove_status_effect(effect)
+
+func _remove_status_effect(effect: StatusEffect) -> void:
+	status_effects.erase(effect)
+	
+	match effect.type:
+		StatusEffect.Type.CHILL:
+			_recalculate_slow()
+			_update_status_visual()
+		StatusEffect.Type.FREEZE:
+			is_frozen = false
+			_recalculate_slow()
+			_update_status_visual()
+		StatusEffect.Type.POISON:
+			# Check if still poisoned (other poison effects)
+			_is_poisoned = false
+			for e in status_effects:
+				if e.type == StatusEffect.Type.POISON:
+					_is_poisoned = true
+					break
+			_update_status_visual()
+		StatusEffect.Type.CORROSIVE:
+			_damage_vulnerability = 0.0
+			for e in status_effects:
+				if e.type == StatusEffect.Type.CORROSIVE:
+					_damage_vulnerability = e.get_vulnerability()
+			_update_status_visual()
+
+func _apply_slow() -> void:
+	var total_slow: float = 0.0
+	for effect in status_effects:
+		if effect.type == StatusEffect.Type.CHILL:
+			total_slow += effect.get_slow_factor()
+	total_slow = minf(total_slow, 0.9) # Cap at 90% slow
+	move_speed = _base_move_speed * (1.0 - total_slow)
+
+func _recalculate_slow() -> void:
+	if is_frozen:
+		move_speed = 0.0
+		return
+	var total_slow: float = 0.0
+	for effect in status_effects:
+		if effect.type == StatusEffect.Type.CHILL:
+			total_slow += effect.get_slow_factor()
+	total_slow = minf(total_slow, 0.9)
+	move_speed = _base_move_speed * (1.0 - total_slow)
+
+func _apply_freeze() -> void:
+	is_frozen = true
+	move_speed = 0.0
+	_update_status_visual()
+
+func _update_status_visual() -> void:
+	# Build tint from active effects
+	var tint := Color.WHITE
+	if is_frozen:
+		tint = Color(0.5, 0.8, 1.0, 1.0) # Ice blue
+	elif _is_poisoned:
+		tint = Color(0.6, 1.0, 0.4, 1.0) # Green
+	elif _damage_vulnerability > 0.0:
+		tint = Color(0.8, 1.0, 0.3, 1.0) # Yellow-green (corroded)
+	
+	# Check for chill without freeze
+	var has_chill := false
+	for effect in status_effects:
+		if effect.type == StatusEffect.Type.CHILL:
+			has_chill = true
+			break
+	if has_chill and not is_frozen and not _is_poisoned:
+		tint = Color(0.7, 0.9, 1.0, 1.0) # Light blue
+	
+	if visual_container:
+		visual_container.modulate = tint
+
+func _spread_contagion(proj_mod: Dictionary) -> void:
+	var radius := float(proj_mod.get("contagion_radius", 80))
+	var dot_duration := float(proj_mod.get("contagion_dot_duration", 3.0))
+	
+	# Find nearby enemies
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if enemy == self or not is_instance_valid(enemy):
+			continue
+		if not enemy is CharacterBody2D:
+			continue
+		var dist := global_position.distance_to(enemy.global_position)
+		if dist <= radius:
+			# Apply poison to neighbor
+			var dot_dmg := float(max_hp) * 0.1 # 10% of this enemy's max HP
+			var poison := StatusEffect.create_poison(dot_dmg, dot_duration)
+			if enemy.has_method("apply_status_effect"):
+				enemy.apply_status_effect(poison)
+	
+	# VFX: Contagion explosion
+	VFXManager.spawn_explosion(global_position, radius * 0.5, Color(0.4, 1.0, 0.2, 0.6), get_parent())
+
+func increment_chill_hit_count() -> void:
+	_chill_hit_count += 1
+
+func get_chill_hit_count() -> int:
+	return _chill_hit_count
+
+func set_aura_exposure_time(time: float) -> void:
+	_aura_exposure_time = time
+
+func get_aura_exposure_time() -> float:
+	return _aura_exposure_time
 
 # =============================================================================
 # UTILITY

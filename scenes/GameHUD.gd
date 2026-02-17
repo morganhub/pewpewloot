@@ -75,6 +75,7 @@ func _ready() -> void:
 	_setup_shield_bar()
 	_setup_virtual_joystick()
 	_setup_notification_area()
+	_setup_xp_display()
 	
 	add_to_group("game_hud")
 
@@ -120,6 +121,28 @@ func _load_assets() -> void:
 	if burger_path != "" and ResourceLoader.exists(burger_path) and burger_btn:
 		burger_btn.texture_normal = load(burger_path)
 	
+	# Score styling
+	var score_config: Dictionary = game_config.get("score", {})
+	if score_label and not score_config.is_empty():
+		var s_size := int(score_config.get("text_size", 20))
+		var s_color := str(score_config.get("text_color", "#FFFFFF"))
+		score_label.add_theme_font_size_override("font_size", s_size)
+		score_label.add_theme_color_override("font_color", Color.html(s_color))
+		var s_asset := str(score_config.get("asset", ""))
+		if s_asset != "" and ResourceLoader.exists(s_asset):
+			var top_right := score_label.get_parent()
+			if top_right:
+				var score_bg := TextureRect.new()
+				score_bg.name = "ScoreBg"
+				score_bg.texture = load(s_asset)
+				score_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				score_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+				score_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+				score_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				score_label.add_child(score_bg)
+				score_label.move_child(score_bg, 0)
+				score_label.clip_contents = true
+
 	# SP Icon
 	var sp_path = str(ui_icons.get("super_power_placeholder", ""))
 	if sp_path != "" and ResourceLoader.exists(sp_path) and sp_icon:
@@ -460,10 +483,21 @@ func _on_shield_changed(current: float, max_val: float) -> void:
 func add_score(points: int) -> void:
 	_score += points
 	_update_score()
+	_update_xp_display()
 
 func _update_score() -> void:
 	if score_label:
-		score_label.text = "Score: " + str(_score)
+		score_label.text = str(_score)
 
 func get_score() -> int:
 	return _score
+
+# =============================================================================
+# XP / LEVEL DISPLAY
+# =============================================================================
+
+func _setup_xp_display() -> void:
+	pass
+
+func _update_xp_display() -> void:
+	pass

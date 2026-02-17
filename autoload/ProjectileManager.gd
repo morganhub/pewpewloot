@@ -51,7 +51,7 @@ func _init_pools() -> void:
 # SPAWN
 # =============================================================================
 
-func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, damage: int, pattern_data: Dictionary = {}, is_critical: bool = false) -> void:
+func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, damage: int, pattern_data: Dictionary = {}, is_critical: bool = false, p_skill_modifiers: Dictionary = {}) -> void:
 	if _player_pool.is_empty():
 		push_warning("[ProjectileManager] Player pool empty!")
 		return
@@ -67,7 +67,7 @@ func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, dam
 		_projectile_container.add_child(projectile)
 	
 	var vp_size = get_viewport().get_visible_rect().size
-	projectile.activate(pos, direction, speed, damage, pattern_data, is_critical, vp_size)
+	projectile.activate(pos, direction, speed, damage, pattern_data, is_critical, vp_size, p_skill_modifiers)
 
 func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, damage: int, pattern_data: Dictionary = {}) -> void:
 	if _enemy_pool.is_empty():

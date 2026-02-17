@@ -22,6 +22,7 @@ extends Control
 
 @onready var play_button: Button = $BottomSection/PlayButton
 @onready var ship_button: Button = $BottomSection/ShipButton
+@onready var skills_button: Button = $BottomSection/SkillsButton
 @onready var options_button: Button = $BottomSection/OptionsButton
 @onready var quit_button: Button = $BottomSection/QuitButton
 @onready var change_profile_button: Button = $BottomSection/ChangeProfileButton
@@ -49,6 +50,7 @@ func _ready() -> void:
 	# Connect signals
 	play_button.pressed.connect(_on_play_pressed)
 	ship_button.pressed.connect(_on_ship_pressed)
+	skills_button.pressed.connect(_on_skills_pressed)
 	options_button.pressed.connect(_on_options_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	change_profile_button.pressed.connect(_on_change_profile_pressed)
@@ -182,6 +184,7 @@ func _setup_buttons() -> void:
 	_setup_single_button(ship_button, buttons_config.get("ship", {}), "home_ship_menu")
 	_setup_single_button(options_button, buttons_config.get("options", {}), "home_options")
 	_setup_single_button(quit_button, buttons_config.get("quit", {}), "home_quit")
+	_setup_single_button(skills_button, buttons_config.get("skills", {}), "home_skills")
 	_setup_single_button(change_profile_button, buttons_config.get("change_profile", {}), "home_change_profile_short")
 
 func _setup_single_button(button: Button, config: Dictionary, translation_key: String) -> void:
@@ -295,6 +298,11 @@ func _update_info() -> void:
 	if crystal_label:
 		crystal_label.text += "  ⚡ " + str(total_power)
 	
+	# Player Level
+	var player_level := ProfileManager.get_player_level()
+	if crystal_label:
+		crystal_label.text += "  🌟 Nv." + str(player_level)
+	
 	# Ship preview (visual)
 	_update_ship_preview()
 
@@ -329,6 +337,10 @@ func _on_play_pressed() -> void:
 func _on_ship_pressed() -> void:
 	var switcher := get_tree().current_scene
 	switcher.goto_screen("res://scenes/ShipMenu.tscn")
+
+func _on_skills_pressed() -> void:
+	var switcher := get_tree().current_scene
+	switcher.goto_screen("res://scenes/SkillsMenu.tscn")
 
 func _on_options_pressed() -> void:
 	var switcher := get_tree().current_scene

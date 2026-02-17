@@ -1,7 +1,9 @@
 extends Node
 
 ## ProfileManager — Gestion des profils joueurs avec persistance.
-## Supporte: progression mondes, vaisseaux débloqués, inventaire, loadouts.
+## Supporte: progression mondes, vaisseaux débloqués, inventaire, loadouts, skill tree.
+
+signal level_up(new_level: int, skill_points_earned: int)
 
 var active_profile_id: String = ""
 var profiles: Array[Dictionary] = []
@@ -92,6 +94,23 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	if not migrated.has("crystals"):
 		migrated["crystals"] = 0
 		needs_save = true
+
+	# Migration: skill tree system
+	if not migrated.has("player_xp"):
+		migrated["player_xp"] = 0
+		needs_save = true
+	if not migrated.has("player_level"):
+		migrated["player_level"] = 1
+		needs_save = true
+	if not migrated.has("skill_points"):
+		migrated["skill_points"] = 0
+		needs_save = true
+	if not migrated.has("skills_unlocked"):
+		migrated["skills_unlocked"] = {}
+		needs_save = true
+	if not migrated.has("active_magic_branch"):
+		migrated["active_magic_branch"] = ""
+		needs_save = true
 	
 	# Keep profile ship references valid if ship IDs changed in ships.json.
 	if _can_validate_ship_ids():
@@ -159,7 +178,12 @@ func create_profile(profile_name: String, portrait_id: int) -> String:
 		"active_ship_id": default_active,
 		"inventory": [],
 		"loadouts": {},
-		"crystals": 0
+		"crystals": 0,
+		"player_xp": 0,
+		"player_level": 1,
+		"skill_points": 0,
+		"skills_unlocked": {},
+		"active_magic_branch": ""
 	}
 
 	profiles.append(profile)
@@ -191,7 +215,13 @@ func calculate_recycle_value(item: Dictionary) -> int:
 		"legendary": base_val = 250
 		"unique": base_val = 500
 	var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
-	return int(float(base_val) * multiplier)
+	var base_value := int(float(base_val) * multiplier)
+	# Apply Recycler skill bonus
+	if is_skill_unlocked("loot_4"):
+		var skill_data := DataManager.get_skill("loot_4")
+		var bonus := float(skill_data.get("params", {}).get("recycle_bonus", 0.0))
+		base_value = int(float(base_value) * (1.0 + bonus))
+	return base_value
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PROGRESSION MONDES/NIVEAUX
@@ -697,3 +727,150 @@ func get_setting(key: String, default: Variant = null) -> Variant:
 func set_setting(key: String, value: Variant) -> void:
 	settings[key] = value
 	save_to_disk()
+
+# =============================================================================
+# SKILL TREE & XP SYSTEM
+# =============================================================================
+
+## Returns the XP required to reach a given level
+func get_xp_for_level(level: int) -> int:
+	var base := float(DataManager.get_xp_curve_base())
+	var exponent := DataManager.get_xp_curve_exponent()
+	return int(base * pow(float(level), exponent))
+
+## Returns current player XP
+func get_player_xp() -> int:
+	return int(get_active_profile().get("player_xp", 0))
+
+## Returns current player level
+func get_player_level() -> int:
+	return int(get_active_profile().get("player_level", 1))
+
+## Returns available skill points
+func get_skill_points() -> int:
+	return int(get_active_profile().get("skill_points", 0))
+
+## Returns the unlocked skills dictionary {skill_id: rank}
+func get_skills_unlocked() -> Dictionary:
+	var raw: Variant = get_active_profile().get("skills_unlocked", {})
+	if raw is Dictionary:
+		return raw as Dictionary
+	return {}
+
+## Returns the active magic branch ("frozen", "poison", "void" or "")
+func get_active_magic_branch() -> String:
+	return str(get_active_profile().get("active_magic_branch", ""))
+
+## Checks if a specific skill is unlocked (rank >= 1)
+func is_skill_unlocked(skill_id: String) -> bool:
+	var unlocked := get_skills_unlocked()
+	return int(unlocked.get(skill_id, 0)) > 0
+
+## Returns the current rank of a skill
+func get_skill_rank(skill_id: String) -> int:
+	return int(get_skills_unlocked().get(skill_id, 0))
+
+## Gain XP. Score = XP. Handles level ups and skill point grants.
+## Returns a dict { "xp_gained", "old_level", "new_level", "skill_points_earned" }
+func gain_xp(amount: int) -> Dictionary:
+	var old_xp := get_player_xp()
+	var old_level := get_player_level()
+	var new_xp := old_xp + amount
+	var new_level := old_level
+	var points_earned := 0
+
+	# Check for level ups
+	while true:
+		var xp_needed := get_xp_for_level(new_level)
+		if new_xp >= xp_needed:
+			new_xp -= xp_needed
+			new_level += 1
+			points_earned += 1
+		else:
+			break
+
+	_update_active_profile("player_xp", new_xp)
+	_update_active_profile("player_level", new_level)
+
+	if points_earned > 0:
+		var current_sp := get_skill_points()
+		_update_active_profile("skill_points", current_sp + points_earned)
+		level_up.emit(new_level, points_earned)
+
+	return {
+		"xp_gained": amount,
+		"old_level": old_level,
+		"new_level": new_level,
+		"skill_points_earned": points_earned
+	}
+
+## Spend a skill point to unlock/rank up a skill
+func spend_skill_point(skill_id: String) -> bool:
+	if get_skill_points() <= 0:
+		return false
+
+	var skill_data := DataManager.get_skill(skill_id)
+	if skill_data.is_empty():
+		push_warning("[ProfileManager] Unknown skill: " + skill_id)
+		return false
+
+	# Check max rank
+	var max_rank := int(skill_data.get("max_rank", 1))
+	var current_rank := get_skill_rank(skill_id)
+	if current_rank >= max_rank:
+		return false
+
+	# Check prerequisite
+	var prereq := str(skill_data.get("prerequisite", ""))
+	if prereq != "" and not is_skill_unlocked(prereq):
+		return false
+
+	# Check tree-level unlock requirement (Pew Pew = level 15)
+	var tree_id := DataManager.get_skill_tree_for_id(skill_id)
+	var tree_data := DataManager.get_skill_tree(tree_id)
+	var unlock_req := int(tree_data.get("unlock_requirement", 0))
+	if unlock_req > 0 and get_player_level() < unlock_req:
+		return false
+
+	# Check Magic exclusivity
+	if tree_id == "magic":
+		var branch_id := DataManager.get_skill_branch_for_id(skill_id)
+		var active_branch := get_active_magic_branch()
+		if active_branch != "" and active_branch != branch_id:
+			return false # Already committed to another branch
+		# Commit to this branch
+		if active_branch == "":
+			_update_active_profile("active_magic_branch", branch_id)
+
+	# Spend point and unlock
+	var unlocked := get_skills_unlocked().duplicate()
+	unlocked[skill_id] = current_rank + 1
+	_update_active_profile("skills_unlocked", unlocked)
+	_update_active_profile("skill_points", get_skill_points() - 1)
+	return true
+
+## Respec all skills. Costs crystals.
+func respec_skills() -> bool:
+	var cost := get_respec_cost()
+	if not spend_crystals(cost):
+		return false
+
+	# Count total points invested
+	var unlocked := get_skills_unlocked()
+	var refunded := 0
+	for skill_id in unlocked:
+		refunded += int(unlocked[skill_id])
+
+	_update_active_profile("skills_unlocked", {})
+	_update_active_profile("active_magic_branch", "")
+	_update_active_profile("skill_points", get_skill_points() + refunded)
+	return true
+
+## Get respec cost in crystals
+func get_respec_cost() -> int:
+	var base_cost := DataManager.get_respec_cost_base()
+	var unlocked := get_skills_unlocked()
+	var total_ranks := 0
+	for skill_id in unlocked:
+		total_ranks += int(unlocked[skill_id])
+	return max(base_cost, base_cost * total_ranks)

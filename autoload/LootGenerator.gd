@@ -9,9 +9,9 @@ extends Node
 
 var _loot_config: Dictionary = {}
 var _rarity_config: Dictionary = {}
-var _affixes_pool: Array = []
+var _affixes_data: Dictionary = {}
 var _unique_items: Array = []
-var _slot_base_stats: Dictionary = {}
+var _slots_data: Array = []
 var _boss_loot_quality_bonus: float = 25.0
 
 # Total weight for rarity selection
@@ -45,17 +45,17 @@ func _load_loot_table() -> void:
 	# Parse sections
 	_rarity_config = _loot_config.get("rarity_config", {})
 	
-	var affixes_raw: Variant = _loot_config.get("affixes_pool", [])
-	if affixes_raw is Array:
-		_affixes_pool = affixes_raw
+	var affixes_raw: Variant = _loot_config.get("affixes", {})
+	if affixes_raw is Dictionary:
+		_affixes_data = affixes_raw
+	
+	var slots_raw: Variant = _loot_config.get("slots", [])
+	if slots_raw is Array:
+		_slots_data = slots_raw
 	
 	var uniques_raw: Variant = _loot_config.get("unique_items", [])
 	if uniques_raw is Array:
 		_unique_items = uniques_raw
-	
-	var slots_raw: Variant = _loot_config.get("slot_base_stats", {})
-	if slots_raw is Dictionary:
-		_slot_base_stats = slots_raw
 
 	# Boss global quality bonus (+25 by default).
 	_boss_loot_quality_bonus = float(_loot_config.get("boss_loot_quality_bonus", 25.0))
@@ -71,7 +71,7 @@ func _load_loot_table() -> void:
 	_refresh_unique_items_cache()
 	
 	print("[LootGenerator] Loaded. Rarities: ", _rarity_config.keys().size(), 
-		  " | Affixes: ", _affixes_pool.size(),
+		  " | Affix categories: ", _affixes_data.keys().size(),
 		  " | Uniques: ", _unique_items.size(),
 		  " | BossQualityBonus: ", _boss_loot_quality_bonus)
 
@@ -94,8 +94,15 @@ func get_boss_loot_quality_bonus() -> float:
 ## @param force_rarity: Force a specific rarity (e.g., "legendary"). Empty = weighted random.
 ## @param quality_mult: quality bonus used to bias rarity upward.
 func generate_loot(target_level: int, slot_type: String = "", force_rarity: String = "", quality_mult: float = 1.0) -> LootItem:
+	# --- Skill Tree: Apply loot quality bonus ---
+	var skill_quality_bonus: float = 0.0
+	if SkillManager:
+		var bonuses: Dictionary = SkillManager.get_utility_bonuses()
+		skill_quality_bonus = float(bonuses.get("loot_quality_bonus", 0.0))
+	var total_quality := quality_mult + skill_quality_bonus
+	
 	# 1. Determine Rarity
-	var rarity_str: String = force_rarity if force_rarity != "" else _roll_rarity(quality_mult)
+	var rarity_str: String = force_rarity if force_rarity != "" else _roll_rarity(total_quality)
 	
 	# 2. Unique Branch
 	if rarity_str == "unique":
@@ -108,7 +115,12 @@ func generate_loot(target_level: int, slot_type: String = "", force_rarity: Stri
 ## - Uses global bonus from loot_table.json (boss_loot_quality_bonus)
 ## - Uses boss-specific unique pool from bosses.json -> loot_table
 func generate_boss_loot(target_level: int, boss_id: String, extra_quality_bonus: float = 0.0) -> LootItem:
-	var total_quality_bonus: float = maxf(0.0, _boss_loot_quality_bonus + extra_quality_bonus)
+	# --- Skill Tree: Apply loot quality bonus ---
+	var skill_quality_bonus: float = 0.0
+	if SkillManager:
+		var bonuses: Dictionary = SkillManager.get_utility_bonuses()
+		skill_quality_bonus = float(bonuses.get("loot_quality_bonus", 0.0))
+	var total_quality_bonus: float = maxf(0.0, _boss_loot_quality_bonus + extra_quality_bonus + skill_quality_bonus)
 	var rarity_str := _roll_rarity(total_quality_bonus)
 	var boss_unique_ids := _get_boss_unique_ids(boss_id)
 	
@@ -219,36 +231,15 @@ func _generate_unique_item(preferred_slot: String, allowed_unique_ids: Array = [
 	item.source_boss_id = str(unique_data.get("source_boss", ""))
 	item.asset = str(unique_data.get("icon", unique_data.get("sprite", unique_data.get("asset", ""))))
 	
-	# Fixed stats
+	# Fixed stats (already harmonized in uniques.json)
 	var stats_raw: Variant = unique_data.get("stats", {})
 	if stats_raw is Dictionary:
-		var normalized: Dictionary = {}
 		for raw_key in (stats_raw as Dictionary).keys():
 			var key := str(raw_key)
 			var value := float((stats_raw as Dictionary)[raw_key])
-			var mapped := _map_unique_stat_to_ship_stat(key, value)
-			var final_key: String = str(mapped.get("key", key))
-			var final_value: float = float(mapped.get("value", value))
-			normalized[final_key] = float(normalized.get(final_key, 0.0)) + final_value
-		item.base_stats = normalized
+			item.base_stats[key] = float(item.base_stats.get(key, 0.0)) + value
 	
 	return item
-
-func _map_unique_stat_to_ship_stat(stat_key: String, value: float) -> Dictionary:
-	match stat_key:
-		"damage":
-			return {"key": "power", "value": value}
-		"cooldown_reduction":
-			# Convert legacy percent-like value to the game's flat cooldown stat.
-			# Example: 10 -> -1.0s, 25 -> -2.5s
-			return {"key": "special_cd", "value": -absf(value) / 10.0}
-		"fire_rate":
-			# Legacy unique data often uses percent-like values (e.g. 10 for +10%).
-			if value > 1.0:
-				return {"key": "fire_rate", "value": value / 100.0}
-			return {"key": "fire_rate", "value": value}
-		_:
-			return {"key": stat_key, "value": value}
 
 func _get_boss_unique_ids(boss_id: String) -> Array:
 	var ids: Array = []
@@ -308,32 +299,27 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 	# Level scaling: +10% per level
 	var level_mult: float = 1.0 + (float(target_level) - 1.0) * 0.1
 	
+	# Build available affixes pool: slot-specific + global (no duplicate stats)
+	var available_affixes: Array = []
+	
+	# Slot-specific affixes first (preferred)
+	var slot_affixes: Variant = _affixes_data.get(slot_type, [])
+	if slot_affixes is Array:
+		available_affixes.append_array(slot_affixes as Array)
+	
+	# Global affixes
+	var global_affixes: Variant = _affixes_data.get("global", [])
+	if global_affixes is Array:
+		available_affixes.append_array(global_affixes as Array)
+	
+	# Shuffle for randomness
+	available_affixes.shuffle()
+	
 	# Select affixes (no duplicate stats)
 	var selected_affixes: Array[Dictionary] = []
 	var used_stats: Array[String] = []
 	
-	# Prefer slot-relevant stats
-	var preferred_stats: Array = []
-	var slot_stats_raw: Variant = _slot_base_stats.get(slot_type, [])
-	if slot_stats_raw is Array:
-		preferred_stats = slot_stats_raw
-	
-	# Shuffle affixes pool
-	var shuffled_pool := _affixes_pool.duplicate()
-	shuffled_pool.shuffle()
-	
-	# First pass: try to get preferred stats
-	for affix in shuffled_pool:
-		if selected_affixes.size() >= affix_count:
-			break
-		if affix is Dictionary:
-			var stat: String = str((affix as Dictionary).get("stat", ""))
-			if stat in preferred_stats and stat not in used_stats:
-				selected_affixes.append(affix as Dictionary)
-				used_stats.append(stat)
-	
-	# Second pass: fill remaining slots with any stat
-	for affix in shuffled_pool:
+	for affix in available_affixes:
 		if selected_affixes.size() >= affix_count:
 			break
 		if affix is Dictionary:
@@ -342,28 +328,36 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 				selected_affixes.append(affix as Dictionary)
 				used_stats.append(stat)
 	
-	# Calculate stat values
+	# Calculate stat values using per-rarity ranges
 	for affix in selected_affixes:
 		var stat_name: String = str(affix.get("stat", ""))
 		var affix_name: String = str(affix.get("name", ""))
-		var base_range: Variant = affix.get("base_range", [0, 0])
+		var affix_type: String = str(affix.get("type", "flat"))
+		var ranges: Variant = affix.get("range", {})
 		
-		if base_range is Array and (base_range as Array).size() >= 2:
-			var range_arr := base_range as Array
-			var min_val: float = float(range_arr[0])
-			var max_val: float = float(range_arr[1])
-			
-			# Roll value
-			var base_value: float = randf_range(min_val, max_val)
-			var final_value: float = base_value * power_mult * level_mult
-			
-			# Round appropriately
-			if stat_name in ["max_hp", "power", "special_damage", "move_speed"]:
-				item.base_stats[stat_name] = int(round(final_value))
-			else:
-				item.base_stats[stat_name] = snapped(final_value, 0.01)
-			
-			item.affixes.append(affix_name)
+		if ranges is Dictionary:
+			var rarity_range: Variant = (ranges as Dictionary).get(rarity_str, [0, 0])
+			if rarity_range is Array and (rarity_range as Array).size() >= 2:
+				var range_arr := rarity_range as Array
+				var min_val: float = float(range_arr[0])
+				var max_val: float = float(range_arr[1])
+				
+				# For negative ranges (like special_cd), keep min/max order
+				var base_value: float
+				if min_val <= max_val:
+					base_value = randf_range(min_val, max_val)
+				else:
+					base_value = randf_range(max_val, min_val)
+				
+				var final_value: float = base_value * power_mult * level_mult
+				
+				# Round appropriately based on affix type
+				if affix_type == "flat" and stat_name in ["max_hp", "power", "special_damage", "move_speed"]:
+					item.base_stats[stat_name] = int(round(final_value))
+				else:
+					item.base_stats[stat_name] = snapped(final_value, 0.01)
+				
+				item.affixes.append(affix_name)
 	
 	# Generate display name
 	item.display_name = _generate_item_name(item)

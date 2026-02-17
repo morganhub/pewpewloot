@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://singularity"]
+
+[ext_resource type="Script" path="res://scenes/effects/Singularity.gd" id="1"]
+
+[node name="Singularity" type="Area2D"]
+script = ExtResource("1")

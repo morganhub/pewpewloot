@@ -11,17 +11,17 @@
 				"move_speed": 180,
 				"power": 150,
 				"fire_rate": 1.5,
-				"crit_chance": 0.07,
-				"dodge_chance": 0.02,
-				"missile_speed_pct": 0.4,
+				"crit_chance": 7,
+				"dodge_chance": 2,
+				"missile_speed_pct": 40,
 				"special_cd": 20.0,
 				"special_damage": 50
 			},
 			"visual": {
 				"color": "#FF4444",
 				"shape": "rectangle",
-				"asset": "res://assets/ships/car.png",
-				"asset_anim": ""
+				"asset": "",
+				"asset_anim": "res://assets/ships/countryman.tres"
 			},
 			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",
@@ -41,9 +41,9 @@
 				"move_speed": 220,
 				"power": 50,
 				"fire_rate": 1.3,
-				"crit_chance": 0.10,
-				"dodge_chance": 0.10,
-				"missile_speed_pct": 1.0,
+				"crit_chance": 10,
+				"dodge_chance": 10,
+				"missile_speed_pct": 100,
 				"special_cd": 10.0,
 				"special_damage": 75
 			},
@@ -58,19 +58,19 @@
 			"special_power_id": "power_barrel_roll"
 		},
 		{
-			"id": "ship_witch",
+			"id": "beetmech",
 			"crystal_price": 1200,
-			"name": "The Witch",
+			"name": "BeetMech",
 			"description": "Balanced. Cone burst attack.",
-			"type": "witch",
+			"type": "mech",
 			"stats": {
-				"max_hp": 120,
+				"max_hp": 320,
 				"move_speed": 200,
-				"power": 50,
+				"power": 150,
 				"fire_rate": 0.4,
-				"crit_chance": 0.10,
-				"dodge_chance": 0.05,
-				"missile_speed_pct": 0.8,
+				"crit_chance": 10,
+				"dodge_chance": 5,
+				"missile_speed_pct": 80,
 				"special_cd": 30.0,
 				"special_damage": 100
 			},
@@ -78,7 +78,7 @@
 				"color": "#AA44FF",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": ""
+				"asset_anim": "res://assets/ships/beetMech.tres"
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
@@ -95,9 +95,9 @@
 				"move_speed": 250,
 				"power": 20,
 				"fire_rate": 0.5,
-				"crit_chance": 0.10,
-				"dodge_chance": 0.02,
-				"missile_speed_pct": 1.5,
+				"crit_chance": 10,
+				"dodge_chance": 2,
+				"missile_speed_pct": 150,
 				"special_cd": 10.0,
 				"special_damage": 30
 			},
@@ -122,9 +122,9 @@
 				"move_speed": 250,
 				"power": 20,
 				"fire_rate": 0.5,
-				"crit_chance": 0.10,
-				"dodge_chance": 0.02,
-				"missile_speed_pct": 1.5,
+				"crit_chance": 10,
+				"dodge_chance": 2,
+				"missile_speed_pct": 150,
 				"special_cd": 10.0,
 				"special_damage": 30
 			},

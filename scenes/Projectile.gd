@@ -34,6 +34,9 @@ var _explosion_data: Dictionary = {}
 var _homing_turn_rate: float = 3.0
 var _target: Node2D = null
 
+# Skill Tree Modifiers
+var skill_modifiers: Dictionary = {}
+
 # Visual
 @onready var visual: Polygon2D = $Visual
 @onready var collision: CollisionShape2D = $CollisionShape2D
@@ -59,12 +62,13 @@ func _ready() -> void:
 	_debug_id = randi() % 10000
 	# DO NOT call deactivate() here as it triggers early return to pool!
 	
-func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Dictionary = {}, is_crit: bool = false, viewport_size_arg: Vector2 = Vector2.ZERO) -> void:
+func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Dictionary = {}, is_crit: bool = false, viewport_size_arg: Vector2 = Vector2.ZERO, p_skill_modifiers: Dictionary = {}) -> void:
 	# Reset state
 	_first_frame = true
 	show()
 	modulate = Color.WHITE
 	global_position = pos
+	skill_modifiers = p_skill_modifiers
 	
 	direction = dir.normalized()
 	speed = spd
@@ -438,6 +442,8 @@ func _on_body_entered(body: Node2D) -> void:
 	if is_player_projectile and body.is_in_group("enemies"):
 		if body.has_method("take_damage"):
 			body.take_damage(damage, is_critical)
+		# Apply skill tree on-hit effects
+		_apply_skill_on_hit(body)
 		_spawn_explosion()
 		deactivate()
 	
@@ -482,6 +488,145 @@ func _on_area_entered(area: Area2D) -> void:
 	if area.is_in_group("walls"):
 		# _spawn_explosion() # Disabled per request
 		deactivate("hit_wall")
+
+# =============================================================================
+# SKILL TREE ON-HIT EFFECTS
+# =============================================================================
+
+func _apply_skill_on_hit(body: Node2D) -> void:
+	if skill_modifiers.is_empty():
+		return
+	if not body.has_method("apply_status_effect"):
+		return
+
+	var branch: String = str(skill_modifiers.get("branch", ""))
+
+	match branch:
+		"frozen":
+			_apply_frozen_effects(body)
+		"poison":
+			_apply_poison_effects(body)
+		"void":
+			_apply_void_effects(body)
+
+func _apply_frozen_effects(body: Node2D) -> void:
+	# Chill Slow
+	var slow_pct := float(skill_modifiers.get("slow_percent", 0.15))
+	var max_stacks := int(skill_modifiers.get("max_stacks", 3))
+	var chill := StatusEffect.create_chill(slow_pct, max_stacks)
+	body.apply_status_effect(chill)
+
+	# Track hits for Deep Freeze
+	if skill_modifiers.get("freeze_enabled", false):
+		if body.has_method("increment_chill_hit_count"):
+			body.increment_chill_hit_count()
+			var hit_threshold := int(skill_modifiers.get("freeze_hit_count", 10))
+			if body.get_chill_hit_count() >= hit_threshold:
+				var freeze_dur := float(skill_modifiers.get("freeze_duration", 2.0))
+				var freeze := StatusEffect.create_freeze(freeze_dur)
+				body.apply_status_effect(freeze)
+
+	# Ice Shards: if enemy is frozen and we hit it, spawn shards
+	if skill_modifiers.get("shatter_enabled", false):
+		if "is_frozen" in body and body.is_frozen:
+			_spawn_ice_shards(body)
+
+func _apply_poison_effects(body: Node2D) -> void:
+	# Poison DoT
+	var dot_pct := float(skill_modifiers.get("dot_percent", 0.20))
+	var dot_dur := float(skill_modifiers.get("dot_duration", 3.0))
+	# Add bonus duration from Plague Spreader
+	dot_dur += float(skill_modifiers.get("dot_duration_bonus", 0.0))
+	var total_dot_damage := float(damage) * dot_pct
+	var poison := StatusEffect.create_poison(total_dot_damage, dot_dur)
+	body.apply_status_effect(poison)
+
+	# Corrosive
+	if skill_modifiers.get("corrosive_enabled", false):
+		var vuln := float(skill_modifiers.get("vulnerability_bonus", 0.25))
+		var corrosive := StatusEffect.create_corrosive(vuln, dot_dur)
+		body.apply_status_effect(corrosive)
+
+	# Toxic Pool (spawns if the hit didn't kill or was a crit)
+	if skill_modifiers.get("pool_enabled", false):
+		var should_spawn_pool := false
+		if is_critical:
+			should_spawn_pool = true
+		elif "current_hp" in body and body.current_hp > 0:
+			should_spawn_pool = true
+
+		if should_spawn_pool:
+			_spawn_toxic_pool(body.global_position)
+
+func _apply_void_effects(body: Node2D) -> void:
+	# Void Pull (micro-pull toward impact point)
+	var pull_strength := float(skill_modifiers.get("pull_strength", 30.0))
+	# Pull toward the player (the shooter)
+	var player := get_tree().get_first_node_in_group("player")
+	var pull_target := global_position
+	if player and is_instance_valid(player):
+		pull_target = player.global_position
+	var void_pull := StatusEffect.create_void_pull(pull_strength, pull_target)
+	body.apply_status_effect(void_pull)
+
+	# Singularity Chance
+	if skill_modifiers.get("singularity_enabled", false):
+		var chance := float(skill_modifiers.get("singularity_chance", 0.10))
+		if randf() <= chance:
+			_spawn_singularity(global_position)
+
+func _spawn_ice_shards(body: Node2D) -> void:
+	var shard_count := int(skill_modifiers.get("shatter_projectile_count", 6))
+	var _shard_radius := float(skill_modifiers.get("shatter_radius", 80))
+	var shard_dmg := int(float(damage) * float(skill_modifiers.get("shatter_damage_pct", 0.5)))
+
+	# Spawn small projectiles in a radial pattern from the frozen enemy
+	for i in range(shard_count):
+		var angle := (float(i) / float(shard_count)) * TAU
+		var dir := Vector2(cos(angle), sin(angle))
+		var shard_pattern := {
+			"trajectory": "straight",
+			"visual_data": {
+				"color": "#88DDFF",
+				"shape": "diamond",
+				"size": 5
+			}
+		}
+		ProjectileManager.spawn_player_projectile(
+			body.global_position, dir, 200.0, shard_dmg, shard_pattern, false
+		)
+
+func _spawn_toxic_pool(pos: Vector2) -> void:
+	var pool_scene := load("res://scenes/effects/ToxicPool.tscn")
+	if pool_scene:
+		var pool: Node2D = pool_scene.instantiate()
+		var container := get_parent()
+		if container:
+			container.call_deferred("add_child", pool)
+			pool.call_deferred("set_global_position", pos)
+			if pool.has_method("setup"):
+				var pool_radius := float(skill_modifiers.get("pool_radius", 50))
+				pool_radius *= (1.0 + float(skill_modifiers.get("pool_radius_bonus", 0.0)))
+				var pool_duration := float(skill_modifiers.get("pool_duration", 3.0))
+				var pool_dps := float(skill_modifiers.get("pool_damage_per_sec", 8))
+				pool.call_deferred("setup", pool_radius, pool_duration, pool_dps)
+
+func _spawn_singularity(pos: Vector2) -> void:
+	var singularity_scene := load("res://scenes/effects/Singularity.tscn")
+	if singularity_scene:
+		var singularity: Node2D = singularity_scene.instantiate()
+		var container := get_parent()
+		if container:
+			container.call_deferred("add_child", singularity)
+			singularity.call_deferred("set_global_position", pos)
+			if singularity.has_method("setup"):
+				var s_radius := float(skill_modifiers.get("singularity_radius", 80))
+				s_radius *= (1.0 + float(skill_modifiers.get("void_radius_bonus", 0.0)))
+				var s_duration := float(skill_modifiers.get("singularity_duration", 1.0))
+				var s_dmg_base := float(skill_modifiers.get("singularity_damage_base", 5))
+				var s_dmg_exp := float(skill_modifiers.get("singularity_damage_exponent", 2.0))
+				var has_spaghetti := bool(skill_modifiers.get("spaghettification_enabled", false))
+				singularity.call_deferred("setup", s_radius, s_duration, s_dmg_base, s_dmg_exp, has_spaghetti)
 
 # =============================================================================
 # UTILITY

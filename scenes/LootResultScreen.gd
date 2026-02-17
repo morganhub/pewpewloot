@@ -432,3 +432,225 @@ func _ensure_boss_loot_in_inventory() -> bool:
 	if item_id != "" and not ProfileManager.get_item_by_id(item_id).is_empty():
 		return true
 	return ProfileManager.add_item_to_inventory(_item)
+
+# =============================================================================
+# XP DISPLAY
+# =============================================================================
+
+var _xp_gained: int = 0
+var _xp_before: int = 0
+var _xp_after: int = 0
+var _level_before: int = 0
+var _level_after: int = 0
+
+# Animated XP bar references
+var _xp_bar: ProgressBar = null
+var _xp_left_label: Label = null
+var _xp_right_label: Label = null
+var _xp_pct_label: Label = null
+var _xp_gained_label: Label = null
+var _xp_levelup_label: Label = null
+
+func set_xp_data(xp_gained: int, xp_before: int, xp_after: int, level_before: int, level_after: int) -> void:
+	_xp_gained = xp_gained
+	_xp_before = xp_before
+	_xp_after = xp_after
+	_level_before = level_before
+	_level_after = level_after
+	_build_xp_section()
+
+func _build_xp_section() -> void:
+	# Find the main VBox in the panel
+	var main_vbox: VBoxContainer = null
+	if panel_container:
+		var margin = panel_container.get_child(0)
+		if margin:
+			main_vbox = margin.get_child(0) as VBoxContainer
+	
+	if not main_vbox:
+		return
+	
+	# Remove old XP section if re-called
+	var old := main_vbox.get_node_or_null("XPSection")
+	if old:
+		old.queue_free()
+	
+	# Create XP section
+	var xp_section := VBoxContainer.new()
+	xp_section.name = "XPSection"
+	xp_section.add_theme_constant_override("separation", 6)
+	main_vbox.add_child(xp_section)
+	# Move it before the navigation buttons (RestartButton/ExitButton)
+	main_vbox.move_child(xp_section, main_vbox.get_child_count() - 2)
+	
+	var sep := HSeparator.new()
+	xp_section.add_child(sep)
+	
+	# XP gained text
+	_xp_gained_label = Label.new()
+	_xp_gained_label.text = "⭐ XP gagné: +" + str(_xp_gained)
+	_xp_gained_label.add_theme_font_size_override("font_size", 18)
+	_xp_gained_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+	_xp_gained_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	xp_section.add_child(_xp_gained_label)
+	
+	# Level up notification (hidden initially, shown during animation)
+	_xp_levelup_label = Label.new()
+	_xp_levelup_label.add_theme_font_size_override("font_size", 16)
+	_xp_levelup_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
+	_xp_levelup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_xp_levelup_label.visible = false
+	xp_section.add_child(_xp_levelup_label)
+	
+	# XP Progress bar row
+	var bar_row := HBoxContainer.new()
+	bar_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar_row.add_theme_constant_override("separation", 8)
+	xp_section.add_child(bar_row)
+	
+	# Left level label
+	_xp_left_label = Label.new()
+	_xp_left_label.text = str(_level_before)
+	_xp_left_label.add_theme_font_size_override("font_size", 15)
+	_xp_left_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.9))
+	bar_row.add_child(_xp_left_label)
+	
+	# Progress bar
+	_xp_bar = ProgressBar.new()
+	_xp_bar.custom_minimum_size = Vector2(320, 18)
+	_xp_bar.show_percentage = false
+	var bar_bg := StyleBoxFlat.new()
+	bar_bg.bg_color = Color(0.15, 0.15, 0.25)
+	bar_bg.corner_radius_top_left = 4
+	bar_bg.corner_radius_top_right = 4
+	bar_bg.corner_radius_bottom_left = 4
+	bar_bg.corner_radius_bottom_right = 4
+	_xp_bar.add_theme_stylebox_override("background", bar_bg)
+	var bar_fill := StyleBoxFlat.new()
+	bar_fill.bg_color = Color(0.3, 0.6, 1.0)
+	bar_fill.corner_radius_top_left = 4
+	bar_fill.corner_radius_top_right = 4
+	bar_fill.corner_radius_bottom_left = 4
+	bar_fill.corner_radius_bottom_right = 4
+	_xp_bar.add_theme_stylebox_override("fill", bar_fill)
+	bar_row.add_child(_xp_bar)
+	
+	# Right level label
+	_xp_right_label = Label.new()
+	_xp_right_label.text = str(_level_before + 1)
+	_xp_right_label.add_theme_font_size_override("font_size", 15)
+	_xp_right_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.9))
+	bar_row.add_child(_xp_right_label)
+	
+	# Percentage label (centered below bar)
+	_xp_pct_label = Label.new()
+	_xp_pct_label.add_theme_font_size_override("font_size", 13)
+	_xp_pct_label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))
+	_xp_pct_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	xp_section.add_child(_xp_pct_label)
+	
+	# Set initial bar state
+	var xp_for_lvl := float(ProfileManager.get_xp_for_level(_level_before))
+	_xp_bar.max_value = max(1.0, xp_for_lvl)
+	_xp_bar.value = float(_xp_before)
+	_update_xp_pct_label()
+	
+	# Start the animation after a short delay
+	get_tree().create_timer(0.5).timeout.connect(_animate_xp_bar)
+
+func _update_xp_pct_label() -> void:
+	if _xp_bar and _xp_pct_label:
+		var pct := 0.0
+		if _xp_bar.max_value > 0:
+			pct = (_xp_bar.value / _xp_bar.max_value) * 100.0
+		_xp_pct_label.text = "%.0f%%" % pct
+
+func _animate_xp_bar() -> void:
+	if not is_instance_valid(_xp_bar):
+		return
+	
+	var levels_to_animate := _level_after - _level_before
+	var current_display_level := _level_before
+	
+	if levels_to_animate <= 0:
+		# No level up — just animate from xp_before to xp_after in the same level
+		var xp_for_lvl := float(ProfileManager.get_xp_for_level(current_display_level))
+		_xp_bar.max_value = max(1.0, xp_for_lvl)
+		var tween := create_tween()
+		tween.tween_method(_set_xp_bar_value, float(_xp_before), float(_xp_after), 1.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		return
+	
+	# Multiple levels gained — chain animations
+	_chain_level_animations(current_display_level, levels_to_animate, 0)
+
+func _chain_level_animations(display_level: int, total_levels: int, current_step: int) -> void:
+	if not is_instance_valid(_xp_bar):
+		return
+	
+	if current_step > total_levels:
+		return
+	
+	if current_step == 0:
+		# First step: fill current level bar from xp_before to max
+		var xp_for_lvl := float(ProfileManager.get_xp_for_level(display_level))
+		_xp_bar.max_value = max(1.0, xp_for_lvl)
+		
+		var tween := create_tween()
+		tween.tween_method(_set_xp_bar_value, float(_xp_before), xp_for_lvl, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tween.tween_callback(func():
+			_show_level_up_flash(display_level + 1)
+			# Short pause then continue
+			get_tree().create_timer(0.4).timeout.connect(func():
+				_chain_level_animations(display_level + 1, total_levels, current_step + 1)
+			)
+		)
+	elif current_step < total_levels:
+		# Intermediate levels: reset to 0, update labels, fill to max
+		_update_level_labels(display_level)
+		var xp_for_lvl := float(ProfileManager.get_xp_for_level(display_level))
+		_xp_bar.max_value = max(1.0, xp_for_lvl)
+		_xp_bar.value = 0
+		_update_xp_pct_label()
+		
+		var tween := create_tween()
+		tween.tween_method(_set_xp_bar_value, 0.0, xp_for_lvl, 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tween.tween_callback(func():
+			_show_level_up_flash(display_level + 1)
+			get_tree().create_timer(0.3).timeout.connect(func():
+				_chain_level_animations(display_level + 1, total_levels, current_step + 1)
+			)
+		)
+	else:
+		# Final step: reset to 0, update labels, animate to xp_after
+		_update_level_labels(display_level)
+		var xp_for_lvl := float(ProfileManager.get_xp_for_level(display_level))
+		_xp_bar.max_value = max(1.0, xp_for_lvl)
+		_xp_bar.value = 0
+		_update_xp_pct_label()
+		
+		var tween := create_tween()
+		tween.tween_method(_set_xp_bar_value, 0.0, float(_xp_after), 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+
+func _set_xp_bar_value(val: float) -> void:
+	if is_instance_valid(_xp_bar):
+		_xp_bar.value = val
+		_update_xp_pct_label()
+
+func _update_level_labels(level: int) -> void:
+	if is_instance_valid(_xp_left_label):
+		_xp_left_label.text = str(level)
+	if is_instance_valid(_xp_right_label):
+		_xp_right_label.text = str(level + 1)
+
+func _show_level_up_flash(new_level: int) -> void:
+	if not is_instance_valid(_xp_levelup_label):
+		return
+	
+	var levels_gained := _level_after - _level_before
+	_xp_levelup_label.text = "🎉 LEVEL UP! " + str(new_level) + " (+" + str(levels_gained) + " pts de compétence)"
+	_xp_levelup_label.visible = true
+	
+	# Flash effect
+	_xp_levelup_label.modulate = Color(1, 1, 1, 0)
+	var tween := create_tween()
+	tween.tween_property(_xp_levelup_label, "modulate", Color(1, 1, 1, 1), 0.3)

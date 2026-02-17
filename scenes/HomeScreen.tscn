@@ -103,6 +103,13 @@ custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
 text = "🚀 Vaisseau"
 
+[node name="SkillsButton" type="Button" parent="BottomSection"]
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(540, 70)
+theme_override_font_sizes/font_size = 24
+text = "🌟 Compétences"
+
 [node name="OptionsButton" type="Button" parent="BottomSection"]
 layout_mode = 2
 size_flags_horizontal = 4

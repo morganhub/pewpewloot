@@ -17,10 +17,11 @@ var base_damage: int = 10
 var damage_multiplier: float = 1.0  # Anciennement 'power' du json qui était un multiplier, maintenant c'est des dégâts fixes 'power'
 
 # Advanced Stats
-var crit_chance: float = 0.05
-var dodge_chance: float = 0.02
-var missile_speed_pct: float = 1.0
+var crit_chance: float = 5.0
+var dodge_chance: float = 2.0
+var missile_speed_pct: float = 100.0
 var special_cd: float = 10.0
+var damage_reduction: float = 0.0
 var current_missile_id: String = "missile_default"
 var special_power_id: String = ""
 var unique_power_id: String = ""
@@ -77,6 +78,7 @@ func _ready() -> void:
 	_load_stats_from_loadout()
 	_setup_visual()
 	_setup_shield()
+	_apply_utility_skill_bonuses()
 	# Spawn at bottom of screen with margin (works for all screen sizes)
 	var viewport_size := get_viewport_rect().size
 	var ship_size := 84.0  # Approximate ship height
@@ -356,10 +358,11 @@ func _load_stats_from_loadout() -> void:
 	base_damage = int(stats.get("power", 10))
 	fire_rate = float(stats.get("fire_rate", 0.3))
 	_base_fire_rate = fire_rate
-	crit_chance = float(stats.get("crit_chance", 0.05))
-	dodge_chance = float(stats.get("dodge_chance", 0.02))
-	missile_speed_pct = float(stats.get("missile_speed_pct", 1.0))
+	crit_chance = float(stats.get("crit_chance", 5.0))
+	dodge_chance = float(stats.get("dodge_chance", 2.0))
+	missile_speed_pct = float(stats.get("missile_speed_pct", 100.0))
 	special_cd = float(stats.get("special_cd", 10.0))
+	damage_reduction = float(stats.get("damage_reduction", 0.0))
 	special_cd_max = special_cd
 	
 	current_missile_id = str(ship.get("missile_id", "missile_default"))
@@ -605,6 +608,34 @@ func _apply_shield_impact(projectile: Node) -> void:
 	
 	# Keep existing behavior for projectiles: shield absorbs impact.
 	absorb_damage_with_shield(int(round(dmg)), impact_world_pos)
+	
+	# Shield Reflector (powers_2): chance to reflect the projectile back
+	if _skill_reflect_chance > 0.0 and randf() < _skill_reflect_chance:
+		_reflect_projectile(projectile, int(round(dmg)))
+
+func _reflect_projectile(source_projectile: Node, _original_damage: int) -> void:
+	var spawn_pos := global_position
+	if source_projectile is Node2D:
+		spawn_pos = source_projectile.global_position
+	
+	# Reflect direction: 180° from the incoming projectile direction
+	var reflect_dir := Vector2.UP
+	if "direction" in source_projectile:
+		reflect_dir = (-source_projectile.direction).normalized()
+	
+	# Use player's power as damage (not enemy projectile damage)
+	var reflect_damage := base_damage
+	
+	# Grab the enemy projectile's visual pattern data to replicate its appearance
+	var pattern_data := {}
+	if "_pattern_data" in source_projectile:
+		pattern_data = source_projectile._pattern_data.duplicate(true)
+	
+	var reflect_speed := 600.0
+	if "speed" in source_projectile:
+		reflect_speed = float(source_projectile.speed)
+	
+	ProjectileManager.spawn_player_projectile(spawn_pos, reflect_dir, reflect_speed, reflect_damage, pattern_data)
 
 
 
@@ -758,7 +789,7 @@ func _fire() -> void:
 	
 	# Apply Ship Stats / Bonuses
 	var final_damage: int = int((base_damage + pattern_damage) * damage_multiplier)
-	var final_speed: float = base_speed * missile_speed_pct
+	var final_speed: float = base_speed * (missile_speed_pct / 100.0)
 	
 	# Cooldown calculation: (Duration of burst) + (Reload time)
 	# Ship fire_rate acts as a multiplier on reload time (higher rate = lower reload)
@@ -794,7 +825,7 @@ func _inject_missile_properties(pattern_data: Dictionary) -> void:
 	# Speed Override
 	var missile_speed: float = float(missile_data.get("speed", 0))
 	if missile_speed > 0:
-		pattern_data["speed"] = missile_speed * missile_speed_pct
+		pattern_data["speed"] = missile_speed * (missile_speed_pct / 100.0)
 		
 	# Sound
 	pattern_data["sound"] = str(missile_data.get("sound", ""))
@@ -890,12 +921,24 @@ func _spawn_salvo(pattern_data: Dictionary, speed: float, damage: int) -> void:
 				_spawn_single_projectile(base_pos, direction, speed, damage, pattern_data)
 
 func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int, pattern_data: Dictionary) -> void:
-	var is_critical := randf() <= crit_chance
+	var is_critical := randf() <= crit_chance / 100.0
 	var final_dmg := dmg * (2 if is_critical else 1)
 	
 	# Clamp position roughly
 	# Warning: clamp might screw up off-screen spawning (screen_bottom/screen_top)
 	# So only clamp if standard shooter
+	
+	# --- Skill Tree: Get projectile modifiers ---
+	var skill_mods: Dictionary = SkillManager.get_projectile_modifier()
+	
+	# Override missile visual if skill tree provides one
+	var missile_override: String = str(skill_mods.get("missile_override", ""))
+	if missile_override != "":
+		var override_missile := DataManager.get_missile(missile_override)
+		if not override_missile.is_empty():
+			var override_visual: Dictionary = override_missile.get("visual", {})
+			if not override_visual.is_empty():
+				pattern_data["visual_data"] = override_visual
 	
 	ProjectileManager.spawn_player_projectile(
 		pos,
@@ -903,17 +946,30 @@ func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int
 		speed,
 		final_dmg,
 		pattern_data,
-		is_critical
+		is_critical,
+		skill_mods
 	)
 
 func take_damage(amount: int) -> void:
 	# Dodge check
-	if randf() <= dodge_chance:
+	if randf() <= dodge_chance / 100.0:
 		VFXManager.spawn_floating_text(global_position, "DODGE", Color.CYAN, get_parent())
 		return
 	
 	if is_invincible:
 		return
+	
+	# Damage Reduction (capped at 75%)
+	if damage_reduction > 0.0:
+		var dr_clamped: float = clamp(damage_reduction, 0.0, 75.0)
+		amount = int(ceil(float(amount) * (1.0 - dr_clamped / 100.0)))
+		amount = maxi(amount, 1) # Always deal at least 1 damage
+	
+	# Shield absorb first
+	if shield_active and shield_energy > 0:
+		amount = absorb_damage_with_shield(amount, global_position)
+		if amount <= 0:
+			return
 	
 	current_hp -= amount
 	current_hp = maxi(0, current_hp)
@@ -931,6 +987,19 @@ func take_damage(amount: int) -> void:
 	if bool(ProfileManager.get_setting("screenshake_enabled", true)):
 		VFXManager.screen_shake(5, 0.15)
 	
+	# --- Skill Tree: Emergency Protocol ---
+	if current_hp <= 0 and _skill_emergency_protocol and not _emergency_triggered:
+		_emergency_triggered = true
+		current_hp = int(max_hp * 0.20) # Survive with 20% HP
+		set_invincible(true)
+		VFXManager.spawn_floating_text(global_position, "EMERGENCY!", Color.ORANGE_RED, get_parent())
+		# 2 second invincibility window
+		get_tree().create_timer(2.0).timeout.connect(func():
+			if is_instance_valid(self):
+				set_invincible(false)
+		)
+		return
+	
 	if current_hp <= 0:
 		die()
 
@@ -947,6 +1016,36 @@ func heal(amount: int) -> void:
 # =============================================================================
 # UTILITY (Visual generation)
 # =============================================================================
+
+# --- Skill Tree: Utility bonuses cache ---
+var _skill_magnet_radius_bonus: float = 0.0
+var _skill_vacuum_radius: float = 0.0
+var _skill_power_extender_bonus: float = 0.0
+var _skill_overcharge_bonus: float = 0.0
+var _skill_emergency_protocol: bool = false
+var _skill_reflect_chance: float = 0.0
+var _emergency_triggered: bool = false
+
+func _apply_utility_skill_bonuses() -> void:
+	var bonuses: Dictionary = SkillManager.get_utility_bonuses()
+	_skill_magnet_radius_bonus = float(bonuses.get("magnet_radius_bonus", 0.0))
+	_skill_vacuum_radius = float(bonuses.get("vacuum_radius", 0.0))
+	_skill_power_extender_bonus = float(bonuses.get("power_duration_bonus", 0.0))
+	_skill_overcharge_bonus = float(bonuses.get("overcharge_bonus", 0.0))
+	_skill_emergency_protocol = bool(bonuses.get("emergency_protocol", false))
+	_skill_reflect_chance = float(bonuses.get("reflect_chance", 0.0))
+
+## Returns the magnet radius bonus from the skill tree (used by LootDrop.gd)
+func get_magnet_radius_bonus() -> float:
+	return _skill_magnet_radius_bonus
+
+## Returns the power duration bonus from the skill tree (used by PowerManager)
+func get_power_duration_bonus() -> float:
+	return _skill_power_extender_bonus
+
+## Returns the overcharge bonus from the skill tree (used by PowerManager)
+func get_overcharge_bonus() -> float:
+	return _skill_overcharge_bonus
 
 func _create_shape_polygon(shape_type: String, width: float, height: float) -> PackedVector2Array:
 	match shape_type:

@@ -3,27 +3,27 @@
     "rarity_config": {
         "common": {
             "weight": 50,
-            "affix_count": 0,
+            "affix_count": 1,
             "power_multiplier": 1.0
         },
         "uncommon": {
             "weight": 25,
-            "affix_count": 1,
+            "affix_count": 2,
             "power_multiplier": 1.15
         },
         "rare": {
             "weight": 15,
-            "affix_count": 2,
+            "affix_count": 3,
             "power_multiplier": 1.35
         },
         "epic": {
             "weight": 7,
-            "affix_count": 3,
+            "affix_count": 4,
             "power_multiplier": 1.6
         },
         "legendary": {
             "weight": 2.5,
-            "affix_count": 4,
+            "affix_count": 5,
             "power_multiplier": 2.0
         },
         "unique": {
@@ -32,142 +32,94 @@
             "power_multiplier": 0
         }
     },
-    "affixes_pool": [
+    "slots": [
         {
-            "id": "affix_hp_minor",
-            "name": "Fortified",
-            "stat": "max_hp",
-            "base_range": [
-                10,
-                25
-            ]
+            "id": "reactor",
+            "name": "Réacteur",
+            "icon": { "common": "", "uncommon": "", "rare": "", "epic": "", "legendary": "" },
+            "description": "Énergie, régénération, réduction de cooldown"
         },
         {
-            "id": "affix_hp_major",
-            "name": "Massive",
-            "stat": "max_hp",
-            "base_range": [
-                30,
-                60
-            ]
+            "id": "engine",
+            "name": "Moteur",
+            "icon": { "common": "", "uncommon": "", "rare": "", "epic": "res://assets/items/special/crystal_power.png", "legendary": "" },
+            "description": "Vitesse, dash, maniabilité"
         },
         {
-            "id": "affix_speed",
-            "name": "Swift",
-            "stat": "move_speed",
-            "base_range": [
-                5,
-                15
-            ]
+            "id": "armor",
+            "name": "Blindage",
+            "icon": { "common": "", "uncommon": "", "rare": "", "epic": "", "legendary": "" },
+            "description": "Points de vie, réduction de dégâts"
         },
         {
-            "id": "affix_power_minor",
-            "name": "Empowered",
-            "stat": "power",
-            "base_range": [
-                5,
-                12
-            ]
+            "id": "shield",
+            "name": "Bouclier",
+            "icon": { "common": "", "uncommon": "", "rare": "res://assets/items/special/crystal_power.png", "epic": "", "legendary": "" },
+            "description": "Bouclier, régénération, résistances"
         },
         {
-            "id": "affix_power_major",
-            "name": "Devastating",
-            "stat": "power",
-            "base_range": [
-                15,
-                30
-            ]
+            "id": "primary",
+            "name": "Arme Principale",
+            "icon": { "common": "res://assets/items/primary/rocket_4.png", "uncommon": "res://assets/items/primary/rocket_5.png", "rare": "res://assets/items/primary/rocket_8.png", "epic": "res://assets/items/primary/rocket_8_vertical.png", "legendary": "res://assets/items/primary/rocket_6.png" },
+            "description": "Modifie les tirs principaux"
         },
         {
-            "id": "affix_fire_rate",
-            "name": "Rapid",
-            "stat": "fire_rate",
-            "base_range": [
-                0.02,
-                0.08
-            ]
+            "id": "missiles",
+            "name": "Missiles",
+            "icon": { "common": "", "uncommon": "", "rare": "", "epic": "", "legendary": "" },
+            "description": "Type de missiles, verrouillage, salves"
         },
         {
-            "id": "affix_crit",
-            "name": "Precise",
-            "stat": "crit_chance",
-            "base_range": [
-                0.02,
-                0.06
-            ]
+            "id": "targeting",
+            "name": "Ciblage",
+            "icon": { "common": "", "uncommon": "", "rare": "", "epic": "", "legendary": "" },
+            "description": "Critique, marque, effets on-hit"
         },
         {
-            "id": "affix_dodge",
-            "name": "Evasive",
-            "stat": "dodge_chance",
-            "base_range": [
-                0.01,
-                0.04
-            ]
-        },
-        {
-            "id": "affix_missile_speed",
-            "name": "Accelerated",
-            "stat": "missile_speed_pct",
-            "base_range": [
-                0.05,
-                0.15
-            ]
-        },
-        {
-            "id": "affix_special_cd",
-            "name": "Focused",
-            "stat": "special_cd",
-            "base_range": [
-                -1.0,
-                -3.0
-            ]
-        },
-        {
-            "id": "affix_special_damage",
-            "name": "Amplified",
-            "stat": "special_damage",
-            "base_range": [
-                10,
-                25
-            ]
+            "id": "utility",
+            "name": "Utilitaire",
+            "icon": { "common": "", "uncommon": "", "rare": "", "epic": "", "legendary": "" },
+            "description": "Drone, aimant loot, contre-mesures"
         }
     ],
-    "slot_base_stats": {
+    "affixes": {
+        "global": [
+            { "id": "flat_damage", "name": "Dégâts", "stat": "power", "type": "flat", "range": { "common": [1, 3], "uncommon": [3, 6], "rare": [5, 10], "epic": [8, 15], "legendary": [12, 20] } },
+            { "id": "crit_chance", "name": "Chance Critique", "stat": "crit_chance", "type": "percent", "range": { "common": [1, 2], "uncommon": [2, 4], "rare": [3, 6], "epic": [4, 8], "legendary": [5, 10] } },
+            { "id": "crit_damage", "name": "Dégâts Critiques", "stat": "crit_damage", "type": "percent", "range": { "common": [5, 10], "uncommon": [10, 20], "rare": [15, 30], "epic": [20, 40], "legendary": [25, 50] } },
+            { "id": "luck", "name": "Chance", "stat": "luck", "type": "flat", "range": { "common": [1, 2], "uncommon": [2, 4], "rare": [3, 6], "epic": [4, 8], "legendary": [5, 10] } }
+        ],
         "reactor": [
-            "power",
-            "fire_rate",
-            "crit_chance"
+            { "id": "energy_regen", "name": "Régénération Énergie", "stat": "energy_regen", "type": "flat", "range": { "common": [1, 2], "uncommon": [2, 4], "rare": [3, 6], "epic": [4, 8], "legendary": [5, 10] } },
+            { "id": "cooldown_reduction", "name": "Réduction Cooldown", "stat": "special_cd", "type": "flat", "range": { "common": [-0.5, -1.0], "uncommon": [-1.0, -1.5], "rare": [-1.5, -2.0], "epic": [-2.0, -2.5], "legendary": [-2.5, -3.5] } }
         ],
         "engine": [
-            "move_speed",
-            "missile_speed_pct",
-            "dodge_chance"
+            { "id": "move_speed", "name": "Vitesse", "stat": "move_speed", "type": "flat", "range": { "common": [5, 10], "uncommon": [10, 20], "rare": [15, 30], "epic": [20, 40], "legendary": [30, 50] } },
+            { "id": "dash_charges", "name": "Charges Dash", "stat": "dash_charges", "type": "flat", "range": { "common": [0, 0], "uncommon": [0, 1], "rare": [1, 1], "epic": [1, 1], "legendary": [1, 2] } }
         ],
         "armor": [
-            "max_hp"
+            { "id": "max_hp", "name": "Points de Vie", "stat": "max_hp", "type": "flat", "range": { "common": [5, 10], "uncommon": [10, 20], "rare": [15, 30], "epic": [20, 40], "legendary": [25, 50] } },
+            { "id": "damage_reduction", "name": "Réduction Dégâts", "stat": "damage_reduction", "type": "percent", "range": { "common": [1, 3], "uncommon": [3, 6], "rare": [5, 10], "epic": [7, 12], "legendary": [8, 15] } }
         ],
         "shield": [
-            "max_hp",
-            "dodge_chance"
+            { "id": "shield_capacity", "name": "Capacité Bouclier", "stat": "shield_capacity", "type": "flat", "range": { "common": [10, 20], "uncommon": [20, 40], "rare": [35, 60], "epic": [45, 80], "legendary": [50, 100] } },
+            { "id": "shield_regen", "name": "Régén. Bouclier", "stat": "shield_regen", "type": "flat", "range": { "common": [1, 2], "uncommon": [2, 4], "rare": [3, 6], "epic": [4, 8], "legendary": [5, 10] } }
+        ],
+        "primary": [
+            { "id": "fire_rate", "name": "Cadence de Tir", "stat": "fire_rate", "type": "percent", "range": { "common": [3, 5], "uncommon": [5, 10], "rare": [8, 15], "epic": [10, 20], "legendary": [12, 25] } },
+            { "id": "projectile_count", "name": "Projectiles", "stat": "projectile_count", "type": "flat", "range": { "common": [0, 0], "uncommon": [0, 1], "rare": [1, 1], "epic": [1, 1], "legendary": [1, 2] } }
         ],
         "missiles": [
-            "power",
-            "missile_speed_pct",
-            "special_damage"
+            { "id": "missile_damage", "name": "Dégâts Missiles", "stat": "missile_damage", "type": "percent", "range": { "common": [5, 10], "uncommon": [10, 20], "rare": [15, 30], "epic": [20, 40], "legendary": [25, 50] } },
+            { "id": "missile_count", "name": "Missiles Simultanés", "stat": "missile_count", "type": "flat", "range": { "common": [0, 0], "uncommon": [0, 1], "rare": [1, 1], "epic": [1, 1], "legendary": [1, 2] } }
         ],
         "targeting": [
-            "crit_chance",
-            "fire_rate"
+            { "id": "mark_damage", "name": "Dégâts sur Marqué", "stat": "mark_damage_bonus", "type": "percent", "range": { "common": [5, 10], "uncommon": [10, 15], "rare": [15, 25], "epic": [18, 35], "legendary": [20, 40] } },
+            { "id": "pierce", "name": "Pénétration", "stat": "pierce_count", "type": "flat", "range": { "common": [0, 0], "uncommon": [0, 1], "rare": [1, 1], "epic": [1, 1], "legendary": [1, 2] } }
         ],
         "utility": [
-            "special_cd",
-            "dodge_chance"
-        ],
-        "special": [
-            "special_damage",
-            "special_cd",
-            "power"
+            { "id": "loot_magnet", "name": "Aimant Loot", "stat": "loot_radius", "type": "percent", "range": { "common": [10, 20], "uncommon": [20, 40], "rare": [35, 60], "epic": [45, 80], "legendary": [50, 100] } },
+            { "id": "xp_bonus", "name": "Bonus XP", "stat": "xp_multiplier", "type": "percent", "range": { "common": [3, 5], "uncommon": [5, 10], "rare": [8, 15], "epic": [10, 20], "legendary": [12, 25] } }
         ]
     }
 }

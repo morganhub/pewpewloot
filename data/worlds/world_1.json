@@ -39,7 +39,7 @@
 		},
 		{
 		  "time": 24.0,
-		  "enemy_id": "fighter_aggressive",
+		  "enemy_id": "scout_basic",
 		  "count": 30,
 		  "interval": 0.7,
 		  "enemy_modifier_id": "graviton"
@@ -56,7 +56,7 @@
 		  "enemy_id": "fighter_aggressive",
 		  "count": 30,
 		  "interval": 0.7,
-		  "enemy_modifier_id": "elite_berserker"
+		  "enemy_modifier_id": "waller"
 		},
 		{
 		  "time": 90.0,
