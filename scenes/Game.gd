@@ -260,6 +260,7 @@ func _start_enemy_spawner() -> void:
 	add_child(wave_manager)
 	
 	wave_manager.spawn_enemy.connect(_on_wave_enemy_spawn)
+	wave_manager.spawn_obstacle.connect(_on_wave_obstacle_spawn)
 	wave_manager.level_completed.connect(_on_level_completed)
 	wave_manager.wave_started.connect(_on_wave_started)
 	
@@ -302,6 +303,46 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	# Connecter le signal de mort
 	enemy.enemy_died.connect(_on_enemy_died)
 	# print("[Game] Wave Spawn: ", enemy_data.get("name", "?"))
+
+# =============================================================================
+# OBSTACLES (WAVE SYSTEM)
+# =============================================================================
+
+const OBSTACLE_EXPLOSIVE_SCENE := preload("res://scenes/obstacles/ObstacleExplosive.tscn")
+const OBSTACLE_PUSHER_SCENE := preload("res://scenes/obstacles/ObstaclePusher.tscn")
+
+func _on_wave_obstacle_spawn(obstacle_data: Dictionary, positions: Array, speed: float) -> void:
+	var obs_type: String = str(obstacle_data.get("type", "explosive"))
+	var drift_dirs: Array = obstacle_data.get("_drift_directions_per_obstacle", [])
+	
+	for i in range(positions.size()):
+		var pos: Variant = positions[i]
+		if pos is Vector2:
+			var obstacle: Node2D = null
+			
+			match obs_type:
+				"pusher":
+					obstacle = OBSTACLE_PUSHER_SCENE.instantiate()
+				_:
+					obstacle = OBSTACLE_EXPLOSIVE_SCENE.instantiate()
+			
+			# Injecter la direction de drift individuelle
+			var per_obstacle_data: Dictionary = obstacle_data.duplicate()
+			if i < drift_dirs.size() and str(drift_dirs[i]) != "":
+				per_obstacle_data["_drift_direction"] = str(drift_dirs[i])
+			
+			obstacle.global_position = pos as Vector2
+			game_layer.add_child(obstacle)
+			obstacle.setup(per_obstacle_data, speed)
+			
+			# Connecter le signal de destruction si destructible
+			if obstacle.has_signal("obstacle_destroyed"):
+				obstacle.obstacle_destroyed.connect(_on_obstacle_destroyed)
+
+func _on_obstacle_destroyed(_obstacle: Node2D) -> void:
+	# Score bonus pour destruction d'obstacles
+	if hud and hud.has_method("add_score"):
+		hud.add_score(5)
 
 func _on_level_completed() -> void:
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)

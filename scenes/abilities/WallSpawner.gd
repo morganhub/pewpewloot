@@ -74,17 +74,23 @@ func _spawn_wall_at(pos: Vector2) -> void:
 		if sprite:
 			var tex = load(wall_asset_path)
 			sprite.texture = tex
-			# Adjust collision shape to match texture size
+			# Disable region crop from placeholder
+			sprite.region_enabled = false
+			
 			if col and col.shape is RectangleShape2D:
 				col.shape = col.shape.duplicate()
-				col.shape.size = tex.get_size()
-				sprite.region_enabled = false # Disable region if full texture
+				var target_size: Vector2 = col.shape.size # Garder la taille de collision d'origine
+				var tex_size: Vector2 = tex.get_size()
 				
-				# Also update Detection Area
+				# Stretch : on scale le sprite pour couvrir exactement la hitbox
+				if tex_size.x > 0 and tex_size.y > 0:
+					sprite.scale = Vector2(target_size.x / tex_size.x, target_size.y / tex_size.y)
+				
+				# Aussi mettre à jour la DetectionArea pour rester synchronisée
 				var area = wall.get_node_or_null("DetectionArea/CollisionShape2D")
 				if area and area.shape is RectangleShape2D:
 					area.shape = area.shape.duplicate()
-					area.shape.size = tex.get_size()
+					area.shape.size = target_size
 	
 	# Add to Game Layer (not as child of Enemy/Spawner, but sibling/root)
 	# So it persists/moves independently?

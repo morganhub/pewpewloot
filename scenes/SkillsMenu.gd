@@ -336,16 +336,7 @@ func _update_header() -> void:
 		"utility":
 			_info_label.text = _translate("skills.menu.info.utility", {}, "Competences passives toujours actives.")
 		"pew_pew":
-			var tree_data := DataManager.get_skill_tree("pew_pew")
-			var unlock_req := int(tree_data.get("unlock_requirement", 15))
-			if ProfileManager.get_player_level() < unlock_req:
-				_info_label.text = _translate(
-					"skills.menu.info.pew_locked",
-					{"required_level": unlock_req, "level": ProfileManager.get_player_level()},
-					"Debloque au niveau " + str(unlock_req)
-				)
-			else:
-				_info_label.text = _translate("skills.menu.info.pew_ready", {}, "Perfection active.")
+			_info_label.text = _translate("skills.menu.info.pew_ready", {}, "Perfection active.")
 
 func _debug_xp_values(
 	level: int,
@@ -371,6 +362,15 @@ func _debug_xp_values(
 		" | flags{appears_local_xp=", appears_local_xp,
 		", legacy_formula_negative=", legacy_formula_negative, "}"
 	)
+
+func _get_pew_pew_unlock_progress() -> Dictionary:
+	var tree_data := DataManager.get_skill_tree("pew_pew")
+	var unlock_req := int(tree_data.get("unlock_requirement", 15))
+	var spent_other_trees := ProfileManager.get_spent_skill_points("pew_pew")
+	return {
+		"required": unlock_req,
+		"spent": spent_other_trees
+	}
 
 func _update_tabs() -> void:
 	for tab_id in TAB_IDS:
@@ -485,6 +485,26 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 		for node_data in levels_raw:
 			if node_data is Dictionary:
 				_build_skill_node(node_data as Dictionary, branch_vbox, branch_id, branch_data, block_cfg, branch_color)
+
+	# Perfection requirement footer (Pew Pew unlock condition).
+	if _active_tab == "pew_pew" and branch_id == "stat_boosts":
+		var progress := _get_pew_pew_unlock_progress()
+		var unlock_req := int(progress.get("required", 15))
+		var spent := int(progress.get("spent", 0))
+		var req_label := Label.new()
+		req_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		req_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		req_label.add_theme_font_size_override("font_size", 14)
+		if spent >= unlock_req:
+			req_label.add_theme_color_override("font_color", Color(0.74, 0.98, 0.74, 0.95))
+		else:
+			req_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.62, 0.95))
+		req_label.text = _translate(
+			"skills.menu.perfection.requirement",
+			{"required_points": unlock_req, "spent_points": spent},
+			"Perfection: " + str(spent) + "/" + str(unlock_req) + " points depenses hors Perfection."
+		)
+		branch_vbox.add_child(req_label)
 
 func _build_skill_node(
 	node_data: Dictionary,
@@ -626,16 +646,23 @@ func _build_skill_node(
 	unlock_btn.name = "UnlockBtn_" + skill_id
 	unlock_btn.custom_minimum_size = Vector2(120, 38)
 	unlock_btn.add_theme_font_size_override("font_size", 14)
+	var button_state := "locked"
 
 	if is_unlocked and (max_rank <= 1 or current_rank >= max_rank):
+		button_state = "acquired"
 		unlock_btn.text = _translate("skills.menu.button.acquired", {}, "Acquis")
 		unlock_btn.disabled = true
 	elif can_unlock:
+		button_state = "unlocked"
 		unlock_btn.text = _translate("skills.menu.button.activate", {}, "Activer")
 		unlock_btn.pressed.connect(_on_skill_pressed.bind(skill_id))
 	else:
+		button_state = "locked"
 		unlock_btn.text = _translate("skills.menu.button.locked", {}, "Verrouille")
 		unlock_btn.disabled = true
+
+	if _apply_skill_state_button_asset(unlock_btn, button_state):
+		unlock_btn.text = ""
 
 	hbox.add_child(unlock_btn)
 	_skill_nodes[skill_id] = unlock_btn
@@ -650,6 +677,36 @@ func _add_icon_texture(parent: Control, asset_path: String, width: int, height: 
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	parent.add_child(icon)
+	return true
+
+func _apply_skill_state_button_asset(button: Button, state: String) -> bool:
+	var state_key := state
+	# Reuse unlocked visuals for acquired state if no dedicated variant exists.
+	if state_key == "acquired":
+		state_key = "unlocked"
+	var cfg := _get_config_dict(["skills", "state_buttons", state_key], {})
+	var asset_path := str(cfg.get("asset", ""))
+	var texture := _load_texture_from_path(asset_path)
+	if texture == null:
+		return false
+
+	var width := int(cfg.get("width", int(button.custom_minimum_size.x)))
+	var height := int(cfg.get("height", int(button.custom_minimum_size.y)))
+	button.custom_minimum_size = Vector2(maxi(1, width), maxi(1, height))
+	button.add_theme_font_size_override("font_size", 1)
+	button.add_theme_color_override("font_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_focus_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_disabled_color", Color(0, 0, 0, 0))
+
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_stylebox_override("hover", style)
+	button.add_theme_stylebox_override("pressed", style)
+	button.add_theme_stylebox_override("focus", style)
+	button.add_theme_stylebox_override("disabled", style)
 	return true
 
 # =============================================================================

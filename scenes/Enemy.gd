@@ -43,6 +43,10 @@ var _cached_forward: Vector2 = Vector2.DOWN
 var _last_path_world_pos: Vector2 = Vector2.ZERO
 var _has_last_path_world_pos: bool = false
 var _stat_multiplier: float = 1.0
+var _path_reached_end: bool = false
+var _path_end_timer: float = 0.0
+const PATH_END_DESPAWN_DELAY: float = 0.5  # Grace period before despawn after path ends
+const OFFSCREEN_MARGIN: float = 120.0
 
 const DEBUG_MOVE_PATTERN_LOG := true
 
@@ -319,18 +323,35 @@ func set_health_bar_frame(path: String) -> void:
 func _process(delta: float) -> void:
 	_process_status_effects(delta)
 	_update_movement(delta)
-	_update_shooting(delta)
-	_update_minefreak_spawn()
-	_update_arcane_spawn()
-	_update_graviton_spawn()
 	
-	# Handle wave firing
-	if _is_firing_waves:
+	# Ne tirer que si l'ennemi est visible à l'écran
+	var vp_rect := get_viewport_rect().size
+	var on_screen := (global_position.x > -OFFSCREEN_MARGIN and global_position.x < vp_rect.x + OFFSCREEN_MARGIN
+		and global_position.y > -OFFSCREEN_MARGIN and global_position.y < vp_rect.y + OFFSCREEN_MARGIN)
+	
+	if on_screen:
+		_update_shooting(delta)
+		_update_minefreak_spawn()
+		_update_arcane_spawn()
+		_update_graviton_spawn()
+	
+	# Handle wave firing (only if on screen)
+	if _is_firing_waves and on_screen:
 		_update_wave_firing(delta)
 	
-	# Vérifier si hors écran (en bas)
-	if global_position.y > get_viewport_rect().size.y + 100:
-		queue_free()
+	# Despawn si le path non-loop est terminé
+	if _path_reached_end:
+		_path_end_timer += delta
+		if _path_end_timer >= PATH_END_DESPAWN_DELAY:
+			queue_free()
+			return
+	
+	# Vérifier si hors écran (4 directions)
+	if not on_screen:
+		# Seulement après un délai pour laisser les ennemis entrer
+		if _move_time > 2.0:
+			queue_free()
+			return
 
 func _update_wave_firing(delta: float) -> void:
 	_wave_timer += delta
@@ -368,6 +389,10 @@ func _update_movement(delta: float) -> void:
 		path_follow.progress = fposmod(next_progress, _path_length)
 	else:
 		path_follow.progress = clampf(next_progress, 0.0, _path_length)
+		# Détecter la fin du chemin (non-loop)
+		if not _path_reached_end and path_follow.progress >= _path_length - 0.5:
+			_path_reached_end = true
+			_path_end_timer = 0.0
 
 	_sync_position_from_path()
 

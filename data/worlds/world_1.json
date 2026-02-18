@@ -38,6 +38,17 @@
 		  "enemy_modifier_id": ""
 		},
 		{
+		  "time": 5.0,
+		  "type": "obstacle",
+		  "obstacle_id": "planet_medium",
+		  "pattern": "slalom",
+		  "duration": 30.0,
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 1.5,
+		  "drift_directions": ["S", "SW", "S"]
+		},
+		{
 		  "time": 24.0,
 		  "enemy_id": "scout_basic",
 		  "count": 30,
@@ -71,6 +82,28 @@
 		  "count": 30,
 		  "interval": 0.7,
 		  "enemy_modifier_id": "waller"
+		},
+		{
+		  "time": 55.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "duration": 12.0,
+		  "speed": 180,
+		  "gap_width": 160,
+		  "row_interval": 1.0,
+		  "drift_speed": 15,
+		  "drift_directions": ["S", "SW", "S"]
+		},
+		{
+		  "time": 100.0,
+		  "type": "obstacle",
+		  "obstacle_id": "metal_wall",
+		  "pattern": "slalom",
+		  "duration": 10.0,
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 1.5
 		}
 	  ],
 	  "boss_id": "boss_world1",
@@ -104,6 +137,39 @@
 		  "enemy_id": "fighter_aggressive",
 		  "count": 3,
 		  "interval": 1.5
+		},
+		{
+		  "time": 5.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "duration": 20.0,
+		  "speed": 200,
+		  "gap_width": 180,
+		  "row_interval": 1.2,
+		  "drift_speed": 10
+		},
+		{
+		  "time": 30.0,
+		  "type": "obstacle",
+		  "obstacle_id": "energy_barrier",
+		  "pattern": "gates",
+		  "duration": 15.0,
+		  "speed": 160,
+		  "gap_width": 200,
+		  "row_interval": 2.0
+		},
+		{
+		  "time": 50.0,
+		  "type": "obstacle",
+		  "obstacle_id": "planet_small",
+		  "pattern": "rain",
+		  "duration": 15.0,
+		  "speed": 120,
+		  "gap_width": 200,
+		  "row_interval": 2.5,
+		  "drift_speed": 12,
+		  "drift_directions": ["E", "W", "SE", "SW"]
 		}
 	  ],
 	  "events": []

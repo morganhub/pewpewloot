@@ -674,6 +674,11 @@ var _external_displacement: Vector2 = Vector2.ZERO
 func apply_external_displacement(offset: Vector2) -> void:
 	_external_displacement += offset
 
+## Pousse le joueur vers le bas d'un montant donné (utilisé par les obstacles "pusher").
+## Si le joueur est poussé hors de l'écran, la mécanique de mort existante s'en charge.
+func push_down(y_amount: float) -> void:
+	apply_external_displacement(Vector2(0, y_amount))
+
 func _handle_movement(delta: float) -> void:
 	var use_joystick := false
 	var has_external_force := _external_displacement.length_squared() > 0.000001

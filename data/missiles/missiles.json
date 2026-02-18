@@ -52,7 +52,7 @@
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
-			"sound": "res://assets/sfx/combat/very_weak_laser.ogg",
+			"sound": "res://assets/sfx/combat/missile_soft.ogg",
 			"explosion": {}
 		},
 		{

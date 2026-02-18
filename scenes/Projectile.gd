@@ -84,8 +84,8 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	if is_player_projectile:
 		# Layer: PlayerProjectile (8)
 		collision_layer = 8
-		# Mask: Enemy (4) + World (1)
-		collision_mask = 4 + 1
+		# Mask: Enemy (4) + World (1) + Obstacles (32)
+		collision_mask = 4 + 1 + 32
 	else:
 		# Layer: EnemyProjectile (16)
 		collision_layer = 16
@@ -458,6 +458,18 @@ func _on_body_entered(body: Node2D) -> void:
 		_spawn_explosion()
 		deactivate()
 	
+	# Projectile joueur touche obstacle destructible (AnimatableBody2D / Pusher)
+	elif is_player_projectile and body.is_in_group("destructible_obstacles"):
+		if body.has_method("take_damage"):
+			body.take_damage(damage, is_critical)
+		_spawn_explosion()
+		deactivate("hit_obstacle")
+	
+	# Projectile joueur touche obstacle non-destructible (AnimatableBody2D)
+	elif is_player_projectile and body.is_in_group("obstacles"):
+		_spawn_explosion()
+		deactivate("hit_obstacle")
+	
 	# Projectile ennemi touche joueur
 	elif not is_player_projectile and body.is_in_group("player"):
 		# 3. Interaction avec les Projectiles - Check Shield
@@ -512,6 +524,20 @@ func _on_area_entered(area: Area2D) -> void:
 	if area.is_in_group("walls"):
 		# _spawn_explosion() # Disabled per request
 		deactivate("hit_wall")
+	
+	# Projectile joueur touche obstacle destructible (Area2D / Explosive)
+	elif is_player_projectile and area.is_in_group("destructible_obstacles"):
+		if area.has_method("take_damage"):
+			area.take_damage(damage, is_critical)
+		elif area.get_parent() and area.get_parent().has_method("take_damage"):
+			area.get_parent().take_damage(damage, is_critical)
+		_spawn_explosion()
+		deactivate("hit_obstacle")
+	
+	# Projectile joueur touche obstacle non-destructible (Area2D)
+	elif is_player_projectile and area.is_in_group("obstacles"):
+		_spawn_explosion()
+		deactivate("hit_obstacle")
 
 # =============================================================================
 # SKILL TREE ON-HIT EFFECTS

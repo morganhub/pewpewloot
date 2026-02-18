@@ -775,6 +775,21 @@ func is_skill_unlocked(skill_id: String) -> bool:
 func get_skill_rank(skill_id: String) -> int:
 	return int(get_skills_unlocked().get(skill_id, 0))
 
+## Returns total spent skill points (sum of ranks), optionally excluding one tree.
+func get_spent_skill_points(excluded_tree_id: String = "") -> int:
+	var unlocked := get_skills_unlocked()
+	var total_spent := 0
+	for skill_id in unlocked:
+		var rank := int(unlocked[skill_id])
+		if rank <= 0:
+			continue
+		if excluded_tree_id != "":
+			var tree_id := DataManager.get_skill_tree_for_id(str(skill_id))
+			if tree_id == excluded_tree_id:
+				continue
+		total_spent += rank
+	return total_spent
+
 ## Gain XP. Score = XP. Handles level ups and skill point grants.
 ## Returns a dict { "xp_gained", "old_level", "new_level", "skill_points_earned" }
 func gain_xp(amount: int) -> Dictionary:
@@ -830,12 +845,18 @@ func spend_skill_point(skill_id: String) -> bool:
 	if prereq != "" and not is_skill_unlocked(prereq):
 		return false
 
-	# Check tree-level unlock requirement (Pew Pew = level 15)
+	# Check tree-level unlock requirement.
+	# For Pew Pew, requirement means points spent in other trees.
 	var tree_id := DataManager.get_skill_tree_for_id(skill_id)
 	var tree_data := DataManager.get_skill_tree(tree_id)
 	var unlock_req := int(tree_data.get("unlock_requirement", 0))
-	if unlock_req > 0 and get_player_level() < unlock_req:
-		return false
+	if unlock_req > 0:
+		if tree_id == "pew_pew":
+			var spent_other_trees := get_spent_skill_points("pew_pew")
+			if spent_other_trees < unlock_req:
+				return false
+		elif get_player_level() < unlock_req:
+			return false
 
 	# Check Magic exclusivity
 	if tree_id == "magic":

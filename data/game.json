@@ -459,7 +459,7 @@
 				"frame_asset_loop": true
 			},
 			"shield": {
-				"asset": "g",
+				"asset": "",
 				"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
 				"background_asset_duration": 0.0,
 				"background_asset_loop": true,
@@ -479,6 +479,8 @@
 			}
 		},
 		"power_ups": {
+			"drift_enabled": true,
+			"drift_speed": 6,
 			"shield": {
 				"asset": "res://assets/ui/icons/shield.png",
 				"width": 70,
@@ -506,7 +508,9 @@
 		"loot": {
 			"asset": "res://assets/ui/icons/all.png",
 			"width": 70,
-			"height": 70
+			"height": 70,
+			"drift_enabled": true,
+			"drift_speed": 8
 		},
 		"sfx": {
 			"gain": {
@@ -556,6 +560,18 @@
 					"background": "#B65C1E",
 					"text_size": 22,
 					"text_color": "#FFFFFF"
+				}
+			},
+			"state_buttons": {
+				"locked": {
+					"asset": "res://assets/ui/buttons/locked.png",
+					"width": 70,
+					"height": 70
+				},
+				"unlocked": {
+					"asset": "res://assets/ui/buttons/unlocked.png",
+					"width": 70,
+					"height": 70
 				}
 			},
 			"blocks": {

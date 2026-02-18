@@ -1,0 +1,117 @@
+{
+	"obstacles": {
+		"asteroid_small": {
+			"id": "asteroid_small",
+			"type": "explosive",
+			"shape": "circle",
+			"radius": 20,
+			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"damage": 25,
+			"is_destructible": true,
+			"hp": 15,
+			"drift_speed": 15
+		},
+		"asteroid_medium": {
+			"id": "asteroid_medium",
+			"type": "explosive",
+			"shape": "circle",
+			"radius": 30,
+			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"damage": 40,
+			"is_destructible": true,
+			"hp": 40,
+			"drift_speed": 10
+		},
+		"asteroid_large": {
+			"id": "asteroid_large",
+			"type": "explosive",
+			"shape": "circle",
+			"radius": 40,
+			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"damage": 60,
+			"is_destructible": true,
+			"hp": 80,
+			"drift_speed": 8
+		},
+		"planet_small": {
+			"id": "planet_small",
+			"type": "pusher",
+			"shape": "circle",
+			"radius": 60,
+			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"damage": 0,
+			"is_destructible": false,
+			"hp": 0,
+			"drift_speed": 12
+		},
+		"planet_medium": {
+			"id": "planet_medium",
+			"type": "pusher",
+			"shape": "circle",
+			"radius": 90,
+			"sprite_path": "res://assets/levels/planets/planet_1.tres",
+			"damage": 0,
+			"is_destructible": false,
+			"hp": 0,
+			"drift_speed": 148
+		},
+		"planet_large": {
+			"id": "planet_large",
+			"type": "pusher",
+			"shape": "circle",
+			"radius": 120,
+			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"damage": 0,
+			"is_destructible": false,
+			"hp": 0,
+			"drift_speed": 5
+		},
+		"metal_wall": {
+			"id": "metal_wall",
+			"type": "pusher",
+			"shape": "rectangle",
+			"width": 200,
+			"height": 30,
+			"sprite_path": "res://icon.svg",
+			"damage": 0,
+			"is_destructible": false,
+			"hp": 0,
+			"drift_speed": 0
+		},
+		"metal_wall_destructible": {
+			"id": "metal_wall_destructible",
+			"type": "pusher",
+			"shape": "rectangle",
+			"width": 200,
+			"height": 30,
+			"sprite_path": "res://icon.svg",
+			"damage": 0,
+			"is_destructible": true,
+			"hp": 100,
+			"drift_speed": 0
+		},
+		"debris_small": {
+			"id": "debris_small",
+			"type": "explosive",
+			"shape": "circle",
+			"radius": 15,
+			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"damage": 15,
+			"is_destructible": false,
+			"hp": 0,
+			"drift_speed": 20
+		},
+		"energy_barrier": {
+			"id": "energy_barrier",
+			"type": "pusher",
+			"shape": "rectangle",
+			"width": 250,
+			"height": 20,
+			"sprite_path": "res://icon.svg",
+			"damage": 0,
+			"is_destructible": true,
+			"hp": 60,
+			"drift_speed": 0
+		}
+	}
+}

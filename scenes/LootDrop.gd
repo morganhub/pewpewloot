@@ -2,6 +2,7 @@ extends Area2D
 
 ## LootDrop — Item qui tombe et peut être collecté par le joueur.
 ## Représenté par une forme jaune (placeholder).
+## Supporte un drift lent dans une direction aléatoire (configurable dans game.json).
 
 # =============================================================================
 # PROPERTIES
@@ -10,8 +11,22 @@ extends Area2D
 var item_data: Dictionary = {}
 var fall_speed: float = 100.0
 var _is_collected: bool = false
+var _drift_velocity: Vector2 = Vector2.ZERO
+var _viewport_width: float = 0.0
 
 @onready var visual: Polygon2D = $Visual
+
+# Directions de drift (normalisées)
+const DRIFT_DIR_VECTORS: Array = [
+	Vector2(0, -1),         # N
+	Vector2(0.7071, -0.7071), # NE
+	Vector2(1, 0),          # E
+	Vector2(0.7071, 0.7071),  # SE
+	Vector2(0, 1),          # S
+	Vector2(-0.7071, 0.7071), # SW
+	Vector2(-1, 0),         # W
+	Vector2(-0.7071, -0.7071) # NW
+]
 
 # =============================================================================
 # LIFECYCLE
@@ -114,12 +129,46 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	
 	# Animation de pulsation
 	_start_pulse_animation()
+	
+	# Drift lent dans une direction aléatoire (lecture config game.json)
+	_setup_drift()
+
+func _setup_drift() -> void:
+	var gameplay_cfg: Dictionary = DataManager.get_game_data().get("gameplay", {})
+	var is_powerup: bool = str(item_data.get("type", "")) == "powerup"
+	
+	var drift_enabled: bool = false
+	var drift_speed: float = 0.0
+	
+	if is_powerup:
+		var pu_cfg: Dictionary = gameplay_cfg.get("power_ups", {})
+		drift_enabled = bool(pu_cfg.get("drift_enabled", false))
+		drift_speed = float(pu_cfg.get("drift_speed", 0.0))
+	else:
+		var loot_cfg_v: Variant = gameplay_cfg.get("loot", {})
+		if loot_cfg_v is Dictionary:
+			var loot_cfg := loot_cfg_v as Dictionary
+			drift_enabled = bool(loot_cfg.get("drift_enabled", false))
+			drift_speed = float(loot_cfg.get("drift_speed", 0.0))
+	
+	if drift_enabled and drift_speed > 0.0:
+		var random_dir: Vector2 = DRIFT_DIR_VECTORS[randi() % DRIFT_DIR_VECTORS.size()]
+		_drift_velocity = random_dir * drift_speed
+	
+	_viewport_width = get_viewport_rect().size.x
 
 func _process(delta: float) -> void:
 	if _is_collected:
 		return
 
 	global_position.y += fall_speed * delta
+	
+	# Drift lent
+	if _drift_velocity != Vector2.ZERO:
+		global_position += _drift_velocity * delta
+		# Clamper X pour ne pas sortir de l'écran
+		if _viewport_width > 0.0:
+			global_position.x = clampf(global_position.x, 10.0, _viewport_width - 10.0)
 
 	var player_node: Node = get_tree().get_first_node_in_group("player")
 	if player_node and player_node is Node2D:

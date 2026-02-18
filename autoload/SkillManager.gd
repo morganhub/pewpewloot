@@ -292,8 +292,13 @@ func can_unlock_skill(skill_id: String) -> bool:
 	var tree_id := DataManager.get_skill_tree_for_id(skill_id)
 	var tree_data := DataManager.get_skill_tree(tree_id)
 	var unlock_req := int(tree_data.get("unlock_requirement", 0))
-	if unlock_req > 0 and ProfileManager.get_player_level() < unlock_req:
-		return false
+	if unlock_req > 0:
+		if tree_id == "pew_pew":
+			var spent_other_trees := ProfileManager.get_spent_skill_points("pew_pew")
+			if spent_other_trees < unlock_req:
+				return false
+		elif ProfileManager.get_player_level() < unlock_req:
+			return false
 
 	# Magic exclusivity
 	if tree_id == "magic":

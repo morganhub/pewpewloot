@@ -191,11 +191,11 @@ func spawn_explosion(
 				timer_tween.tween_property(anim_sprite, "modulate:a", 0.0, fade_time)
 				timer_tween.tween_callback(explosion.queue_free)
 			else:
-				var cleanup_started: bool = false
+				var cleanup_state: Array = [false]  # [0] = started flag (array avoids capture reassign warning)
 				var cleanup: Callable = func():
-					if cleanup_started:
+					if cleanup_state[0]:
 						return
-					cleanup_started = true
+					cleanup_state[0] = true
 					if is_instance_valid(anim_sprite) and not asset_anim_loop:
 						freeze_last_frame(anim_sprite, played_anim)
 					if is_instance_valid(anim_sprite):

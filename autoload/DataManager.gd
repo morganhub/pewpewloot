@@ -23,6 +23,7 @@ var _boss_powers: Dictionary = {} # power_id -> data
 var _effects: Dictionary = {} # effect_id -> data
 var _game_config: Dictionary = {} # game.json data
 var _skills: Dictionary = {} # skills.json data
+var _obstacles: Dictionary = {} # obstacle_id -> data
 
 var _default_unlocked_ships: Array = []
 
@@ -43,6 +44,7 @@ func _load_all_data() -> void:
 	_load_level_modifiers()
 	_load_effects()
 	_load_skills()
+	_load_obstacles()
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
 	print("[DataManager] Ships: ", _ships.size())
@@ -53,6 +55,7 @@ func _load_all_data() -> void:
 	print("[DataManager] Slots: ", _slots.size())
 	print("[DataManager] Rarities: ", _rarities.size())
 	print("[DataManager] Uniques: ", _uniques.size())
+	print("[DataManager] Obstacles: ", _obstacles.size())
 
 
 # =============================================================================
@@ -642,3 +645,26 @@ func _load_level_modifiers() -> void:
 
 func get_level_upgrade_data(level: int) -> Dictionary:
 	return _level_modifiers.get(level, {})
+
+# =============================================================================
+# OBSTACLES DATA (obstacles.json)
+# =============================================================================
+
+func _load_obstacles() -> void:
+	_obstacles.clear()
+	var data := _load_json("res://data/obstacles.json")
+	var raw_obstacles: Variant = data.get("obstacles", {})
+	if raw_obstacles is Dictionary:
+		for key in raw_obstacles:
+			var entry: Variant = raw_obstacles[key]
+			if entry is Dictionary:
+				var o_dict := entry as Dictionary
+				var o_id: String = str(o_dict.get("id", key))
+				_obstacles[o_id] = o_dict
+	print("[DataManager] Obstacles loaded: ", _obstacles.size())
+
+func get_obstacle(obstacle_id: String) -> Dictionary:
+	return _obstacles.get(obstacle_id, {})
+
+func get_all_obstacles() -> Dictionary:
+	return _obstacles

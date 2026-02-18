@@ -1,11 +1,14 @@
 extends Node
 
-## WaveManager — Gère le spawn des vagues d'ennemis.
-## Lit les données de niveau et instancie les ennemis via Game.gd.
+## WaveManager — Gère le spawn des vagues d'ennemis et d'obstacles.
+## Lit les données de niveau et instancie les ennemis/obstacles via Game.gd.
 
 signal spawn_enemy(enemy_data: Dictionary, spawn_pos: Vector2)
+signal spawn_obstacle(obstacle_data: Dictionary, positions: Array, speed: float)
 signal level_completed
 signal wave_started(wave_index: int)
+
+const ObstacleSpawnerScript: Script = preload("res://scenes/obstacles/ObstacleSpawner.gd")
 
 var _current_level_data: Dictionary = {}
 var _waves: Array = []
@@ -14,6 +17,7 @@ var _level_time: float = 0.0
 var _is_active: bool = false
 var _pending_spawns: Array = [] # {time, enemy_id, pattern_id}
 var _available_move_pattern_ids: Array[String] = []
+var _active_obstacle_spawners: Array = [] # Active ObstacleSpawner nodes
 
 const DEFAULT_MOVE_PATTERN_ID := "linear_cross_fast"
 const DEBUG_WAVE_PATTERN_LOG := true
@@ -36,6 +40,12 @@ func setup(level_id: String) -> void:
 func stop() -> void:
 	_is_active = false
 	_pending_spawns.clear()
+	# Arrêter tous les spawners d'obstacles actifs
+	for spawner in _active_obstacle_spawners:
+		if is_instance_valid(spawner):
+			spawner.stop()
+			spawner.queue_free()
+	_active_obstacle_spawners.clear()
 
 func _process(delta: float) -> void:
 	if not _is_active:
@@ -49,7 +59,12 @@ func _check_waves() -> void:
 	if _current_wave_index >= _waves.size():
 		# Plus de vagues à lancer, attendre que tout soit clean ? 
 		# Pour l'instant on considère le niveau fini quand le temps dépasse la dernière vague + marge
-		if _pending_spawns.is_empty() and _level_time > _get_last_wave_time() + 10.0:
+		var all_spawners_done := true
+		for spawner in _active_obstacle_spawners:
+			if is_instance_valid(spawner):
+				all_spawners_done = false
+				break
+		if _pending_spawns.is_empty() and all_spawners_done and _level_time > _get_last_wave_time() + 10.0:
 			if _is_active:
 				_is_active = false
 				level_completed.emit()
@@ -72,6 +87,15 @@ func _start_wave(wave: Dictionary) -> void:
 	print("[WaveManager] Starting wave at time: ", wave.get("time"))
 	wave_started.emit(_current_wave_index)
 	
+	var wave_type: String = str(wave.get("type", "enemy"))
+	
+	match wave_type:
+		"obstacle":
+			_start_obstacle_wave(wave)
+		_:
+			_start_enemy_wave(wave)
+
+func _start_enemy_wave(wave: Dictionary) -> void:
 	var enemy_id: String = str(wave.get("enemy_id", "enemy_basic"))
 	var count: int = int(wave.get("count", 1))
 	var interval: float = float(wave.get("interval", 1.0))
@@ -91,6 +115,28 @@ func _start_wave(wave: Dictionary) -> void:
 			"pattern_id": pattern_id,
 			"modifier_id": modifier_id
 		})
+
+func _start_obstacle_wave(wave: Dictionary) -> void:
+	var spawner_node: Node = ObstacleSpawnerScript.new()
+	spawner_node.name = "ObstacleSpawner_" + str(_current_wave_index)
+	add_child(spawner_node)
+	
+	spawner_node.setup(wave)
+	spawner_node.obstacle_spawn_request.connect(_on_obstacle_spawn_request)
+	spawner_node.finished.connect(_on_obstacle_spawner_finished.bind(spawner_node))
+	_active_obstacle_spawners.append(spawner_node)
+	
+	print("[WaveManager] Obstacle wave started: pattern=", wave.get("pattern"),
+		" obstacle=", wave.get("obstacle_id"))
+
+func _on_obstacle_spawn_request(obstacle_data: Dictionary, positions: Array, speed: float) -> void:
+	spawn_obstacle.emit(obstacle_data, positions, speed)
+
+func _on_obstacle_spawner_finished(spawner: Node) -> void:
+	print("[WaveManager] Obstacle spawner finished: ", spawner.name)
+	_active_obstacle_spawners.erase(spawner)
+	if is_instance_valid(spawner):
+		spawner.queue_free()
 
 func _refresh_move_pattern_pool() -> void:
 	_available_move_pattern_ids.clear()

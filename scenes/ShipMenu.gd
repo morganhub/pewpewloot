@@ -2637,51 +2637,30 @@ func _get_rarity_color(rarity_id: String) -> Color:
 # =============================================================================
 
 func _calculate_ship_stats(ship_id: String) -> Dictionary:
-	var base_ship = DataManager.get_ship(ship_id)
-	var base_stats = base_ship.get("stats", {})
-	var final_stats = base_stats.duplicate(true)
+	# Reuse the gameplay stat pipeline so ShipMenu and in-game values stay aligned,
+	# including Pew Pew/Paragon modifiers from SkillManager.
+	var final_stats: Dictionary = {}
+	if StatsCalculator and StatsCalculator.has_method("calculate_ship_stats"):
+		final_stats = StatsCalculator.calculate_ship_stats(ship_id)
 	
-	# Compute "Calculated" fields that aren't in raw JSON directly sometimes
-	# or initialize defaults
-	final_stats.special_damage = final_stats.get("special_damage", 0)
+	if final_stats.is_empty():
+		var base_ship = DataManager.get_ship(ship_id)
+		var base_stats = base_ship.get("stats", {})
+		if base_stats is Dictionary:
+			final_stats = (base_stats as Dictionary).duplicate(true)
+		else:
+			final_stats = {}
 	
-	# Equipment Modifiers
-	var loadout = ProfileManager.get_loadout_for_ship(ship_id)
-	for slot_id in loadout:
-		if slot_id == "selected_unique_power": continue
-		var item_id = str(loadout[slot_id])
-		if item_id == "": continue
-		var item = ProfileManager.get_item_by_id(item_id)
-		if item.is_empty(): continue
-		
-		# Apply ITEM stats
-		var i_stats = item.get("stats", {})
-		for stat_key in i_stats:
-			var val = float(i_stats[stat_key])
-			
-			# Map affix stat names to ship stat names
-			# LootGenerator uses: "power", "max_hp", "move_speed", "crit_chance", "dodge_chance",
-			#   "fire_rate", "missile_speed_pct", "special_cd", "special_damage"
-			# Legacy items may use: "hp", "speed", "dodge", "cd_reduction"
-			
-			# Direct match stats (new LootGenerator format)
-			if stat_key in ["power", "max_hp", "move_speed", "fire_rate", "missile_speed_pct", "special_damage", "damage_reduction"]:
-				final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + val
-			elif stat_key in ["crit_chance", "dodge_chance"]:
-				# Values are stored in 1-100 format, add directly
-				final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + val
-			elif stat_key == "special_cd":
-				final_stats.special_cd = float(final_stats.get("special_cd", 10.0)) + val  # val is negative for reduction
-			# Legacy format fallbacks
-			elif stat_key == "speed":
-				final_stats.move_speed = float(final_stats.get("move_speed", 200.0)) + val
-			elif stat_key == "hp":
-				final_stats.max_hp = float(final_stats.get("max_hp", 100)) + val
-			elif stat_key == "dodge":
-				var d_val = val
-				final_stats.dodge_chance = float(final_stats.get("dodge_chance", 2.0)) + d_val
-			elif stat_key == "cd_reduction":
-				final_stats.special_cd = max(1.0, float(final_stats.get("special_cd", 10.0)) * (1.0 - (val / 100.0)))
+	# Ensure required keys exist for ShipMenu display calculations.
+	final_stats["power"] = float(final_stats.get("power", 10.0))
+	final_stats["max_hp"] = float(final_stats.get("max_hp", 100.0))
+	final_stats["move_speed"] = float(final_stats.get("move_speed", 200.0))
+	final_stats["fire_rate"] = float(final_stats.get("fire_rate", 0.3))
+	final_stats["missile_speed_pct"] = float(final_stats.get("missile_speed_pct", 100.0))
+	final_stats["crit_chance"] = float(final_stats.get("crit_chance", 5.0))
+	final_stats["dodge_chance"] = float(final_stats.get("dodge_chance", 2.0))
+	final_stats["special_damage"] = float(final_stats.get("special_damage", 0.0))
+	final_stats["special_cd"] = max(1.0, float(final_stats.get("special_cd", 10.0)))
 	
 	
 	# Composite Scores for UI

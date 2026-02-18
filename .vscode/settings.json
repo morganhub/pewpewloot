@@ -1,5 +1,13 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "Set-Content": true
+        "Set-Content": true,
+        "/^python -c \"import json; json\\.load\\(open\\(r'c:\\\\Tafor\\\\Projet\\\\pewpewloot\\\\data\\\\obstacles\\.json'\\)\\); print\\('obstacles\\.json OK'\\); json\\.load\\(open\\(r'c:\\\\Tafor\\\\Projet\\\\pewpewloot\\\\data\\\\worlds\\\\world_1\\.json'\\)\\); print\\('world_1\\.json OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"import json; json\\.load\\(open\\(r'c:\\\\Tafor\\\\Projet\\\\pewpewloot\\\\data\\\\obstacles\\.json'\\)\\); print\\('OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }
