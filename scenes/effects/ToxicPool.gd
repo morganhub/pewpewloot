@@ -13,6 +13,8 @@ var _visual_asset_anim: String = ""
 var _visual_asset_anim_duration: float = 0.0
 var _visual_asset_anim_loop: bool = true
 var _visual_size: float = 120.0
+var _pool_fluid_id: String = ""
+var _fluid_pool_handle: int = -1
 const TICK_INTERVAL: float = 0.5
 
 func setup(radius: float, duration: float, dps: float, visual_data: Dictionary = {}) -> void:
@@ -24,8 +26,12 @@ func setup(radius: float, duration: float, dps: float, visual_data: Dictionary =
 	_visual_asset_anim_duration = maxf(0.0, float(visual_data.get("asset_anim_duration", 0.0)))
 	_visual_asset_anim_loop = bool(visual_data.get("asset_anim_loop", true))
 	_visual_size = maxf(20.0, float(visual_data.get("size", pool_radius * 2.0)))
+	_pool_fluid_id = str(visual_data.get("pool_fluid_id", ""))
 	_update_visuals()
 	_update_shape()
+	# Démarrer le fluid pool si un preset est défini
+	if _pool_fluid_id != "" and FluidManager.is_active():
+		_fluid_pool_handle = FluidManager.start_pool(global_position, _pool_fluid_id, pool_radius, pool_duration)
 
 func _ready() -> void:
 	collision_layer = 0
@@ -50,6 +56,10 @@ func _update_shape() -> void:
 			circle.radius = pool_radius
 
 func _update_visuals() -> void:
+	# Si un fluid pool est actif, pas besoin de visuel .tres
+	if _pool_fluid_id != "":
+		return
+
 	var old := get_node_or_null("PoolVisual")
 	if old:
 		old.queue_free()
@@ -107,6 +117,10 @@ func _apply_damage() -> void:
 			body.apply_status_effect(poison)
 
 func _fade_and_die() -> void:
+	# Arrêter le fluid pool si actif
+	if _fluid_pool_handle >= 0:
+		FluidManager.stop_pool(_fluid_pool_handle)
+		_fluid_pool_handle = -1
 	var tween := create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(queue_free)

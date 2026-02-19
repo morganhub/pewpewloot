@@ -32,6 +32,7 @@ PowerManager="*res://autoload/PowerManager.gd"
 LootGenerator="*res://autoload/LootGenerator.gd"
 StatsCalculator="*res://autoload/StatsCalculator.gd"
 SkillManager="*res://autoload/SkillManager.gd"
+FluidManager="*res://autoload/FluidManager.gd"
 
 [display]
 

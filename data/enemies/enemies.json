@@ -14,7 +14,8 @@
             "pattern": "straight_down",
             "fire_rate": 1.5,
             "projectile_type": "enemy_basic",
-            "loot_chance": 0.05
+            "loot_chance": 0.05,
+            "fluid_id": ""
         },
         {
             "id": "fighter",
@@ -30,7 +31,8 @@
             "pattern": "zigzag",
             "fire_rate": 1.0,
             "projectile_type": "enemy_double",
-            "loot_chance": 0.10
+            "loot_chance": 0.10,
+            "fluid_id": ""
         },
         {
             "id": "bomber",
@@ -46,7 +48,8 @@
             "pattern": "hover_drop",
             "fire_rate": 2.5,
             "projectile_type": "bomb",
-            "loot_chance": 0.15
+            "loot_chance": 0.15,
+            "fluid_id": ""
         },
         {
             "id": "elite_fighter",
@@ -62,7 +65,8 @@
             "pattern": "erratic",
             "fire_rate": 0.6,
             "projectile_type": "enemy_burst",
-            "loot_chance": 0.30
+            "loot_chance": 0.30,
+            "fluid_id": ""
         },
         {
             "id": "asteroid_guardian",
@@ -103,7 +107,8 @@
                     ]
                 }
             ],
-            "loot_table": "boss_world_1"
+            "loot_table": "boss_world_1",
+            "fluid_id": ""
         },
         {
             "id": "corrupted_scout",
@@ -119,7 +124,8 @@
             "pattern": "haunting",
             "fire_rate": 1.2,
             "projectile_type": "corruption_bolt",
-            "loot_chance": 0.08
+            "loot_chance": 0.08,
+            "fluid_id": ""
         },
         {
             "id": "ghost_drone",
@@ -136,7 +142,8 @@
             "fire_rate": 1.8,
             "projectile_type": "spectral_shot",
             "special_ability": "phase_through",
-            "loot_chance": 0.12
+            "loot_chance": 0.12,
+            "fluid_id": ""
         }
     ]
 }

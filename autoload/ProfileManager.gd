@@ -91,6 +91,12 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		migrated["loadouts"] = {}
 		needs_save = true
 
+	# Migration: sanitize inventory entries and enforce unique instance IDs.
+	var inv_sanitized := _sanitize_inventory_entries(migrated.get("inventory", []))
+	if bool(inv_sanitized.get("changed", false)):
+		migrated["inventory"] = inv_sanitized.get("items", [])
+		needs_save = true
+
 	# Migration: crystals
 	if not migrated.has("crystals"):
 		migrated["crystals"] = 0
@@ -134,6 +140,112 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		print("[ProfileManager] Migrated profile: ", str(migrated.get("name", "unknown")))
 	
 	return migrated
+
+func _sanitize_inventory_entries(raw_inventory: Variant) -> Dictionary:
+	var sanitized: Array = []
+	var used_ids: Dictionary = {}
+	var changed: bool = false
+
+	if not (raw_inventory is Array):
+		return {
+			"items": sanitized,
+			"ids": used_ids,
+			"changed": true
+		}
+
+	for entry in (raw_inventory as Array):
+		if not (entry is Dictionary):
+			changed = true
+			continue
+
+		var item := (entry as Dictionary).duplicate(true)
+		var item_id: String = str(item.get("id", "")).strip_edges()
+		var is_unique: bool = bool(item.get("is_unique", false))
+		var unique_template_id: String = str(item.get("unique_template_id", "")).strip_edges()
+
+		# Backward-compat: old unique instances used the base unique ID as item ID.
+		if is_unique and unique_template_id == "":
+			if item_id != "" and not DataManager.get_unique(item_id).is_empty():
+				unique_template_id = item_id
+				item["unique_template_id"] = unique_template_id
+				changed = true
+
+		if item_id == "":
+			item_id = _generate_inventory_instance_id("item_instance", used_ids)
+			item["id"] = item_id
+			changed = true
+		elif used_ids.has(item_id):
+			var id_prefix: String = unique_template_id if unique_template_id != "" else item_id
+			item_id = _generate_inventory_instance_id(id_prefix, used_ids)
+			item["id"] = item_id
+			changed = true
+
+		used_ids[item_id] = true
+		sanitized.append(item)
+
+	return {
+		"items": sanitized,
+		"ids": used_ids,
+		"changed": changed
+	}
+
+func _sanitize_loadouts_against_inventory(raw_loadouts: Variant, valid_item_ids: Variant) -> Dictionary:
+	var result: Dictionary = {}
+	var changed: bool = false
+	var valid_ids: Dictionary = {}
+	if valid_item_ids is Dictionary:
+		valid_ids = valid_item_ids as Dictionary
+
+	if not (raw_loadouts is Dictionary):
+		return {
+			"loadouts": result,
+			"changed": true
+		}
+
+	for ship_id in (raw_loadouts as Dictionary).keys():
+		var ship_raw: Variant = (raw_loadouts as Dictionary).get(ship_id, {})
+		if not (ship_raw is Dictionary):
+			changed = true
+			continue
+
+		var clean_ship: Dictionary = {}
+		var ship_dict := ship_raw as Dictionary
+		for slot_id in ship_dict.keys():
+			if slot_id == "selected_unique_power":
+				clean_ship[slot_id] = ship_dict[slot_id]
+				continue
+
+			var item_id: String = str(ship_dict.get(slot_id, "")).strip_edges()
+			if item_id == "":
+				changed = true
+				continue
+
+			if valid_ids.has(item_id):
+				clean_ship[slot_id] = item_id
+			else:
+				changed = true
+
+		result[str(ship_id)] = clean_ship
+
+	return {
+		"loadouts": result,
+		"changed": changed
+	}
+
+func _generate_inventory_instance_id(prefix: String, used_ids: Dictionary) -> String:
+	var safe_prefix: String = prefix.strip_edges()
+	if safe_prefix == "":
+		safe_prefix = "item_instance"
+
+	var candidate: String = ""
+	var attempts: int = 0
+	while attempts < 1024:
+		candidate = safe_prefix + "__" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000000)
+		if not used_ids.has(candidate):
+			return candidate
+		attempts += 1
+
+	return safe_prefix + "__" + str(Time.get_unix_time_from_system()) + "_" + str(randi())
 
 func _create_default_progress() -> Dictionary:
 	return {
@@ -415,23 +527,26 @@ func unlock_ship(ship_id: String) -> void:
 func get_inventory() -> Array:
 	var profile := get_active_profile()
 	var inv: Variant = profile.get("inventory", [])
-	if inv is Array:
-		return inv as Array
-	return []
+	var sanitized := _sanitize_inventory_entries(inv)
+	var items_variant: Variant = sanitized.get("items", [])
+	var items: Array = []
+	if items_variant is Array:
+		items = items_variant as Array
+
+	if bool(sanitized.get("changed", false)):
+		_update_active_profile("inventory", items)
+
+	return items
 
 ## Constante: Limite d'inventaire (10 pages × 16 items)
 const MAX_INVENTORY_SIZE := 160
 
 ## Ajoute un item à l'inventaire
 func add_item_to_inventory(item: Dictionary) -> bool:
-	var profile := get_active_profile()
-	var inv: Variant = profile.get("inventory", [])
-	var inv_array: Array = []
-	if inv is Array:
-		inv_array = (inv as Array).duplicate()
+	var inv_array: Array = get_inventory().duplicate(true)
 	
 	# Vérifier la limite
-	if inv_array.size() >= MAX_INVENTORY_SIZE:
+	if get_unequipped_inventory_count() >= MAX_INVENTORY_SIZE:
 		push_warning("[ProfileManager] Inventory full! Cannot add item.")
 		return false
 	
@@ -441,12 +556,17 @@ func add_item_to_inventory(item: Dictionary) -> bool:
 		item_copy["level"] = 1
 	
 	inv_array.append(item_copy)
-	_update_active_profile("inventory", inv_array)
+	var sanitized := _sanitize_inventory_entries(inv_array)
+	var items_to_save: Variant = sanitized.get("items", inv_array)
+	if items_to_save is Array:
+		_update_active_profile("inventory", items_to_save as Array)
+	else:
+		_update_active_profile("inventory", inv_array)
 	return true
 
 ## Vérifie si l'inventaire est plein
 func is_inventory_full() -> bool:
-	return get_inventory().size() >= MAX_INVENTORY_SIZE
+	return get_unequipped_inventory_count() >= MAX_INVENTORY_SIZE
 
 ## Retourne la taille maximale de l'inventaire
 func get_max_inventory_size() -> int:
@@ -454,11 +574,12 @@ func get_max_inventory_size() -> int:
 
 ## Supprime un item de l'inventaire par son ID
 func remove_item_from_inventory(item_id: String) -> void:
-	var profile := get_active_profile()
-	var inv: Variant = profile.get("inventory", [])
-	var inv_array: Array = []
-	if inv is Array:
-		inv_array = (inv as Array).duplicate()
+	# Safety: never remove an equipped item directly.
+	if is_item_equipped(item_id):
+		push_warning("[ProfileManager] Attempt to remove equipped item blocked: " + item_id)
+		return
+
+	var inv_array: Array = get_inventory().duplicate(true)
 	
 	for i in range(inv_array.size()):
 		var item: Variant = inv_array[i]
@@ -467,6 +588,21 @@ func remove_item_from_inventory(item_id: String) -> void:
 			break
 	
 	_update_active_profile("inventory", inv_array)
+
+func get_unequipped_inventory_count() -> int:
+	var inv := get_inventory()
+	var equipped_ids := get_all_equipped_item_ids()
+	var count: int = 0
+	for item in inv:
+		if not (item is Dictionary):
+			continue
+		var item_id: String = str((item as Dictionary).get("id", "")).strip_edges()
+		if item_id == "":
+			continue
+		if equipped_ids.has(item_id):
+			continue
+		count += 1
+	return count
 
 ## Trouve un item dans l'inventaire par son ID
 func get_item_by_id(item_id: String) -> Dictionary:
@@ -665,9 +801,14 @@ func get_available_unique_powers(ship_id: String) -> Array:
 		if item.is_empty(): continue
 		
 		var power_id: String = str(item.get("unique_power_id", ""))
+		if power_id == "":
+			power_id = str(item.get("special_ability_id", ""))
 		# Fallback: Check base unique definition in DataManager
 		if power_id == "":
-			var base_unique := DataManager.get_unique(item_id)
+			var template_id: String = str(item.get("unique_template_id", ""))
+			if template_id == "":
+				template_id = item_id
+			var base_unique := DataManager.get_unique(template_id)
 			if not base_unique.is_empty():
 				power_id = str(base_unique.get("unique_power_id", ""))
 		

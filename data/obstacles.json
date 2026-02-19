@@ -4,67 +4,103 @@
 			"id": "asteroid_small",
 			"type": "explosive",
 			"shape": "circle",
-			"radius": 20,
-			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"radius_min": 16,
+			"radius_max": 24,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 25,
 			"is_destructible": true,
 			"hp": 15,
-			"drift_speed": 15
+			"drift_speed": 15,
+			"fluid_id": ""
 		},
 		"asteroid_medium": {
 			"id": "asteroid_medium",
 			"type": "explosive",
 			"shape": "circle",
-			"radius": 30,
-			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"radius_min": 25,
+			"radius_max": 38,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 40,
 			"is_destructible": true,
 			"hp": 40,
-			"drift_speed": 10
+			"drift_speed": 10,
+			"fluid_id": ""
 		},
 		"asteroid_large": {
 			"id": "asteroid_large",
 			"type": "explosive",
 			"shape": "circle",
-			"radius": 40,
-			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"radius_min": 35,
+			"radius_max": 50,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 60,
 			"is_destructible": true,
 			"hp": 80,
-			"drift_speed": 8
+			"drift_speed": 8,
+			"fluid_id": ""
 		},
 		"planet_small": {
 			"id": "planet_small",
 			"type": "pusher",
 			"shape": "circle",
-			"radius": 60,
-			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"radius_min": 50,
+			"radius_max": 70,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 0,
 			"is_destructible": false,
 			"hp": 0,
-			"drift_speed": 12
+			"drift_speed": 12,
+			"fluid_id": ""
 		},
 		"planet_medium": {
 			"id": "planet_medium",
 			"type": "pusher",
 			"shape": "circle",
-			"radius": 90,
-			"sprite_path": "res://assets/levels/planets/planet_1.tres",
+			"radius_min": 75,
+			"radius_max": 105,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 0,
 			"is_destructible": false,
 			"hp": 0,
-			"drift_speed": 148
+			"drift_speed": 8,
+			"fluid_id": ""
 		},
 		"planet_large": {
 			"id": "planet_large",
 			"type": "pusher",
 			"shape": "circle",
-			"radius": 120,
-			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"radius_min": 100,
+			"radius_max": 140,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 0,
 			"is_destructible": false,
 			"hp": 0,
-			"drift_speed": 5
+			"drift_speed": 5,
+			"fluid_id": ""
 		},
 		"metal_wall": {
 			"id": "metal_wall",
@@ -72,11 +108,18 @@
 			"shape": "rectangle",
 			"width": 200,
 			"height": 30,
-			"sprite_path": "res://icon.svg",
+			"width_min": 160,
+			"width_max": 240,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 0,
 			"is_destructible": false,
 			"hp": 0,
-			"drift_speed": 0
+			"drift_speed": 0,
+			"fluid_id": ""
 		},
 		"metal_wall_destructible": {
 			"id": "metal_wall_destructible",
@@ -84,22 +127,35 @@
 			"shape": "rectangle",
 			"width": 200,
 			"height": 30,
-			"sprite_path": "res://icon.svg",
+			"width_min": 160,
+			"width_max": 240,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 0,
 			"is_destructible": true,
 			"hp": 100,
-			"drift_speed": 0
+			"drift_speed": 0,
+			"fluid_id": ""
 		},
 		"debris_small": {
 			"id": "debris_small",
 			"type": "explosive",
 			"shape": "circle",
-			"radius": 15,
-			"sprite_path": "res://assets/enemies/enemy_basic.png",
+			"radius_min": 10,
+			"radius_max": 20,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 15,
 			"is_destructible": false,
 			"hp": 0,
-			"drift_speed": 20
+			"drift_speed": 20,
+			"fluid_id": ""
 		},
 		"energy_barrier": {
 			"id": "energy_barrier",
@@ -107,11 +163,18 @@
 			"shape": "rectangle",
 			"width": 250,
 			"height": 20,
-			"sprite_path": "res://icon.svg",
+			"width_min": 200,
+			"width_max": 300,
+			"sprite_path": [
+				"res://assets/levels/planets/planet_1.tres"
+			],
+			"sprite_duration": 0.0,
+			"sprite_loop": true,
 			"damage": 0,
 			"is_destructible": true,
 			"hp": 60,
-			"drift_speed": 0
+			"drift_speed": 0,
+			"fluid_id": ""
 		}
 	}
 }

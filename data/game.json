@@ -1,4 +1,7 @@
 {
+	"default_explosion": {
+		"fluid_id": "explosion_burst"
+	},
 	"main_menu": {
 		"background": "res://assets/ui/main_menu_bg.jpg",
 		"background_anim": "",
@@ -435,6 +438,9 @@
 		"asset": "res://assets/ui/score_bg.png"
 	},
 	"gameplay": {
+		"end_session": {
+			"post_battle_delay_seconds": 1.5
+		},
 		"bars": {
 			"height": 60,
 			"text_color": "#FFFFFF",

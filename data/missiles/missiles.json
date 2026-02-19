@@ -5,7 +5,8 @@
 		"asset": "",
 		"asset_anim": "",
 		"asset_anim_duration": 0.0,
-		"asset_anim_loop": false
+		"asset_anim_loop": false,
+		"fluid_id": ""
 	},
 	"missiles": [
 		{
@@ -29,7 +30,8 @@
 				"asset_anim_loop": true
 			},
 			"sound": "",
-			"explosion": {}
+			"explosion": {},
+			"fluid_id": ""
 		},
 		{
 			"id": "missile_car",
@@ -53,7 +55,8 @@
 				"asset_anim_loop": true
 			},
 			"sound": "res://assets/sfx/combat/missile_soft.ogg",
-			"explosion": {}
+			"explosion": {},
+			"fluid_id": ""
 		},
 		{
 			"id": "missile_homing",
@@ -80,7 +83,8 @@
 			"explosion": {
 				"size": 30,
 				"color": "#FF2222"
-			}
+			},
+			"fluid_id": ""
 		},
 		{
 			"id": "missile_wave",
@@ -104,7 +108,8 @@
 				"asset_anim_loop": true
 			},
 			"sound": "res://assets/sfx/combat/laser_shot.ogg",
-			"explosion": {}
+			"explosion": {},
+			"fluid_id": ""
 		},
 		{
 			"id": "missile_ice",
@@ -130,7 +135,8 @@
 			"explosion": {
 				"size": 18,
 				"color": "#88DDFF"
-			}
+			},
+			"fluid_id": ""
 		},
 		{
 			"id": "missile_poison",
@@ -156,7 +162,8 @@
 			"explosion": {
 				"size": 18,
 				"color": "#66FF44"
-			}
+			},
+			"fluid_id": ""
 		},
 		{
 			"id": "missile_void",
@@ -182,7 +189,8 @@
 			"explosion": {
 				"size": 22,
 				"color": "#7722CC"
-			}
+			},
+			"fluid_id": ""
 		}
 	]
 }

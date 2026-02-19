@@ -16,8 +16,8 @@
 	  "type": "normal",
 	  "duration_sec": 120,
 	  "backgrounds": {
-		"card": "res://assets/backgrounds/far_layer/space.jpg",
-		"far_layer": "res://assets/backgrounds/far_layer/space.jpg",
+		"card": "res://assets/backgrounds/worlds/industrial/industrial_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_1.png",
 		"mid_layer": [
 		  [
             "res://assets/backgrounds/layer_2/shooting_stars_1.jpg"
@@ -112,12 +112,12 @@
 	{
 	  "index": 1,
 	  "id": "world_1_lvl_1",
-	  "name": "Couloir de débris",
+	  "name": "Terrain d'essai",
 	  "type": "normal",
-	  "duration_sec": 180,
+	  "duration_sec": 300,
 	  "backgrounds": {
 		"card": "",
-		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_2.png",
 		"mid_layer": [
 		  [
             "res://assets/backgrounds/layer_2/clouds.png"
@@ -126,50 +126,274 @@
 		"near_layer": []
 	  },
 	  "waves": [
+
 		{
-		  "time": 2.0,
-		  "enemy_id": "scout_basic",
-		  "count": 6,
-		  "interval": 0.8
-		},
-		{
-		  "time": 10.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 3,
-		  "interval": 1.5
-		},
-		{
-		  "time": 5.0,
+		  "time": 3.0,
 		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
+		  "obstacle_id": "metal_wall",
 		  "pattern": "slalom",
-		  "duration": 20.0,
-		  "speed": 200,
-		  "gap_width": 180,
-		  "row_interval": 1.2,
-		  "drift_speed": 10
+		  "duration": 12.0,
+		  "speed": 140,
+		  "gap_width": 200,
+		  "row_interval": 1.5
 		},
+
 		{
-		  "time": 30.0,
+		  "time": 20.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "slalom",
+		  "duration": 10.0,
+		  "speed": 180,
+		  "gap_width": 170,
+		  "row_interval": 1.0,
+		  "drift_speed": 15,
+		  "drift_directions": ["SW", "SE"]
+		},
+
+		{
+		  "time": 35.0,
 		  "type": "obstacle",
 		  "obstacle_id": "energy_barrier",
 		  "pattern": "gates",
-		  "duration": 15.0,
-		  "speed": 160,
+		  "duration": 12.0,
+		  "speed": 150,
 		  "gap_width": 200,
 		  "row_interval": 2.0
 		},
+
 		{
 		  "time": 50.0,
 		  "type": "obstacle",
+		  "obstacle_id": "metal_wall_destructible",
+		  "pattern": "gates",
+		  "duration": 10.0,
+		  "speed": 160,
+		  "gap_width": 180,
+		  "row_interval": 1.8
+		},
+
+		{
+		  "time": 65.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "duration": 12.0,
+		  "speed": 200,
+		  "gap_width": 150,
+		  "row_interval": 0.8,
+		  "drift_speed": 20,
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+
+		{
+		  "time": 82.0,
+		  "type": "obstacle",
 		  "obstacle_id": "planet_small",
 		  "pattern": "rain",
-		  "duration": 15.0,
-		  "speed": 120,
-		  "gap_width": 200,
+		  "duration": 14.0,
+		  "speed": 100,
+		  "gap_width": 220,
 		  "row_interval": 2.5,
 		  "drift_speed": 12,
-		  "drift_directions": ["E", "W", "SE", "SW"]
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+
+		{
+		  "time": 100.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "duration": 12.0,
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+
+		{
+		  "time": 116.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "duration": 10.0,
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+
+		{
+		  "time": 130.0,
+		  "type": "obstacle",
+		  "obstacle_id": "debris_small",
+		  "pattern": "rain",
+		  "duration": 10.0,
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 20,
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+
+		{
+		  "time": 145.0,
+		  "type": "obstacle",
+		  "obstacle_id": "planet_medium",
+		  "pattern": "slalom",
+		  "duration": 14.0,
+		  "speed": 90,
+		  "gap_width": 260,
+		  "row_interval": 2.5
+		},
+
+		{
+		  "time": 163.0,
+		  "type": "obstacle",
+		  "obstacle_id": "planet_large",
+		  "pattern": "slalom",
+		  "duration": 12.0,
+		  "speed": 70,
+		  "gap_width": 300,
+		  "row_interval": 3.0,
+		  "drift_speed": 5,
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+
+		{
+		  "time": 180.0,
+		  "type": "obstacle",
+		  "obstacle_id": "metal_wall",
+		  "pattern": "gates",
+		  "duration": 10.0,
+		  "speed": 180,
+		  "gap_width": 160,
+		  "row_interval": 1.5
+		},
+
+		{
+		  "time": 195.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "duration": 8.0,
+		  "speed": 220,
+		  "gap_width": 140,
+		  "row_interval": 0.5,
+		  "drift_speed": 25,
+		  "drift_directions": ["SW", "S", "SE"]
+		},
+		{
+		  "time": 195.0,
+		  "type": "obstacle",
+		  "obstacle_id": "metal_wall",
+		  "pattern": "slalom",
+		  "duration": 8.0,
+		  "speed": 160,
+		  "gap_width": 200,
+		  "row_interval": 1.8
+		},
+
+		{
+		  "time": 208.0,
+		  "type": "obstacle",
+		  "obstacle_id": "energy_barrier",
+		  "pattern": "gates",
+		  "duration": 12.0,
+		  "speed": 170,
+		  "gap_width": 180,
+		  "row_interval": 1.5
+		},
+		{
+		  "time": 208.0,
+		  "enemy_id": "scout_basic",
+		  "count": 10,
+		  "interval": 1.0
+		},
+
+		{
+		  "time": 225.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "rain",
+		  "duration": 10.0,
+		  "speed": 180,
+		  "gap_width": 180,
+		  "row_interval": 1.2,
+		  "drift_speed": 12,
+		  "drift_directions": ["E", "W", "NE", "NW"]
+		},
+		{
+		  "time": 225.0,
+		  "enemy_id": "fighter_aggressive",
+		  "count": 5,
+		  "interval": 1.5,
+		  "enemy_modifier_id": "waller"
+		},
+
+		{
+		  "time": 240.0,
+		  "type": "obstacle",
+		  "obstacle_id": "planet_small",
+		  "pattern": "slalom",
+		  "duration": 15.0,
+		  "speed": 110,
+		  "gap_width": 220,
+		  "row_interval": 2.0,
+		  "drift_speed": 10,
+		  "drift_directions": ["E", "W"]
+		},
+		{
+		  "time": 245.0,
+		  "enemy_id": "scout_basic",
+		  "count": 8,
+		  "interval": 0.8,
+		  "enemy_modifier_id": "minefreak"
+		},
+
+		{
+		  "time": 260.0,
+		  "type": "obstacle",
+		  "obstacle_id": "metal_wall_destructible",
+		  "pattern": "slalom",
+		  "duration": 12.0,
+		  "speed": 190,
+		  "gap_width": 170,
+		  "row_interval": 1.0
+		},
+		{
+		  "time": 260.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "duration": 12.0,
+		  "speed": 210,
+		  "gap_width": 150,
+		  "row_interval": 0.7,
+		  "drift_speed": 18,
+		  "drift_directions": ["N", "NE", "NW", "E", "W", "S", "SE", "SW"]
+		},
+
+		{
+		  "time": 278.0,
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "slalom",
+		  "duration": 12.0,
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 1.5,
+		  "drift_speed": 8,
+		  "drift_directions": ["E", "W"]
+		},
+		{
+		  "time": 278.0,
+		  "enemy_id": "scout_basic",
+		  "count": 15,
+		  "interval": 0.6,
+		  "enemy_modifier_id": "graviton"
 		}
 	  ],
 	  "events": []
@@ -182,7 +406,7 @@
 	  "duration_sec": 150,
 	  "backgrounds": {
 		"card": "",
-		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_3.png",
 		"mid_layer": [],
 		"near_layer": []
 	  },
@@ -215,7 +439,7 @@
 	  "duration_sec": 160,
 	  "backgrounds": {
 		"card": "",
-		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_4.png",
 		"mid_layer": [],
 		"near_layer": []
 	  },
@@ -249,7 +473,7 @@
 	  "duration_sec": 180,
 	  "backgrounds": {
 		"card": "",
-		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_5.png",
 		"mid_layer": [],
 		"near_layer": []
 	  },
@@ -288,7 +512,7 @@
 	  "boss_id": "boss_world1",
 	  "backgrounds": {
 		"card": "",
-		"far_layer": "res://assets/backgrounds/far_layer/sea.jpg",
+		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_5.png",
 		"mid_layer": [],
 		"near_layer": []
 	  },

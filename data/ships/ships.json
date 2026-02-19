@@ -27,7 +27,8 @@
 			},
 			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_paint_sweep"
+			"special_power_id": "power_paint_sweep",
+			"fluid_id": ""
 		},
 		{
 			"id": "swordwing",
@@ -59,7 +60,8 @@
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_barrel_roll"
+			"special_power_id": "power_barrel_roll",
+			"fluid_id": "pl"
 		},
 		{
 			"id": "beetmech",
@@ -88,7 +90,8 @@
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_witch_circle"
+			"special_power_id": "power_witch_circle",
+			"fluid_id": ""
 		},
 		{
 			"id": "ship_supercar",

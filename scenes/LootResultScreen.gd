@@ -6,6 +6,7 @@ extends Control
 signal finished
 signal restart_requested
 signal exit_requested
+signal menu_requested
 
 var _item: Dictionary = {}
 var _session_loot: Array = []
@@ -14,6 +15,8 @@ var _items_per_page: int = 3
 var _game_config: Dictionary = {}
 var _is_victory: bool = true
 var _boss_loot_resolved: bool = false
+var _secondary_nav_label: String = "Sélection niveau"
+var _menu_nav_label: String = "Menu"
 
 @onready var item_name_label: Label = %ItemNameLabel
 @onready var item_type_label: Label = %ItemTypeLabel
@@ -26,6 +29,7 @@ var _boss_loot_resolved: bool = false
 # Navigation Buttons
 @onready var restart_btn: Button = %RestartButton
 @onready var exit_btn: Button = %ExitButton
+@onready var menu_btn: Button = %MenuButton
 
 # Inventory Nodes
 @onready var items_grid: HBoxContainer = %ItemsGrid
@@ -57,6 +61,7 @@ func setup(item: Dictionary, session_loot: Array = [], is_victory: bool = true) 
 	
 	_update_ui()
 	_update_inventory_ui()
+	_apply_navigation_labels()
 	
 	# Connect pagination buttons
 	if not prev_btn.pressed.is_connected(_on_prev_page):
@@ -120,6 +125,7 @@ func _load_assets() -> void:
 	_apply_button_style(disassemble_btn, pop_btn_cfg)
 	_apply_button_style(restart_btn, pop_btn_cfg)
 	_apply_button_style(exit_btn, pop_btn_cfg)
+	_apply_button_style(menu_btn, pop_btn_cfg)
 	
 	var equip_path: String = str(reward_config.get("button_equip", ""))
 	if equip_path != "" and ResourceLoader.exists(equip_path):
@@ -411,6 +417,21 @@ func _on_restart_pressed() -> void:
 func _on_exit_pressed() -> void:
 	exit_requested.emit()
 	_close(false)
+
+func _on_menu_pressed() -> void:
+	menu_requested.emit()
+	_close(false)
+
+func set_navigation_labels(secondary_label: String, menu_label: String = "Menu") -> void:
+	_secondary_nav_label = secondary_label
+	_menu_nav_label = menu_label
+	_apply_navigation_labels()
+
+func _apply_navigation_labels() -> void:
+	if exit_btn:
+		exit_btn.text = _secondary_nav_label
+	if menu_btn:
+		menu_btn.text = _menu_nav_label
 
 func _close(emit_finished: bool = true) -> void:
 	_finalize_boss_loot_if_needed()

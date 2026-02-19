@@ -24,6 +24,7 @@ var _effects: Dictionary = {} # effect_id -> data
 var _game_config: Dictionary = {} # game.json data
 var _skills: Dictionary = {} # skills.json data
 var _obstacles: Dictionary = {} # obstacle_id -> data
+var _fluids: Dictionary = {} # fluid_preset_id -> data
 
 var _default_unlocked_ships: Array = []
 
@@ -45,6 +46,7 @@ func _load_all_data() -> void:
 	_load_effects()
 	_load_skills()
 	_load_obstacles()
+	_load_fluids()
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
 	print("[DataManager] Ships: ", _ships.size())
@@ -56,6 +58,7 @@ func _load_all_data() -> void:
 	print("[DataManager] Rarities: ", _rarities.size())
 	print("[DataManager] Uniques: ", _uniques.size())
 	print("[DataManager] Obstacles: ", _obstacles.size())
+	print("[DataManager] Fluids: ", _fluids.size())
 
 
 # =============================================================================
@@ -133,6 +136,13 @@ func get_game_config() -> Dictionary:
 	
 func get_game_data() -> Dictionary:
 	return _game_config
+
+## Retourne le fluid_id par défaut pour les explosions (depuis game.json)
+func get_default_explosion_fluid_id() -> String:
+	var explosion_cfg: Variant = _game_config.get("default_explosion", {})
+	if explosion_cfg is Dictionary:
+		return str((explosion_cfg as Dictionary).get("fluid_id", ""))
+	return ""
 
 # =============================================================================
 # WORLDS & LEVELS
@@ -668,3 +678,26 @@ func get_obstacle(obstacle_id: String) -> Dictionary:
 
 func get_all_obstacles() -> Dictionary:
 	return _obstacles
+
+# =============================================================================
+# FLUID PRESETS DATA (fluids/fluid_presets.json)
+# =============================================================================
+
+func _load_fluids() -> void:
+	_fluids.clear()
+	var data := _load_json("res://data/fluids/fluid_presets.json")
+	if data.is_empty():
+		push_warning("[DataManager] No fluid presets found.")
+		return
+	# Le fichier est directement un dict { preset_id: { ... } }
+	for key in data:
+		var entry: Variant = data[key]
+		if entry is Dictionary:
+			_fluids[key] = entry as Dictionary
+	print("[DataManager] Fluid presets loaded: ", _fluids.size())
+
+func get_fluid_preset(fluid_id: String) -> Dictionary:
+	return _fluids.get(fluid_id, {})
+
+func get_all_fluid_presets() -> Dictionary:
+	return _fluids

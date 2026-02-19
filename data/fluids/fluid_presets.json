@@ -1,0 +1,57 @@
+{
+	"plasma_trail": {
+		"color": "#00ffff",
+		"intensity": 0.5,
+		"radius": 20.0,
+		"decay": 0.96,
+		"diffusion": 0.01
+	},
+	"poison_gas": {
+		"color": "#00ff00",
+		"intensity": 2.8,
+		"radius": 75.0,
+		"decay": 0.25,
+		"diffusion": 0.53
+	},
+	"fire_exhaust": {
+		"color": "#ff6600",
+		"intensity": 0.5,
+		"radius": 18.0,
+		"decay": 0.96,
+		"diffusion": 0.01
+	},
+	"void_trail": {
+		"color": "#6600cc",
+		"intensity": 0.4,
+		"radius": 22.0,
+		"decay": 0.95,
+		"diffusion": 0.02
+	},
+	"ice_mist": {
+		"color": "#88ccff",
+		"intensity": 0.4,
+		"radius": 28.0,
+		"decay": 0.94,
+		"diffusion": 0.03
+	},
+	"explosion_burst": {
+		"color": "#ffaa00",
+		"color_inner": "#ffff44",
+		"color_fade": "#444444",
+		"intensity": 0.7,
+		"radius": 35.0,
+		"decay": 0.93,
+		"diffusion": 0.06,
+		"burst": true,
+		"burst_count": 6,
+		"burst_spread": 40.0
+	},
+	"poison_pool": {
+		"color": "#44ff22",
+		"intensity": 0.7,
+		"radius": 14.0,
+		"decay": 0.97,
+		"diffusion": 0.22,
+		"persistent": true
+	}
+}

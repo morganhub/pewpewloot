@@ -127,13 +127,17 @@ func play_sprite_frames(
 		anim_sprite.animation_finished.connect(on_finished, CONNECT_ONE_SHOT)
 
 		if duration > 0.0:
+			var sprite_ref: WeakRef = weakref(anim_sprite)
+			var captured_seq := seq
+			var captured_anim := anim_name
 			get_tree().create_timer(duration).timeout.connect(func():
-				if not is_instance_valid(anim_sprite):
+				var s: AnimatedSprite2D = sprite_ref.get_ref() as AnimatedSprite2D
+				if s == null or not is_instance_valid(s):
 					return
-				var current_seq: int = int(anim_sprite.get_meta(_ANIM_META_SEQ_KEY, -1))
-				if current_seq != seq:
+				var current_seq: int = int(s.get_meta(_ANIM_META_SEQ_KEY, -1))
+				if current_seq != captured_seq:
 					return
-				freeze_last_frame(anim_sprite, anim_name)
+				freeze_last_frame(s, captured_anim)
 			)
 
 	return anim_name
@@ -186,24 +190,35 @@ func spawn_explosion(
 				anim_sprite.scale = Vector2(size * 4 / s.x, size * 4 / s.y) # Bigger explosion
 
 			if life > 0.0:
+				var ex_ref: WeakRef = weakref(explosion)
 				var timer_tween := create_tween()
 				timer_tween.tween_interval(life)
 				timer_tween.tween_property(anim_sprite, "modulate:a", 0.0, fade_time)
-				timer_tween.tween_callback(explosion.queue_free)
+				timer_tween.tween_callback(func():
+					var ex: Node2D = ex_ref.get_ref() as Node2D
+					if ex != null and is_instance_valid(ex):
+						ex.queue_free()
+				)
 			else:
-				var cleanup_state: Array = [false]  # [0] = started flag (array avoids capture reassign warning)
+				var cleanup_state: Array = [false]
+				var sprite_wr: WeakRef = weakref(anim_sprite)
+				var explosion_wr: WeakRef = weakref(explosion)
+				var captured_played_anim := played_anim
 				var cleanup: Callable = func():
 					if cleanup_state[0]:
 						return
 					cleanup_state[0] = true
-					if is_instance_valid(anim_sprite) and not asset_anim_loop:
-						freeze_last_frame(anim_sprite, played_anim)
-					if is_instance_valid(anim_sprite):
+					var sp: AnimatedSprite2D = sprite_wr.get_ref() as AnimatedSprite2D
+					var ex: Node2D = explosion_wr.get_ref() as Node2D
+					if sp != null and is_instance_valid(sp) and not asset_anim_loop:
+						freeze_last_frame(sp, captured_played_anim)
+					if sp != null and is_instance_valid(sp):
 						var fade_tween := create_tween()
-						fade_tween.tween_property(anim_sprite, "modulate:a", 0.0, fade_time)
-						fade_tween.tween_callback(explosion.queue_free)
-					elif is_instance_valid(explosion):
-						explosion.queue_free()
+						fade_tween.tween_property(sp, "modulate:a", 0.0, fade_time)
+						if ex != null and is_instance_valid(ex):
+							fade_tween.tween_callback(ex.queue_free)
+					elif ex != null and is_instance_valid(ex):
+						ex.queue_free()
 				if not asset_anim_loop:
 					if asset_anim_duration > 0.0:
 						get_tree().create_timer(asset_anim_duration).timeout.connect(cleanup)

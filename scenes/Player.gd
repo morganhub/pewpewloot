@@ -69,6 +69,9 @@ var _contact_timer: float = 0.0
 var _contact_enemies: Array[Node2D] = []
 @onready var hitbox: Area2D = null
 
+# Fluid trail
+var _fluid_id: String = ""
+
 # --- DEBUG PATTERN ROTATION - START ---
 var _debug_pattern_rotation_enabled: bool = false # Set to false to disable
 var _debug_pattern_index: int = 0
@@ -390,6 +393,7 @@ func _load_stats_from_loadout() -> void:
 	current_missile_id = str(ship.get("missile_id", "missile_default"))
 	current_hp = max_hp
 	special_power_id = str(ship.get("special_power_id", ""))
+	_fluid_id = str(ship.get("fluid_id", ""))
 	
 	# Get unique power from equipped items (if any)
 	var item_unique_power := StatsCalculator.get_equipped_unique_power(ship_id)
@@ -451,6 +455,8 @@ func _process(delta: float) -> void:
 	_handle_contact_damage(delta)
 	_handle_shield_regen(delta)
 	_update_deflection_aura(delta)
+	if _fluid_id != "":
+		FluidManager.emit_fluid(global_position, _fluid_id, velocity)
 	if _skill_emergency_cooldown_remaining > 0.0:
 		_skill_emergency_cooldown_remaining = maxf(0.0, _skill_emergency_cooldown_remaining - delta)
 	
@@ -862,6 +868,11 @@ func _inject_missile_properties(pattern_data: Dictionary) -> void:
 		
 	# Sound
 	pattern_data["sound"] = str(missile_data.get("sound", ""))
+	
+	# Fluid trail (from missile data)
+	var missile_fluid: String = str(missile_data.get("fluid_id", ""))
+	if missile_fluid != "":
+		pattern_data["fluid_id"] = missile_fluid
 
 func _execute_burst_sequence(pattern_data: Dictionary, count: int, interval: float, speed: float, damage: int) -> void:
 	for i in range(count):

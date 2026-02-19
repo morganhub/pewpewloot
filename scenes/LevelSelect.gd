@@ -103,12 +103,12 @@ func _setup_inventory_warning_ui() -> void:
 func _update_inventory_warning_ui() -> void:
 	if not _inventory_warning_label:
 		return
-	var is_full: bool = ProfileManager.is_inventory_full()
+	var current_size: int = ProfileManager.get_unequipped_inventory_count()
+	var max_size: int = ProfileManager.get_max_inventory_size()
+	var is_full: bool = current_size >= max_size
 	_inventory_warning_label.visible = is_full
 	if not is_full:
 		return
-	var current_size: int = ProfileManager.get_inventory().size()
-	var max_size: int = ProfileManager.get_max_inventory_size()
 	_inventory_warning_label.text = LocaleManager.translate(
 		"inventory_full_warning_level_select",
 		{

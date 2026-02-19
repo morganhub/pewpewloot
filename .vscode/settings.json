@@ -8,6 +8,12 @@
         "/^python -c \"import json; json\\.load\\(open\\(r'c:\\\\Tafor\\\\Projet\\\\pewpewloot\\\\data\\\\obstacles\\.json'\\)\\); print\\('OK'\\)\"$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "/^New-Item -ItemType Directory -Path \"c:\\\\Tafor\\\\Projet\\\\pewpewloot\\\\scenes\\\\fluid\" -Force$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "ConvertFrom-Json": true,
+        "ConvertTo-Json": true
     }
 }

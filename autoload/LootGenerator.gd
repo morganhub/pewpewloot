@@ -219,9 +219,11 @@ func _generate_unique_item(preferred_slot: String, allowed_unique_ids: Array = [
 	
 	# Pick random unique
 	var unique_data: Dictionary = candidates[randi() % candidates.size()] as Dictionary
+	var template_id: String = str(unique_data.get("id", "unique_" + str(randi())))
 	
 	var item := LootItem.new()
-	item.id = str(unique_data.get("id", "unique_" + str(randi())))
+	item.id = _build_unique_instance_id(template_id)
+	item.unique_template_id = template_id
 	item.display_name = str(unique_data.get("name", "Unknown Unique"))
 	item.rarity = LootItem.Rarity.UNIQUE
 	item.level = 1 # Uniques don't scale by level
@@ -240,6 +242,12 @@ func _generate_unique_item(preferred_slot: String, allowed_unique_ids: Array = [
 			item.base_stats[key] = float(item.base_stats.get(key, 0.0)) + value
 	
 	return item
+
+func _build_unique_instance_id(template_id: String) -> String:
+	var safe_template: String = template_id.strip_edges()
+	if safe_template == "":
+		safe_template = "unique"
+	return safe_template + "__" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000000)
 
 func _get_boss_unique_ids(boss_id: String) -> Array:
 	var ids: Array = []

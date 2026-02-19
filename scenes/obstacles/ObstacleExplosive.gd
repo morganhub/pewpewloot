@@ -9,6 +9,9 @@ signal obstacle_destroyed(obstacle: Node2D)
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
+var _anim_sprite: AnimatedSprite2D = null  # Créé dynamiquement si .tres
+var _visual_node: Node2D = null  # Pointe vers sprite ou _anim_sprite selon le cas
+
 var speed: float = 200.0
 var damage: float = 25.0
 var is_destructible: bool = false
@@ -18,6 +21,9 @@ var _obstacle_data: Dictionary = {}
 var _viewport_height: float = 0.0
 var _viewport_width: float = 0.0
 var _drift_velocity: Vector2 = Vector2.ZERO
+
+# Fluid trail
+var _fluid_id: String = ""
 
 const OFFSCREEN_MARGIN: float = 100.0
 
@@ -40,6 +46,7 @@ func setup(data: Dictionary, scroll_speed: float) -> void:
 	is_destructible = bool(data.get("is_destructible", false))
 	hp = float(data.get("hp", 0))
 	max_hp = hp
+	_fluid_id = str(data.get("fluid_id", ""))
 	
 	var shape_type: String = str(data.get("shape", "rectangle"))
 	
@@ -62,8 +69,8 @@ func setup(data: Dictionary, scroll_speed: float) -> void:
 		rect_shape.size = Vector2(target_width, target_height)
 		collision_shape.shape = rect_shape
 	
-	# Charger le sprite et le redimensionner en mode "stretch"
-	_apply_sprite_stretch(target_width, target_height, str(data.get("sprite_path", "")))
+	# Charger le visuel (sprite statique ou animé .tres)
+	_apply_visual(target_width, target_height, data)
 	
 	# Groupes
 	add_to_group("obstacles")
@@ -79,20 +86,54 @@ func setup(data: Dictionary, scroll_speed: float) -> void:
 	# Drift
 	_setup_drift(data)
 
-func _apply_sprite_stretch(target_w: float, target_h: float, sprite_path: String) -> void:
-	"""Charge la texture et scale le sprite pour couvrir exactement target_w x target_h (stretch)."""
+func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
+	var sprite_path: String = str(data.get("sprite_path", ""))
+	var sprite_duration: float = maxf(0.0, float(data.get("sprite_duration", 0.0)))
+	var sprite_loop: bool = bool(data.get("sprite_loop", true))
+	
 	if sprite_path == "" or not ResourceLoader.exists(sprite_path):
-		# Fallback : utiliser la texture placeholder déjà en place
+		_visual_node = sprite
 		if sprite.texture:
 			var tex_size := sprite.texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
 				sprite.scale = Vector2(target_w / tex_size.x, target_h / tex_size.y)
 		return
 	
-	var tex := load(sprite_path) as Texture2D
-	if not tex:
+	var res: Resource = load(sprite_path)
+	
+	# Cas 1 : SpriteFrames (.tres animé) → AnimatedSprite2D
+	if res is SpriteFrames:
+		sprite.visible = false
+		_anim_sprite = AnimatedSprite2D.new()
+		_anim_sprite.name = "AnimatedSprite2D"
+		add_child(_anim_sprite)
+		_visual_node = _anim_sprite
+		
+		var played_anim: StringName = VFXManager.play_sprite_frames(
+			_anim_sprite,
+			res as SpriteFrames,
+			&"default",
+			sprite_loop,
+			sprite_duration
+		)
+		
+		# Scale l'animation pour couvrir target_w x target_h
+		var frame_tex: Texture2D = null
+		if played_anim != &"" and _anim_sprite.sprite_frames:
+			frame_tex = _anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
+		if frame_tex:
+			var f_size := frame_tex.get_size()
+			if f_size.x > 0 and f_size.y > 0:
+				_anim_sprite.scale = Vector2(target_w / f_size.x, target_h / f_size.y)
 		return
 	
+	# Cas 2 : Texture2D statique (.png, .jpg…)
+	var tex := res as Texture2D
+	if not tex:
+		_visual_node = sprite
+		return
+	
+	_visual_node = sprite
 	sprite.texture = tex
 	sprite.region_enabled = false
 	var loaded_tex_size := tex.get_size()
@@ -114,6 +155,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	position.y += speed * delta
 	position += _drift_velocity * delta
+	if _fluid_id != "":
+		FluidManager.emit_fluid(global_position, _fluid_id, _drift_velocity)
 	
 	# Nettoyage hors écran (bas, gauche, droite)
 	if global_position.y > _viewport_height + OFFSCREEN_MARGIN:
@@ -164,7 +207,8 @@ func _play_explosion() -> void:
 			)
 
 func _flash_damage() -> void:
-	if sprite:
-		sprite.modulate = Color.WHITE * 3.0
+	var target: Node2D = _visual_node if _visual_node else sprite
+	if target:
+		target.modulate = Color.WHITE * 3.0
 		var tween := create_tween()
-		tween.tween_property(sprite, "modulate", Color.WHITE, 0.15)
+		tween.tween_property(target, "modulate", Color.WHITE, 0.15)

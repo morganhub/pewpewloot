@@ -37,6 +37,9 @@ var _target: Node2D = null
 # Skill Tree Modifiers
 var skill_modifiers: Dictionary = {}
 
+# Fluid trail
+var _fluid_id: String = ""
+
 # Visual
 @onready var visual: Polygon2D = $Visual
 @onready var collision: CollisionShape2D = $CollisionShape2D
@@ -77,6 +80,7 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	_time_alive = 0.0
 	is_active = true
 	is_critical = is_crit
+	_fluid_id = str(pattern_data.get("fluid_id", ""))
 	
 	var viewport_size = viewport_size_arg
 	
@@ -393,6 +397,9 @@ func _process(delta: float) -> void:
 	or global_position.y < -margin or global_position.y > viewport_size.y + margin:
 		# print("[Projectile] Deactivated off-screen at ", global_position)
 		deactivate("off_screen")
+		return
+	if _fluid_id != "":
+		FluidManager.emit_fluid(global_position, _fluid_id, direction * speed)
 
 # =============================================================================
 # MOVEMENT PATTERNS
@@ -518,6 +525,13 @@ func _spawn_explosion() -> void:
 		anim_duration,
 		anim_loop
 	)
+	
+	# Fluid explosion burst
+	var explosion_fluid: String = str(_explosion_data.get("fluid_id", ""))
+	if explosion_fluid == "":
+		explosion_fluid = DataManager.get_default_explosion_fluid_id()
+	if explosion_fluid != "":
+		FluidManager.emit_explosion(global_position, explosion_fluid)
 
 func _on_area_entered(area: Area2D) -> void:
 	# Collision avec les murs (Obstacle Waller)
@@ -673,7 +687,8 @@ func _spawn_toxic_pool(pos: Vector2) -> void:
 					"asset_anim": str(skill_modifiers.get("pool_asset_anim", "")),
 					"asset_anim_duration": float(skill_modifiers.get("pool_asset_anim_duration", 0.0)),
 					"asset_anim_loop": bool(skill_modifiers.get("pool_asset_anim_loop", true)),
-					"size": float(skill_modifiers.get("pool_asset_size", pool_radius * 2.0))
+					"size": float(skill_modifiers.get("pool_asset_size", pool_radius * 2.0)),
+					"pool_fluid_id": str(skill_modifiers.get("pool_fluid_id", ""))
 				}
 				pool.call_deferred("setup", pool_radius, pool_duration, pool_dps, visual_data)
 

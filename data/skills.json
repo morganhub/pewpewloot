@@ -93,7 +93,7 @@
               "max_rank": 1,
               "prerequisite": "",
               "params": {
-                "missile_override": "missile_poison",
+                "missile_override": "",
                 "on_hit_effect": "poison_dot",
                 "dot_percent": 0.2,
                 "dot_duration": 3.0
@@ -109,8 +109,9 @@
                 "pool_damage_per_sec": 8,
                 "pool_duration": 3.0,
                 "pool_radius": 50,
-                "pool_asset_anim": "res://assets/missiles/missile_poison.tres",
-                "pool_asset_anim_duration": 0.0,
+                "pool_fluid_id": "poison_pool",
+                "pool_asset_anim": "",
+                "pool_asset_anim_duration": 10.0,
                 "pool_asset_anim_loop": true,
                 "pool_asset_size": 160
               }
@@ -124,7 +125,7 @@
               "params": {
                 "contagion_radius": 80,
                 "contagion_dot_duration": 3.0,
-                "contagion_asset_anim": "res://assets/missiles/missile_poison.tres",
+                "contagion_asset_anim": "",
                 "contagion_asset_anim_duration": 0.6,
                 "contagion_asset_anim_loop": false
               }

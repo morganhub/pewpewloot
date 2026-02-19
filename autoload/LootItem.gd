@@ -55,6 +55,9 @@ enum Rarity {
 ## Optional source boss ID (for boss-linked uniques)
 @export var source_boss_id: String = ""
 
+## Template ID for unique items (stable base definition ID).
+@export var unique_template_id: String = ""
+
 ## Asset path (image or animation)
 @export var asset: String = ""
 
@@ -76,7 +79,8 @@ func to_dict() -> Dictionary:
 		"affixes": affixes.duplicate(),
 		"is_unique": is_unique,
 		"special_ability_id": special_ability_id,
-		"source_boss_id": source_boss_id
+		"source_boss_id": source_boss_id,
+		"unique_template_id": unique_template_id
 	}
 
 ## Create a LootItem from a Dictionary (loaded from JSON)
@@ -102,6 +106,7 @@ static func from_dict(data: Dictionary) -> LootItem:
 	item.is_unique = bool(data.get("is_unique", false))
 	item.special_ability_id = str(data.get("special_ability_id", ""))
 	item.source_boss_id = str(data.get("source_boss_id", ""))
+	item.unique_template_id = str(data.get("unique_template_id", ""))
 	
 	return item
 

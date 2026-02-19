@@ -179,9 +179,17 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 60)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Quitter"
+text = "Sélection niveau"
+
+[node name="MenuButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons" unique_id=2051874009]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Menu"
 
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer/EquipButton" to="." method="_on_equip_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer/DisassembleButton" to="." method="_on_disassemble_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons/RestartButton" to="." method="_on_restart_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons/ExitButton" to="." method="_on_exit_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons/MenuButton" to="." method="_on_menu_pressed"]

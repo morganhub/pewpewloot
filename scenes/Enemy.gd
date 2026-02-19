@@ -48,7 +48,11 @@ var _path_end_timer: float = 0.0
 const PATH_END_DESPAWN_DELAY: float = 0.5  # Grace period before despawn after path ends
 const OFFSCREEN_MARGIN: float = 120.0
 
+# Fluid trail
+var _fluid_id: String = ""
+
 const DEBUG_MOVE_PATTERN_LOG := true
+static var _logged_patterns: Dictionary = {}  # pattern_id -> true (log une seule fois par pattern)
 
 # Shooting
 var missile_pattern_id: String = "single_straight"
@@ -123,6 +127,7 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	missile_id = str(enemy_data.get("missile_id", "missile_default"))
 	_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
 	fire_rate = float(enemy_data.get("fire_rate", 2.0))
+	_fluid_id = str(enemy_data.get("fluid_id", ""))
 	
 	# Visual setup
 	_setup_visual(enemy_data)
@@ -334,6 +339,8 @@ func _process(delta: float) -> void:
 		_update_minefreak_spawn()
 		_update_arcane_spawn()
 		_update_graviton_spawn()
+		if _fluid_id != "":
+			FluidManager.emit_fluid(global_position, _fluid_id, velocity)
 	
 	# Handle wave firing (only if on screen)
 	if _is_firing_waves and on_screen:
@@ -794,10 +801,13 @@ func _get_curve_bounds(curve: Curve2D) -> Rect2:
 func _debug_log_move_pattern(pattern_data: Dictionary) -> void:
 	if not DEBUG_MOVE_PATTERN_LOG:
 		return
+	if _logged_patterns.has(move_pattern_id):
+		return
+	_logged_patterns[move_pattern_id] = true
 	var pattern_type: String = str(pattern_data.get("type", "?"))
 	var proc_name: String = str(pattern_data.get("proc_func", ""))
 	var path_res: String = str(pattern_data.get("path", pattern_data.get("resource", "")))
-	print("[EnemyMove] enemy=", enemy_id, " pattern=", move_pattern_id, " type=", pattern_type, " proc=", proc_name, " path=", path_res, " speed=", move_speed, " loop=", _path_loop, " anchor=", _path_anchor_mode, " fit=", bool(pattern_data.get("fit_to_viewport", false)))
+	print("[EnemyMove] pattern=", move_pattern_id, " type=", pattern_type, " proc=", proc_name, " path=", path_res, " speed=", move_speed, " loop=", _path_loop, " anchor=", _path_anchor_mode, " fit=", bool(pattern_data.get("fit_to_viewport", false)))
 
 func _generate_fallback_path() -> Curve2D:
 	return _generate_line_path(maxf(get_viewport_rect().size.y * 1.4, 500.0), Vector2.DOWN)
@@ -1015,6 +1025,11 @@ func _fire_single_wave() -> void:
 	var missile_speed_override: float = float(missile_data.get("speed", 0))
 	if missile_speed_override > 0:
 		speed = missile_speed_override
+	
+	# Fluid trail from missile data
+	var missile_fluid: String = str(missile_data.get("fluid_id", ""))
+	if missile_fluid != "":
+		_missile_pattern_data["fluid_id"] = missile_fluid
 		
 	# Play sound (once per wave/salvo)
 	var sound_path: String = str(missile_data.get("sound", ""))

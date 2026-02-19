@@ -49,7 +49,9 @@ const DRIFT_DIR_VECTORS: Dictionary = {
 	"NW": Vector2(-0.7071, -0.7071)
 }
 
-const ALL_DRIFT_DIRECTIONS: Array = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+const ALL_DRIFT_DIRECTIONS: Array = ["SE", "S", "SW"]
+const MIN_DRIFT_SPEED: float = 80.0
+const MAX_DRIFT_SPEED_BONUS: float = 40.0
 
 func setup(wave_data: Dictionary) -> void:
 	_wave_data = wave_data
@@ -66,23 +68,41 @@ func setup(wave_data: Dictionary) -> void:
 		push_warning("[ObstacleSpawner] Unknown obstacle_id: " + obstacle_id)
 		return
 	
-	# Calculer l'empreinte de l'obstacle (bounding box)
+	# Calculer l'empreinte de l'obstacle (bounding box) — utilise les valeurs MAX
+	# pour garantir des gaps sûrs même avec les plus gros obstacles
 	_shape_type = str(_obstacle_data.get("shape", "rectangle"))
 	if _shape_type == "circle":
-		var radius: float = float(_obstacle_data.get("radius", 20))
-		_obs_footprint_w = radius * 2.0
-		_obs_footprint_h = radius * 2.0
+		var radius_max: float = float(_obstacle_data.get("radius_max", _obstacle_data.get("radius", 20)))
+		_obs_footprint_w = radius_max * 2.0
+		_obs_footprint_h = radius_max * 2.0
 	else:
-		_obs_footprint_w = float(_obstacle_data.get("width", 40))
-		_obs_footprint_h = float(_obstacle_data.get("height", 40))
+		var w_max: float = float(_obstacle_data.get("width_max", _obstacle_data.get("width", 40)))
+		var base_w: float = float(_obstacle_data.get("width", w_max))
+		var base_h: float = float(_obstacle_data.get("height", 40))
+		_obs_footprint_w = w_max
+		_obs_footprint_h = base_h * (w_max / maxf(base_w, 1.0))
 	
 	# Drift config : wave override > obstacle data > 0
-	_drift_speed = float(wave_data.get("drift_speed", _obstacle_data.get("drift_speed", 0.0)))
+	var raw_drift: float = float(wave_data.get("drift_speed", _obstacle_data.get("drift_speed", 0.0)))
+	# Minimum 80 + random bonus si drift activé (> 0)
+	if raw_drift > 0.0:
+		_drift_speed = maxf(raw_drift, MIN_DRIFT_SPEED) + randf() * MAX_DRIFT_SPEED_BONUS
+	else:
+		_drift_speed = MIN_DRIFT_SPEED + randf() * MAX_DRIFT_SPEED_BONUS
 	
-	# Directions autorisées (wave override, sinon toutes les 8)
+	# Directions autorisées : forcer vers le bas (SW, S, SE) par défaut
 	var dirs_raw: Variant = wave_data.get("drift_directions", [])
 	if dirs_raw is Array and (dirs_raw as Array).size() > 0:
-		_drift_directions = dirs_raw as Array
+		# Filtrer pour ne garder que les directions vers le bas
+		var south_dirs: Array = []
+		for d in (dirs_raw as Array):
+			var ds: String = str(d)
+			if ds in ["S", "SE", "SW"]:
+				south_dirs.append(ds)
+		if south_dirs.size() > 0:
+			_drift_directions = south_dirs
+		else:
+			_drift_directions = ALL_DRIFT_DIRECTIONS.duplicate()
 	else:
 		_drift_directions = ALL_DRIFT_DIRECTIONS.duplicate()
 	

@@ -26,10 +26,7 @@ extends Control
 @onready var options_button: Button = $BottomSection/OptionsButton
 @onready var quit_button: Button = $BottomSection/QuitButton
 @onready var change_profile_button: Button = $BottomSection/ChangeProfileButton
-@onready var generate_patterns_button: Button = $BottomSection/GeneratePatternsButton
-
-const PATTERN_GENERATOR_SCRIPT = preload("res://tools/PatternGenerator.gd")
-var _generator_default_text: String = "Generate Move Paths"
+@onready var unlock_all_button: Button = $BottomSection/UnlockAllButton
 
 var _game_config: Dictionary = {}
 
@@ -56,11 +53,10 @@ func _ready() -> void:
 	change_profile_button.pressed.connect(_on_change_profile_pressed)
 	
 	# Temporary dev button (editor only): regenerate movement curve resources.
-	if generate_patterns_button:
-		generate_patterns_button.visible = OS.has_feature("editor")
-		if generate_patterns_button.visible:
-			_generator_default_text = generate_patterns_button.text
-			generate_patterns_button.pressed.connect(_on_generate_patterns_pressed)
+	if unlock_all_button:
+		unlock_all_button.visible = OS.has_feature("editor")
+		if unlock_all_button.visible:
+			unlock_all_button.pressed.connect(_on_unlock_all_pressed)
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
@@ -370,24 +366,26 @@ func _on_change_profile_pressed() -> void:
 	var switcher := get_tree().current_scene
 	switcher.goto_screen("res://scenes/ProfileSelect.tscn")
 
-func _on_generate_patterns_pressed() -> void:
+func _on_unlock_all_pressed() -> void:
 	if not OS.has_feature("editor"):
 		return
-	if generate_patterns_button == null:
+	if unlock_all_button == null:
 		return
 
-	generate_patterns_button.disabled = true
-	generate_patterns_button.text = "Generating..."
+	var profile := ProfileManager.get_active_profile()
+	if profile.is_empty():
+		return
 
-	var generator: PatternGenerator = PATTERN_GENERATOR_SCRIPT.new() as PatternGenerator
-	if generator != null:
-		generator.generate_all_curves()
-		if DataManager and DataManager.has_method("reload_all"):
-			DataManager.reload_all()
-		generate_patterns_button.text = "Generated"
-	else:
-		generate_patterns_button.text = "Generation Failed"
+	var progress: Dictionary = profile.get("progress", {})
+	for world_id in progress.keys():
+		var wp: Dictionary = progress[world_id]
+		wp["unlocked"] = true
+		wp["max_unlocked_level"] = 5
+		wp["boss_killed"] = true
+	ProfileManager.save_to_disk()
 
+	unlock_all_button.disabled = true
+	unlock_all_button.text = "Unlocked!"
 	await get_tree().create_timer(1.0).timeout
-	generate_patterns_button.disabled = false
-	generate_patterns_button.text = _generator_default_text
+	unlock_all_button.disabled = false
+	unlock_all_button.text = "Unlock All Worlds"

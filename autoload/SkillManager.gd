@@ -178,6 +178,8 @@ func get_projectile_modifier() -> Dictionary:
 					result["pool_asset_anim_loop"] = bool(p.get("pool_asset_anim_loop", true))
 				if p.has("pool_asset_size"):
 					result["pool_asset_size"] = float(p.get("pool_asset_size", 150.0))
+				if p.has("pool_fluid_id"):
+					result["pool_fluid_id"] = str(p.get("pool_fluid_id", ""))
 				if p.has("contagion_radius"):
 					result["contagion_enabled"] = true
 					result["contagion_radius"] = float(p.get("contagion_radius", 80))

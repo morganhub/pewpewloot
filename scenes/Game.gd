@@ -13,6 +13,7 @@ extends Node2D
 @onready var camera: Camera2D = $Camera2D
 
 const SCROLLING_LAYER_SCRIPT: Script = preload("res://scenes/ScrollingLayer.gd")
+const ENEMY_SCRIPT: Script = preload("res://scenes/Enemy.gd")
 
 var player: CharacterBody2D = null
 var hud: CanvasLayer = null
@@ -27,6 +28,12 @@ var _end_session_started: bool = false
 var _player_death_registered: bool = false
 var _wave_total_with_boss: int = 0
 var session_xp: int = 0  # XP accumulated this session (= score)
+var _end_screen_delay_seconds: float = 1.5
+var _end_screen_context_action: String = "level_select"
+
+const END_SCREEN_ACTION_LEVEL_SELECT := "level_select"
+const END_SCREEN_ACTION_NEXT_LEVEL := "next_level"
+const END_SCREEN_ACTION_WORLD_SELECT := "world_select"
 
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
@@ -43,11 +50,13 @@ func _ready() -> void:
 	current_world_id = App.current_world_id
 	current_level_index = App.current_level_index
 	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
+	_load_gameplay_config()
 	
 	add_to_group("game_controller")
 	
 	# Reset Managers
 	EnemyAbilityManager.reset()
+	ENEMY_SCRIPT._logged_patterns.clear()
 	
 	# Music
 	var world = App.get_world(current_world_id)
@@ -63,7 +72,20 @@ func _ready() -> void:
 	_setup_hud()
 	_spawn_player()
 	_setup_projectile_manager()
+	_setup_fluid_simulation()
 	_start_enemy_spawner()
+
+func _load_gameplay_config() -> void:
+	var game_cfg: Dictionary = DataManager.get_game_config()
+	var gameplay_cfg: Variant = game_cfg.get("gameplay", {})
+	if not (gameplay_cfg is Dictionary):
+		return
+
+	var end_session_cfg: Variant = (gameplay_cfg as Dictionary).get("end_session", {})
+	if not (end_session_cfg is Dictionary):
+		return
+
+	_end_screen_delay_seconds = maxf(0.0, float((end_session_cfg as Dictionary).get("post_battle_delay_seconds", 1.5)))
 
 func _setup_background() -> void:
 	# Nettoyer le placeholder existant
@@ -223,13 +245,15 @@ func _on_player_died() -> void:
 	# Show Game Over Overlay
 	var overlay_scene := load("res://scenes/ui/GameOverOverlay.tscn")
 	var overlay: Control = overlay_scene.instantiate()
+	if overlay.has_method("set_display_duration"):
+		overlay.call("set_display_duration", _end_screen_delay_seconds)
 	hud_container.add_child(overlay)
 	
 	# After animation, show session report (Loot/Inventory)
 	overlay.animation_finished.connect(func():
-		await get_tree().create_timer(1.5).timeout
-		overlay.queue_free()
-		_show_end_session_screen(false)
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_show_end_session_screen(false, true)
 	)
 	
 	# Ensure overlay is at the bottom for layering
@@ -241,6 +265,9 @@ func _on_player_died() -> void:
 
 func _setup_projectile_manager() -> void:
 	ProjectileManager.set_container(game_layer)
+
+func _setup_fluid_simulation() -> void:
+	FluidManager.setup(game_layer)
 
 # =============================================================================
 # ENEMIES
@@ -331,6 +358,11 @@ func _on_wave_obstacle_spawn(obstacle_data: Dictionary, positions: Array, speed:
 			if i < drift_dirs.size() and str(drift_dirs[i]) != "":
 				per_obstacle_data["_drift_direction"] = str(drift_dirs[i])
 			
+			# Randomiser les dimensions par obstacle
+			_randomize_obstacle_dimensions(per_obstacle_data)
+			# Choisir un sprite aléatoire dans l'array
+			_pick_random_sprite(per_obstacle_data)
+			
 			obstacle.global_position = pos as Vector2
 			game_layer.add_child(obstacle)
 			obstacle.setup(per_obstacle_data, speed)
@@ -338,6 +370,32 @@ func _on_wave_obstacle_spawn(obstacle_data: Dictionary, positions: Array, speed:
 			# Connecter le signal de destruction si destructible
 			if obstacle.has_signal("obstacle_destroyed"):
 				obstacle.obstacle_destroyed.connect(_on_obstacle_destroyed)
+
+func _randomize_obstacle_dimensions(data: Dictionary) -> void:
+	var shape: String = str(data.get("shape", "rectangle"))
+	if shape == "circle":
+		var r_min: float = float(data.get("radius_min", data.get("radius", 20)))
+		var r_max: float = float(data.get("radius_max", data.get("radius", 20)))
+		data["radius"] = randf_range(r_min, r_max)
+	else:
+		var w_min: float = float(data.get("width_min", data.get("width", 200)))
+		var w_max: float = float(data.get("width_max", data.get("width", 200)))
+		var base_w: float = float(data.get("width", 200))
+		var base_h: float = float(data.get("height", 30))
+		var ratio: float = base_h / maxf(base_w, 1.0)
+		var rand_w: float = randf_range(w_min, w_max)
+		data["width"] = rand_w
+		data["height"] = rand_w * ratio
+
+func _pick_random_sprite(data: Dictionary) -> void:
+	var sprite_paths: Variant = data.get("sprite_path", "")
+	if sprite_paths is Array:
+		var arr: Array = sprite_paths as Array
+		if arr.size() > 0:
+			data["sprite_path"] = str(arr[randi() % arr.size()])
+		else:
+			data["sprite_path"] = ""
+	# Si c'est déjà un String, on le laisse tel quel (compatibilité)
 
 func _on_obstacle_destroyed(_obstacle: Node2D) -> void:
 	# Score bonus pour destruction d'obstacles
@@ -438,7 +496,7 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 			
 	_show_end_session_screen(true)
 
-func _show_end_session_screen(is_victory: bool = true) -> void:
+func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false) -> void:
 	if _end_session_started:
 		return
 	_end_session_started = true
@@ -448,6 +506,8 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 		player.set_can_shoot(false)
 	if wave_manager:
 		wave_manager.stop()
+	if FluidManager.is_active():
+		FluidManager.cleanup()
 		
 	# 1. Feedback
 	if hud:
@@ -455,7 +515,8 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 		var color = Color.GREEN if is_victory else Color.RED
 		VFXManager.spawn_floating_text(player.global_position if is_instance_valid(player) else Vector2(get_viewport_rect().size.x/2, get_viewport_rect().size.y/2), txt, color, hud_container)
 	
-	await get_tree().create_timer(3.0).timeout
+	if not skip_delay and _end_screen_delay_seconds > 0.0:
+		await get_tree().create_timer(_end_screen_delay_seconds).timeout
 	
 	# --- Skill Tree: Grant session XP ---
 	var xp_before := ProfileManager.get_player_xp()
@@ -470,6 +531,8 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 	# 2. Main Reward (Boss Loot) - Only on Victory
 	var item := {}
 	if is_victory:
+		_apply_victory_progress()
+
 		# Use universal boss loot pipeline:
 		# - rarity rates from data/loot_table.json
 		# - boss unique pool from data/bosses.json -> loot_table
@@ -497,17 +560,70 @@ func _show_end_session_screen(is_victory: bool = true) -> void:
 	
 	
 	# 3. Setup and show Result Screen
+	var nav_context: Dictionary = _resolve_end_screen_navigation(is_victory)
+	_end_screen_context_action = str(nav_context.get("action", END_SCREEN_ACTION_LEVEL_SELECT))
+	var secondary_label: String = str(nav_context.get("label", "Sélection niveau"))
+
 	var loot_screen_scene := load("res://scenes/LootResultScreen.tscn")
 	if loot_screen_scene:
 		var loot_screen: Control = loot_screen_scene.instantiate()
 		hud_container.add_child(loot_screen)
 		loot_screen.setup(item, session_loot, is_victory)
+		if loot_screen.has_method("set_navigation_labels"):
+			loot_screen.set_navigation_labels(secondary_label, "Menu")
 		# Pass XP data for display
 		if loot_screen.has_method("set_xp_data"):
 			loot_screen.set_xp_data(xp_gained, xp_before, xp_after, level_before, level_after)
 		loot_screen.finished.connect(_return_to_home)
 		loot_screen.restart_requested.connect(_on_restart_requested)
-		loot_screen.exit_requested.connect(_on_level_select_requested)
+		loot_screen.exit_requested.connect(_on_end_screen_context_requested)
+		if loot_screen.has_signal("menu_requested"):
+			loot_screen.menu_requested.connect(_return_to_home)
+
+func _apply_victory_progress() -> void:
+	var levels_per_world: int = max(1, App.get_world_level_count(current_world_id))
+	ProfileManager.complete_level(current_world_id, current_level_index, levels_per_world)
+
+	var is_final_level_in_world: bool = current_level_index >= levels_per_world - 1
+	if is_final_level_in_world and _has_next_world(current_world_id):
+		ProfileManager.unlock_next_world_if_needed(current_world_id)
+
+func _has_next_world(world_id: String) -> bool:
+	var worlds: Array = App.get_worlds()
+	for i in range(worlds.size()):
+		var entry: Variant = worlds[i]
+		if entry is Dictionary and str((entry as Dictionary).get("id", "")) == world_id:
+			return (i + 1) < worlds.size()
+	return false
+
+func _resolve_end_screen_navigation(is_victory: bool) -> Dictionary:
+	if not is_victory:
+		return {
+			"action": END_SCREEN_ACTION_LEVEL_SELECT,
+			"label": "Sélection niveau"
+		}
+
+	var level_count: int = max(1, App.get_world_level_count(current_world_id))
+	var has_next_level: bool = (current_level_index + 1) < level_count
+	if has_next_level:
+		return {
+			"action": END_SCREEN_ACTION_NEXT_LEVEL,
+			"label": "Niveau suivant"
+		}
+
+	return {
+		"action": END_SCREEN_ACTION_WORLD_SELECT,
+		"label": "Sélection monde"
+	}
+
+func _on_end_screen_context_requested() -> void:
+	match _end_screen_context_action:
+		END_SCREEN_ACTION_NEXT_LEVEL:
+			_on_next_level_requested()
+		END_SCREEN_ACTION_WORLD_SELECT:
+			_on_world_select_requested()
+		_:
+			_on_level_select_requested()
 
 func _return_to_home() -> void:
 	App.play_menu_music()
@@ -552,6 +668,31 @@ func _on_level_select_requested() -> void:
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/LevelSelect.tscn")
+
+func _on_next_level_requested() -> void:
+	get_tree().paused = false
+
+	ProjectileManager.clear_all_projectiles()
+
+	var world_level_count: int = max(1, App.get_world_level_count(current_world_id))
+	var next_level_index: int = min(current_level_index + 1, world_level_count - 1)
+	App.current_world_id = current_world_id
+	App.current_level_index = next_level_index
+	current_level_index = next_level_index
+
+	var switcher := get_tree().current_scene
+	if switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/Game.tscn")
+
+func _on_world_select_requested() -> void:
+	App.play_menu_music()
+	get_tree().paused = false
+
+	ProjectileManager.clear_all_projectiles()
+
+	var switcher := get_tree().current_scene
+	if switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/WorldSelect.tscn")
 
 func _on_quit_requested() -> void:
 	_return_to_home()
