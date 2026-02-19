@@ -72,6 +72,15 @@ var _contact_enemies: Array[Node2D] = []
 # Fluid trail
 var _fluid_id: String = ""
 
+# Fire Pattern: Aura system
+var _aura_active: bool = false
+var _aura_timer: float = 0.0
+var _aura_dps: float = 0.0
+var _aura_radius: float = 0.0
+var _aura_tick_interval: float = 0.5
+var _aura_area: Area2D = null
+var _aura_visual: Node2D = null
+
 # --- DEBUG PATTERN ROTATION - START ---
 var _debug_pattern_rotation_enabled: bool = false # Set to false to disable
 var _debug_pattern_index: int = 0
@@ -455,6 +464,7 @@ func _process(delta: float) -> void:
 	_handle_contact_damage(delta)
 	_handle_shield_regen(delta)
 	_update_deflection_aura(delta)
+	_update_aura(delta)
 	if _fluid_id != "":
 		FluidManager.emit_fluid(global_position, _fluid_id, velocity)
 	if _skill_emergency_cooldown_remaining > 0.0:
@@ -476,6 +486,102 @@ func _process(delta: float) -> void:
 
 func set_can_shoot(state: bool) -> void:
 	_can_shoot = state
+	# Deactivate aura when shooting is disabled
+	if not state:
+		_deactivate_aura()
+
+# =============================================================================
+# FIRE PATTERN: AURA SYSTEM
+# =============================================================================
+
+## Set up the Area2D for the aura damage zone.
+func _setup_aura_area() -> void:
+	if _aura_area != null:
+		return
+	_aura_area = Area2D.new()
+	_aura_area.name = "AuraZone"
+	_aura_area.collision_layer = 0
+	_aura_area.collision_mask = 4 # Same as hitbox: detects enemies
+	var col := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 1.0 # Will be updated dynamically
+	col.shape = shape
+	_aura_area.add_child(col)
+	add_child(_aura_area)
+
+## Activate the aura with the given fire_data parameters.
+func _activate_aura(fire_data: Dictionary) -> void:
+	_setup_aura_area()
+	var new_radius := float(fire_data.get("radius", 60.0))
+	var new_dps := float(fire_data.get("tick_dps", 5.0))
+	var new_interval := float(fire_data.get("tick_interval", 0.5))
+
+	_aura_radius = new_radius
+	_aura_dps = new_dps
+	_aura_tick_interval = new_interval
+
+	# Update collision shape radius
+	for child in _aura_area.get_children():
+		if child is CollisionShape2D and child.shape is CircleShape2D:
+			child.shape.radius = _aura_radius
+
+	if not _aura_active:
+		_aura_active = true
+		_aura_timer = 0.0
+		_create_aura_visual()
+		print("[Player] Aura ACTIVATED — radius=", _aura_radius, " dps=", _aura_dps)
+
+## Deactivate the aura.
+func _deactivate_aura() -> void:
+	if not _aura_active:
+		return
+	_aura_active = false
+	_aura_timer = 0.0
+	if _aura_visual and is_instance_valid(_aura_visual):
+		_aura_visual.queue_free()
+		_aura_visual = null
+
+## Create a simple visual indicator for the aura.
+func _create_aura_visual() -> void:
+	if _aura_visual and is_instance_valid(_aura_visual):
+		_aura_visual.queue_free()
+	var circle := Node2D.new()
+	circle.name = "AuraVisual"
+	var draw_node := _AuraDrawNode.new()
+	draw_node.aura_radius = _aura_radius
+	draw_node.aura_color = Color(1.0, 0.3, 0.1, 0.25)
+	circle.add_child(draw_node)
+	add_child(circle)
+	_aura_visual = circle
+
+## Update aura tick damage each frame.
+func _update_aura(delta: float) -> void:
+	if not _aura_active:
+		return
+	_aura_timer -= delta
+	if _aura_timer <= 0.0:
+		_aura_timer = _aura_tick_interval
+		_apply_aura_damage()
+
+## Apply tick damage to all enemies inside the aura.
+func _apply_aura_damage() -> void:
+	if _aura_area == null or not is_instance_valid(_aura_area):
+		return
+	var tick_damage := int(_aura_dps * _aura_tick_interval * damage_multiplier)
+	if tick_damage <= 0:
+		tick_damage = 1
+	var bodies := _aura_area.get_overlapping_bodies()
+	for body in bodies:
+		if body.is_in_group("enemies") and body.has_method("take_damage"):
+			body.take_damage(tick_damage)
+
+## Inner draw helper for the aura circle visual.
+class _AuraDrawNode extends Node2D:
+	var aura_radius: float = 60.0
+	var aura_color: Color = Color(1.0, 0.3, 0.1, 0.25)
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, aura_radius, aura_color)
+		draw_arc(Vector2.ZERO, aura_radius, 0, TAU, 64, aura_color.lightened(0.4), 2.0)
 
 
 func _handle_contact_damage(delta: float) -> void:
@@ -784,8 +890,23 @@ func _fire() -> void:
 		var ship := DataManager.get_ship(ship_id)
 		missile_pattern_id = str(ship.get("missile_pattern_id", "single_straight"))
 	# --- DEBUG PATTERN ROTATION - END ---
-	
-	var pattern_data := DataManager.get_missile_pattern(missile_pattern_id).duplicate()
+
+	# --- FIRE PATTERN SYSTEM: Check equipped fire pattern ---
+	var fire_data := SkillManager.get_fire_pattern_data()
+	var pattern_data: Dictionary
+
+	if fire_data.get("is_aura", false):
+		# Aura mode: activate aura instead of firing projectiles
+		_activate_aura(fire_data)
+		_fire_timer = 0.2 # Small cooldown to prevent spamming
+		return
+
+	if not fire_data.get("use_ship_default", false) and not fire_data.is_empty():
+		# Custom fire pattern from skill tree
+		pattern_data = fire_data.duplicate()
+	else:
+		# Ship default pattern
+		pattern_data = DataManager.get_missile_pattern(missile_pattern_id).duplicate()
 	
 	# --- DEBUG PATTERN ROTATION - START ---
 	if _debug_pattern_rotation_enabled:

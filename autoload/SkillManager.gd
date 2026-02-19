@@ -67,6 +67,79 @@ func get_unlocked_magic_skills() -> Array:
 func get_magic_level() -> int:
 	return get_unlocked_magic_skills().size()
 
+# =============================================================================
+# FIRE PATTERN SYSTEM
+# =============================================================================
+
+## Returns the resolved fire pattern data based on the equipped pattern and its rank.
+## Returns { "use_ship_default": true } if default ship pattern is selected.
+## Returns { "is_aura": true, ... } for the aura pattern.
+## Returns a full pattern_data Dictionary for projectile-based patterns.
+func get_fire_pattern_data() -> Dictionary:
+	var pattern_id := ProfileManager.get_equipped_fire_pattern()
+	if pattern_id == "fire_ship_default" or pattern_id == "":
+		return { "use_ship_default": true }
+
+	var rank := ProfileManager.get_skill_rank(pattern_id)
+	if rank <= 0:
+		# Pattern not unlocked, fallback to ship default
+		return { "use_ship_default": true }
+
+	var skill_data := DataManager.get_skill(pattern_id)
+	if skill_data.is_empty():
+		return { "use_ship_default": true }
+
+	var params: Dictionary = skill_data.get("params", {})
+	var rank_index := rank - 1 # 0-based index into arrays
+
+	# --- Aura Pattern (special case) ---
+	if bool(params.get("aura", false)):
+		var radii: Array = params.get("radii", [60])
+		var tick_dps: Array = params.get("tick_dps", [5])
+		var radius: float = float(radii[mini(rank_index, radii.size() - 1)])
+		var dps: float = float(tick_dps[mini(rank_index, tick_dps.size() - 1)])
+		var interval: float = float(params.get("tick_interval", 0.5))
+		return {
+			"is_aura": true,
+			"radius": radius,
+			"tick_dps": dps,
+			"tick_interval": interval,
+			"rank": rank
+		}
+
+	# --- Projectile-based Patterns ---
+	var base_pattern_id: String = str(params.get("base_pattern", "single_straight"))
+	var base_data := DataManager.get_missile_pattern(base_pattern_id).duplicate()
+	if base_data.is_empty():
+		return { "use_ship_default": true }
+
+	# Apply rank-based projectile count
+	var proj_counts: Array = params.get("projectile_counts", [])
+	if proj_counts.size() > 0:
+		base_data["projectile_count"] = int(proj_counts[mini(rank_index, proj_counts.size() - 1)])
+
+	# Apply rank-based spawn_width (for straight patterns)
+	var spawn_widths: Array = params.get("spawn_widths", [])
+	if spawn_widths.size() > 0:
+		base_data["spawn_width"] = float(spawn_widths[mini(rank_index, spawn_widths.size() - 1)])
+
+	# Apply rank-based spread_angle (for cone patterns)
+	var spread_angles: Array = params.get("spread_angles", [])
+	if spread_angles.size() > 0:
+		base_data["spread_angle"] = float(spread_angles[mini(rank_index, spread_angles.size() - 1)])
+
+	# Fixed spread_angle override (for 360 patterns)
+	if params.has("spread_angle"):
+		base_data["spread_angle"] = float(params["spread_angle"])
+
+	# Trajectory override (e.g., "radial" for 360)
+	if params.has("trajectory"):
+		base_data["trajectory"] = str(params["trajectory"])
+
+	base_data["rank"] = rank
+	base_data["fire_pattern_id"] = pattern_id
+	return base_data
+
 ## Returns the projectile modifier config based on active magic tree.
 ## { "missile_override": "missile_ice", "on_hit_effects": [...], ... }
 func get_projectile_modifier() -> Dictionary:
@@ -295,12 +368,17 @@ func can_unlock_skill(skill_id: String) -> bool:
 	var tree_data := DataManager.get_skill_tree(tree_id)
 	var unlock_req := int(tree_data.get("unlock_requirement", 0))
 	if unlock_req > 0:
-		if tree_id == "pew_pew":
-			var spent_other_trees := ProfileManager.get_spent_skill_points("pew_pew")
-			if spent_other_trees < unlock_req:
+		# Check if the branch is exempt from the tree unlock requirement
+		var branch_id := DataManager.get_skill_branch_for_id(skill_id)
+		var branch_data: Dictionary = tree_data.get("branches", {}).get(branch_id, {})
+		var exempt := bool(branch_data.get("exempt_unlock_requirement", false))
+		if not exempt:
+			if tree_id == "pew_pew":
+				var spent_other_trees := ProfileManager.get_spent_skill_points("pew_pew")
+				if spent_other_trees < unlock_req:
+					return false
+			elif ProfileManager.get_player_level() < unlock_req:
 				return false
-		elif ProfileManager.get_player_level() < unlock_req:
-			return false
 
 	# Magic exclusivity
 	if tree_id == "magic":

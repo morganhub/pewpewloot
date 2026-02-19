@@ -1,0 +1,12 @@
+{
+    "locale": "fr",
+    "strings": {
+        "story_w1_intro_1": "Pilote, nous avons détecté une activité hostile dans la ceinture d'astéroïdes.",
+        "story_w1_intro_2": "Procédez avec prudence. Des pirates et des drones autonomes ont été repérés.",
+        "story_w1_intro_3": "Bien reçu, Commandant. Armement activé, j'avance.",
+        "story_w1_intro_4": "Bonne chance, pilote.",
+        "story_w1_intro_5": "Nous comptons sur vous pour sécuriser ce secteur.",
+        "story_w1_lvl2_1": "Attention : cette zone est lourdement minée.",
+        "story_w1_lvl2_2": "Faites attention, pilote. Un faux pas et c'est terminé."
+    }
+}

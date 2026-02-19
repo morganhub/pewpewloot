@@ -118,6 +118,23 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	if not migrated.has("active_magic_branch"):
 		migrated["active_magic_branch"] = ""
 		needs_save = true
+
+	# Migration: equipped fire pattern
+	if not migrated.has("equipped_fire_pattern"):
+		migrated["equipped_fire_pattern"] = "fire_ship_default"
+		needs_save = true
+
+	# Migration: fire_straight rank 1 unlocked by default
+	var _skills_unl: Dictionary = migrated.get("skills_unlocked", {})
+	if not _skills_unl.has("fire_straight") or int(_skills_unl.get("fire_straight", 0)) < 1:
+		_skills_unl["fire_straight"] = 1
+		migrated["skills_unlocked"] = _skills_unl
+		needs_save = true
+	
+	# Migration: viewed_stories
+	if not migrated.has("viewed_stories"):
+		migrated["viewed_stories"] = []
+		needs_save = true
 	
 	# Keep profile ship references valid if ship IDs changed in ships.json.
 	if _can_validate_ship_ids():
@@ -295,8 +312,10 @@ func create_profile(profile_name: String, portrait_id: int) -> String:
 		"player_xp": 0,
 		"player_level": 1,
 		"skill_points": 0,
-		"skills_unlocked": {},
-		"active_magic_branch": ""
+		"skills_unlocked": { "fire_straight": 1 },
+		"active_magic_branch": "",
+		"equipped_fire_pattern": "fire_ship_default",
+		"viewed_stories": []
 	}
 
 	profiles.append(profile)
@@ -335,6 +354,31 @@ func calculate_recycle_value(item: Dictionary) -> int:
 		var bonus := float(skill_data.get("params", {}).get("recycle_bonus", 0.0))
 		base_value = int(float(base_value) * (1.0 + bonus))
 	return base_value
+
+# =============================================================================
+# VIEWED STORIES (cinématiques déjà vues)
+# =============================================================================
+
+## Vérifie si une story a déjà été vue par le profil actif
+func has_viewed_story(story_id: String) -> bool:
+	var profile := get_active_profile()
+	var viewed: Variant = profile.get("viewed_stories", [])
+	if viewed is Array:
+		return (viewed as Array).has(story_id)
+	return false
+
+## Marque une story comme vue et sauvegarde
+func mark_story_viewed(story_id: String) -> void:
+	var profile := get_active_profile()
+	var viewed: Variant = profile.get("viewed_stories", [])
+	var viewed_array: Array = []
+	if viewed is Array:
+		viewed_array = (viewed as Array).duplicate()
+	
+	if not viewed_array.has(story_id):
+		viewed_array.append(story_id)
+		_update_active_profile("viewed_stories", viewed_array)
+		print("[ProfileManager] Story marked as viewed: ", story_id)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PROGRESSION MONDES/NIVEAUX
@@ -988,16 +1032,21 @@ func spend_skill_point(skill_id: String) -> bool:
 
 	# Check tree-level unlock requirement.
 	# For Pew Pew, requirement means points spent in other trees.
+	# Branches with exempt_unlock_requirement flag bypass this check.
 	var tree_id := DataManager.get_skill_tree_for_id(skill_id)
 	var tree_data := DataManager.get_skill_tree(tree_id)
 	var unlock_req := int(tree_data.get("unlock_requirement", 0))
 	if unlock_req > 0:
-		if tree_id == "pew_pew":
-			var spent_other_trees := get_spent_skill_points("pew_pew")
-			if spent_other_trees < unlock_req:
+		var branch_id := DataManager.get_skill_branch_for_id(skill_id)
+		var branch_data: Dictionary = tree_data.get("branches", {}).get(branch_id, {})
+		var exempt := bool(branch_data.get("exempt_unlock_requirement", false))
+		if not exempt:
+			if tree_id == "pew_pew":
+				var spent_other_trees := get_spent_skill_points("pew_pew")
+				if spent_other_trees < unlock_req:
+					return false
+			elif get_player_level() < unlock_req:
 				return false
-		elif get_player_level() < unlock_req:
-			return false
 
 	# Check Magic exclusivity
 	if tree_id == "magic":
@@ -1022,15 +1071,47 @@ func respec_skills() -> bool:
 	if not spend_crystals(cost):
 		return false
 
-	# Count total points invested
+	# Count total points invested (fire_straight rank 1 is free, don't refund it)
 	var unlocked := get_skills_unlocked()
 	var refunded := 0
 	for skill_id in unlocked:
-		refunded += int(unlocked[skill_id])
+		var rank := int(unlocked[skill_id])
+		if skill_id == "fire_straight":
+			# Rank 1 is free (default), only refund extra ranks
+			refunded += max(0, rank - 1)
+		else:
+			refunded += rank
 
-	_update_active_profile("skills_unlocked", {})
+	# Reset all skills but keep fire_straight rank 1 (free default)
+	_update_active_profile("skills_unlocked", { "fire_straight": 1 })
 	_update_active_profile("active_magic_branch", "")
+	_update_active_profile("equipped_fire_pattern", "fire_ship_default")
 	_update_active_profile("skill_points", get_skill_points() + refunded)
+	return true
+
+# =============================================================================
+# FIRE PATTERN EQUIP
+# =============================================================================
+
+## Returns the currently equipped fire pattern ID.
+func get_equipped_fire_pattern() -> String:
+	var profile := get_active_profile()
+	return str(profile.get("equipped_fire_pattern", "fire_ship_default"))
+
+## Equip a fire pattern. Must be "fire_ship_default" or an unlocked fire_pattern skill.
+func set_equipped_fire_pattern(pattern_id: String) -> bool:
+	if pattern_id == "fire_ship_default":
+		_update_active_profile("equipped_fire_pattern", pattern_id)
+		return true
+	# Validate: must be an unlocked fire_pattern skill
+	if not is_skill_unlocked(pattern_id):
+		push_warning("[ProfileManager] Cannot equip locked fire pattern: " + pattern_id)
+		return false
+	var skill_data := DataManager.get_skill(pattern_id)
+	if skill_data.is_empty() or str(skill_data.get("type", "")) != "fire_pattern":
+		push_warning("[ProfileManager] Not a fire_pattern skill: " + pattern_id)
+		return false
+	_update_active_profile("equipped_fire_pattern", pattern_id)
 	return true
 
 ## Get respec cost in crystals

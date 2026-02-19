@@ -36,6 +36,9 @@ func _ready() -> void:
 	_setup_background()
 	_load_levels()
 	
+	# Vérifier les story triggers du monde et des niveaux
+	_check_story_triggers()
+	
 	# Back Button Icon
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
@@ -275,3 +278,47 @@ func _get_active_progress() -> Dictionary:
 func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
 	switcher.goto_screen("res://scenes/WorldSelect.tscn")
+
+# =============================================================================
+# STORY TRIGGERS
+# =============================================================================
+
+## Vérifie si le monde ou un niveau possède une story non vue et la lance
+func _check_story_triggers() -> void:
+	# 1) Vérifier la story au niveau du monde
+	var world_data := App.get_world(world_id)
+	var world_story_id: String = str(world_data.get("story_id", ""))
+	
+	if world_story_id != "" and not ProfileManager.has_viewed_story(world_story_id):
+		process_mode = Node.PROCESS_MODE_DISABLED
+		await StoryManager.play_story(world_story_id)
+		ProfileManager.mark_story_viewed(world_story_id)
+		process_mode = Node.PROCESS_MODE_INHERIT
+		return  # Une seule story par visite
+	
+	# 2) Vérifier les stories des niveaux débloqués
+	var levels: Variant = world_data.get("levels", [])
+	if not (levels is Array):
+		return
+	
+	var prog := _get_active_progress()
+	var wprog: Variant = prog.get(world_id, {})
+	var max_unlocked: int = 0
+	if wprog is Dictionary:
+		max_unlocked = int((wprog as Dictionary).get("max_unlocked_level", 0))
+	
+	for i in range((levels as Array).size()):
+		if i > max_unlocked:
+			break  # Ne vérifier que les niveaux débloqués
+		
+		var level_data: Variant = (levels as Array)[i]
+		if not (level_data is Dictionary):
+			continue
+		
+		var level_story_id: String = str((level_data as Dictionary).get("story_id", ""))
+		if level_story_id != "" and not ProfileManager.has_viewed_story(level_story_id):
+			process_mode = Node.PROCESS_MODE_DISABLED
+			await StoryManager.play_story(level_story_id)
+			ProfileManager.mark_story_viewed(level_story_id)
+			process_mode = Node.PROCESS_MODE_INHERIT
+			return  # Une seule story par visite

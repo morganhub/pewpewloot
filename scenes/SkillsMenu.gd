@@ -31,6 +31,7 @@ const BRANCH_TO_BLOCK := {
 	"void": "singularity",
 	"loot": "fortune",
 	"powers": "tech",
+	"fire_patterns": "fire",
 	"stat_boosts": "perfection"
 }
 
@@ -482,6 +483,9 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 
 	var levels_raw: Variant = branch_data.get("levels", [])
 	if levels_raw is Array:
+		# For fire_patterns branch: add "Ship Default" special entry at top
+		if branch_id == "fire_patterns":
+			_build_fire_default_node(branch_vbox, block_cfg, branch_color)
 		for node_data in levels_raw:
 			if node_data is Dictionary:
 				_build_skill_node(node_data as Dictionary, branch_vbox, branch_id, branch_data, block_cfg, branch_color)
@@ -505,6 +509,103 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 			"Perfection: " + str(spent) + "/" + str(unlock_req) + " points depenses hors Perfection."
 		)
 		branch_vbox.add_child(req_label)
+
+## Builds the special "Ship Default" node at the top of the fire_patterns branch.
+func _build_fire_default_node(parent: VBoxContainer, block_cfg: Dictionary, branch_color: Color) -> void:
+	var equipped_id := ProfileManager.get_equipped_fire_pattern()
+	var is_equipped := (equipped_id == "fire_ship_default")
+
+	var skills_cfg := _get_config_dict(["skills", "blocks", str(BRANCH_TO_BLOCK.get("fire_patterns", "fire")), "skills"], {})
+	var base_text_color := _to_color(skills_cfg.get("text_color", "#D8DCE6"), Color(0.85, 0.86, 0.9))
+	var icon_size := int(skills_cfg.get("skill_icon_size", 30))
+	var title_size := int(skills_cfg.get("title_text_size", 19))
+	var desc_size := int(skills_cfg.get("description_text_size", 14))
+
+	var node_panel := PanelContainer.new()
+	node_panel.custom_minimum_size = Vector2(0, 74)
+	parent.add_child(node_panel)
+
+	var node_style := StyleBoxFlat.new()
+	node_style.corner_radius_top_left = 8
+	node_style.corner_radius_top_right = 8
+	node_style.corner_radius_bottom_left = 8
+	node_style.corner_radius_bottom_right = 8
+	node_style.content_margin_left = 12
+	node_style.content_margin_right = 12
+	node_style.content_margin_top = 8
+	node_style.content_margin_bottom = 8
+
+	var block_bg := _to_color(block_cfg.get("background", "#1A1F31"), Color(0.1, 0.12, 0.19))
+	if is_equipped:
+		node_style.bg_color = block_bg.lerp(Color("#FFD700"), 0.15)
+		node_style.border_color = Color("#FFD700")
+		node_style.border_width_left = 3
+		node_style.border_width_right = 3
+		node_style.border_width_top = 3
+		node_style.border_width_bottom = 3
+	else:
+		node_style.bg_color = block_bg.lerp(branch_color, 0.26)
+		node_style.border_color = branch_color
+		node_style.border_width_left = 2
+		node_style.border_width_right = 2
+		node_style.border_width_top = 2
+		node_style.border_width_bottom = 2
+	node_panel.add_theme_stylebox_override("panel", node_style)
+
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 12)
+	node_panel.add_child(hbox)
+
+	# Use branch icon (same as other skill nodes)
+	var icon_added := _add_icon_texture(hbox, "res://assets/ui/skills/branch_fire.png", icon_size, icon_size)
+	if not icon_added:
+		var icon_label := Label.new()
+		icon_label.text = "🚀"
+		icon_label.add_theme_font_size_override("font_size", icon_size)
+		icon_label.add_theme_color_override("font_color", branch_color)
+		hbox.add_child(icon_label)
+
+	var text_col := VBoxContainer.new()
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.add_theme_constant_override("separation", 2)
+	hbox.add_child(text_col)
+
+	var title_label := Label.new()
+	title_label.text = _translate("skills.skill.fire_ship_default.title", {}, "Tir du vaisseau")
+	title_label.add_theme_font_size_override("font_size", title_size)
+	title_label.add_theme_color_override("font_color", Color.WHITE)
+	text_col.add_child(title_label)
+
+	var desc_label := Label.new()
+	desc_label.text = _translate("skills.skill.fire_ship_default.description", {}, "Utilise le tir natif du vaisseau.")
+	desc_label.add_theme_font_size_override("font_size", desc_size)
+	desc_label.add_theme_color_override("font_color", base_text_color.lerp(Color(0.58, 0.58, 0.62), 0.35))
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text_col.add_child(desc_label)
+
+	var right_col := VBoxContainer.new()
+	right_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_child(right_col)
+
+	var equip_btn := Button.new()
+	equip_btn.name = "EquipBtn_fire_ship_default"
+	equip_btn.custom_minimum_size = Vector2(120, 38)
+	equip_btn.add_theme_font_size_override("font_size", 14)
+	if is_equipped:
+		equip_btn.text = _translate("skills.menu.button.equipped", {}, "Equipe")
+		equip_btn.disabled = true
+		equip_btn.add_theme_color_override("font_color", Color("#FFD700"))
+	else:
+		equip_btn.text = _translate("skills.menu.button.equip", {}, "Equiper")
+		equip_btn.pressed.connect(_on_equip_fire_pattern.bind("fire_ship_default"))
+		var equip_texture := _load_texture_from_path("res://assets/ui/buttons/btn_equip.png")
+		if equip_texture:
+			var equip_style := StyleBoxTexture.new()
+			equip_style.texture = equip_texture
+			equip_btn.add_theme_stylebox_override("normal", equip_style)
+			equip_btn.add_theme_stylebox_override("hover", equip_style)
+			equip_btn.add_theme_stylebox_override("pressed", equip_style)
+	right_col.add_child(equip_btn)
 
 func _build_skill_node(
 	node_data: Dictionary,
@@ -635,13 +736,6 @@ func _build_skill_node(
 		rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		right_col.add_child(rank_label)
 
-	if is_unlocked and (max_rank <= 1 or current_rank >= max_rank):
-		var check := Label.new()
-		check.text = "✓"
-		check.add_theme_font_size_override("font_size", 20)
-		check.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		right_col.add_child(check)
-
 	var unlock_btn := Button.new()
 	unlock_btn.name = "UnlockBtn_" + skill_id
 	unlock_btn.custom_minimum_size = Vector2(120, 38)
@@ -666,6 +760,39 @@ func _build_skill_node(
 
 	hbox.add_child(unlock_btn)
 	_skill_nodes[skill_id] = unlock_btn
+
+	# --- Fire Pattern: Equip Button ---
+	var skill_type := str(node_data.get("type", ""))
+	if skill_type == "fire_pattern" and is_unlocked:
+		var equipped_id := ProfileManager.get_equipped_fire_pattern()
+		var is_equipped := (equipped_id == skill_id)
+		var equip_btn := Button.new()
+		equip_btn.name = "EquipBtn_" + skill_id
+		equip_btn.custom_minimum_size = Vector2(120, 38)
+		equip_btn.add_theme_font_size_override("font_size", 14)
+		if is_equipped:
+			equip_btn.text = _translate("skills.menu.button.equipped", {}, "Equipe")
+			equip_btn.disabled = true
+			equip_btn.add_theme_color_override("font_color", Color("#FFD700"))
+		else:
+			equip_btn.text = _translate("skills.menu.button.equip", {}, "Equiper")
+			equip_btn.pressed.connect(_on_equip_fire_pattern.bind(skill_id))
+		# Try to apply equip button asset
+		var equip_texture := _load_texture_from_path("res://assets/ui/buttons/btn_equip.png")
+		if equip_texture and not is_equipped:
+			var equip_style := StyleBoxTexture.new()
+			equip_style.texture = equip_texture
+			equip_btn.add_theme_stylebox_override("normal", equip_style)
+			equip_btn.add_theme_stylebox_override("hover", equip_style)
+			equip_btn.add_theme_stylebox_override("pressed", equip_style)
+		hbox.add_child(equip_btn)
+		# Golden border for equipped skill
+		if is_equipped:
+			node_style.border_color = Color("#FFD700")
+			node_style.border_width_left = 3
+			node_style.border_width_right = 3
+			node_style.border_width_top = 3
+			node_style.border_width_bottom = 3
 
 func _add_icon_texture(parent: Control, asset_path: String, width: int, height: int) -> bool:
 	var texture := _load_texture_from_path(asset_path)
@@ -719,6 +846,14 @@ func _on_tab_pressed(tab_id: String) -> void:
 
 func _on_skill_pressed(skill_id: String) -> void:
 	var success := ProfileManager.spend_skill_point(skill_id)
+	if success:
+		AudioManager.play_sfx("res://assets/sfx/ui_confirm.wav", 0.0)
+		_refresh_display()
+	else:
+		AudioManager.play_sfx("res://assets/sfx/ui_deny.wav", 0.0)
+
+func _on_equip_fire_pattern(pattern_id: String) -> void:
+	var success := ProfileManager.set_equipped_fire_pattern(pattern_id)
 	if success:
 		AudioManager.play_sfx("res://assets/sfx/ui_confirm.wav", 0.0)
 		_refresh_display()

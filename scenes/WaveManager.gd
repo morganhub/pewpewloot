@@ -100,8 +100,9 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 	var count: int = int(wave.get("count", 1))
 	var interval: float = float(wave.get("interval", 1.0))
 	var pattern_id: String = _pick_random_move_pattern_id()
+	var enemy_skin: String = str(wave.get("enemy_skin", ""))
 	if DEBUG_WAVE_PATTERN_LOG:
-		print("[WaveManager] Wave ", _current_wave_index, " enemy=", enemy_id, " random_pattern=", pattern_id)
+		print("[WaveManager] Wave ", _current_wave_index, " enemy=", enemy_id, " random_pattern=", pattern_id, " enemy_skin=", enemy_skin)
 	
 	# Optional modifier
 	var modifier_id: String = str(wave.get("enemy_modifier_id", ""))
@@ -113,7 +114,8 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 			"delay": spawn_delay,
 			"enemy_id": enemy_id,
 			"pattern_id": pattern_id,
-			"modifier_id": modifier_id
+			"modifier_id": modifier_id,
+			"enemy_skin": enemy_skin
 		})
 
 func _start_obstacle_wave(wave: Dictionary) -> void:
@@ -178,7 +180,7 @@ func _process_pending_spawns(delta: float) -> void:
 
 func _trigger_spawn(spawn_info: Dictionary) -> void:
 	var enemy_id: String = str(spawn_info.get("enemy_id", ""))
-	var enemy_data := DataManager.get_enemy(enemy_id).duplicate()
+	var enemy_data := DataManager.get_enemy(enemy_id).duplicate(true)
 	if enemy_data.is_empty():
 		push_warning("[WaveManager] Unknown enemy_id in wave: " + enemy_id)
 		return
@@ -191,7 +193,41 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 	if spawn_info.get("modifier_id", "") != "":
 		enemy_data["modifier_id"] = spawn_info["modifier_id"]
 
+	# Optional visual override per wave.
+	var enemy_skin: String = str(spawn_info.get("enemy_skin", ""))
+	_apply_enemy_skin_override(enemy_data, enemy_skin)
+
 	# Spawn position is now randomized per enemy spawn.
 	var spawn_pos: Vector2 = _get_random_spawn_position()
 
 	spawn_enemy.emit(enemy_data, spawn_pos)
+
+func _apply_enemy_skin_override(enemy_data: Dictionary, enemy_skin: String) -> void:
+	if enemy_skin == "":
+		return
+	if not ResourceLoader.exists(enemy_skin):
+		push_warning("[WaveManager] enemy_skin resource does not exist: " + enemy_skin)
+		return
+
+	var visual: Dictionary = {}
+	var visual_variant: Variant = enemy_data.get("visual", {})
+	if visual_variant is Dictionary:
+		visual = (visual_variant as Dictionary).duplicate(true)
+
+	var skin_res: Resource = load(enemy_skin)
+	if skin_res is SpriteFrames:
+		visual["asset_anim"] = enemy_skin
+		visual["asset"] = ""
+	elif skin_res is Texture2D:
+		visual["asset"] = enemy_skin
+		visual["asset_anim"] = ""
+	else:
+		var ext: String = enemy_skin.get_extension().to_lower()
+		if ext == "tres" or ext == "res":
+			visual["asset_anim"] = enemy_skin
+			visual["asset"] = ""
+		else:
+			visual["asset"] = enemy_skin
+			visual["asset_anim"] = ""
+
+	enemy_data["visual"] = visual

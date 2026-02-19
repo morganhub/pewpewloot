@@ -5,6 +5,7 @@ extends Node
 
 var _current_locale: String = "fr"
 var _strings: Dictionary = {}
+var _story_strings: Dictionary = {}
 
 func _ready() -> void:
 	# Récupérer la locale sauvegardée dans ProfileManager
@@ -34,7 +35,10 @@ func load_locale(locale: String) -> void:
 		if strings_data is Dictionary:
 			_strings = strings_data as Dictionary
 	
-	print("[LocaleManager] Loaded locale: ", locale, " (", _strings.size(), " strings)")
+	# Charger les story strings séparément
+	_load_story_locale(locale)
+	
+	print("[LocaleManager] Loaded locale: ", locale, " (", _strings.size(), " strings, ", _story_strings.size(), " story strings)")
 
 ## Retourne la locale actuelle
 func get_locale() -> String:
@@ -64,3 +68,35 @@ func t(key: String) -> String:
 ## Vérifie si une clé existe dans les cordes chargées
 func has_key(key: String) -> bool:
 	return _strings.has(key)
+
+# =============================================================================
+# STORY STRINGS (story_xx.json — séparées de l'UI)
+# =============================================================================
+
+## Charge les traductions story depuis data/locales/story_{locale}.json
+func _load_story_locale(locale: String) -> void:
+	_story_strings.clear()
+	var path := "res://data/locales/story_" + locale + ".json"
+	
+	if not FileAccess.file_exists(path):
+		push_warning("[LocaleManager] Story locale file not found: " + path)
+		return
+	
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_warning("[LocaleManager] Could not open story locale file: " + path)
+		return
+	
+	var text := file.get_as_text()
+	file.close()
+	
+	var parsed: Variant = JSON.parse_string(text)
+	if parsed is Dictionary:
+		var data := parsed as Dictionary
+		var strings_data: Variant = data.get("strings", {})
+		if strings_data is Dictionary:
+			_story_strings = strings_data as Dictionary
+
+## Retourne une traduction story par sa clé (retourne la clé si non trouvée)
+func get_story_string(key: String) -> String:
+	return str(_story_strings.get(key, key))

@@ -1,0 +1,12 @@
+{
+    "locale": "en",
+    "strings": {
+        "story_w1_intro_1": "Pilot, we've detected hostile activity in the asteroid belt.",
+        "story_w1_intro_2": "Proceed with caution. Pirates and rogue drones have been spotted.",
+        "story_w1_intro_3": "Copy that, Commander. Weapons hot, moving in.",
+        "story_w1_intro_4": "Good luck out there.",
+        "story_w1_intro_5": "We're counting on you to clear this sector.",
+        "story_w1_lvl2_1": "Warning: this zone is heavily mined.",
+        "story_w1_lvl2_2": "Watch your step, pilot. One wrong move and it's over."
+    }
+}

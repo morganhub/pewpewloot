@@ -25,6 +25,8 @@ var _game_config: Dictionary = {} # game.json data
 var _skills: Dictionary = {} # skills.json data
 var _obstacles: Dictionary = {} # obstacle_id -> data
 var _fluids: Dictionary = {} # fluid_preset_id -> data
+var _stories: Dictionary = {} # story_id -> sequence data
+var _story_settings: Dictionary = {} # global_settings from story.json
 
 var _default_unlocked_ships: Array = []
 
@@ -47,6 +49,7 @@ func _load_all_data() -> void:
 	_load_skills()
 	_load_obstacles()
 	_load_fluids()
+	_load_stories()
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
 	print("[DataManager] Ships: ", _ships.size())
@@ -59,6 +62,7 @@ func _load_all_data() -> void:
 	print("[DataManager] Uniques: ", _uniques.size())
 	print("[DataManager] Obstacles: ", _obstacles.size())
 	print("[DataManager] Fluids: ", _fluids.size())
+	print("[DataManager] Stories: ", _stories.size())
 
 
 # =============================================================================
@@ -701,3 +705,38 @@ func get_fluid_preset(fluid_id: String) -> Dictionary:
 
 func get_all_fluid_presets() -> Dictionary:
 	return _fluids
+
+# =============================================================================
+# STORY DATA (story.json)
+# =============================================================================
+
+func _load_stories() -> void:
+	_stories.clear()
+	_story_settings.clear()
+	var data := _load_json("res://data/story.json")
+	if data.is_empty():
+		push_warning("[DataManager] No story data found.")
+		return
+	
+	# Charger les global_settings
+	var settings: Variant = data.get("global_settings", {})
+	if settings is Dictionary:
+		_story_settings = settings as Dictionary
+	
+	# Charger les séquences indexées par ID
+	var sequences: Variant = data.get("sequences", [])
+	if sequences is Array:
+		for seq in sequences:
+			if seq is Dictionary:
+				var seq_dict := seq as Dictionary
+				var seq_id: String = str(seq_dict.get("id", ""))
+				if seq_id != "":
+					_stories[seq_id] = seq_dict
+
+## Retourne une séquence de story par son ID
+func get_story(story_id: String) -> Dictionary:
+	return _stories.get(story_id, {})
+
+## Retourne les paramètres globaux des stories
+func get_story_settings() -> Dictionary:
+	return _story_settings

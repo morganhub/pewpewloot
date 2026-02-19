@@ -1,1215 +1,689 @@
 {
-  "id": "world_2",
-  "name": "Nécropole stellaire",
-  "description": "Un cimetière de vaisseaux à la dérive, hanté par des drones corrompus et des fantômes électroniques.",
-  "order": 2,
-  "theme": {
-	"background": "res://assets/backgrounds/worlds/necropolis/necro_world_0.png",
-	"music": "res://assets/music/acceleration.ogg",
-	"color_palette": "#4a2a5a"
-  },
-  "levels": [
-	{
-	  "index": 0,
-	  "id": "world_2_lvl_0",
-	  "name": "Épaves silencieuses",
-	  "type": "normal",
-	  "duration_sec": 120,
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/necropolis/necro_world_0.png",
-		"far_layer": "res://assets/backgrounds/worlds/necropolis/necro_world_0.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": [
-		{
-		  "time": 0.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 5.0,
-		  "enemy_id": "scout_basic",
-		  "count": 10,
-		  "interval": 0.5,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 11.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 14.0,
-		  "type": "obstacle",
-		  "obstacle_id": "debris_small",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 220,
-		  "gap_width": 150,
-		  "row_interval": 0.7,
-		  "drift_speed": 20,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 20.0,
-		  "enemy_id": "scout_basic",
-		  "count": 12,
-		  "interval": 0.5,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 26.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 32.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.3,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 35.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 160,
-		  "gap_width": 190,
-		  "row_interval": 1.3
-		},
-		{
-		  "time": 41.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 47.0,
-		  "enemy_id": "scout_basic",
-		  "count": 12,
-		  "interval": 0.5,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 53.0,
-		  "enemy_id": "scout_basic",
-		  "count": 12,
-		  "interval": 0.45,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 56.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 170,
-		  "gap_width": 180,
-		  "row_interval": 1.3
-		},
-		{
-		  "time": 62.0,
-		  "enemy_id": "scout_basic",
-		  "count": 22,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 68.0,
-		  "enemy_id": "scout_basic",
-		  "count": 6,
-		  "interval": 1.0,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 74.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 77.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 190,
-		  "gap_width": 170,
-		  "row_interval": 0.9,
-		  "drift_speed": 14,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 83.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 89.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 95.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 4,
-		  "interval": 1.2,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 98.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall_destructible",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 160,
-		  "gap_width": 180,
-		  "row_interval": 1.4
-		},
-		{
-		  "time": 104.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 112.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "graviton"
-		}
-	  ],
-	  "boss_id": "",
-	  "events": []
+	"id": "world_2",
+	"name": "Atlantis",
+	"description": "Les profondeurs sous-marines où d'anciennes ruines dorment dans l'obscurité abyssale.",
+	"order": 2,
+	"multipliers": {
+		"hp": 1.5,
+		"damage": 1.3,
+		"speed": 1.1
 	},
-	{
-	  "index": 1,
-	  "id": "world_2_lvl_1",
-	  "name": "Couloirs de rouille",
-	  "type": "normal",
-	  "duration_sec": 130,
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/necropolis/necro_world_1.png",
-		"far_layer": "res://assets/backgrounds/worlds/necropolis/necro_world_1.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": [
-		{
-		  "time": 0.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 5.0,
-		  "enemy_id": "scout_basic",
-		  "count": 10,
-		  "interval": 0.5,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 10.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 13.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall_destructible",
-		  "pattern": "gates",
-		  "duration": 10.0,
-		  "speed": 155,
-		  "gap_width": 180,
-		  "row_interval": 1.4
-		},
-		{
-		  "time": 19.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 25.0,
-		  "enemy_id": "scout_basic",
-		  "count": 5,
-		  "interval": 1.2,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 31.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 34.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 185,
-		  "gap_width": 170,
-		  "row_interval": 0.9,
-		  "drift_speed": 14,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 40.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 46.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.3,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 52.0,
-		  "enemy_id": "scout_basic",
-		  "count": 12,
-		  "interval": 0.5,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 55.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 170,
-		  "gap_width": 175,
-		  "row_interval": 1.3
-		},
-		{
-		  "time": 61.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 4,
-		  "interval": 1.2,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 67.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 73.0,
-		  "enemy_id": "scout_basic",
-		  "count": 22,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 76.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 170,
-		  "gap_width": 185,
-		  "row_interval": 1.2
-		},
-		{
-		  "time": 82.0,
-		  "enemy_id": "scout_basic",
-		  "count": 6,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 88.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 94.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 97.0,
-		  "type": "obstacle",
-		  "obstacle_id": "debris_small",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 230,
-		  "gap_width": 145,
-		  "row_interval": 0.6,
-		  "drift_speed": 22,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 103.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 5,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 110.0,
-		  "enemy_id": "scout_basic",
-		  "count": 22,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 118.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "suppressor"
-		}
-	  ],
-	  "boss_id": "",
-	  "events": []
+	"theme": {
+		"background": "",
+		"music": "res://assets/music/neon.ogg",
+		"color_palette": "#1a5276"
 	},
-	{
-	  "index": 2,
-	  "id": "world_2_lvl_2",
-	  "name": "Le reliquaire",
-	  "type": "normal",
-	  "duration_sec": 140,
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/necropolis/necro_world_2.png",
-		"far_layer": "res://assets/backgrounds/worlds/necropolis/necro_world_2.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": [
+	"levels": [
 		{
-		  "time": 0.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.3,
-		  "enemy_modifier_id": ""
+			"index": 0,
+			"id": "world_2_lvl_0",
+			"name": "Récifs",
+			"type": "normal",
+			"duration_sec": 60,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/atlantis/world_water_0.png",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_0.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_1.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 30.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 39.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 48.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 5.0,
-		  "enemy_id": "scout_basic",
-		  "count": 12,
-		  "interval": 0.5,
-		  "enemy_modifier_id": "arcane_enchanted"
+			"index": 1,
+			"id": "world_2_lvl_1",
+			"name": "Grottes Marines",
+			"type": "normal",
+			"duration_sec": 80,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/atlantis/world_water_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_2.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 30.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 40.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 49.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 58.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 67.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 11.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": ""
+			"index": 2,
+			"id": "world_2_lvl_2",
+			"name": "Ruines Immergées",
+			"type": "normal",
+			"duration_sec": 100,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/atlantis/world_water_2.png",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_2.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_3.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 40.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 59.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 68.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 78.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 87.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 14.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 235,
-		  "gap_width": 145,
-		  "row_interval": 0.6,
-		  "drift_speed": 22,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
+			"index": 3,
+			"id": "world_2_lvl_3",
+			"name": "Abysses",
+			"type": "normal",
+			"duration_sec": 120,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/atlantis/world_water_3.png",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_3.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_4.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 69.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 79.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 88.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 107.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 20.0,
-		  "enemy_id": "scout_basic",
-		  "count": 6,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "waller"
+			"index": 4,
+			"id": "world_2_lvl_4",
+			"name": "Palais Englouti",
+			"type": "normal",
+			"duration_sec": 140,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/atlantis/world_water_4.png",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_4.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_1.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.7,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.3,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 70.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 79.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 89.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.7,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 108.3,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 117.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 127.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 26.0,
-		  "enemy_id": "scout_basic",
-		  "count": 22,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 32.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 35.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_small",
-		  "pattern": "slalom",
-		  "duration": 11.0,
-		  "speed": 120,
-		  "gap_width": 210,
-		  "row_interval": 1.8,
-		  "drift_speed": 10,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 41.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 47.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 5,
-		  "interval": 1.0,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 53.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 56.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 175,
-		  "gap_width": 185,
-		  "row_interval": 1.2
-		},
-		{
-		  "time": 62.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 68.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 74.0,
-		  "enemy_id": "scout_basic",
-		  "count": 7,
-		  "interval": 1.0,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 77.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 175,
-		  "gap_width": 170,
-		  "row_interval": 1.2
-		},
-		{
-		  "time": 83.0,
-		  "enemy_id": "scout_basic",
-		  "count": 24,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 89.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 5,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 95.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 98.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 195,
-		  "gap_width": 165,
-		  "row_interval": 0.8,
-		  "drift_speed": 16,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 104.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 112.0,
-		  "enemy_id": "scout_basic",
-		  "count": 22,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 120.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 6,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 123.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall_destructible",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 165,
-		  "gap_width": 175,
-		  "row_interval": 1.3
-		},
-		{
-		  "time": 130.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "suppressor"
+			"index": 5,
+			"id": "world_2_lvl_5",
+			"name": "Le Léviathan",
+			"type": "boss",
+			"duration_sec": 160,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/atlantis/world_water_5.png",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_5.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_2.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 51.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 70.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 80.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 89.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 99.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 108.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 118.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 128.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 137.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 147.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 13,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": [],
+			"boss_id": "boss_world1"
 		}
-	  ],
-	  "boss_id": "",
-	  "events": []
-	},
-	{
-	  "index": 3,
-	  "id": "world_2_lvl_3",
-	  "name": "Catacombes orbitales",
-	  "type": "normal",
-	  "duration_sec": 150,
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/necropolis/necro_world_3.png",
-		"far_layer": "res://assets/backgrounds/worlds/necropolis/necro_world_3.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": [
-		{
-		  "time": 0.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 5.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 11.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 14.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_large",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 145,
-		  "gap_width": 195,
-		  "row_interval": 1.3,
-		  "drift_speed": 10,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 20.0,
-		  "enemy_id": "scout_basic",
-		  "count": 6,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 26.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 5,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 32.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 35.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 175,
-		  "gap_width": 165,
-		  "row_interval": 1.2
-		},
-		{
-		  "time": 41.0,
-		  "enemy_id": "scout_basic",
-		  "count": 24,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 47.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 53.0,
-		  "enemy_id": "scout_basic",
-		  "count": 7,
-		  "interval": 1.0,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 56.0,
-		  "type": "obstacle",
-		  "obstacle_id": "debris_small",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 250,
-		  "gap_width": 135,
-		  "row_interval": 0.5,
-		  "drift_speed": 24,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 62.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 68.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 6,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 74.0,
-		  "enemy_id": "scout_basic",
-		  "count": 22,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 77.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 175,
-		  "gap_width": 180,
-		  "row_interval": 1.2
-		},
-		{
-		  "time": 83.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 89.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 95.0,
-		  "enemy_id": "scout_basic",
-		  "count": 7,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 98.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_small",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 125,
-		  "gap_width": 200,
-		  "row_interval": 1.6,
-		  "drift_speed": 10,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 104.0,
-		  "enemy_id": "scout_basic",
-		  "count": 24,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 110.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 6,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 116.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 119.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 200,
-		  "gap_width": 160,
-		  "row_interval": 0.8,
-		  "drift_speed": 16,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 125.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 133.0,
-		  "enemy_id": "scout_basic",
-		  "count": 24,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 141.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 6,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "suppressor"
-		}
-	  ],
-	  "boss_id": "",
-	  "events": []
-	},
-	{
-	  "index": 4,
-	  "id": "world_2_lvl_4",
-	  "name": "Sanctuaire corrompu",
-	  "type": "normal",
-	  "duration_sec": 160,
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/necropolis/necro_world_4.png",
-		"far_layer": "res://assets/backgrounds/worlds/necropolis/necro_world_4.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": [
-		{
-		  "time": 0.0,
-		  "enemy_id": "scout_basic",
-		  "count": 24,
-		  "interval": 0.3,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 5.0,
-		  "enemy_id": "scout_basic",
-		  "count": 14,
-		  "interval": 0.45,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 11.0,
-		  "enemy_id": "scout_basic",
-		  "count": 16,
-		  "interval": 0.4,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 14.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 185,
-		  "gap_width": 165,
-		  "row_interval": 1.1
-		},
-		{
-		  "time": 20.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 5,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 26.0,
-		  "enemy_id": "scout_basic",
-		  "count": 6,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 32.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 35.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 200,
-		  "gap_width": 160,
-		  "row_interval": 0.8,
-		  "drift_speed": 16,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 41.0,
-		  "enemy_id": "scout_basic",
-		  "count": 26,
-		  "interval": 0.25,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 47.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 53.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 5,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 56.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 9.0,
-		  "speed": 180,
-		  "gap_width": 170,
-		  "row_interval": 1.2
-		},
-		{
-		  "time": 62.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 68.0,
-		  "enemy_id": "scout_basic",
-		  "count": 7,
-		  "interval": 1.0,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 74.0,
-		  "enemy_id": "scout_basic",
-		  "count": 24,
-		  "interval": 0.3,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 77.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "rain",
-		  "duration": 9.0,
-		  "speed": 255,
-		  "gap_width": 135,
-		  "row_interval": 0.5,
-		  "drift_speed": 26,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 77.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall_destructible",
-		  "pattern": "slalom",
-		  "duration": 9.0,
-		  "speed": 170,
-		  "gap_width": 180,
-		  "row_interval": 1.3
-		},
-		{
-		  "time": 83.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 89.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 6,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 95.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.35,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 98.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_medium",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 100,
-		  "gap_width": 240,
-		  "row_interval": 2.2,
-		  "drift_speed": 8,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 104.0,
-		  "enemy_id": "scout_basic",
-		  "count": 28,
-		  "interval": 0.25,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 110.0,
-		  "enemy_id": "scout_basic",
-		  "count": 8,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 116.0,
-		  "enemy_id": "scout_basic",
-		  "count": 18,
-		  "interval": 0.4,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 119.0,
-		  "type": "obstacle",
-		  "obstacle_id": "debris_small",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 260,
-		  "gap_width": 130,
-		  "row_interval": 0.5,
-		  "drift_speed": 28,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 125.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 7,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 133.0,
-		  "enemy_id": "scout_basic",
-		  "count": 20,
-		  "interval": 0.35,
-		  "enemy_modifier_id": "suppressor"
-		},
-		{
-		  "time": 141.0,
-		  "enemy_id": "scout_basic",
-		  "count": 26,
-		  "interval": 0.25,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 144.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_large",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 80,
-		  "gap_width": 270,
-		  "row_interval": 2.5,
-		  "drift_speed": 6,
-		  "drift_directions": [
-			"S",
-			"SW",
-            "SE"
-		  ]
-		},
-		{
-		  "time": 150.0,
-		  "enemy_id": "elite_scout_basic",
-		  "count": 6,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "graviton"
-		}
-	  ],
-	  "boss_id": "",
-	  "events": []
-	},
-	{
-	  "index": 5,
-	  "id": "world_2_lvl_5",
-	  "name": "Le Revenant",
-	  "type": "boss",
-	  "boss_id": "boss_world1",
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/necropolis/necro_world_5.png",
-		"far_layer": "res://assets/backgrounds/worlds/necropolis/necro_world_5.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": []
+	],
+	"unlock_condition": {
+		"type": "world_clear",
+		"world_id": "world_1"
 	}
-  ],
-  "unlock_condition": {
-	"type": "boss_killed",
-	"world_id": "world_1"
-  }
 }

@@ -1,0 +1,54 @@
+{
+  "global_settings": {
+    "bubble_left_asset": "res://assets/ui/bubble_left.png",
+    "bubble_right_asset": "res://assets/ui/bubble_right.png",
+    "character_size": { "x": 200, "y": 300 },
+    "anim_speed": 0.6,
+    "anim_ease_type": "ease_in_out",
+    "exit_anim_type": "slide",
+    "text_interval": 2.5
+  },
+  "sequences": [
+    {
+      "id": "story_world_1_intro",
+      "dialogues": [
+        {
+          "speaker_asset": "res://assets/characters/commander.png",
+          "side": "left",
+          "text_keys": [
+            "story_w1_intro_1",
+            "story_w1_intro_2"
+          ]
+        },
+        {
+          "speaker_asset": "res://assets/characters/pilot.png",
+          "side": "right",
+          "text_keys": [
+            "story_w1_intro_3"
+          ]
+        },
+        {
+          "speaker_asset": "res://assets/characters/commander.png",
+          "side": "left",
+          "text_keys": [
+            "story_w1_intro_4",
+            "story_w1_intro_5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "story_world_1_lvl_2",
+      "dialogues": [
+        {
+          "speaker_asset": "res://assets/characters/commander.png",
+          "side": "left",
+          "text_keys": [
+            "story_w1_lvl2_1",
+            "story_w1_lvl2_2"
+          ]
+        }
+      ]
+    }
+  ]
+}

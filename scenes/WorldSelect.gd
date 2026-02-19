@@ -33,6 +33,9 @@ func _ready() -> void:
 	_setup_background()
 	_load_worlds()
 	
+	# Vérifier si un monde possède une story non vue
+	_check_story_triggers()
+	
 	# Back Button Icon
 	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
@@ -194,3 +197,31 @@ func _get_active_progress() -> Dictionary:
 func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
 	switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+# =============================================================================
+# STORY TRIGGERS
+# =============================================================================
+
+## Vérifie si un monde visible possède une story non vue et la lance
+func _check_story_triggers() -> void:
+	for w in App.get_worlds():
+		var world_id: String = str(w.get("id", ""))
+		var story_id: String = str(w.get("story_id", ""))
+		
+		if story_id == "":
+			continue
+		
+		if ProfileManager.has_viewed_story(story_id):
+			continue
+		
+		# Bloquer les interactions du menu pendant la cinématique
+		process_mode = Node.PROCESS_MODE_DISABLED
+		
+		await StoryManager.play_story(story_id)
+		ProfileManager.mark_story_viewed(story_id)
+		
+		# Réactiver le menu
+		process_mode = Node.PROCESS_MODE_INHERIT
+		
+		# Ne lancer qu'une seule story par visite
+		break

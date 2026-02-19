@@ -1,0 +1,689 @@
+{
+	"id": "world_9",
+	"name": "Royaume Magique",
+	"description": "Un plan dimensionnel éthéré où la magie pure façonne la réalité et défie les lois de la physique.",
+	"order": 9,
+	"multipliers": {
+		"hp": 20.0,
+		"damage": 14.0,
+		"speed": 2.0
+	},
+	"theme": {
+		"background": "",
+		"music": "res://assets/music/starlight.ogg",
+		"color_palette": "#7b2d8e"
+	},
+	"levels": [
+		{
+			"index": 0,
+			"id": "world_9_lvl_0",
+			"name": "Orée Enchantée",
+			"type": "normal",
+			"duration_sec": 60,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/magical/layer_2_feathers_1.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 30.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 39.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 48.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 1,
+			"id": "world_9_lvl_1",
+			"name": "Cascade de Mana",
+			"type": "normal",
+			"duration_sec": 80,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/magical/layer_2_magical.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 30.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 40.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 49.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 58.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 67.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 2,
+			"id": "world_9_lvl_2",
+			"name": "Jardins Cristallins",
+			"type": "normal",
+			"duration_sec": 100,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/magical/layer_2_feathers_1.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 40.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 59.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 68.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 78.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 87.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 3,
+			"id": "world_9_lvl_3",
+			"name": "Bibliothèque Astrale",
+			"type": "normal",
+			"duration_sec": 120,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/magical/layer_2_magical.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 69.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 79.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 88.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 107.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 4,
+			"id": "world_9_lvl_4",
+			"name": "Nexus de Pouvoir",
+			"type": "normal",
+			"duration_sec": 140,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/magical/layer_2_feathers_1.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.7,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.3,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 70.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 79.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 89.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.7,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 108.3,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 117.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 127.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
+		},
+		{
+			"index": 5,
+			"id": "world_9_lvl_5",
+			"name": "L'Archimage",
+			"type": "boss",
+			"duration_sec": 160,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/magical/layer_2_magical.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 51.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 70.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 80.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 89.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 99.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 108.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 118.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 128.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 137.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 147.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 13,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": [],
+			"boss_id": "boss_world1"
+		}
+	],
+	"unlock_condition": {
+		"type": "world_clear",
+		"world_id": "world_8"
+	}
+}

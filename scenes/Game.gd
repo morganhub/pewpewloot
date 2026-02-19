@@ -37,6 +37,7 @@ const END_SCREEN_ACTION_WORLD_SELECT := "world_select"
 
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
+var _world_multipliers: Dictionary = {"hp": 1.0, "damage": 1.0, "speed": 1.0}
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -60,6 +61,8 @@ func _ready() -> void:
 	
 	# Music
 	var world = App.get_world(current_world_id)
+	_world_multipliers = world.get("multipliers", {"hp": 1.0, "damage": 1.0, "speed": 1.0})
+	print("[Game] World multipliers: ", _world_multipliers)
 	var world_theme = world.get("theme", {})
 	var music = str(world_theme.get("music", ""))
 	if music != "":
@@ -120,16 +123,27 @@ func _setup_background() -> void:
 		_create_layer(bg_container, far_path, base_speed * 0.2, viewport_size, false)
 	
 	# 2. MID LAYER (1.0x, PNG Alpha, Random/Tiling)
-	var mid_layers := _flatten_layers(bgs.get("mid_layer", []))
-	for path in mid_layers:
-		_create_layer(bg_container, path, base_speed * 1.0, viewport_size, true)
+	var mid_layers := _flatten_layer_entries(bgs.get("mid_layer", []), 1.0)
+	for mid_entry in mid_layers:
+		var mid_path: String = str(mid_entry.get("path", ""))
+		var mid_opacity: float = float(mid_entry.get("opacity", 1.0))
+		_create_layer(bg_container, mid_path, base_speed * 1.0, viewport_size, true, mid_opacity)
 	
 	# 3. NEAR LAYER (2.5x, PNG Alpha, Fast/Blur)
-	var near_layers := _flatten_layers(bgs.get("near_layer", []))
-	for path in near_layers:
-		_create_layer(bg_container, path, base_speed * 2.5, viewport_size, true)
+	var near_layers := _flatten_layer_entries(bgs.get("near_layer", []), 1.0)
+	for near_entry in near_layers:
+		var near_path: String = str(near_entry.get("path", ""))
+		var near_opacity: float = float(near_entry.get("opacity", 1.0))
+		_create_layer(bg_container, near_path, base_speed * 2.5, viewport_size, true, near_opacity)
 
-func _create_layer(parent: Node, path: String, speed: float, viewport_size: Vector2, use_add_blend: bool) -> void:
+func _create_layer(
+	parent: Node,
+	path: String,
+	speed: float,
+	viewport_size: Vector2,
+	use_add_blend: bool,
+	opacity: float = 1.0
+) -> void:
 	if path == "": return
 	
 	# Preload resource to prevent "popping" during gameplay.
@@ -144,16 +158,32 @@ func _create_layer(parent: Node, path: String, speed: float, viewport_size: Vect
 		var layer: Node = SCROLLING_LAYER_SCRIPT.new()
 		parent.add_child(layer)
 		layer.call("setup", layer_resource, speed, viewport_size, use_add_blend)
+		if layer is CanvasItem:
+			(layer as CanvasItem).modulate.a = clampf(opacity, 0.0, 1.0)
 	else:
 		push_warning("[Game] Could not load background resource: " + path)
 
-func _flatten_layers(data: Variant) -> Array:
+func _flatten_layer_entries(data: Variant, default_opacity: float = 1.0) -> Array:
 	var result: Array = []
 	if data is Array:
 		for item in data:
-			result.append_array(_flatten_layers(item))
+			result.append_array(_flatten_layer_entries(item, default_opacity))
 	elif data is String:
-		result.append(data)
+		var path := str(data)
+		if path != "":
+			result.append({
+				"path": path,
+				"opacity": clampf(default_opacity, 0.0, 1.0)
+			})
+	elif data is Dictionary:
+		var entry := data as Dictionary
+		var path: String = str(entry.get("asset", entry.get("path", "")))
+		if path != "":
+			var opacity: float = clampf(float(entry.get("opacity", default_opacity)), 0.0, 1.0)
+			result.append({
+				"path": path,
+				"opacity": opacity
+			})
 	return result
 
 func _process(_delta: float) -> void:
@@ -320,12 +350,16 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	var enemy_scene := load("res://scenes/Enemy.tscn")
 	var enemy: CharacterBody2D = enemy_scene.instantiate()
 	
-	# Calcul du scaling par niveau
-	var scaling_multiplier: float = 1.0 + (current_level_index * 0.1)
+	# Scaling basé sur les multipliers du world + progression dans le world
+	var level_bonus: float = current_level_index * 0.05
+	var hp_mult: float = float(_world_multipliers.get("hp", 1.0)) + level_bonus
+	var dmg_mult: float = float(_world_multipliers.get("damage", 1.0)) + level_bonus
+	var spd_mult: float = float(_world_multipliers.get("speed", 1.0))
 	
 	game_layer.add_child(enemy)
 	enemy.global_position = spawn_pos
-	enemy.setup(enemy_data, scaling_multiplier)
+	enemy.setup(enemy_data)
+	enemy.apply_stat_multipliers({"hp_mult": hp_mult, "damage_mult": dmg_mult, "speed_mult": spd_mult})
 	
 	# Connecter le signal de mort
 	enemy.enemy_died.connect(_on_enemy_died)
@@ -454,6 +488,13 @@ func _spawn_boss(boss_id: String) -> void:
 	game_layer.add_child(boss)
 	boss.global_position = spawn_pos
 	boss.setup(boss_data)
+	
+	# Appliquer les multipliers du world au boss
+	var boss_hp_mult: float = float(_world_multipliers.get("hp", 1.0))
+	if boss_hp_mult != 1.0:
+		boss.max_hp = int(boss.max_hp * boss_hp_mult)
+		boss.current_hp = boss.max_hp
+	
 	active_boss = boss
 	
 	# Afficher la barre de vie du boss dans le HUD existant

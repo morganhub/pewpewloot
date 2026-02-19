@@ -1,525 +1,688 @@
 {
-  "id": "world_1",
-  "name": "Ceinture d'astéroïdes",
-  "description": "Un champ d'astéroïdes aux confins du système solaire, peuplé de pirates et de drones autonomes.",
-  "order": 1,
-  "theme": {
-	"background": "res://assets/backgrounds/far_layer/space.jpg",
-	"music": "res://assets/music/acceleration.ogg",
-	"color_palette": "#3a4f6f"
-  },
-  "levels": [
-	{
-	  "index": 0,
-	  "id": "world_1_lvl_0",
-	  "name": "Avant-poste",
-	  "type": "normal",
-	  "duration_sec": 120,
-	  "backgrounds": {
-		"card": "res://assets/backgrounds/worlds/industrial/industrial_1.png",
-		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_1.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/layer_2/shooting_stars_1.jpg"
-		  ]
-		],
-		"near_layer": [
-		  [
-            "res://assets/backgrounds/layer_2/shooting_stars_1.jpg"
-		  ]
-		]
-	  },
-	  "waves": [
-		{
-		  "time": 2.0,
-		  "enemy_id": "scout_basic",
-		  "count": 30,
-		  "interval": 0.7,
-		  "enemy_modifier_id": ""
-		},
-		{
-		  "time": 5.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_medium",
-		  "pattern": "slalom",
-		  "duration": 30.0,
-		  "speed": 150,
-		  "gap_width": 200,
-		  "row_interval": 1.5,
-		  "drift_directions": ["S", "SW", "S"]
-		},
-		{
-		  "time": 24.0,
-		  "enemy_id": "scout_basic",
-		  "count": 30,
-		  "interval": 0.7,
-		  "enemy_modifier_id": "graviton"
-		},
-		{
-		  "time": 40.0,
-		  "enemy_id": "scout_basic",
-		  "count": 30,
-		  "interval": 0.7,
-		  "enemy_modifier_id": "minefreak"
-		},
-		{
-		  "time": 70.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 30,
-		  "interval": 0.7,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 90.0,
-		  "enemy_id": "scout_basic",
-		  "count": 30,
-		  "interval": 0.7,
-		  "enemy_modifier_id": "arcane_enchanted"
-		},
-		{
-		  "time": 110.0,
-		  "enemy_id": "scout_basic",
-		  "count": 30,
-		  "interval": 0.7,
-		  "enemy_modifier_id": "waller"
-		},
-		{
-		  "time": 55.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "rain",
-		  "duration": 12.0,
-		  "speed": 180,
-		  "gap_width": 160,
-		  "row_interval": 1.0,
-		  "drift_speed": 15,
-		  "drift_directions": ["S", "SW", "S"]
-		},
-		{
-		  "time": 100.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 150,
-		  "gap_width": 200,
-		  "row_interval": 1.5
-		}
-	  ],
-	  "boss_id": "boss_world1",
-	  "events": []
+	"id": "world_1",
+	"name": "Forêt Primordiale",
+	"description": "Une forêt ancienne aux canopées denses, où la lumière perce à peine à travers le feuillage.",
+	"order": 1,
+	"multipliers": {
+		"hp": 1.0,
+		"damage": 1.0,
+		"speed": 1.0
 	},
-	{
-	  "index": 1,
-	  "id": "world_1_lvl_1",
-	  "name": "Terrain d'essai",
-	  "type": "normal",
-	  "duration_sec": 300,
-	  "backgrounds": {
-		"card": "",
-		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_2.png",
-		"mid_layer": [
-		  [
-            "res://assets/backgrounds/layer_2/clouds.png"
-		  ]
-		],
-		"near_layer": []
-	  },
-	  "waves": [
-
-		{
-		  "time": 3.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 12.0,
-		  "speed": 140,
-		  "gap_width": 200,
-		  "row_interval": 1.5
-		},
-
-		{
-		  "time": 20.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "slalom",
-		  "duration": 10.0,
-		  "speed": 180,
-		  "gap_width": 170,
-		  "row_interval": 1.0,
-		  "drift_speed": 15,
-		  "drift_directions": ["SW", "SE"]
-		},
-
-		{
-		  "time": 35.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 12.0,
-		  "speed": 150,
-		  "gap_width": 200,
-		  "row_interval": 2.0
-		},
-
-		{
-		  "time": 50.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall_destructible",
-		  "pattern": "gates",
-		  "duration": 10.0,
-		  "speed": 160,
-		  "gap_width": 180,
-		  "row_interval": 1.8
-		},
-
-		{
-		  "time": 65.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "rain",
-		  "duration": 12.0,
-		  "speed": 200,
-		  "gap_width": 150,
-		  "row_interval": 0.8,
-		  "drift_speed": 20,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-
-		{
-		  "time": 82.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_small",
-		  "pattern": "rain",
-		  "duration": 14.0,
-		  "speed": 100,
-		  "gap_width": 220,
-		  "row_interval": 2.5,
-		  "drift_speed": 12,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-
-		{
-		  "time": 100.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "slalom",
-		  "duration": 12.0,
-		  "speed": 170,
-		  "gap_width": 190,
-		  "row_interval": 1.2,
-		  "drift_speed": 10,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-
-		{
-		  "time": 116.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_large",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 130,
-		  "gap_width": 200,
-		  "row_interval": 2.0,
-		  "drift_speed": 8,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-
-		{
-		  "time": 130.0,
-		  "type": "obstacle",
-		  "obstacle_id": "debris_small",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 250,
-		  "gap_width": 130,
-		  "row_interval": 0.6,
-		  "drift_speed": 20,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-
-		{
-		  "time": 145.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_medium",
-		  "pattern": "slalom",
-		  "duration": 14.0,
-		  "speed": 90,
-		  "gap_width": 260,
-		  "row_interval": 2.5
-		},
-
-		{
-		  "time": 163.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_large",
-		  "pattern": "slalom",
-		  "duration": 12.0,
-		  "speed": 70,
-		  "gap_width": 300,
-		  "row_interval": 3.0,
-		  "drift_speed": 5,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-
-		{
-		  "time": 180.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "gates",
-		  "duration": 10.0,
-		  "speed": 180,
-		  "gap_width": 160,
-		  "row_interval": 1.5
-		},
-
-		{
-		  "time": 195.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "rain",
-		  "duration": 8.0,
-		  "speed": 220,
-		  "gap_width": 140,
-		  "row_interval": 0.5,
-		  "drift_speed": 25,
-		  "drift_directions": ["SW", "S", "SE"]
-		},
-		{
-		  "time": 195.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall",
-		  "pattern": "slalom",
-		  "duration": 8.0,
-		  "speed": 160,
-		  "gap_width": 200,
-		  "row_interval": 1.8
-		},
-
-		{
-		  "time": 208.0,
-		  "type": "obstacle",
-		  "obstacle_id": "energy_barrier",
-		  "pattern": "gates",
-		  "duration": 12.0,
-		  "speed": 170,
-		  "gap_width": 180,
-		  "row_interval": 1.5
-		},
-		{
-		  "time": 208.0,
-		  "enemy_id": "scout_basic",
-		  "count": 10,
-		  "interval": 1.0
-		},
-
-		{
-		  "time": 225.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_medium",
-		  "pattern": "rain",
-		  "duration": 10.0,
-		  "speed": 180,
-		  "gap_width": 180,
-		  "row_interval": 1.2,
-		  "drift_speed": 12,
-		  "drift_directions": ["E", "W", "NE", "NW"]
-		},
-		{
-		  "time": 225.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 5,
-		  "interval": 1.5,
-		  "enemy_modifier_id": "waller"
-		},
-
-		{
-		  "time": 240.0,
-		  "type": "obstacle",
-		  "obstacle_id": "planet_small",
-		  "pattern": "slalom",
-		  "duration": 15.0,
-		  "speed": 110,
-		  "gap_width": 220,
-		  "row_interval": 2.0,
-		  "drift_speed": 10,
-		  "drift_directions": ["E", "W"]
-		},
-		{
-		  "time": 245.0,
-		  "enemy_id": "scout_basic",
-		  "count": 8,
-		  "interval": 0.8,
-		  "enemy_modifier_id": "minefreak"
-		},
-
-		{
-		  "time": 260.0,
-		  "type": "obstacle",
-		  "obstacle_id": "metal_wall_destructible",
-		  "pattern": "slalom",
-		  "duration": 12.0,
-		  "speed": 190,
-		  "gap_width": 170,
-		  "row_interval": 1.0
-		},
-		{
-		  "time": 260.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_small",
-		  "pattern": "rain",
-		  "duration": 12.0,
-		  "speed": 210,
-		  "gap_width": 150,
-		  "row_interval": 0.7,
-		  "drift_speed": 18,
-		  "drift_directions": ["N", "NE", "NW", "E", "W", "S", "SE", "SW"]
-		},
-
-		{
-		  "time": 278.0,
-		  "type": "obstacle",
-		  "obstacle_id": "asteroid_large",
-		  "pattern": "slalom",
-		  "duration": 12.0,
-		  "speed": 150,
-		  "gap_width": 200,
-		  "row_interval": 1.5,
-		  "drift_speed": 8,
-		  "drift_directions": ["E", "W"]
-		},
-		{
-		  "time": 278.0,
-		  "enemy_id": "scout_basic",
-		  "count": 15,
-		  "interval": 0.6,
-		  "enemy_modifier_id": "graviton"
-		}
-	  ],
-	  "events": []
+	"theme": {
+		"background": "",
+		"music": "res://assets/music/acceleration.ogg",
+		"color_palette": "#2d5a27"
 	},
-	{
-	  "index": 2,
-	  "id": "world_1_lvl_2",
-	  "name": "Zone minée",
-	  "type": "normal",
-	  "duration_sec": 150,
-	  "backgrounds": {
-		"card": "",
-		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_3.png",
-		"mid_layer": [],
-		"near_layer": []
-	  },
-	  "waves": [
+	"levels": [
 		{
-		  "time": 3.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 4,
-		  "interval": 1.0
+			"index": 0,
+			"id": "world_1_lvl_0",
+			"name": "Lisière",
+			"type": "normal",
+			"duration_sec": 60,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/forest/world_forest_0.png",
+				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_0.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_0.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 3,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 30.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 39.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 48.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 15.0,
-		  "enemy_id": "bomber_heavy",
-		  "count": 2,
-		  "interval": 2.0
-		}
-	  ],
-	  "events": [
-		{
-		  "type": "minefield",
-		  "trigger_time": 60
-		}
-	  ]
-	},
-	{
-	  "index": 3,
-	  "id": "world_1_lvl_3",
-	  "name": "Embuscade",
-	  "type": "normal",
-	  "duration_sec": 160,
-	  "backgrounds": {
-		"card": "",
-		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_4.png",
-		"mid_layer": [],
-		"near_layer": []
-	  },
-	  "waves": [
-		{
-		  "time": 5.0,
-		  "enemy_id": "scout_basic",
-		  "count": 8,
-		  "interval": 0.5
+			"index": 1,
+			"id": "world_1_lvl_1",
+			"name": "Sous-bois",
+			"type": "normal",
+			"duration_sec": 80,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/forest/world_forest_1.png",
+				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_1.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_1.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 4,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 30.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 40.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 49.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 58.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 67.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 20.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 5,
-		  "interval": 1.0
+			"index": 2,
+			"id": "world_1_lvl_2",
+			"name": "Clairière",
+			"type": "normal",
+			"duration_sec": 100,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/forest/world_forest_2.png",
+				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_2.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_2.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 21.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 5,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 40.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 59.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 68.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 78.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 87.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 40.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 1,
-		  "interval": 0
-		}
-	  ],
-	  "events": []
-	},
-	{
-	  "index": 4,
-	  "id": "world_1_lvl_4",
-	  "name": "La Forteresse",
-	  "type": "normal",
-	  "duration_sec": 180,
-	  "backgrounds": {
-		"card": "",
-		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_5.png",
-		"mid_layer": [],
-		"near_layer": []
-	  },
-	  "waves": [
-		{
-		  "time": 2.0,
-		  "enemy_id": "fighter_aggressive",
-		  "count": 6,
-		  "interval": 0.8
+			"index": 3,
+			"id": "world_1_lvl_3",
+			"name": "Marécage",
+			"type": "normal",
+			"duration_sec": 120,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/forest/world_forest_3.png",
+				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_3.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_3.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 6,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 69.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 79.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 88.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 107.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 12.0,
-		  "enemy_id": "bomber_heavy",
-		  "count": 3,
-		  "interval": 2.0
+			"index": 4,
+			"id": "world_1_lvl_4",
+			"name": "Cœur de la Forêt",
+			"type": "normal",
+			"duration_sec": 140,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/forest/world_forest_4.png",
+				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_4.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_4.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 7,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.7,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.3,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 50.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 70.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 79.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 89.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.7,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 108.3,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 117.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 127.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": []
 		},
 		{
-		  "time": 30.0,
-		  "enemy_id": "interceptor_diagonal",
-		  "count": 2,
-		  "interval": 1.5
+			"index": 5,
+			"id": "world_1_lvl_5",
+			"name": "Le Gardien Sylvestre",
+			"type": "boss",
+			"duration_sec": 160,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/forest/world_forest_5.png",
+				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_5.png",
+				"mid_layer": [
+					[
+						{
+							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_5.png",
+							"opacity": 1.0
+						}
+					]
+				],
+				"near_layer": []
+			},
+			"waves": [
+				{
+					"time": 3.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 12.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 22.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 8,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 31.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 41.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 51.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 9,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 60.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 70.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 80.0,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 89.6,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 99.2,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 108.9,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 118.5,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 128.1,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 137.8,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 147.4,
+					"enemy_id": "scout_basic",
+					"enemy_skin": "",
+					"count": 13,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				}
+			],
+			"events": [],
+			"boss_id": "boss_world1"
 		}
-	  ],
-	  "events": [
-		{
-		  "type": "laser_grid",
-		  "trigger_time": 90
-		}
-	  ]
-	},
-	{
-	  "index": 5,
-	  "id": "world_1_lvl_5",
-	  "name": "Le Gardien",
-	  "type": "boss",
-	  "boss_id": "boss_world1",
-	  "backgrounds": {
-		"card": "",
-		"far_layer": "res://assets/backgrounds/worlds/industrial/industrial_5.png",
-		"mid_layer": [],
-		"near_layer": []
-	  },
-	  "waves": []
+	],
+	"unlock_condition": {
+		"type": "initial"
 	}
-  ],
-  "unlock_condition": {
-	"type": "initial"
-  }
 }
