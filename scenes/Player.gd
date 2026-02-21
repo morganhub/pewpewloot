@@ -22,6 +22,12 @@ var dodge_chance: float = 2.0
 var missile_speed_pct: float = 100.0
 var special_cd: float = 10.0
 var damage_reduction: float = 0.0
+var crit_damage_bonus: float = 0.0
+var missile_damage_bonus: float = 0.0
+var shield_capacity_bonus: float = 0.0
+var shield_regen_bonus: float = 0.0
+var loot_radius_bonus: float = 0.0
+var xp_multiplier_bonus: float = 0.0
 var current_missile_id: String = "missile_default"
 var special_power_id: String = ""
 var unique_power_id: String = ""
@@ -217,6 +223,7 @@ func activate_shield() -> void:
 	if SkillManager:
 		shield_paragon_bonus_pct = SkillManager.get_stat_modifier("shield_max")
 	shield_max_energy = base_absorb * (1.0 + shield_paragon_bonus_pct / 100.0)
+	shield_max_energy += maxf(0.0, shield_capacity_bonus)
 	if _skill_overcharge_bonus > 0.0:
 		shield_max_energy *= (1.0 + _skill_overcharge_bonus)
 	
@@ -397,6 +404,12 @@ func _load_stats_from_loadout() -> void:
 	missile_speed_pct = float(stats.get("missile_speed_pct", 100.0))
 	special_cd = float(stats.get("special_cd", 10.0))
 	damage_reduction = float(stats.get("damage_reduction", 0.0))
+	crit_damage_bonus = float(stats.get("crit_damage", 0.0))
+	missile_damage_bonus = float(stats.get("missile_damage", 0.0))
+	shield_capacity_bonus = float(stats.get("shield_capacity", 0.0))
+	shield_regen_bonus = float(stats.get("shield_regen", 0.0))
+	loot_radius_bonus = float(stats.get("loot_radius", 0.0))
+	xp_multiplier_bonus = float(stats.get("xp_multiplier", 0.0))
 	special_cd_max = special_cd
 	
 	current_missile_id = str(ship.get("missile_id", "missile_default"))
@@ -427,14 +440,15 @@ func use_special() -> void:
 			special_cd_current = special_cd_max # Start Cooldown
 
 func use_unique() -> void:
-	# Uniquement si un item UNIQUE est équipé
-	# Pour le test, on force un pouvoir unique si pas de CD
-	if unique_cd_current <= 0:
-		unique_power_id = "unique_meteor_storm" # Placeholder logic
-		var pm = get_tree().root.get_node_or_null("PowerManager")
-		if pm:
-			pm.execute_power(unique_power_id, self)
-			unique_cd_current = unique_cd_max
+	if unique_cd_current > 0:
+		return
+	if unique_power_id == "":
+		return
+
+	var pm = get_tree().root.get_node_or_null("PowerManager")
+	if pm:
+		pm.execute_power(unique_power_id, self)
+		unique_cd_current = unique_cd_max
 
 func add_fire_rate_boost(duration: float) -> void:
 	var final_duration: float = maxf(0.1, duration + _skill_power_extender_bonus)
@@ -627,9 +641,16 @@ func _on_hitbox_body_exited(body: Node2D) -> void:
 # SHIELD LOGIC
 # =============================================================================
 
-func _handle_shield_regen(_delta: float) -> void:
-	# Pas de regen automatique dans ce mode "Pickup"
-	pass
+func _handle_shield_regen(delta: float) -> void:
+	if not shield_active:
+		return
+	if shield_energy >= shield_max_energy:
+		return
+	if shield_regen_bonus <= 0.0:
+		return
+
+	shield_energy = minf(shield_max_energy, shield_energy + (shield_regen_bonus * delta))
+	shield_changed.emit(shield_energy, shield_max_energy)
 
 func _update_shield_visuals() -> void:
 	if not shield or not is_instance_valid(shield): return
@@ -948,7 +969,8 @@ func _fire() -> void:
 	# --- DEBUG PATTERN ROTATION - END ---
 	
 	# Apply Ship Stats / Bonuses
-	var final_damage: int = int((base_damage + pattern_damage) * damage_multiplier)
+	var damage_mult := 1.0 + (missile_damage_bonus / 100.0)
+	var final_damage: int = int((base_damage + pattern_damage) * damage_multiplier * maxf(0.1, damage_mult))
 	var final_speed: float = base_speed * (missile_speed_pct / 100.0)
 	
 	# Cooldown calculation: (Duration of burst) + (Reload time)
@@ -1087,7 +1109,8 @@ func _spawn_salvo(pattern_data: Dictionary, speed: float, damage: int) -> void:
 
 func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int, pattern_data: Dictionary) -> void:
 	var is_critical := randf() <= crit_chance / 100.0
-	var final_dmg := dmg * (2 if is_critical else 1)
+	var crit_mult := 2.0 + (crit_damage_bonus / 100.0)
+	var final_dmg := int(round(float(dmg) * (crit_mult if is_critical else 1.0)))
 	
 	# Clamp position roughly
 	# Warning: clamp might screw up off-screen spawning (screen_bottom/screen_top)
@@ -1207,7 +1230,11 @@ func _apply_utility_skill_bonuses() -> void:
 
 ## Returns the magnet radius bonus from the skill tree (used by LootDrop.gd)
 func get_magnet_radius_bonus() -> float:
-	return _skill_magnet_radius_bonus
+	return _skill_magnet_radius_bonus + loot_radius_bonus
+
+## Returns XP gain multiplier from equipped loot stats.
+func get_xp_gain_multiplier() -> float:
+	return maxf(1.0, 1.0 + (xp_multiplier_bonus / 100.0))
 
 ## Returns the vacuum radius bonus from the skill tree (used by LootDrop.gd)
 func get_vacuum_radius_bonus() -> float:

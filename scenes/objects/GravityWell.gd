@@ -13,6 +13,8 @@ extends Area2D
 
 var _life_time: float = 0.0
 var _velocity: Vector2 = Vector2.ZERO
+const STRONG_RESOURCE_CACHE_MAX: int = 128
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -93,8 +95,8 @@ func _pull_players(delta: float) -> void:
 			player.global_position += pull_offset
 
 func _apply_visual() -> void:
-	if ability_asset != "" and ResourceLoader.exists(ability_asset):
-		var res = load(ability_asset)
+	if ability_asset != "":
+		var res: Resource = _load_cached_resource(ability_asset)
 		if res is SpriteFrames:
 			_apply_animated_visual(res as SpriteFrames)
 			return
@@ -184,3 +186,17 @@ func _apply_animated_visual(frames: SpriteFrames) -> void:
 				anim_sprite.scale = Vector2(float(orb_width) / f_size.x, float(orb_height) / f_size.y)
 	
 	sprite.visible = false
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

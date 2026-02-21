@@ -1,56 +1,454 @@
 {
 	"powers": [
 		{
-			"id": "power_boss_storm",
-			"name": "Boss Storm",
-			"description": "Boss sweep with radial projectiles.",
-			"duration": 5.0,
+			"id": "power_root_snare",
+			"name": "Root Snare",
+			"description": "Anneaux radiaux avec zones sûres étroites.",
+			"duration": 3.8,
 			"invincibility": true,
 			"ship_movement": {
-				"type": "horizontal_sweep",
-				"speed": 300
+				"type": "spin_center",
+				"speed": 260
 			},
 			"projectile": {
-				"count": 30,
+				"count": 28,
 				"trajectory": "radial",
-				"aim_target": true,
-				"size": 25,
+				"aim_target": false,
+				"size": 20,
 				"waves": 3,
-				"wave_delay": 1.5,
-				"color": "#FFCC00",
-				"asset": "res://assets/missiles/blue_ball.png",
-				"asset_anim": "",
+				"wave_delay": 1.0,
+				"color": "#7BCB4A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/blue_energy.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true,
 				"safe_zones": {
 					"count": 2,
-					"width_degrees": 25
+					"width_degrees": 28
+				}
+			},
+			"hazard": {
+				"type": "void_zone",
+				"radius": 130,
+				"telegraph_duration": 0.9,
+				"active_duration": 2.2,
+				"damage_per_second": 18,
+				"tick_interval": 0.2,
+				"follow_source": false,
+				"telegraph_color": "#AA55FF",
+				"active_color": "#6611CC"
+			}
+		},
+		{
+			"id": "power_leaf_storm",
+			"name": "Leaf Storm",
+			"description": "Rotation et spirales successives.",
+			"duration": 4.2,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"speed": 280
+			},
+			"projectile": {
+				"count": 18,
+				"trajectory": "spiral",
+				"aim_target": false,
+				"size": 16,
+				"waves": 4,
+				"wave_delay": 0.6,
+				"color": "#A3E36A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/sacred_missile.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_thorn_wall",
+			"name": "Thorn Wall",
+			"description": "Mur radial dense avec une ouverture.",
+			"duration": 3.5,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "horizontal_dodge",
+				"distance_pct": 25
+			},
+			"projectile": {
+				"count": 42,
+				"trajectory": "radial",
+				"aim_target": false,
+				"size": 14,
+				"waves": 2,
+				"wave_delay": 1.0,
+				"color": "#6CB53F",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/missile_poison.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true,
+				"safe_zones": {
+					"count": 1,
+					"width_degrees": 22
 				}
 			}
 		},
 		{
-			"id": "power_boss_dash",
-			"name": "Boss Dash Attack",
-			"description": "Dash forward and spray bullets.",
+			"id": "power_vine_whip",
+			"name": "Vine Whip",
+			"description": "Dash et rafales radiales courtes.",
+			"duration": 2.8,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "dash_forward",
+				"speed": 520
+			},
+			"projectile": {
+				"count": 14,
+				"trajectory": "radial",
+				"aim_target": true,
+				"size": 13,
+				"waves": 4,
+				"wave_delay": 0.35,
+				"color": "#8FD44B",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/energy_ball.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_spore_cloud",
+			"name": "Spore Cloud",
+			"description": "Pluie descendante continue.",
+			"duration": 4.0,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"speed": 220
+			},
+			"projectile": {
+				"count": 16,
+				"trajectory": "rain_down",
+				"aim_target": false,
+				"size": 15,
+				"waves": 5,
+				"wave_delay": 0.45,
+				"color": "#98C76A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/missile_poison.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_bramble_burst",
+			"name": "Bramble Burst",
+			"description": "Double anneau avec safe wedges.",
+			"duration": 3.0,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "spin_center",
+				"speed": 300
+			},
+			"projectile": {
+				"count": 36,
+				"trajectory": "radial",
+				"aim_target": false,
+				"size": 16,
+				"waves": 2,
+				"wave_delay": 0.7,
+				"color": "#4FAE3C",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/blue_energy.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true,
+				"safe_zones": {
+					"count": 2,
+					"width_degrees": 24
+				}
+			}
+		},
+		{
+			"id": "power_tree_slam",
+			"name": "Tree Slam",
+			"description": "Dash frontal puis impact radial.",
+			"duration": 2.6,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "dash_forward",
+				"speed": 560
+			},
+			"projectile": {
+				"count": 20,
+				"trajectory": "radial",
+				"aim_target": false,
+				"size": 18,
+				"waves": 2,
+				"wave_delay": 0.5,
+				"color": "#C18A46",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/energy_ball.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"hazard": {
+				"type": "laser_line",
+				"length": 980,
+				"width": 96,
+				"telegraph_duration": 0.75,
+				"active_duration": 1.0,
+				"damage_per_second": 30,
+				"tick_interval": 0.1,
+				"sweep_speed_deg": 0,
+				"follow_source": true,
+				"track_player_on_activate": true,
+				"telegraph_color": "#FFB28A",
+				"active_color": "#FF4422"
+			}
+		},
+		{
+			"id": "power_seed_barrage",
+			"name": "Seed Barrage",
+			"description": "Spirales serrées en rafales.",
+			"duration": 4.3,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "horizontal_dodge",
+				"distance_pct": 30
+			},
+			"projectile": {
+				"count": 22,
+				"trajectory": "spiral",
+				"aim_target": false,
+				"size": 12,
+				"waves": 4,
+				"wave_delay": 0.45,
+				"color": "#E0D64E",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/sacred_missile.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_forest_fury",
+			"name": "Forest Fury",
+			"description": "Pattern final plus dense, avec trou étroit.",
+			"duration": 4.8,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"speed": 320
+			},
+			"projectile": {
+				"count": 54,
+				"trajectory": "radial",
+				"aim_target": false,
+				"size": 15,
+				"waves": 3,
+				"wave_delay": 0.8,
+				"color": "#74BF3A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/missile_poison.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true,
+				"safe_zones": {
+					"count": 1,
+					"width_degrees": 16
+				}
+			}
+		},
+		{
+			"id": "power_mushroom_gas",
+			"name": "Mushroom Gas",
+			"description": "Pluie toxique longue portée.",
+			"duration": 4.4,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"speed": 230
+			},
+			"projectile": {
+				"count": 18,
+				"trajectory": "rain_down",
+				"aim_target": false,
+				"size": 16,
+				"waves": 5,
+				"wave_delay": 0.4,
+				"color": "#8ED059",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/missile_poison.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_moss_shield",
+			"name": "Moss Shield",
+			"description": "Orbes radiaux défensifs et safe wedges.",
+			"duration": 3.6,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "spin_center",
+				"speed": 250
+			},
+			"projectile": {
+				"count": 30,
+				"trajectory": "radial",
+				"aim_target": false,
+				"size": 15,
+				"waves": 3,
+				"wave_delay": 0.7,
+				"color": "#77B84A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/blue_energy.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true,
+				"safe_zones": {
+					"count": 2,
+					"width_degrees": 26
+				}
+			}
+		},
+		{
+			"id": "power_ancient_roar",
+			"name": "Ancient Roar",
+			"description": "Burst radial rapide après dash.",
+			"duration": 2.5,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "dash_forward",
+				"speed": 620
+			},
+			"projectile": {
+				"count": 18,
+				"trajectory": "radial",
+				"aim_target": true,
+				"size": 14,
+				"waves": 4,
+				"wave_delay": 0.28,
+				"color": "#D8F777",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/energy_ball.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_canopy_crush",
+			"name": "Canopy Crush",
+			"description": "Large spirales en pression constante.",
+			"duration": 4.6,
+			"invincibility": false,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"speed": 280
+			},
+			"projectile": {
+				"count": 24,
+				"trajectory": "spiral",
+				"aim_target": false,
+				"size": 16,
+				"waves": 4,
+				"wave_delay": 0.5,
+				"color": "#4DAE54",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/sacred_missile.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_nature_wrath",
+			"name": "Nature Wrath",
+			"description": "Anneaux rapides avec petit couloir de survie.",
+			"duration": 4.4,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "spin_center",
+				"speed": 320
+			},
+			"projectile": {
+				"count": 58,
+				"trajectory": "radial",
+				"aim_target": false,
+				"size": 14,
+				"waves": 3,
+				"wave_delay": 0.65,
+				"color": "#86D64A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/blue_energy.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true,
+				"safe_zones": {
+					"count": 1,
+					"width_degrees": 14
+				}
+			},
+			"hazard": {
+				"type": "laser_cone",
+				"length": 920,
+				"cone_angle_deg": 52,
+				"telegraph_duration": 0.95,
+				"active_duration": 1.35,
+				"damage_per_second": 24,
+				"tick_interval": 0.1,
+				"sweep_speed_deg": 24,
+				"follow_source": true,
+				"track_player_on_activate": true,
+				"telegraph_color": "#FF9F6A",
+				"active_color": "#FF3B1D"
+			}
+		},
+		{
+			"id": "power_guardian_rage",
+			"name": "Guardian Rage",
+			"description": "Finale agressive: dash + radial multi-waves.",
 			"duration": 3.0,
 			"invincibility": false,
 			"ship_movement": {
 				"type": "dash_forward",
-				"speed": 500
+				"speed": 680
 			},
 			"projectile": {
-				"count": 12,
+				"count": 26,
 				"trajectory": "radial",
 				"aim_target": true,
-				"size": 15,
+				"size": 13,
 				"waves": 5,
-				"wave_delay": 0.4,
-				"color": "#FFFFFF",
-				"asset": "res://assets/missiles/blue_ball.png",
-				"asset_anim": "",
+				"wave_delay": 0.25,
+				"color": "#B8F35A",
+				"asset": "",
+				"asset_anim": "res://assets/missiles/energy_ball.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
-			}
+			},
+			"hazards": [
+				{
+					"type": "void_zone",
+					"radius": 120,
+					"telegraph_duration": 0.7,
+					"active_duration": 1.6,
+					"damage_per_second": 22,
+					"tick_interval": 0.2,
+					"follow_source": true,
+					"telegraph_color": "#A56BFF",
+					"active_color": "#6F2ED8"
+				},
+				{
+					"type": "laser_line",
+					"length": 980,
+					"width": 86,
+					"telegraph_duration": 0.6,
+					"active_duration": 0.9,
+					"damage_per_second": 34,
+					"tick_interval": 0.1,
+					"sweep_speed_deg": 30,
+					"follow_source": true,
+					"track_player_on_activate": true,
+					"telegraph_color": "#FFB87E",
+					"active_color": "#FF3A1F"
+				}
+			]
 		}
 	]
 }

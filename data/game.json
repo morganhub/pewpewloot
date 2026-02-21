@@ -1,6 +1,6 @@
 {
 	"default_explosion": {
-		"fluid_id": "explosion_burst"
+		"fluid_id": ""
 	},
 	"main_menu": {
 		"background": "res://assets/ui/main_menu_bg.jpg",
@@ -17,12 +17,12 @@
 		"button_destroy": "res://assets/ui/btn_destroy.png"
 	},
 	"rarity_frames": {
-		"common": "res://assets/ui/frame_common.png",
-		"uncommon": "res://assets/ui/frame_uncommon.png",
-		"rare": "res://assets/ui/frame_rare.png",
-		"epic": "res://assets/ui/frame_epic.png",
-		"legendary": "res://assets/ui/frame_legendary.png",
-		"unique": "res://assets/ui/frame_unique.png"
+		"common": "res://assets/ui/frames/frame_common.png",
+		"uncommon": "res://assets/ui/frames/frame_uncommon.png",
+		"rare": "res://assets/ui/frames/frame_rare.png",
+		"epic": "res://assets/ui/frames/frame_epic.png",
+		"legendary": "res://assets/ui/frames/frame_legendary.png",
+		"unique": "res://assets/ui/frames/frame_gold.png"
 	},
 	"rarity_colors": {
 		"common": "#AAAAAA",
@@ -76,22 +76,22 @@
 				"upgrade": {
 					"width": 140,
 					"height": 50,
-					"asset": "res://assets/ui/buttons/btn_upgrade.png"
+					"asset": "res://assets/ui/buttons/button_gold.png"
 				},
 				"recycle": {
 					"width": 140,
 					"height": 50,
-					"asset": "res://assets/ui/buttons/btn_recycle.png"
+					"asset": "res://assets/ui/buttons/button_green.png"
 				},
 				"close": {
 					"width": 140,
 					"height": 50,
-					"asset": "res://assets/ui/buttons/btn_close.png"
+					"asset": "res://assets/ui/buttons/button_red.png"
 				},
 				"equip": {
 					"width": 140,
 					"height": 50,
-					"asset": "res://assets/ui/buttons/btn_equip.png"
+					"asset": "res://assets/ui/buttons/button_blue.png"
 				}
 			}
 		},
@@ -99,10 +99,20 @@
 			"power": 4000,
 			"max_hp": 3000,
 			"move_speed": 1000,
-			"missile": 1000,
+			"fire_rate": 20,
+			"missile_speed_pct": 300,
+			"missile_damage": 300,
 			"crit_chance": 50,
+			"crit_damage": 300,
 			"dodge_chance": 30,
-			"damage_reduction": 75
+			"damage_reduction": 75,
+			"special_damage": 4000,
+			"special_cd": 20,
+			"shield_capacity": 2000,
+			"shield_regen": 200,
+			"loot_radius": 500,
+			"luck": 200,
+			"xp_multiplier": 200
 		},
 		"stat_icons": {
 			"power": "res://assets/ui/icons/power.png",
@@ -113,7 +123,19 @@
 			"speed": "res://assets/ui/icons/speed.png",
 			"missile": "res://assets/ui/icons/missile.png",
 			"crit_chance": "res://assets/ui/icons/crit.png",
-			"dodge_chance": "res://assets/ui/icons/dodge.png"
+			"dodge_chance": "res://assets/ui/icons/dodge.png",
+			"fire_rate": "res://assets/ui/icons/missile.png",
+			"missile_speed_pct": "res://assets/ui/icons/missile.png",
+			"missile_damage": "res://assets/ui/icons/missile.png",
+			"crit_damage": "res://assets/ui/icons/crit.png",
+			"special_cd": "res://assets/ui/icons/special.png",
+			"special_damage": "res://assets/ui/icons/special.png",
+			"damage_reduction": "res://assets/ui/icons/hp.png",
+			"shield_capacity": "res://assets/ui/icons/shield.png",
+			"shield_regen": "res://assets/ui/icons/shield.png",
+			"loot_radius": "res://assets/ui/icons/all.png",
+			"luck": "res://assets/ui/icons/crit.png",
+			"xp_multiplier": "res://assets/ui/icons/trophy.png"
 		},
 		"stat_colors": {
 			"power": "#501dc5",
@@ -125,16 +147,16 @@
 			"crit_chance": "#501dc5",
 			"dodge_chance": "#501dc5"
 		},
-		"upgrade_anim_decent": "res://assets/missiles/sacred_missile.tres",
-		"upgrade_anim_decent_duration": 1.0,
+		"upgrade_anim_decent": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_anim_decent_duration": 3.0,
 		"upgrade_anim_decent_loop": false,
-		"upgrade_anim_great": "res://assets/missiles/sacred_missile.tres",
-		"upgrade_anim_great_duration": 1.0,
+		"upgrade_anim_great": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_anim_great_duration": 3.0,
 		"upgrade_anim_great_loop": false,
-		"upgrade_anim_perfect": "res://assets/missiles/sacred_missile.tres",
-		"upgrade_anim_perfect_duration": 1.0,
+		"upgrade_anim_perfect": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_anim_perfect_duration": 3.0,
 		"upgrade_anim_perfect_loop": false,
-		"upgrade_craft_anim": "res://assets/missiles/sacred_missile.tres",
+		"upgrade_craft_anim": "res://assets/ui/popup_upgrade.tres",
 		"upgrade_craft_anim_duration": 0.0,
 		"upgrade_craft_anim_loop": true,
 		"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
@@ -182,7 +204,16 @@
 				"icon_asset": "res://assets/ui/icons/hp.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 16,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"max_hp": {
+				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -191,7 +222,16 @@
 				"icon_asset": "res://assets/ui/icons/speed.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 16,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"move_speed": {
+				"icon_asset": "res://assets/ui/icons/speed.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -200,7 +240,7 @@
 				"icon_asset": "res://assets/ui/icons/missile.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 16,
+				"font_size": 13,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -209,7 +249,16 @@
 				"icon_asset": "res://assets/ui/icons/crit.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 16,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"crit_damage": {
+				"icon_asset": "res://assets/ui/icons/crit.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -218,7 +267,106 @@
 				"icon_asset": "res://assets/ui/icons/dodge.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 16,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"fire_rate": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"missile_speed_pct": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"missile_damage": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"damage_reduction": {
+				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"special_cd": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"special_damage": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"shield_capacity": {
+				"icon_asset": "res://assets/ui/icons/shield.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"shield_regen": {
+				"icon_asset": "res://assets/ui/icons/shield.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"loot_radius": {
+				"icon_asset": "res://assets/ui/icons/all.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"luck": {
+				"icon_asset": "res://assets/ui/icons/crit.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"xp_multiplier": {
+				"icon_asset": "res://assets/ui/icons/trophy.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 13,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -227,7 +375,7 @@
 				"icon_asset": "res://assets/ui/icons/special.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 16,
+				"font_size": 13,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -246,13 +394,41 @@
 			"asset": "res://assets/ui/popup_background.png",
 			"text_color": "#FFFFFF",
 			"letter_spacing": 0,
-			"font_size": 24
+			"font_size": 24,
+			"nine_slice": {
+				"left": 28,
+				"right": 28,
+				"top": 28,
+				"bottom": 28
+			},
+			"content_margin": {
+				"left": 35,
+				"right": 35,
+				"top": 35,
+				"bottom": 35
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
 		},
 		"button": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"text_color": "#FFFFFF",
 			"letter_spacing": 0,
-			"font_size": 18
+			"font_size": 18,
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 12,
+				"right": 12,
+				"top": 8,
+				"bottom": 8
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
 		},
 		"recycle": {
 			"font_size": 16
@@ -335,7 +511,19 @@
 		"item_bg_asset": "res://assets/ui/popup_background.png",
 		"item_text_color": "#000000",
 		"highlight_bg_color": "#FFD700",
-		"highlight_text_color": "#000000"
+		"highlight_text_color": "#000000",
+		"nine_slice": {
+			"left": 20,
+			"right": 20,
+			"top": 20,
+			"bottom": 20
+		},
+		"content_margin": {
+			"left": 10,
+			"right": 10,
+			"top": 8,
+			"bottom": 8
+		}
 	},
 	"ui_icons": {
 		"burger_menu": "res://assets/ui/burger_menu.png",
@@ -355,7 +543,19 @@
 			"asset": "res://assets/ui/button.png",
 			"text_color": "#FFFFFF",
 			"font_size": 18,
-			"letter_spacing": 0
+			"letter_spacing": 0,
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 12,
+				"right": 12,
+				"top": 8,
+				"bottom": 8
+			}
 		},
 		"packs": [
 			{
@@ -381,43 +581,57 @@
 		]
 	},
 	"buttons": {
+		"default_nine_slice": {
+			"left": 18,
+			"right": 18,
+			"top": 18,
+			"bottom": 18
+		},
+		"default_content_margin": {
+			"left": 14,
+			"right": 14,
+			"top": 10,
+			"bottom": 10
+		},
+		"default_stretch_horizontal": "stretch",
+		"default_stretch_vertical": "stretch",
 		"play": {
-			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
 			"letter_spacing": 12
 		},
 		"ship": {
-			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
 			"letter_spacing": 12
 		},
 		"options": {
-			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
 			"letter_spacing": 12
 		},
 		"quit": {
-			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
 			"letter_spacing": 12
 		},
 		"skills": {
-			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
 			"letter_spacing": 10
 		},
 		"change_profile": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/popup_background.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
@@ -435,7 +649,55 @@
 	"score": {
 		"text_size": 20,
 		"text_color": "#FFFFFF",
-		"asset": "res://assets/ui/score_bg.png"
+		"outline_size": 2,
+		"outline_color": "#000000",
+		"text_align_h": "center",
+		"text_align_v": "center",
+		"asset": "res://assets/ui/score_bg.png",
+		"asset_min_width": 220,
+		"asset_min_height": 64,
+		"asset_width": 220,
+		"asset_height": 64,
+		"fixed_size": true,
+		"asset_stretch_mode": "keep_aspect_centered",
+		"asset_clip_contents": true
+	},
+	"wave_counter": {
+		"text_size": 18,
+		"text_color": "#FFFFFF",
+		"outline_size": 2,
+		"outline_color": "#000000",
+		"text_align_h": "center",
+		"text_align_v": "center",
+		"asset": "res://assets/ui/wave_bg.png",
+		"asset_min_width": 80,
+		"asset_min_height": 80,
+		"asset_width": 80,
+		"asset_height": 80,
+		"fixed_size": true,
+		"asset_stretch_mode": "keep_aspect_centered",
+		"asset_clip_contents": true
+	},
+	"loading_screen": {
+		"show_label": false,
+		"show_spinner": false,
+		"overlay_color": "#000000",
+		"overlay_alpha": 0.5,
+		"progress_bar": {
+			"width_ratio": 0.62,
+			"min_width": 300,
+			"max_width": 980,
+			"height": 34,
+			"anchor_y": 0.84,
+			"show_percentage": false,
+			"background_color": "#1A1F2A",
+			"fill_color": "#6FD7FF",
+			"border_color": "#FFFFFF",
+			"fill_border_color": "#B9F0FF",
+			"border_width": 2,
+			"corner_radius": 12,
+			"fill_corner_radius": 11
+		}
 	},
 	"gameplay": {
 		"end_session": {
@@ -484,6 +746,31 @@
 				"frame_asset_loop": true
 			}
 		},
+		"enemy_health_bar": {
+			"width": 44,
+			"height": 8,
+			"offset_x": -22,
+			"offset_y": -32,
+			"outline_px": 1,
+			"outline_color": "#000000",
+			"background_color": "#66000000",
+			"corner_radius": 1,
+			"color_high": "#1CFF00",
+			"color_mid": "#FFE100",
+			"color_low": "#FF3D3D"
+		},
+		"loot_drops": {
+			"enabled": true,
+			"allow_equipment": true,
+			"allow_powerups": true,
+			"global_chance_scale": 0.7,
+			"equipment_chance_scale": 0.45,
+			"powerup_chance_scale": 0.55,
+			"max_shield_per_wave": 1,
+			"max_rapid_fire_per_wave": 1,
+			"shield_weight": 1.0,
+			"rapid_fire_weight": 1.0
+		},
 		"power_ups": {
 			"drift_enabled": true,
 			"drift_speed": 6,
@@ -523,10 +810,10 @@
 				"shield": "res://assets/sfx/combat/shield_up.ogg"
 			},
 			"collisions": {
-				"shield": "res://assets/sfx/combat/shield_hit.ogg",
-				"player": "res://assets/sfx/combat/player_hit.ogg",
-				"enemy": "res://assets/sfx/combat/very_weak_hit.ogg",
-				"boss": "res://assets/sfx/combat/enemy_hit.ogg"
+				"shield": "",
+				"player": "",
+				"enemy": "",
+				"boss": ""
 			}
 		}
 	},

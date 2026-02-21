@@ -50,6 +50,7 @@ var _inventory_warning_label: Label = null
 var _inventory_warning_timer: float = 0.0
 var _inventory_warning_was_full: bool = false
 var _inventory_warning_tween: Tween = null
+var _game_config: Dictionary = {}
 const INVENTORY_WARNING_INTERVAL: float = 10.0
 const HP_FILL_REVEAL_SHADER_CODE: String = """
 shader_type canvas_item;
@@ -132,14 +133,15 @@ func show_loot_notification(item_data: Dictionary) -> void:
 			notif.setup(item_data)
 
 func _load_assets() -> void:
-	var game_config: Dictionary = {}
+	_game_config = {}
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
 	if file:
 		var json := JSON.new()
 		if json.parse(file.get_as_text()) == OK:
-			game_config = json.data
+			if json.data is Dictionary:
+				_game_config = json.data
 	
-	var ui_icons: Dictionary = game_config.get("ui_icons", {})
+	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 	
 	# Burger Icon
 	var burger_path = str(ui_icons.get("burger_menu", ""))
@@ -147,26 +149,10 @@ func _load_assets() -> void:
 		burger_btn.texture_normal = load(burger_path)
 	
 	# Score styling
-	var score_config: Dictionary = game_config.get("score", {})
+	var score_config: Dictionary = _game_config.get("score", {})
 	if score_label and not score_config.is_empty():
-		var s_size := int(score_config.get("text_size", 20))
-		var s_color := str(score_config.get("text_color", "#FFFFFF"))
-		score_label.add_theme_font_size_override("font_size", s_size)
-		score_label.add_theme_color_override("font_color", Color.html(s_color))
-		var s_asset := str(score_config.get("asset", ""))
-		if s_asset != "" and ResourceLoader.exists(s_asset):
-			var top_right := score_label.get_parent()
-			if top_right:
-				var score_bg := TextureRect.new()
-				score_bg.name = "ScoreBg"
-				score_bg.texture = load(s_asset)
-				score_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				score_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-				score_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-				score_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				score_label.add_child(score_bg)
-				score_label.move_child(score_bg, 0)
-				score_label.clip_contents = true
+		_apply_label_text_style_from_config(score_label, score_config, 20, "#FFFFFF")
+		_apply_label_background_from_config(score_label, score_config, "ScoreBg")
 
 	# SP Icon
 	var sp_path = str(ui_icons.get("super_power_placeholder", ""))
@@ -350,6 +336,9 @@ func _setup_virtual_joystick() -> void:
 		virtual_joystick.name = "VirtualJoystick"
 		virtual_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
 		virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mobile_controls_cfg: Dictionary = _game_config.get("mobile_controls", {})
+		if _object_has_property(virtual_joystick, "show_visual"):
+			virtual_joystick.set("show_visual", bool(mobile_controls_cfg.get("show_virtual_joystick_visual", false)))
 		add_child(virtual_joystick)
 		move_child(virtual_joystick, get_child_count() - 1)
 
@@ -820,7 +809,8 @@ func _setup_wave_label(top_left: Control, bar_ref: Control) -> void:
 	
 	wave_label = Label.new()
 	wave_label.name = "WaveLabel"
-	wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wave_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	wave_label.text = ""
 	wave_label.visible = false
 	top_left.add_child(wave_label)
@@ -828,9 +818,14 @@ func _setup_wave_label(top_left: Control, bar_ref: Control) -> void:
 	if bar_ref:
 		var idx: int = bar_ref.get_index()
 		top_left.move_child(wave_label, idx + 1)
-	
-	wave_label.add_theme_font_size_override("font_size", 18)
-	wave_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95, 1.0))
+
+	var wave_cfg: Dictionary = _game_config.get("wave_counter", {})
+	if wave_cfg.is_empty():
+		wave_label.add_theme_font_size_override("font_size", 18)
+		wave_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95, 1.0))
+	else:
+		_apply_label_text_style_from_config(wave_label, wave_cfg, 18, "#F2F2F2")
+		_apply_label_background_from_config(wave_label, wave_cfg, "WaveBg")
 
 func configure_wave_counter(total_waves: int) -> void:
 	_wave_total = maxi(0, total_waves)
@@ -850,10 +845,7 @@ func _refresh_wave_label() -> void:
 	
 	var clamped_current: int = clampi(_wave_current, 0, _wave_total)
 	wave_label.visible = true
-	wave_label.text = LocaleManager.translate(
-		"game_wave_progress",
-		{"current": str(clamped_current), "total": str(_wave_total)}
-	)
+	wave_label.text = "%d / %d" % [clamped_current, _wave_total]
 
 func _on_shield_changed(current: float, max_val: float) -> void:
 	if not shield_bar: return
@@ -894,3 +886,113 @@ func _setup_xp_display() -> void:
 
 func _update_xp_display() -> void:
 	pass
+
+func _apply_label_text_style_from_config(
+	label: Label,
+	cfg: Dictionary,
+	default_size: int,
+	default_color: String
+) -> void:
+	if not label:
+		return
+	var text_size: int = int(cfg.get("text_size", default_size))
+	var text_color: Color = _color_or_default(str(cfg.get("text_color", default_color)), Color.html(default_color))
+	var outline_size: int = maxi(0, int(cfg.get("outline_size", 0)))
+	var outline_color: Color = _color_or_default(str(cfg.get("outline_color", "#000000")), Color.BLACK)
+
+	label.add_theme_font_size_override("font_size", text_size)
+	label.add_theme_color_override("font_color", text_color)
+	label.add_theme_constant_override("outline_size", outline_size)
+	label.add_theme_color_override("font_outline_color", outline_color)
+	label.horizontal_alignment = _parse_horizontal_alignment(str(cfg.get("text_align_h", "center")))
+	label.vertical_alignment = _parse_vertical_alignment(str(cfg.get("text_align_v", "center")))
+
+func _apply_label_background_from_config(label: Label, cfg: Dictionary, node_name: String) -> void:
+	if not label:
+		return
+	var existing_bg: TextureRect = label.get_node_or_null(node_name) as TextureRect
+	if existing_bg:
+		existing_bg.queue_free()
+
+	var asset_path: String = str(cfg.get("asset", ""))
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+
+	var bg := TextureRect.new()
+	bg.name = node_name
+	bg.texture = load(asset_path)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = _parse_label_bg_stretch_mode(str(cfg.get("asset_stretch_mode", "keep_aspect_centered")))
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	bg.z_index = -1
+	label.add_child(bg)
+	label.move_child(bg, 0)
+	label.clip_contents = bool(cfg.get("asset_clip_contents", true))
+
+	var min_w: float = maxf(0.0, float(cfg.get("asset_min_width", 0.0)))
+	var min_h: float = maxf(0.0, float(cfg.get("asset_min_height", 0.0)))
+	var fixed_w: float = maxf(0.0, float(cfg.get("asset_width", cfg.get("width", 0.0))))
+	var fixed_h: float = maxf(0.0, float(cfg.get("asset_height", cfg.get("height", 0.0))))
+	if fixed_w > 0.0:
+		min_w = fixed_w
+	if fixed_h > 0.0:
+		min_h = fixed_h
+
+	if min_w > 0.0 or min_h > 0.0:
+		if bool(cfg.get("fixed_size", false)):
+			label.custom_minimum_size = Vector2(min_w, min_h)
+		else:
+			label.custom_minimum_size = Vector2(maxf(label.custom_minimum_size.x, min_w), maxf(label.custom_minimum_size.y, min_h))
+
+	if bool(cfg.get("fixed_size", false)):
+		label.size_flags_horizontal = 0
+		label.size_flags_vertical = 0
+
+func _parse_horizontal_alignment(value: String) -> int:
+	match value.strip_edges().to_lower():
+		"left":
+			return HORIZONTAL_ALIGNMENT_LEFT
+		"right":
+			return HORIZONTAL_ALIGNMENT_RIGHT
+		"fill", "justify":
+			return HORIZONTAL_ALIGNMENT_FILL
+		_:
+			return HORIZONTAL_ALIGNMENT_CENTER
+
+func _parse_vertical_alignment(value: String) -> int:
+	match value.strip_edges().to_lower():
+		"top":
+			return VERTICAL_ALIGNMENT_TOP
+		"bottom":
+			return VERTICAL_ALIGNMENT_BOTTOM
+		"fill":
+			return VERTICAL_ALIGNMENT_FILL
+		_:
+			return VERTICAL_ALIGNMENT_CENTER
+
+func _parse_label_bg_stretch_mode(mode_name: String) -> int:
+	var normalized: String = mode_name.strip_edges().to_lower()
+	match normalized:
+		"scale":
+			return TextureRect.STRETCH_SCALE
+		"tile":
+			return TextureRect.STRETCH_TILE
+		"keep":
+			return TextureRect.STRETCH_KEEP
+		"keep_centered":
+			return TextureRect.STRETCH_KEEP_CENTERED
+		"keep_aspect":
+			return TextureRect.STRETCH_KEEP_ASPECT
+		"keep_aspect_centered":
+			return TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_:
+			return TextureRect.STRETCH_KEEP_ASPECT_COVERED
+
+func _color_or_default(color_value: String, fallback: Color) -> Color:
+	if color_value == "":
+		return fallback
+	if Color.html_is_valid(color_value):
+		return Color.html(color_value)
+	return fallback

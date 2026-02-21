@@ -1,23 +1,242 @@
 {
     "uniques": [
         {
+            "id": "unique_root_amulet",
+            "name": "Amulette Racinaire",
+            "slot": "targeting",
+            "source_boss": "boss_forest_1",
+            "sprite": "res://assets/items/unique_root_amulet.png",
+            "description": "Canalise la vision primitive de la foret.",
+            "stats": {
+                "power": 12,
+                "crit_chance": 10,
+                "crit_damage": 35,
+                "missile_speed_pct": 20,
+                "xp_multiplier": 18,
+                "luck": 8
+            },
+            "unique_power_id": "unique_root_maelstrom"
+        },
+        {
+            "id": "unique_bark_shield",
+            "name": "Egide d'Ecorce",
+            "slot": "shield",
+            "source_boss": "boss_forest_1",
+            "sprite": "res://assets/items/unique_bark_shield.png",
+            "description": "Un bastion d'ecorce vivante.",
+            "stats": {
+                "max_hp": 90,
+                "damage_reduction": 14,
+                "shield_capacity": 140,
+                "shield_regen": 12,
+                "dodge_chance": 6,
+                "special_cd": -1.0
+            },
+            "unique_power_id": "unique_bark_bastion"
+        },
+        {
+            "id": "unique_thorn_blade",
+            "name": "Lame d'Epines",
+            "slot": "primary",
+            "source_boss": "boss_forest_2",
+            "sprite": "res://assets/items/unique_thorn_blade.png",
+            "description": "Chaque tir devient une rafale d'epines.",
+            "stats": {
+                "power": 26,
+                "fire_rate": 20,
+                "crit_chance": 8,
+                "crit_damage": 30,
+                "missile_damage": 18,
+                "move_speed": 12
+            },
+            "unique_power_id": "unique_thorn_hurricane"
+        },
+        {
+            "id": "unique_vine_whip",
+            "name": "Fouet de Lianes",
+            "slot": "missiles",
+            "source_boss": "boss_forest_2",
+            "sprite": "res://assets/items/unique_vine_whip.png",
+            "description": "Des lianes propulsees qui clouent les lignes ennemies.",
+            "stats": {
+                "power": 18,
+                "fire_rate": 12,
+                "missile_damage": 40,
+                "missile_speed_pct": 35,
+                "crit_chance": 6,
+                "special_cd": -0.8
+            },
+            "unique_power_id": "unique_vine_catapult"
+        },
+        {
+            "id": "unique_spore_ring",
+            "name": "Anneau de Spores",
+            "slot": "utility",
+            "source_boss": "boss_forest_3",
+            "sprite": "res://assets/items/unique_spore_ring.png",
+            "description": "Un halo toxique attire et infecte.",
+            "stats": {
+                "move_speed": 20,
+                "dodge_chance": 8,
+                "shield_regen": 6,
+                "loot_radius": 70,
+                "xp_multiplier": 22,
+                "luck": 12
+            },
+            "unique_power_id": "unique_spore_tempest"
+        },
+        {
+            "id": "unique_mycelium_core",
+            "name": "Noyau Mycelien",
+            "slot": "reactor",
+            "source_boss": "boss_forest_3",
+            "sprite": "res://assets/items/unique_mycelium_core.png",
+            "description": "Reacteur organique a impulsions successives.",
+            "stats": {
+                "power": 20,
+                "crit_damage": 24,
+                "special_cd": -3.0,
+                "special_damage": 140,
+                "shield_capacity": 70,
+                "xp_multiplier": 15
+            },
+            "unique_power_id": "unique_mycelium_nova"
+        },
+        {
+            "id": "unique_heartwood_plate",
+            "name": "Plastron Coeurbois",
+            "slot": "armor",
+            "source_boss": "boss_forest_4",
+            "sprite": "res://assets/items/unique_heartwood_plate.png",
+            "description": "Armure lourde faconnee dans un tronc ancien.",
+            "stats": {
+                "power": 12,
+                "max_hp": 180,
+                "dodge_chance": 5,
+                "damage_reduction": 16,
+                "shield_capacity": 90,
+                "shield_regen": 8
+            },
+            "unique_power_id": "unique_heartwood_crush"
+        },
+        {
+            "id": "unique_ancient_sap",
+            "name": "Seve Ancestrale",
+            "slot": "reactor",
+            "source_boss": "boss_forest_4",
+            "sprite": "res://assets/items/unique_ancient_sap.png",
+            "description": "La seve accelere systemes et competences.",
+            "stats": {
+                "move_speed": 24,
+                "fire_rate": 16,
+                "crit_chance": 7,
+                "special_cd": -2.5,
+                "special_damage": 120,
+                "xp_multiplier": 12
+            },
+            "unique_power_id": "unique_ancient_sapflow"
+        },
+        {
+            "id": "unique_fungal_crown",
+            "name": "Couronne Fongique",
+            "slot": "targeting",
+            "source_boss": "boss_forest_5",
+            "sprite": "res://assets/items/unique_fungal_crown.png",
+            "description": "Le regard de la ruche mycelienne.",
+            "stats": {
+                "crit_chance": 12,
+                "crit_damage": 38,
+                "missile_damage": 18,
+                "loot_radius": 35,
+                "xp_multiplier": 20,
+                "luck": 14
+            },
+            "unique_power_id": "unique_fungal_eruption"
+        },
+        {
+            "id": "unique_decay_orb",
+            "name": "Orbe de Decomposition",
+            "slot": "missiles",
+            "source_boss": "boss_forest_5",
+            "sprite": "res://assets/items/unique_decay_orb.png",
+            "description": "Un coeur corrosif qui destabilise les vagues ennemies.",
+            "stats": {
+                "power": 16,
+                "crit_chance": 10,
+                "crit_damage": 28,
+                "missile_speed_pct": 30,
+                "missile_damage": 45,
+                "special_damage": 90
+            },
+            "unique_power_id": "unique_decay_supercell"
+        },
+        {
+            "id": "unique_guardian_heart",
+            "name": "Coeur du Gardien",
+            "slot": "armor",
+            "source_boss": "boss_forest_final",
+            "sprite": "res://assets/items/unique_guardian_heart.png",
+            "description": "Le noyau d'un titan sylvestre.",
+            "stats": {
+                "power": 20,
+                "max_hp": 220,
+                "damage_reduction": 18,
+                "shield_capacity": 120,
+                "shield_regen": 10,
+                "special_cd": -1.2
+            },
+            "unique_power_id": "unique_guardian_overload"
+        },
+        {
+            "id": "unique_primordial_seed",
+            "name": "Graine Primordiale",
+            "slot": "utility",
+            "source_boss": "boss_forest_final",
+            "sprite": "res://assets/items/unique_primordial_seed.png",
+            "description": "Une source brute de croissance et d'avidite.",
+            "stats": {
+                "move_speed": 26,
+                "crit_chance": 8,
+                "shield_regen": 9,
+                "loot_radius": 85,
+                "xp_multiplier": 26,
+                "luck": 16
+            },
+            "unique_power_id": "unique_primordial_bloom"
+        },
+        {
+            "id": "unique_sylvan_crown",
+            "name": "Couronne Sylvestre",
+            "slot": "targeting",
+            "source_boss": "boss_forest_final",
+            "sprite": "res://assets/items/unique_sylvan_crown.png",
+            "description": "Le regalia du seigneur de la foret.",
+            "stats": {
+                "fire_rate": 18,
+                "crit_chance": 14,
+                "crit_damage": 45,
+                "special_damage": 160,
+                "xp_multiplier": 30,
+                "luck": 18
+            },
+            "unique_power_id": "unique_sylvan_judgement"
+        },
+        {
             "id": "unique_asteroid_core",
             "name": "Cœur d'Astéroïde",
             "slot": "reactor",
             "source_boss": "asteroid_guardian",
             "sprite": "res://assets/items/unique_asteroid_core.png",
-            "description": "Le noyau pulsant du Gardien. Génère de l'énergie quand vous êtes touché.",
+            "description": "Reliquat de l'ancien gardien.",
             "stats": {
-                "energy_regen": 5,
-                "special_cd": -1.0
+                "power": 16,
+                "crit_chance": 5,
+                "damage_reduction": 6,
+                "shield_capacity": 80,
+                "special_cd": -1.5,
+                "xp_multiplier": 10
             },
-            "unique_power_id": "unique_meteor_storm",
-            "unique_effect": {
-                "id": "core_pulse",
-                "name": "Pulse du Noyau",
-                "description": "Quand vous subissez des dégâts, récupérez 15% de votre énergie max.",
-                "trigger": "on_hit_received"
-            }
+            "unique_power_id": "unique_meteor_storm"
         },
         {
             "id": "unique_guardian_shield",
@@ -25,17 +244,16 @@
             "slot": "shield",
             "source_boss": "asteroid_guardian",
             "sprite": "res://assets/items/unique_guardian_shield.png",
-            "description": "Un fragment du blindage impénétrable du Gardien.",
+            "description": "Fragment de blindage impitoyable.",
             "stats": {
-                "shield_capacity": 80,
-                "damage_reduction": 8
+                "max_hp": 120,
+                "dodge_chance": 4,
+                "damage_reduction": 10,
+                "shield_capacity": 100,
+                "shield_regen": 8,
+                "special_cd": -0.8
             },
-            "unique_effect": {
-                "id": "rock_solid",
-                "name": "Solide comme le Roc",
-                "description": "Tant que votre bouclier est actif, vous ne pouvez pas être repoussé et ignorez les effets de ralentissement.",
-                "trigger": "passive"
-            }
+            "unique_power_id": "unique_bark_bastion"
         },
         {
             "id": "unique_spectral_reactor",
@@ -43,17 +261,16 @@
             "slot": "reactor",
             "source_boss": "necropolis_overlord",
             "sprite": "res://assets/items/unique_spectral_reactor.png",
-            "description": "Alimenté par les âmes perdues de la Nécropole.",
+            "description": "Reacteur alimente par les ombres.",
             "stats": {
-                "energy_regen": 8,
-                "special_cd": -1.5
+                "power": 18,
+                "crit_damage": 20,
+                "shield_regen": 6,
+                "special_cd": -2.0,
+                "special_damage": 110,
+                "xp_multiplier": 12
             },
-            "unique_effect": {
-                "id": "soul_harvest",
-                "name": "Récolte d'Âmes",
-                "description": "Chaque ennemi tué réduit le cooldown de votre spécial de 0.5s.",
-                "trigger": "on_enemy_kill"
-            }
+            "unique_power_id": "unique_decay_supercell"
         },
         {
             "id": "unique_ghost_engine",
@@ -61,17 +278,16 @@
             "slot": "engine",
             "source_boss": "necropolis_overlord",
             "sprite": "res://assets/items/unique_ghost_engine.png",
-            "description": "Permet des déplacements entre les dimensions.",
+            "description": "Deplacement spectral et acceleration brutale.",
             "stats": {
-                "move_speed": 20,
-                "dash_charges": 1
+                "move_speed": 35,
+                "fire_rate": 12,
+                "crit_chance": 5,
+                "dodge_chance": 10,
+                "loot_radius": 30,
+                "special_cd": -0.6
             },
-            "unique_effect": {
-                "id": "phase_walk",
-                "name": "Marche Spectrale",
-                "description": "Votre dash vous rend invulnérable et traverse les projectiles ennemis.",
-                "trigger": "on_dash"
-            }
+            "unique_power_id": "unique_primordial_bloom"
         },
         {
             "id": "unique_void_primary",
@@ -79,18 +295,16 @@
             "slot": "primary",
             "source_boss": "eclipse_entity",
             "sprite": "res://assets/items/unique_void_primary.png",
-            "description": "Tire des projectiles qui absorbent la lumière.",
+            "description": "Plateforme d'attaque orbitale.",
             "stats": {
-                "power": 12,
-                "fire_rate": 10
+                "power": 24,
+                "fire_rate": 22,
+                "crit_chance": 10,
+                "crit_damage": 35,
+                "missile_speed_pct": 25,
+                "missile_damage": 20
             },
-            "unique_power_id": "unique_laser_beam",
-            "unique_effect": {
-                "id": "void_consumption",
-                "name": "Consommation du Vide",
-                "description": "Vos projectiles grossissent en traversant les projectiles ennemis, les détruisant et gagnant +5% dégâts par absorption (max 50%).",
-                "trigger": "on_projectile_hit"
-            }
+            "unique_power_id": "unique_laser_beam"
         },
         {
             "id": "unique_architect_reactor",
@@ -98,18 +312,16 @@
             "slot": "reactor",
             "source_boss": "the_architect",
             "sprite": "res://assets/items/unique_architect_reactor.png",
-            "description": "Le noyau de calcul qui contrôlait le Nexus entier.",
+            "description": "Noyau de calcul d'un systeme perdu.",
             "stats": {
-                "energy_regen": 15,
-                "special_cd": -2.5,
-                "power": 10
+                "power": 28,
+                "crit_chance": 12,
+                "crit_damage": 40,
+                "special_cd": -3.5,
+                "special_damage": 180,
+                "xp_multiplier": 20
             },
-            "unique_effect": {
-                "id": "reality_overwrite",
-                "name": "Réécriture de la Réalité",
-                "description": "Une fois par niveau, quand vous devriez mourir, annulez tous les dégâts et devenez invulnérable pendant 3s. Cooldown reset au changement de niveau.",
-                "trigger": "on_lethal_damage"
-            }
+            "unique_power_id": "unique_guardian_overload"
         }
     ]
 }

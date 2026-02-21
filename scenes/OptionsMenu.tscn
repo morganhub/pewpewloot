@@ -59,8 +59,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_left = 35
+theme_override_constants/margin_top = 35
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
@@ -73,7 +73,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="BackButton" type="TextureButton" parent="MarginContainer/VBoxContainer/Header" unique_id=1830793467]
-custom_minimum_size = Vector2(50, 50)
+custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 ignore_texture_size = true
 stretch_mode = 5

@@ -12,6 +12,7 @@ extends Control
 @export var deadzone_size: float = 0.1 # 10%
 @export var base_color: Color = Color(1, 1, 1, 0.2)
 @export var knob_color: Color = Color(1, 1, 1, 0.5)
+@export var show_visual: bool = false
 
 # =============================================================================
 # VARIABLES
@@ -44,15 +45,16 @@ func _input(event: InputEvent) -> void:
 		_handle_drag(event as InputEventScreenDrag)
 
 func _draw() -> void:
-	if _active:
-		# Dessiner la base (Cercle)
-		draw_circle(_base_pos, max_radius, base_color)
-		# Dessiner le contour de la base
-		draw_arc(_base_pos, max_radius, 0, TAU, 32, Color(1, 1, 1, 0.4), 2.0)
-		
-		# Dessiner le knob (Cercle plein)
-		# Le knob est visuellement à _knob_pos
-		draw_circle(_knob_pos, 20.0, knob_color)
+	if not _active or not show_visual:
+		return
+	# Dessiner la base (Cercle)
+	draw_circle(_base_pos, max_radius, base_color)
+	# Dessiner le contour de la base
+	draw_arc(_base_pos, max_radius, 0, TAU, 32, Color(1, 1, 1, 0.4), 2.0)
+	
+	# Dessiner le knob (Cercle plein)
+	# Le knob est visuellement à _knob_pos
+	draw_circle(_knob_pos, 20.0, knob_color)
 
 # =============================================================================
 # LOGIC

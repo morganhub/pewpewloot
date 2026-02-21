@@ -1,11 +1,33 @@
 #!/usr/bin/env python3
 """Generate all 9 world JSON files for pewpewloot."""
-import json, os
+import json, os, random
 
 WORLDS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "worlds")
 
 WAVE_COUNTS = [6, 8, 10, 12, 14, 16]
 DURATIONS   = [60, 80, 100, 120, 140, 160]
+
+# Obstacle pool — different difficulty tiers
+OBSTACLE_POOL_EASY = [
+    {"obstacle_id": "asteroid_small",  "pattern": "rain",   "speed": 180, "gap_width": 160, "row_interval": 1.0, "drift_speed": 15, "drift_directions": ["S", "SW", "SE"]},
+    {"obstacle_id": "debris_small",    "pattern": "rain",   "speed": 200, "gap_width": 150, "row_interval": 0.8, "drift_speed": 20, "drift_directions": ["S", "SW", "SE"]},
+    {"obstacle_id": "planet_small",    "pattern": "slalom", "speed": 110, "gap_width": 220, "row_interval": 2.0, "drift_speed": 12, "drift_directions": ["S", "SW", "SE"]},
+]
+
+OBSTACLE_POOL_MEDIUM = [
+    {"obstacle_id": "asteroid_medium", "pattern": "slalom", "speed": 170, "gap_width": 190, "row_interval": 1.2, "drift_speed": 10, "drift_directions": ["SW", "S", "SE"]},
+    {"obstacle_id": "metal_wall",      "pattern": "slalom", "speed": 150, "gap_width": 200, "row_interval": 1.5},
+    {"obstacle_id": "metal_wall_destructible", "pattern": "gates", "speed": 160, "gap_width": 180, "row_interval": 1.8},
+    {"obstacle_id": "energy_barrier",  "pattern": "gates",  "speed": 150, "gap_width": 200, "row_interval": 2.0},
+    {"obstacle_id": "planet_medium",   "pattern": "slalom", "speed": 90,  "gap_width": 260, "row_interval": 2.5},
+]
+
+OBSTACLE_POOL_HARD = [
+    {"obstacle_id": "asteroid_large",  "pattern": "rain",   "speed": 130, "gap_width": 200, "row_interval": 2.0, "drift_speed": 8, "drift_directions": ["SW", "S", "SE"]},
+    {"obstacle_id": "planet_large",    "pattern": "slalom", "speed": 70,  "gap_width": 300, "row_interval": 3.0, "drift_speed": 5, "drift_directions": ["SW", "S", "SE"]},
+    {"obstacle_id": "asteroid_small",  "pattern": "rain",   "speed": 250, "gap_width": 130, "row_interval": 0.6, "drift_speed": 25, "drift_directions": ["SW", "S", "SE"]},
+    {"obstacle_id": "metal_wall",      "pattern": "gates",  "speed": 180, "gap_width": 160, "row_interval": 1.5},
+]
 
 biomes = [
     {
@@ -143,21 +165,86 @@ level_names = [
     ["Orée Enchantée", "Cascade de Mana", "Jardins Cristallins", "Bibliothèque Astrale", "Nexus de Pouvoir", "L'Archimage"],
 ]
 
-def build_waves(wave_count, duration, level_index):
+
+def pick_obstacle(world_order: int, level_index: int, obs_index: int) -> dict:
+    """Pick an obstacle from pools based on world + level difficulty."""
+    random.seed(world_order * 1000 + level_index * 100 + obs_index)
+
+    # Early worlds = easy obstacles, later = harder mix
+    if world_order <= 2:
+        pool = OBSTACLE_POOL_EASY + OBSTACLE_POOL_MEDIUM[:2]
+    elif world_order <= 5:
+        pool = OBSTACLE_POOL_EASY + OBSTACLE_POOL_MEDIUM + OBSTACLE_POOL_HARD[:1]
+    else:
+        pool = OBSTACLE_POOL_MEDIUM + OBSTACLE_POOL_HARD
+
+    # Higher level_index within a world -> bias towards harder
+    if level_index >= 3 and world_order >= 3:
+        pool = pool + OBSTACLE_POOL_HARD
+
+    return random.choice(pool)
+
+
+def build_waves(wave_count, duration, level_index, world_order):
+    """Build interleaved enemy + obstacle waves.
+    
+    Every 3 enemy waves, insert 1 obstacle wave.
+    Pattern: E E E O E E E O ...
+    """
+    total_wave_slots = wave_count  # total enemy waves requested
+    
+    # Calculate how many obstacle waves we'll insert
+    obstacle_count = max(0, (total_wave_slots - 1) // 3)
+    total_entries = total_wave_slots + obstacle_count
+    
+    # Time spacing based on total entries
+    spacing = (duration - 6.0) / max(total_entries, 1)
+    
     waves = []
-    spacing = (duration - 6.0) / max(wave_count, 1)
-    for w in range(wave_count):
-        t = round(3.0 + w * spacing, 1)
-        count = 3 + level_index + (w // 3)
-        waves.append({
-            "time": t,
-            "enemy_id": "scout_basic",
-            "enemy_skin": "",
-            "count": count,
-            "interval": 0.7,
-            "enemy_modifier_id": ""
-        })
+    enemy_idx = 0
+    obs_idx = 0
+    
+    for slot in range(total_entries):
+        t = round(3.0 + slot * spacing, 1)
+        
+        # Every 4th slot (index 3, 7, 11...) is an obstacle
+        if slot > 0 and slot % 4 == 3:
+            # Obstacle wave
+            obs_template = pick_obstacle(world_order, level_index, obs_idx)
+            obs_wave = {
+                "time": t,
+                "type": "obstacle",
+                "obstacle_id": obs_template["obstacle_id"],
+                "pattern": obs_template["pattern"],
+                "duration": round(min(spacing * 2.5, 15.0), 1),
+                "speed": obs_template["speed"],
+                "gap_width": obs_template["gap_width"],
+                "row_interval": obs_template["row_interval"],
+                "sprite_path": ""
+            }
+            # Add drift if defined
+            if "drift_speed" in obs_template:
+                obs_wave["drift_speed"] = obs_template["drift_speed"]
+            if "drift_directions" in obs_template:
+                obs_wave["drift_directions"] = obs_template["drift_directions"]
+            
+            waves.append(obs_wave)
+            obs_idx += 1
+        else:
+            # Enemy wave
+            count = 3 + level_index + (enemy_idx // 3)
+            waves.append({
+                "time": t,
+                "enemy_id": "scout_basic",
+                "enemy_skin": "",
+                "count": count,
+                "interval": 0.7,
+                "enemy_modifier_id": ""
+            })
+            enemy_idx += 1
+    
     return waves
+
 
 def main():
     os.makedirs(WORLDS_DIR, exist_ok=True)
@@ -188,7 +275,7 @@ def main():
             far_file = biome["far_files"][lvl_idx]
             mid_file = biome["mid_files"][lvl_idx % len(biome["mid_files"])]
 
-            waves = build_waves(wave_count, duration, lvl_idx)
+            waves = build_waves(wave_count, duration, lvl_idx, biome["order"])
 
             level = {
                 "index": lvl_idx,
@@ -224,6 +311,7 @@ def main():
         print(f"Created {os.path.basename(filepath)}")
 
     print(f"\nDone! {len(biomes)} world files created in {WORLDS_DIR}")
+
 
 if __name__ == "__main__":
     main()

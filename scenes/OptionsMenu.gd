@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## OptionsMenu — Menu des options avec sélection de langue.
 ## Accessible depuis l'écran d'accueil via le bouton "Options".
@@ -33,6 +34,7 @@ func _ready() -> void:
 	_load_game_config()
 	_setup_background()
 	_setup_language_dropdown()
+	_apply_dropdown_style(language_dropdown)
 	_setup_audio_sliders()
 	_setup_screenshake_toggle()
 	_setup_health_values_toggle()
@@ -90,6 +92,37 @@ func _setup_language_dropdown() -> void:
 			language_dropdown.select(1)
 		_:
 			language_dropdown.select(0)
+
+func _apply_dropdown_style(opt_btn: OptionButton) -> void:
+	if not opt_btn:
+		return
+
+	var dropdown_cfg: Dictionary = _game_config.get("ui_dropdown", {})
+	var popup: PopupMenu = opt_btn.get_popup()
+	if not popup:
+		return
+
+	for i in range(popup.item_count):
+		popup.set_item_as_checkable(i, false)
+
+	var item_bg_asset: String = str(dropdown_cfg.get("item_bg_asset", ""))
+	var popup_style: StyleBox = StyleBoxFlat.new()
+	var tex_style := UIStyle.build_texture_stylebox(item_bg_asset, dropdown_cfg, 10)
+	if tex_style:
+		popup_style = tex_style
+	else:
+		var flat := popup_style as StyleBoxFlat
+		flat.bg_color = Color(0.1, 0.1, 0.1, 0.95)
+
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(dropdown_cfg.get("highlight_bg_color", "#FFD700"))
+	var item_text := Color(dropdown_cfg.get("item_text_color", "#000000"))
+	var hover_text := Color(dropdown_cfg.get("highlight_text_color", "#000000"))
+
+	popup.add_theme_stylebox_override("panel", popup_style)
+	popup.add_theme_stylebox_override("hover", hover_style)
+	popup.add_theme_color_override("font_color", item_text)
+	popup.add_theme_color_override("font_hover_color", hover_text)
 
 func _setup_audio_sliders() -> void:
 	var vol_music = ProfileManager.get_setting("music_volume", 1.0)

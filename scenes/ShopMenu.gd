@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## ShopMenu — Achat de cristaux (simulation store).
 
@@ -55,16 +56,12 @@ func _setup_visuals() -> void:
 	
 	# Popup Styling
 	var popups_cfg: Dictionary = _game_config.get("popups", {})
-	var popup_bg_asset: String = str(popups_cfg.get("background", {}).get("asset", ""))
+	var popup_bg_cfg: Dictionary = popups_cfg.get("background", {}) if popups_cfg.get("background") is Dictionary else {}
+	var popup_bg_asset: String = str(popup_bg_cfg.get("asset", ""))
 	var margin: int = int(popups_cfg.get("margin", 20))
 	
-	if popup_bg_asset != "" and ResourceLoader.exists(popup_bg_asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(popup_bg_asset)
-		style.content_margin_top = margin
-		style.content_margin_bottom = margin
-		style.content_margin_left = margin
-		style.content_margin_right = margin
+	var style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, margin)
+	if style:
 		confirm_popup.add_theme_stylebox_override("panel", style)
 	
 	# Back Button
@@ -104,9 +101,8 @@ func _populate_packs() -> void:
 		btn.add_theme_color_override("font_color", btn_text_color)
 		
 		# Style
-		if btn_asset != "" and ResourceLoader.exists(btn_asset):
-			var style = StyleBoxTexture.new()
-			style.texture = load(btn_asset)
+		var style := UIStyle.build_texture_stylebox(btn_asset, btn_cfg, 10)
+		if style:
 			btn.add_theme_stylebox_override("normal", style)
 			btn.add_theme_stylebox_override("hover", style)
 			btn.add_theme_stylebox_override("pressed", style)

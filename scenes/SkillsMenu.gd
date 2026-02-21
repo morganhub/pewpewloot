@@ -11,6 +11,7 @@ signal back_requested
 # =============================================================================
 
 var _header: VBoxContainer
+var _main_vbox: VBoxContainer
 var _tab_container: HBoxContainer
 var _scroll_container: ScrollContainer
 var _skill_grid: VBoxContainer
@@ -70,23 +71,23 @@ func _build_ui() -> void:
 
 	_add_page_background()
 
-	var main_vbox := VBoxContainer.new()
-	main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	main_vbox.set_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 10)
-	main_vbox.add_theme_constant_override("separation", 10)
-	add_child(main_vbox)
+	_main_vbox = VBoxContainer.new()
+	_main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_main_vbox.set_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 25)
+	_main_vbox.add_theme_constant_override("separation", 10)
+	add_child(_main_vbox)
 
 	# --- Header ---
 	_header = VBoxContainer.new()
 	_header.add_theme_constant_override("separation", 8)
-	main_vbox.add_child(_header)
+	_main_vbox.add_child(_header)
 
 	var title_row := HBoxContainer.new()
 	title_row.name = "TitleRow"
 	_header.add_child(title_row)
 
 	_back_button = TextureButton.new()
-	_back_button.custom_minimum_size = Vector2(50, 50)
+	_back_button.custom_minimum_size = Vector2(75, 75)
 	_back_button.ignore_texture_size = true
 	_back_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	var ui_icons: Dictionary = {}
@@ -109,7 +110,7 @@ func _build_ui() -> void:
 	title_row.add_child(_title_label)
 
 	var right_spacer := Control.new()
-	right_spacer.custom_minimum_size = Vector2(50, 50)
+	right_spacer.custom_minimum_size = Vector2(75, 75)
 	title_row.add_child(right_spacer)
 
 	# Level + Skill Points
@@ -200,7 +201,7 @@ func _build_ui() -> void:
 	_tab_container = HBoxContainer.new()
 	_tab_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	_tab_container.add_theme_constant_override("separation", 8)
-	main_vbox.add_child(_tab_container)
+	_main_vbox.add_child(_tab_container)
 
 	for tab_id in TAB_IDS:
 		var btn := Button.new()
@@ -214,7 +215,7 @@ func _build_ui() -> void:
 	_scroll_container = ScrollContainer.new()
 	_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	main_vbox.add_child(_scroll_container)
+	_main_vbox.add_child(_scroll_container)
 
 	_skill_grid = VBoxContainer.new()
 	_skill_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -228,13 +229,13 @@ func _build_ui() -> void:
 	_info_label.add_theme_color_override("font_color", _to_color(subtitle_cfg.get("text_color", "#C2C9E8"), Color(0.76, 0.79, 0.9)))
 	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	main_vbox.add_child(_info_label)
+	_main_vbox.add_child(_info_label)
 
 	# --- Footer ---
 	_footer = HBoxContainer.new()
 	_footer.alignment = BoxContainer.ALIGNMENT_CENTER
 	_footer.add_theme_constant_override("separation", 16)
-	main_vbox.add_child(_footer)
+	_main_vbox.add_child(_footer)
 
 	_respec_button = Button.new()
 	_respec_button.custom_minimum_size = Vector2(230, 56)
@@ -248,6 +249,8 @@ func _build_ui() -> void:
 	)
 	_respec_button.pressed.connect(_on_respec_pressed)
 	_footer.add_child(_respec_button)
+
+	_apply_mouse_filter_pass_recursive(_main_vbox)
 
 func _add_page_background() -> void:
 	var bg_value: Variant = _get_config_value(["background"], "#0B1020")
@@ -265,6 +268,15 @@ func _add_page_background() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
+func _apply_mouse_filter_pass_recursive(node: Node) -> void:
+	if node is Control:
+		if node is VScrollBar or node is HScrollBar:
+			node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		else:
+			node.mouse_filter = Control.MOUSE_FILTER_PASS
+	for child in node.get_children():
+		_apply_mouse_filter_pass_recursive(child)
+
 # =============================================================================
 # DISPLAY
 # =============================================================================
@@ -274,6 +286,8 @@ func _refresh_display() -> void:
 	_update_tabs()
 	_build_skill_tree()
 	_update_respec_button()
+	if _main_vbox:
+		_apply_mouse_filter_pass_recursive(_main_vbox)
 
 func _update_header() -> void:
 	var level := ProfileManager.get_player_level()

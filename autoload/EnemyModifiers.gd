@@ -7,6 +7,9 @@ extends Node
 
 static var _data: Dictionary = {}
 static var _loaded: bool = false
+const WALL_SPAWNER_SCRIPT: Script = preload("res://scenes/abilities/WallSpawner.gd")
+const STRONG_RESOURCE_CACHE_MAX: int = 256
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 static func _ensure_loaded() -> void:
 	if _loaded: return
@@ -89,10 +92,10 @@ static func apply_modifier(enemy: Node2D, modifier_id: String) -> void:
 		enemy.setup_suppressor(mod_data)
 
 static func _attach_wall_spawner(enemy: Node2D, mod_data: Dictionary) -> void:
-	var spawner_script = load("res://scenes/abilities/WallSpawner.gd")
-	if not spawner_script: return
+	if not WALL_SPAWNER_SCRIPT:
+		return
 	
-	var spawner = spawner_script.new()
+	var spawner = WALL_SPAWNER_SCRIPT.new()
 	spawner.name = "WallSpawner"
 	enemy.add_child(spawner)
 	
@@ -117,8 +120,9 @@ static func _attach_aura(enemy: Node2D, asset_path: String) -> void:
 	aura.modulate.a = 0.5 # Semi-transparent
 	
 	# Load texture (or placeholder)
-	if ResourceLoader.exists(asset_path):
-		aura.texture = load(asset_path)
+	var aura_res: Resource = _load_cached_resource(asset_path)
+	if aura_res is Texture2D:
+		aura.texture = aura_res as Texture2D
 	else:
 		# Placeholder: Circle
 		# Use a simple GradientTexture2D or just let it fail gracefully?
@@ -132,3 +136,17 @@ static func _attach_aura(enemy: Node2D, asset_path: String) -> void:
 	# Animate Rotation
 	var tween = enemy.create_tween().set_loops()
 	tween.tween_property(aura, "rotation", TAU, 4.0).from(0.0)
+
+static func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

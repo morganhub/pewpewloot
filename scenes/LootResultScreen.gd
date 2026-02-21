@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## LootResultScreen — Écran de décision après avoir battu un boss et obtenu un item.
 ## Permet de Garder, Équiper ou Désassembler (Recycler) l'objet.
@@ -102,15 +103,11 @@ func _load_assets() -> void:
 		%FallbackBg.visible = true
 	
 	# Popup Frame (PanelContainer)
-	var popup_bg: String = str(popup_config.get("background", {}).get("asset", ""))
-	if popup_bg != "" and ResourceLoader.exists(popup_bg):
-		var style = StyleBoxTexture.new()
-		style.texture = load(popup_bg)
-		var m = int(popup_config.get("margin", 30))
-		style.content_margin_left = m
-		style.content_margin_right = m
-		style.content_margin_top = m
-		style.content_margin_bottom = m
+	var popup_bg_cfg: Dictionary = popup_config.get("background", {}) if popup_config.get("background") is Dictionary else {}
+	var popup_bg: String = str(popup_bg_cfg.get("asset", ""))
+	var m = int(popup_config.get("margin", 30))
+	var style := UIStyle.build_texture_stylebox(popup_bg, popup_bg_cfg, m)
+	if style:
 		panel_container.add_theme_stylebox_override("panel", style)
 	
 	# Title Styling
@@ -143,11 +140,8 @@ func _apply_button_style(btn: Button, cfg: Dictionary) -> void:
 	if not btn or cfg.is_empty(): return
 	
 	var asset = str(cfg.get("asset", ""))
-	if asset != "" and ResourceLoader.exists(asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(asset)
-		style.content_margin_left = 15
-		style.content_margin_right = 15
+	var style := UIStyle.build_texture_stylebox(asset, cfg, 15)
+	if style:
 		btn.add_theme_stylebox_override("normal", style)
 		btn.add_theme_stylebox_override("hover", style)
 		btn.add_theme_stylebox_override("pressed", style)
@@ -177,7 +171,7 @@ func _update_ui() -> void:
 		item_type_label.visible = false
 		return
 	
-	item_type_label.visible = false # Hide level as per request
+	item_type_label.visible = true
 	
 	var rarity: String = str(_item.get("rarity", "common"))
 	var slot_id: String = str(_item.get("slot", "unknown"))
@@ -187,8 +181,15 @@ func _update_ui() -> void:
 	var slot_pretty_name = str(slot_data.get("name", slot_id)).capitalize()
 	item_name_label.text = slot_pretty_name
 	
-	# Rarity Color
-	item_name_label.add_theme_color_override("font_color", DataManager.get_rarity_color(rarity))
+	# Rarity Text + Color
+	var rarity_key := "rarity_" + rarity
+	var rarity_text := LocaleManager.translate(rarity_key)
+	if rarity_text == rarity_key:
+		rarity_text = rarity.capitalize()
+	item_type_label.text = rarity_text.to_upper()
+	var rarity_color := _get_rarity_color_from_config(rarity)
+	item_name_label.add_theme_color_override("font_color", rarity_color)
+	item_type_label.add_theme_color_override("font_color", rarity_color)
 	
 	# Stats with Icons
 	var stats = _item.get("stats", {})
@@ -202,25 +203,25 @@ func _update_ui() -> void:
 	if disassemble_btn.icon == null:
 		disassemble_btn.text = "♻️ Recycler (+" + str(val) + " 💎)"
 
-func _set_boss_loot_section_visible(is_visible: bool) -> void:
+func _set_boss_loot_section_visible(visible_state: bool) -> void:
 	if top_separator:
-		top_separator.visible = is_visible
+		top_separator.visible = visible_state
 	if item_name_label:
-		item_name_label.visible = is_visible
+		item_name_label.visible = visible_state
 	if item_type_label:
-		item_type_label.visible = is_visible
+		item_type_label.visible = visible_state
 	if item_stats_panel:
-		item_stats_panel.visible = is_visible
+		item_stats_panel.visible = visible_state
 	if item_spacer:
-		item_spacer.visible = is_visible
+		item_spacer.visible = visible_state
 	if boss_buttons_container:
-		boss_buttons_container.visible = is_visible
+		boss_buttons_container.visible = visible_state
 	if mid_separator:
-		mid_separator.visible = is_visible
+		mid_separator.visible = visible_state
 	if equip_btn:
-		equip_btn.visible = is_visible
+		equip_btn.visible = visible_state
 	if disassemble_btn:
-		disassemble_btn.visible = is_visible
+		disassemble_btn.visible = visible_state
 
 func _add_stat_row(stat_key: String, value: Variant) -> void:
 	var stat_icons = {
@@ -233,7 +234,19 @@ func _add_stat_row(stat_key: String, value: Variant) -> void:
 		"move_speed": "res://assets/ui/icons/speed.png",
 		"missile": "res://assets/ui/icons/missile.png",
 		"crit_chance": "res://assets/ui/icons/crit.png",
-		"dodge_chance": "res://assets/ui/icons/dodge.png"
+		"crit_damage": "res://assets/ui/icons/crit.png",
+		"dodge_chance": "res://assets/ui/icons/dodge.png",
+		"fire_rate": "res://assets/ui/icons/missile.png",
+		"missile_speed_pct": "res://assets/ui/icons/missile.png",
+		"missile_damage": "res://assets/ui/icons/missile.png",
+		"damage_reduction": "res://assets/ui/icons/hp.png",
+		"special_cd": "res://assets/ui/icons/special.png",
+		"special_damage": "res://assets/ui/icons/special.png",
+		"shield_capacity": "res://assets/ui/icons/shield.png",
+		"shield_regen": "res://assets/ui/icons/shield.png",
+		"loot_radius": "res://assets/ui/icons/all.png",
+		"luck": "res://assets/ui/icons/crit.png",
+		"xp_multiplier": "res://assets/ui/icons/trophy.png"
 	}
 	
 	var hbox = HBoxContainer.new()
@@ -255,13 +268,16 @@ func _add_stat_row(stat_key: String, value: Variant) -> void:
 	var pretty_key = stat_key.replace("_", " ").capitalize()
 	
 	# Percent logic
-	var is_percent = false
-	if stat_key.ends_with("chance") or stat_key.ends_with("_pct") or stat_key == "dodge_chance" or stat_key == "crit_chance":
-		is_percent = true
+	var is_percent := stat_key in [
+		"crit_chance", "crit_damage", "dodge_chance", "damage_reduction",
+		"fire_rate", "missile_damage", "missile_speed_pct", "loot_radius", "xp_multiplier"
+	]
 	
 	var val_str = ""
 	if is_percent:
-		val_str = "%.1f%%" % (float(value) * 100.0)
+		val_str = "%.1f%%" % float(value)
+	elif stat_key == "special_cd":
+		val_str = "%.1fs" % float(value)
 	else:
 		val_str = str(value)
 		
@@ -276,6 +292,12 @@ func _add_stat_row(stat_key: String, value: Variant) -> void:
 	hbox.add_child(lbl)
 	
 	stats_container.add_child(hbox)
+
+func _get_rarity_color_from_config(rarity: String) -> Color:
+	var rarity_colors: Variant = _game_config.get("rarity_colors", {})
+	if rarity_colors is Dictionary and (rarity_colors as Dictionary).has(rarity):
+		return Color.html(str((rarity_colors as Dictionary).get(rarity, "#FFFFFF")))
+	return DataManager.get_rarity_color(rarity)
 
 func _update_inventory_ui() -> void:
 	if _session_loot.is_empty():
@@ -615,14 +637,24 @@ func _chain_level_animations(display_level: int, total_levels: int, current_step
 		# First step: fill current level bar from xp_before to max
 		var xp_for_lvl := float(ProfileManager.get_xp_for_level(display_level))
 		_xp_bar.max_value = max(1.0, xp_for_lvl)
+		var self_wr_step0: WeakRef = weakref(self)
+		var next_level_step0: int = display_level + 1
+		var total_levels_step0: int = total_levels
+		var next_step0: int = current_step + 1
 		
 		var tween := create_tween()
 		tween.tween_method(_set_xp_bar_value, float(_xp_before), xp_for_lvl, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tween.tween_callback(func():
-			_show_level_up_flash(display_level + 1)
+			var inst0: Node = self_wr_step0.get_ref() as Node
+			if inst0 == null or not is_instance_valid(inst0):
+				return
+			inst0._show_level_up_flash(next_level_step0)
 			# Short pause then continue
 			get_tree().create_timer(0.4).timeout.connect(func():
-				_chain_level_animations(display_level + 1, total_levels, current_step + 1)
+				var inst0b: Node = self_wr_step0.get_ref() as Node
+				if inst0b == null or not is_instance_valid(inst0b):
+					return
+				inst0b._chain_level_animations(next_level_step0, total_levels_step0, next_step0)
 			)
 		)
 	elif current_step < total_levels:
@@ -632,13 +664,23 @@ func _chain_level_animations(display_level: int, total_levels: int, current_step
 		_xp_bar.max_value = max(1.0, xp_for_lvl)
 		_xp_bar.value = 0
 		_update_xp_pct_label()
+		var self_wr_mid: WeakRef = weakref(self)
+		var next_level_mid: int = display_level + 1
+		var total_levels_mid: int = total_levels
+		var next_step_mid: int = current_step + 1
 		
 		var tween := create_tween()
 		tween.tween_method(_set_xp_bar_value, 0.0, xp_for_lvl, 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tween.tween_callback(func():
-			_show_level_up_flash(display_level + 1)
+			var inst1: Node = self_wr_mid.get_ref() as Node
+			if inst1 == null or not is_instance_valid(inst1):
+				return
+			inst1._show_level_up_flash(next_level_mid)
 			get_tree().create_timer(0.3).timeout.connect(func():
-				_chain_level_animations(display_level + 1, total_levels, current_step + 1)
+				var inst1b: Node = self_wr_mid.get_ref() as Node
+				if inst1b == null or not is_instance_valid(inst1b):
+					return
+				inst1b._chain_level_animations(next_level_mid, total_levels_mid, next_step_mid)
 			)
 		)
 	else:

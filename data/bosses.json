@@ -1,23 +1,436 @@
 {
 	"bosses": [
 		{
-			"id": "boss_world1",
-			"name": "The Tank Lord",
+			"id": "boss_forest_1",
+			"name": "Gardien des Racines",
 			"loot_table": [
-				"unique_asteroid_core",
-				"unique_guardian_shield"
+				"unique_root_amulet",
+				"unique_bark_shield"
 			],
-			"hp": 5000,
+			"hp": 15000,
+			"score": 3000,
+			"size": {
+				"width": 380,
+				"height": 380
+			},
+			"visual": {
+				"color": "#4a7c2e",
+				"shape": "hexagon",
+				"asset": "res://assets/bosses/forest/forest_boss_1.png",
+				"asset_anim": "res://assets/bosses/forest/forest_boss_1.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.6,
+					"fire_profile": {
+						"rates": [
+							1.6,
+							1.6,
+							1.4
+						],
+						"step_interval": 6.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 16
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 12.0
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 1.2,
+					"fire_profile": {
+						"rates": [
+							1.2,
+							1.0,
+							0.85,
+							0.75
+						],
+						"step_interval": 4.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.55
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 8.0
+				}
+			]
+		},
+		{
+			"id": "boss_forest_2",
+			"name": "Sentinelle Épineuse",
+			"loot_table": [
+				"unique_thorn_blade",
+				"unique_vine_whip"
+			],
+			"hp": 18000,
+			"score": 8000,
+			"size": {
+				"width": 300,
+				"height": 300
+			},
+			"visual": {
+				"color": "#3d6b24",
+				"shape": "hexagon",
+				"asset": "res://assets/bosses/forest/forest_boss_2.png",
+				"asset_anim": "res://assets/bosses/forest/forest_boss_2.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 1.5,
+					"fire_profile": {
+						"rates": [
+							1.5,
+							1.35,
+							1.2
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 14,
+						"frequency": 0.45
+					},
+					"special_power_id": "power_thorn_wall",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "cone_forward",
+					"fire_rate": 1.0,
+					"fire_profile": {
+						"rates": [
+							1.0,
+							0.9,
+							0.8,
+							0.7
+						],
+						"step_interval": 3.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -22
+					},
+					"special_power_id": "power_vine_whip",
+					"special_power_interval": 6.0
+				}
+			]
+		},
+		{
+			"id": "boss_forest_3",
+			"name": "Champignon Ancien",
+			"loot_table": [
+				"unique_spore_ring",
+				"unique_mycelium_core"
+			],
+			"hp": 25000,
 			"score": 5000,
 			"size": {
 				"width": 320,
 				"height": 320
 			},
 			"visual": {
-				"color": "#880000",
+				"color": "#6b4e2e",
 				"shape": "hexagon",
-				"asset": "res://assets/bosses/boar.png",
-				"asset_anim": "res://assets/bosses/boar.tres",
+				"asset": "res://assets/bosses/forest/forest_boss_3.png",
+				"asset_anim": "res://assets/bosses/forest/forest_boss_3.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.3,
+					"fire_profile": {
+						"rates": [
+							1.3,
+							1.15,
+							1.0
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 14
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.8,
+					"fire_profile": {
+						"rates": [
+							0.8,
+							0.72,
+							0.66,
+							0.58
+						],
+						"step_interval": 3.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 25,
+						"frequency": 0.65
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 6.0
+				}
+			]
+		},
+		{
+			"id": "boss_forest_4",
+			"name": "Tréant Furieux",
+			"loot_table": [
+				"unique_heartwood_plate",
+				"unique_ancient_sap"
+			],
+			"hp": 26500,
+			"score": 6500,
+			"size": {
+				"width": 350,
+				"height": 350
+			},
+			"visual": {
+				"color": "#2d5a27",
+				"shape": "hexagon",
+				"asset": "res://assets/bosses/forest/forest_boss_4.png",
+				"asset_anim": "res://assets/bosses/forest/forest_boss_4.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.5,
+					"fire_profile": {
+						"rates": [
+							1.5,
+							1.35,
+							1.2
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -14
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 1.0,
+					"fire_profile": {
+						"rates": [
+							1.0,
+							0.9,
+							0.8
+						],
+						"step_interval": 4.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 18,
+						"frequency": 0.5
+					},
+					"special_power_id": "power_seed_barrage",
+					"special_power_interval": 7.0
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.6,
+					"fire_profile": {
+						"rates": [
+							0.6,
+							0.54,
+							0.48,
+							0.42
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 26
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 5.0
+				}
+			]
+		},
+		{
+			"id": "boss_forest_5",
+			"name": "Hydre Mycélienne",
+			"loot_table": [
+				"unique_fungal_crown",
+				"unique_decay_orb"
+			],
+			"hp": 38000,
+			"score": 8000,
+			"size": {
+				"width": 360,
+				"height": 360
+			},
+			"visual": {
+				"color": "#5c3d1e",
+				"shape": "hexagon",
+				"asset": "res://assets/bosses/forest/forest_boss_5.png",
+				"asset_anim": "res://assets/bosses/forest/forest_boss_5.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 1.4,
+					"fire_profile": {
+						"rates": [
+							1.4,
+							1.25,
+							1.1
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 12,
+						"frequency": 0.5
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 55,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 0.9,
+					"fire_profile": {
+						"rates": [
+							0.9,
+							0.8,
+							0.72
+						],
+						"step_interval": 3.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -20
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 8.0
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.5,
+					"fire_profile": {
+						"rates": [
+							0.5,
+							0.45,
+							0.4,
+							0.36
+						],
+						"step_interval": 2.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 30
+					},
+					"special_power_id": "power_ancient_roar",
+					"special_power_interval": 4.0
+				}
+			]
+		},
+		{
+			"id": "boss_forest_final",
+			"name": "Le Gardien Sylvestre",
+			"loot_table": [
+				"unique_guardian_heart",
+				"unique_primordial_seed",
+				"unique_sylvan_crown"
+			],
+			"hp": 62000,
+			"score": 12000,
+			"size": {
+				"width": 400,
+				"height": 400
+			},
+			"visual": {
+				"color": "#1a4a14",
+				"shape": "hexagon",
+				"asset": "res://assets/bosses/forest/forest_boss_final.png",
+				"asset_anim": "res://assets/bosses/forest/forest_boss_final.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
@@ -33,16 +446,4101 @@
 					"move_pattern_id": "circle_clockwise",
 					"missile_pattern_id": "spiral_continuous",
 					"fire_rate": 1.5,
-					"special_power_id": "power_boss_storm",
+					"fire_profile": {
+						"rates": [
+							1.5,
+							1.35,
+							1.2
+						],
+						"step_interval": 5.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 15
+					},
+					"special_power_id": "power_canopy_crush",
 					"special_power_interval": 10.0
 				},
 				{
-					"hp_threshold": 50,
-					"move_pattern_id": "bounce_horizontal",
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
 					"missile_pattern_id": "wave_pattern",
 					"fire_rate": 0.8,
-					"special_power_id": "power_boss_dash",
+					"fire_profile": {
+						"rates": [
+							0.8,
+							0.72,
+							0.64
+						],
+						"step_interval": 3.3,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.7
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 6.0
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.5,
+					"fire_profile": {
+						"rates": [
+							0.5,
+							0.43,
+							0.37,
+							0.32
+						],
+						"step_interval": 2.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -34
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 4.0
+				}
+			]
+		},
+		{
+			"id": "boss_atlantis_1",
+			"name": "Sentinelle des Marées",
+			"loot_table": [
+				"unique_tidal_compass",
+				"unique_salt_ward"
+			],
+			"hp": 57000,
+			"score": 7000,
+			"size": {
+				"width": 360,
+				"height": 360
+			},
+			"visual": {
+				"color": "#2E86C1",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 1.6,
+					"fire_profile": {
+						"rates": [
+							1.6,
+							1.4,
+							1.25
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 12
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 11.0
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "cone_forward",
+					"fire_rate": 1.0,
+					"fire_profile": {
+						"rates": [
+							1.0,
+							0.9,
+							0.8
+						],
+						"step_interval": 3.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 18,
+						"frequency": 0.55
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 7.0
+				}
+			]
+		},
+		{
+			"id": "boss_atlantis_2",
+			"name": "Oratrice des Abysses",
+			"loot_table": [
+				"unique_abyssal_glyph",
+				"unique_echo_shell"
+			],
+			"hp": 58200,
+			"score": 8200,
+			"size": {
+				"width": 340,
+				"height": 340
+			},
+			"visual": {
+				"color": "#1B4F72",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 1.4,
+					"fire_profile": {
+						"rates": [
+							1.4,
+							1.25,
+							1.1
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 14,
+						"frequency": 0.5
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.9,
+					"fire_profile": {
+						"rates": [
+							0.9,
+							0.8,
+							0.72,
+							0.64
+						],
+						"step_interval": 3.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -24
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 6.0
+				}
+			]
+		},
+		{
+			"id": "boss_atlantis_3",
+			"name": "Conservateur des Ruines",
+			"loot_table": [
+				"unique_reef_tablet",
+				"unique_sunken_relic"
+			],
+			"hp": 9000,
+			"score": 9000,
+			"size": {
+				"width": 350,
+				"height": 350
+			},
+			"visual": {
+				"color": "#117A65",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.3,
+					"fire_profile": {
+						"rates": [
+							1.3,
+							1.15,
+							1.0
+						],
+						"step_interval": 4.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 16
+					},
+					"special_power_id": "power_seed_barrage",
+					"special_power_interval": 9.0
+				},
+				{
+					"hp_threshold": 35,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 0.85,
+					"fire_profile": {
+						"rates": [
+							0.85,
+							0.75,
+							0.66,
+							0.58
+						],
+						"step_interval": 3.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.62
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 6.0
+				}
+			]
+		},
+		{
+			"id": "boss_atlantis_4",
+			"name": "Veilleur des Fosses",
+			"loot_table": [
+				"unique_pressure_core",
+				"unique_abyss_anchor"
+			],
+			"hp": 109800,
+			"score": 9800,
+			"size": {
+				"width": 370,
+				"height": 370
+			},
+			"visual": {
+				"color": "#154360",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "cone_forward",
+					"fire_rate": 1.25,
+					"fire_profile": {
+						"rates": [
+							1.25,
+							1.1,
+							0.95
+						],
+						"step_interval": 4.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -18
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 8.0
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.85,
+					"fire_profile": {
+						"rates": [
+							0.85,
+							0.75,
+							0.66
+						],
+						"step_interval": 3.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 20,
+						"frequency": 0.58
+					},
+					"special_power_id": "power_ancient_roar",
+					"special_power_interval": 5.5
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.55,
+					"fire_profile": {
+						"rates": [
+							0.55,
+							0.48,
+							0.41,
+							0.35
+						],
+						"step_interval": 2.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 28
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 4.2
+				}
+			]
+		},
+		{
+			"id": "boss_atlantis_5",
+			"name": "Hydre Corallienne",
+			"loot_table": [
+				"unique_coral_spine",
+				"unique_foam_engine"
+			],
+			"hp": 110800,
+			"score": 10800,
+			"size": {
+				"width": 380,
+				"height": 380
+			},
+			"visual": {
+				"color": "#1F618D",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 1.2,
+					"fire_profile": {
+						"rates": [
+							1.2,
+							1.08,
+							0.96
+						],
+						"step_interval": 4.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 12,
+						"frequency": 0.45
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 8.5
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 0.82,
+					"fire_profile": {
+						"rates": [
+							0.82,
+							0.74,
+							0.66
+						],
+						"step_interval": 3.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -22
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 6.0
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.48,
+					"fire_profile": {
+						"rates": [
+							0.48,
+							0.42,
+							0.36,
+							0.31
+						],
+						"step_interval": 2.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 32
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 4.0
+				}
+			]
+		},
+		{
+			"id": "boss_atlantis_final",
+			"name": "Le Léviathan",
+			"loot_table": [
+				"unique_leviathan_heart",
+				"unique_abyssal_crown",
+				"unique_maelstrom_core"
+			],
+			"hp": 154500,
+			"score": 14500,
+			"size": {
+				"width": 420,
+				"height": 420
+			},
+			"visual": {
+				"color": "#0E3A53",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.35,
+					"fire_profile": {
+						"rates": [
+							1.35,
+							1.2,
+							1.05
+						],
+						"step_interval": 4.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 16
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 8.0
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 0.78,
+					"fire_profile": {
+						"rates": [
+							0.78,
+							0.68,
+							0.58
+						],
+						"step_interval": 3.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 24,
+						"frequency": 0.7
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 5.6
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.46,
+					"fire_profile": {
+						"rates": [
+							0.46,
+							0.39,
+							0.33,
+							0.28
+						],
+						"step_interval": 2.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -36
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.8
+				}
+			]
+		},
+		{
+			"id": "boss_industrial_1",
+			"name": "Superviseur de Fonderie",
+			"loot_table": [
+				"unique_forge_servo",
+				"unique_molten_regulator"
+			],
+			"hp": 9200,
+			"score": 9200,
+			"size": {
+				"width": 360,
+				"height": 360
+			},
+			"visual": {
+				"color": "#5A5A5A",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "cone_forward",
+					"fire_rate": 1.4,
+					"fire_profile": {
+						"rates": [
+							1.4,
+							1.25,
+							1.1
+						],
+						"step_interval": 4.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 14
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 9.0
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.9,
+					"fire_profile": {
+						"rates": [
+							0.9,
+							0.78,
+							0.66
+						],
+						"step_interval": 3.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 20,
+						"frequency": 0.62
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 6.2
+				}
+			]
+		},
+		{
+			"id": "boss_industrial_2",
+			"name": "Archiviste Mécanique",
+			"loot_table": [
+				"unique_data_spindle",
+				"unique_maintenance_eye"
+			],
+			"hp": 10200,
+			"score": 10200,
+			"size": {
+				"width": 350,
+				"height": 350
+			},
+			"visual": {
+				"color": "#707070",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 1.25,
+					"fire_profile": {
+						"rates": [
+							1.25,
+							1.1,
+							0.96
+						],
+						"step_interval": 4.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 16,
+						"frequency": 0.52
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 9.5
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.85,
+					"fire_profile": {
+						"rates": [
+							0.85,
+							0.74,
+							0.63,
+							0.54
+						],
+						"step_interval": 2.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -24
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 4.8
+				}
+			]
+		},
+		{
+			"id": "boss_industrial_3",
+			"name": "Contremaître des Rouages",
+			"loot_table": [
+				"unique_gear_crown",
+				"unique_hydraulic_heart"
+			],
+			"hp": 11200,
+			"score": 11200,
+			"size": {
+				"width": 370,
+				"height": 370
+			},
+			"visual": {
+				"color": "#6B6B6B",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.2,
+					"fire_profile": {
+						"rates": [
+							1.2,
+							1.05,
+							0.9
+						],
+						"step_interval": 4.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 18
+					},
+					"special_power_id": "power_seed_barrage",
+					"special_power_interval": 8.0
+				},
+				{
+					"hp_threshold": 35,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 0.78,
+					"fire_profile": {
+						"rates": [
+							0.78,
+							0.68,
+							0.58
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.66
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 5.8
+				}
+			]
+		},
+		{
+			"id": "boss_industrial_4",
+			"name": "Noyau de Pressurisation",
+			"loot_table": [
+				"unique_overpressure_valve",
+				"unique_steam_anchor"
+			],
+			"hp": 12400,
+			"score": 12400,
+			"size": {
+				"width": 390,
+				"height": 390
+			},
+			"visual": {
+				"color": "#505050",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "cone_forward",
+					"fire_rate": 1.12,
+					"fire_profile": {
+						"rates": [
+							1.12,
+							0.98,
+							0.86
+						],
+						"step_interval": 4.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -20
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 7.2
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.72,
+					"fire_profile": {
+						"rates": [
+							0.72,
+							0.62,
+							0.53
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 20,
+						"frequency": 0.6
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 5.4
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.48,
+					"fire_profile": {
+						"rates": [
+							0.48,
+							0.41,
+							0.35,
+							0.3
+						],
+						"step_interval": 2.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 30
+					},
+					"special_power_id": "power_ancient_roar",
+					"special_power_interval": 4.2
+				}
+			]
+		},
+		{
+			"id": "boss_industrial_5",
+			"name": "Régent des Convoyeurs",
+			"loot_table": [
+				"unique_conveyor_emblem",
+				"unique_auto_loader"
+			],
+			"hp": 13600,
+			"score": 13600,
+			"size": {
+				"width": 400,
+				"height": 400
+			},
+			"visual": {
+				"color": "#787878",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 1.06,
+					"fire_profile": {
+						"rates": [
+							1.06,
+							0.94,
+							0.83
+						],
+						"step_interval": 3.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 12,
+						"frequency": 0.48
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 7.4
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 0.7,
+					"fire_profile": {
+						"rates": [
+							0.7,
+							0.6,
+							0.51
+						],
+						"step_interval": 2.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -24
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 5.8
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.43,
+					"fire_profile": {
+						"rates": [
+							0.43,
+							0.36,
+							0.3,
+							0.26
+						],
+						"step_interval": 2.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 34
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.8
+				}
+			]
+		},
+		{
+			"id": "boss_industrial_final",
+			"name": "Le Souverain d'Acier",
+			"loot_table": [
+				"unique_steel_heart",
+				"unique_overclock_core",
+				"unique_factory_crown"
+			],
+			"hp": 16800,
+			"score": 16800,
+			"size": {
+				"width": 430,
+				"height": 430
+			},
+			"visual": {
+				"color": "#444444",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "spiral_continuous",
+					"fire_rate": 1.12,
+					"fire_profile": {
+						"rates": [
+							1.12,
+							0.98,
+							0.86
+						],
+						"step_interval": 4.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 18
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 7.5
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "wave_pattern",
+					"fire_rate": 0.66,
+					"fire_profile": {
+						"rates": [
+							0.66,
+							0.57,
+							0.49
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 24,
+						"frequency": 0.72
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 5.2
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "homing_barrage",
+					"fire_rate": 0.4,
+					"fire_profile": {
+						"rates": [
+							0.4,
+							0.34,
+							0.29,
+							0.24
+						],
+						"step_interval": 1.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -38
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.5
+				}
+			]
+		},
+		{
+			"id": "boss_lava_1",
+			"name": "Brasier Sentinel",
+			"loot_table": [
+				"unique_burnished_circuit",
+				"unique_cinder_seal"
+			],
+			"hp": 10800,
+			"score": 10800,
+			"size": {
+				"width": 360,
+				"height": 360
+			},
+			"visual": {
+				"color": "#C74B1B",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 1.55,
+					"fire_profile": {
+						"rates": [
+							1.55,
+							1.35,
+							1.2
+						],
+						"step_interval": 5.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 20
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 10.0
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.95,
+					"fire_profile": {
+						"rates": [
+							0.95,
+							0.82,
+							0.7
+						],
+						"step_interval": 3.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 24,
+						"frequency": 0.65
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 6.5
+				}
+			]
+		},
+		{
+			"id": "boss_lava_2",
+			"name": "Chœur de Magma",
+			"loot_table": [
+				"unique_lava_tuner",
+				"unique_ventric_core"
+			],
+			"hp": 11800,
+			"score": 11800,
+			"size": {
+				"width": 350,
+				"height": 350
+			},
+			"visual": {
+				"color": "#D66A2C",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 1.2,
+					"fire_profile": {
+						"rates": [
+							1.2,
+							1.04,
+							0.9
+						],
+						"step_interval": 4.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -16
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 8.5
+				},
+				{
+					"hp_threshold": 42,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "random_chaos",
+					"fire_rate": 0.82,
+					"fire_profile": {
+						"rates": [
+							0.82,
+							0.71,
+							0.62,
+							0.54
+						],
+						"step_interval": 3.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 18,
+						"frequency": 0.56
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 5.8
+				}
+			]
+		},
+		{
+			"id": "boss_lava_3",
+			"name": "Gardien des Scories",
+			"loot_table": [
+				"unique_slag_heart",
+				"unique_pyroclast_frame"
+			],
+			"hp": 12900,
+			"score": 12900,
+			"size": {
+				"width": 380,
+				"height": 380
+			},
+			"visual": {
+				"color": "#A33C1A",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 1.3,
+					"fire_profile": {
+						"rates": [
+							1.3,
+							1.12,
+							0.95
+						],
+						"step_interval": 4.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 12
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 8.0
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rain_top",
+					"fire_rate": 0.9,
+					"fire_profile": {
+						"rates": [
+							0.9,
+							0.76,
+							0.64
+						],
+						"step_interval": 3.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 5.4
+				}
+			]
+		},
+		{
+			"id": "boss_lava_4",
+			"name": "Préteur de Cendres",
+			"loot_table": [
+				"unique_ember_wreath",
+				"unique_ashen_gyro"
+			],
+			"hp": 14100,
+			"score": 14100,
+			"size": {
+				"width": 390,
+				"height": 390
+			},
+			"visual": {
+				"color": "#B44A24",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "double_side",
+					"fire_rate": 1.05,
+					"fire_profile": {
+						"rates": [
+							1.05,
+							0.9,
+							0.78
+						],
+						"step_interval": 3.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 28,
+						"frequency": 0.75
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 6.8
+				},
+				{
+					"hp_threshold": 58,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "accelerating_burst",
+					"fire_rate": 0.72,
+					"fire_profile": {
+						"rates": [
+							0.72,
+							0.61,
+							0.52
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -24
+					},
+					"special_power_id": "power_nature_wrath",
 					"special_power_interval": 5.0
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.46,
+					"fire_profile": {
+						"rates": [
+							0.46,
+							0.39,
+							0.33,
+							0.28
+						],
+						"step_interval": 2.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 34
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.8
+				}
+			]
+		},
+		{
+			"id": "boss_lava_5",
+			"name": "Hydre Pyroclaste",
+			"loot_table": [
+				"unique_pyre_fang",
+				"unique_volcanic_throne"
+			],
+			"hp": 15400,
+			"score": 15400,
+			"size": {
+				"width": 410,
+				"height": 410
+			},
+			"visual": {
+				"color": "#E07B2B",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "triple_spread",
+					"fire_rate": 1.0,
+					"fire_profile": {
+						"rates": [
+							1.0,
+							0.86,
+							0.74
+						],
+						"step_interval": 3.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 18
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 7.0
+				},
+				{
+					"hp_threshold": 52,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.66,
+					"fire_profile": {
+						"rates": [
+							0.66,
+							0.56,
+							0.47
+						],
+						"step_interval": 2.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 20,
+						"frequency": 0.62
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 5.2
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.42,
+					"fire_profile": {
+						"rates": [
+							0.42,
+							0.35,
+							0.29,
+							0.24
+						],
+						"step_interval": 1.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 42
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 3.5
+				}
+			]
+		},
+		{
+			"id": "boss_lava_final",
+			"name": "Roi Caldera",
+			"loot_table": [
+				"unique_caldera_heart",
+				"unique_rift_crown",
+				"unique_eruption_matrix"
+			],
+			"hp": 18800,
+			"score": 18800,
+			"size": {
+				"width": 440,
+				"height": 440
+			},
+			"visual": {
+				"color": "#922C0F",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 1.05,
+					"fire_profile": {
+						"rates": [
+							1.05,
+							0.9,
+							0.78
+						],
+						"step_interval": 3.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 20
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 6.8
+				},
+				{
+					"hp_threshold": 62,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.64,
+					"fire_profile": {
+						"rates": [
+							0.64,
+							0.54,
+							0.45
+						],
+						"step_interval": 2.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 26,
+						"frequency": 0.75
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 4.8
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.38,
+					"fire_profile": {
+						"rates": [
+							0.38,
+							0.31,
+							0.26,
+							0.21
+						],
+						"step_interval": 1.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -44
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.2
+				}
+			]
+		},
+		{
+			"id": "boss_mine_1",
+			"name": "Foreur Ancien",
+			"loot_table": [
+				"unique_drill_spine",
+				"unique_miner_visor"
+			],
+			"hp": 12200,
+			"score": 12200,
+			"size": {
+				"width": 370,
+				"height": 370
+			},
+			"visual": {
+				"color": "#6D4C3A",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "triple_spread",
+					"fire_rate": 1.2,
+					"fire_profile": {
+						"rates": [
+							1.2,
+							1.05,
+							0.9
+						],
+						"step_interval": 4.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 14
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 8.0
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "burst_5",
+					"fire_rate": 0.78,
+					"fire_profile": {
+						"rates": [
+							0.78,
+							0.67,
+							0.57
+						],
+						"step_interval": 2.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 5.6
+				}
+			]
+		},
+		{
+			"id": "boss_mine_2",
+			"name": "Veuve de Cristal",
+			"loot_table": [
+				"unique_crystal_lens",
+				"unique_vein_resonator"
+			],
+			"hp": 13400,
+			"score": 13400,
+			"size": {
+				"width": 360,
+				"height": 360
+			},
+			"visual": {
+				"color": "#7C5E4B",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 1.05,
+					"fire_profile": {
+						"rates": [
+							1.05,
+							0.92,
+							0.8
+						],
+						"step_interval": 3.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 18,
+						"frequency": 0.55
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 7.2
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.66,
+					"fire_profile": {
+						"rates": [
+							0.66,
+							0.56,
+							0.47,
+							0.4
+						],
+						"step_interval": 2.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -28
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 4.8
+				}
+			]
+		},
+		{
+			"id": "boss_mine_3",
+			"name": "Géomètre Souterrain",
+			"loot_table": [
+				"unique_seismic_compass",
+				"unique_fault_key"
+			],
+			"hp": 14700,
+			"score": 14700,
+			"size": {
+				"width": 390,
+				"height": 390
+			},
+			"visual": {
+				"color": "#5A4335",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 1.1,
+					"fire_profile": {
+						"rates": [
+							1.1,
+							0.96,
+							0.84
+						],
+						"step_interval": 3.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 10
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 7.0
+				},
+				{
+					"hp_threshold": 42,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rain_top",
+					"fire_rate": 0.72,
+					"fire_profile": {
+						"rates": [
+							0.72,
+							0.61,
+							0.52
+						],
+						"step_interval": 2.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 5.0
+				}
+			]
+		},
+		{
+			"id": "boss_mine_4",
+			"name": "Régisseur de Veines",
+			"loot_table": [
+				"unique_ore_chronometer",
+				"unique_quarry_brand"
+			],
+			"hp": 16200,
+			"score": 16200,
+			"size": {
+				"width": 400,
+				"height": 400
+			},
+			"visual": {
+				"color": "#8A6A52",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.98,
+					"fire_profile": {
+						"rates": [
+							0.98,
+							0.84,
+							0.72
+						],
+						"step_interval": 3.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -20
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 6.8
+				},
+				{
+					"hp_threshold": 58,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "accelerating_burst",
+					"fire_rate": 0.63,
+					"fire_profile": {
+						"rates": [
+							0.63,
+							0.53,
+							0.44
+						],
+						"step_interval": 2.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.68
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 4.9
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.41,
+					"fire_profile": {
+						"rates": [
+							0.41,
+							0.34,
+							0.28,
+							0.23
+						],
+						"step_interval": 1.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 36
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.6
+				}
+			]
+		},
+		{
+			"id": "boss_mine_5",
+			"name": "Hydre d'Obsidienne",
+			"loot_table": [
+				"unique_obsidian_mandible",
+				"unique_fossil_ward"
+			],
+			"hp": 17600,
+			"score": 17600,
+			"size": {
+				"width": 420,
+				"height": 420
+			},
+			"visual": {
+				"color": "#4A362D",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 0.92,
+					"fire_profile": {
+						"rates": [
+							0.92,
+							0.79,
+							0.67
+						],
+						"step_interval": 3.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 12,
+						"frequency": 0.5
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 6.2
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.56,
+					"fire_profile": {
+						"rates": [
+							0.56,
+							0.47,
+							0.39
+						],
+						"step_interval": 2.3,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -26
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 4.5
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.36,
+					"fire_profile": {
+						"rates": [
+							0.36,
+							0.29,
+							0.24,
+							0.2
+						],
+						"step_interval": 1.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 40
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 3.2
+				}
+			]
+		},
+		{
+			"id": "boss_mine_final",
+			"name": "Le Souverain Excavateur",
+			"loot_table": [
+				"unique_excavator_heart",
+				"unique_tectonic_crown",
+				"unique_minecore_prime"
+			],
+			"hp": 21000,
+			"score": 21000,
+			"size": {
+				"width": 450,
+				"height": 450
+			},
+			"visual": {
+				"color": "#3B2A22",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.94,
+					"fire_profile": {
+						"rates": [
+							0.94,
+							0.8,
+							0.68
+						],
+						"step_interval": 3.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 22
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 6.0
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.54,
+					"fire_profile": {
+						"rates": [
+							0.54,
+							0.45,
+							0.37
+						],
+						"step_interval": 2.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 26,
+						"frequency": 0.78
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 4.2
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.32,
+					"fire_profile": {
+						"rates": [
+							0.32,
+							0.26,
+							0.21,
+							0.17
+						],
+						"step_interval": 1.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -46
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 2.9
+				}
+			]
+		},
+		{
+			"id": "boss_necro_1",
+			"name": "Héraut des Cryptes",
+			"loot_table": [
+				"unique_crypt_signet",
+				"unique_wraith_keystone"
+			],
+			"hp": 14000,
+			"score": 14000,
+			"size": {
+				"width": 380,
+				"height": 380
+			},
+			"visual": {
+				"color": "#5B3E88",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "circle_8",
+					"fire_rate": 1.0,
+					"fire_profile": {
+						"rates": [
+							1.0,
+							0.86,
+							0.74
+						],
+						"step_interval": 3.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 24
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 7.8
+				},
+				{
+					"hp_threshold": 42,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.62,
+					"fire_profile": {
+						"rates": [
+							0.62,
+							0.53,
+							0.45
+						],
+						"step_interval": 2.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 26,
+						"frequency": 0.72
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 4.8
+				}
+			]
+		},
+		{
+			"id": "boss_necro_2",
+			"name": "Matriarche Spectrale",
+			"loot_table": [
+				"unique_spectral_veil",
+				"unique_ossuary_beacon"
+			],
+			"hp": 15400,
+			"score": 15400,
+			"size": {
+				"width": 390,
+				"height": 390
+			},
+			"visual": {
+				"color": "#6E4AA3",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.92,
+					"fire_profile": {
+						"rates": [
+							0.92,
+							0.79,
+							0.68
+						],
+						"step_interval": 3.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 16,
+						"frequency": 0.55
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 6.4
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.56,
+					"fire_profile": {
+						"rates": [
+							0.56,
+							0.47,
+							0.39
+						],
+						"step_interval": 2.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -30
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 4.4
+				}
+			]
+		},
+		{
+			"id": "boss_necro_3",
+			"name": "Augure du Mausolée",
+			"loot_table": [
+				"unique_memento_coil",
+				"unique_bone_sextant"
+			],
+			"hp": 16800,
+			"score": 16800,
+			"size": {
+				"width": 400,
+				"height": 400
+			},
+			"visual": {
+				"color": "#4D336B",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.96,
+					"fire_profile": {
+						"rates": [
+							0.96,
+							0.82,
+							0.7
+						],
+						"step_interval": 3.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 14
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 6.0
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rain_top",
+					"fire_rate": 0.58,
+					"fire_profile": {
+						"rates": [
+							0.58,
+							0.49,
+							0.41
+						],
+						"step_interval": 2.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 4.2
+				}
+			]
+		},
+		{
+			"id": "boss_necro_4",
+			"name": "Collecteur de Sépultures",
+			"loot_table": [
+				"unique_sepulcher_gear",
+				"unique_grave_index"
+			],
+			"hp": 18400,
+			"score": 18400,
+			"size": {
+				"width": 410,
+				"height": 410
+			},
+			"visual": {
+				"color": "#5C427A",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "double_side",
+					"fire_rate": 0.86,
+					"fire_profile": {
+						"rates": [
+							0.86,
+							0.73,
+							0.62
+						],
+						"step_interval": 2.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.68
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 5.8
+				},
+				{
+					"hp_threshold": 58,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "accelerating_burst",
+					"fire_rate": 0.52,
+					"fire_profile": {
+						"rates": [
+							0.52,
+							0.43,
+							0.35
+						],
+						"step_interval": 2.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -28
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 4.0
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.34,
+					"fire_profile": {
+						"rates": [
+							0.34,
+							0.28,
+							0.23,
+							0.19
+						],
+						"step_interval": 1.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 38
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 3.0
+				}
+			]
+		},
+		{
+			"id": "boss_necro_5",
+			"name": "Hydre Thanatophile",
+			"loot_table": [
+				"unique_grim_jaw",
+				"unique_phantom_hinge"
+			],
+			"hp": 20000,
+			"score": 20000,
+			"size": {
+				"width": 430,
+				"height": 430
+			},
+			"visual": {
+				"color": "#3F2D58",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 0.82,
+					"fire_profile": {
+						"rates": [
+							0.82,
+							0.7,
+							0.59
+						],
+						"step_interval": 2.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 14,
+						"frequency": 0.52
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 5.4
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.49,
+					"fire_profile": {
+						"rates": [
+							0.49,
+							0.4,
+							0.33
+						],
+						"step_interval": 1.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -30
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 3.8
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.3,
+					"fire_profile": {
+						"rates": [
+							0.3,
+							0.24,
+							0.2,
+							0.16
+						],
+						"step_interval": 1.3,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 42
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 2.8
+				}
+			]
+		},
+		{
+			"id": "boss_necro_final",
+			"name": "Roi des Oubliés",
+			"loot_table": [
+				"unique_forgotten_heart",
+				"unique_necropolis_crown",
+				"unique_elegy_core"
+			],
+			"hp": 23800,
+			"score": 23800,
+			"size": {
+				"width": 460,
+				"height": 460
+			},
+			"visual": {
+				"color": "#2A1B3C",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.86,
+					"fire_profile": {
+						"rates": [
+							0.86,
+							0.73,
+							0.62
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 24
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 5.2
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.48,
+					"fire_profile": {
+						"rates": [
+							0.48,
+							0.39,
+							0.31
+						],
+						"step_interval": 1.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 28,
+						"frequency": 0.8
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 3.6
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.27,
+					"fire_profile": {
+						"rates": [
+							0.27,
+							0.22,
+							0.18,
+							0.14
+						],
+						"step_interval": 1.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -48
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 2.5
+				}
+			]
+		},
+		{
+			"id": "boss_titan_1",
+			"name": "Vigile Cyclopéen",
+			"loot_table": [
+				"unique_colossus_eye",
+				"unique_titan_anklet"
+			],
+			"hp": 16800,
+			"score": 16800,
+			"size": {
+				"width": 400,
+				"height": 400
+			},
+			"visual": {
+				"color": "#C9A76B",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "cone_forward",
+					"fire_rate": 0.86,
+					"fire_profile": {
+						"rates": [
+							0.86,
+							0.74,
+							0.63
+						],
+						"step_interval": 3.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 16
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 6.0
+				},
+				{
+					"hp_threshold": 42,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.52,
+					"fire_profile": {
+						"rates": [
+							0.52,
+							0.43,
+							0.35
+						],
+						"step_interval": 2.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 30
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 4.2
+				}
+			]
+		},
+		{
+			"id": "boss_titan_2",
+			"name": "Archiviste des Cieux",
+			"loot_table": [
+				"unique_aether_tablet",
+				"unique_stellar_hinge"
+			],
+			"hp": 18400,
+			"score": 18400,
+			"size": {
+				"width": 410,
+				"height": 410
+			},
+			"visual": {
+				"color": "#B69354",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.8,
+					"fire_profile": {
+						"rates": [
+							0.8,
+							0.69,
+							0.58
+						],
+						"step_interval": 2.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 18,
+						"frequency": 0.62
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 5.8
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "random_chaos",
+					"fire_rate": 0.49,
+					"fire_profile": {
+						"rates": [
+							0.49,
+							0.4,
+							0.32
+						],
+						"step_interval": 1.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -32
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 4.0
+				}
+			]
+		},
+		{
+			"id": "boss_titan_3",
+			"name": "Geôlier Astral",
+			"loot_table": [
+				"unique_astral_chain",
+				"unique_titanic_lock"
+			],
+			"hp": 20200,
+			"score": 20200,
+			"size": {
+				"width": 420,
+				"height": 420
+			},
+			"visual": {
+				"color": "#9F7E45",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.78,
+					"fire_profile": {
+						"rates": [
+							0.78,
+							0.66,
+							0.56
+						],
+						"step_interval": 2.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 12
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 5.4
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rain_top",
+					"fire_rate": 0.45,
+					"fire_profile": {
+						"rates": [
+							0.45,
+							0.36,
+							0.29
+						],
+						"step_interval": 1.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 3.8
+				}
+			]
+		},
+		{
+			"id": "boss_titan_4",
+			"name": "Atlas Incomplet",
+			"loot_table": [
+				"unique_broken_crown",
+				"unique_heaven_bolt"
+			],
+			"hp": 22000,
+			"score": 22000,
+			"size": {
+				"width": 430,
+				"height": 430
+			},
+			"visual": {
+				"color": "#D2B379",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "double_side",
+					"fire_rate": 0.72,
+					"fire_profile": {
+						"rates": [
+							0.72,
+							0.61,
+							0.51
+						],
+						"step_interval": 2.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 20,
+						"frequency": 0.7
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 5.0
+				},
+				{
+					"hp_threshold": 58,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "accelerating_burst",
+					"fire_rate": 0.44,
+					"fire_profile": {
+						"rates": [
+							0.44,
+							0.36,
+							0.29
+						],
+						"step_interval": 1.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -30
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 3.6
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.28,
+					"fire_profile": {
+						"rates": [
+							0.28,
+							0.22,
+							0.18,
+							0.15
+						],
+						"step_interval": 1.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 40
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 2.8
+				}
+			]
+		},
+		{
+			"id": "boss_titan_5",
+			"name": "Hydre Hyperion",
+			"loot_table": [
+				"unique_hyperion_fang",
+				"unique_solar_facet"
+			],
+			"hp": 23800,
+			"score": 23800,
+			"size": {
+				"width": 440,
+				"height": 440
+			},
+			"visual": {
+				"color": "#A78956",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 0.67,
+					"fire_profile": {
+						"rates": [
+							0.67,
+							0.56,
+							0.46
+						],
+						"step_interval": 2.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 12,
+						"frequency": 0.55
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 4.8
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.4,
+					"fire_profile": {
+						"rates": [
+							0.4,
+							0.32,
+							0.26
+						],
+						"step_interval": 1.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -32
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 3.5
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.24,
+					"fire_profile": {
+						"rates": [
+							0.24,
+							0.19,
+							0.15,
+							0.12
+						],
+						"step_interval": 1.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 44
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 2.5
+				}
+			]
+		},
+		{
+			"id": "boss_titan_final",
+			"name": "Empereur des Titans",
+			"loot_table": [
+				"unique_titan_heart",
+				"unique_empyrean_crown",
+				"unique_starforge_core"
+			],
+			"hp": 28000,
+			"score": 28000,
+			"size": {
+				"width": 470,
+				"height": 470
+			},
+			"visual": {
+				"color": "#E1C48A",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.68,
+					"fire_profile": {
+						"rates": [
+							0.68,
+							0.56,
+							0.46
+						],
+						"step_interval": 2.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 26
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 4.8
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.39,
+					"fire_profile": {
+						"rates": [
+							0.39,
+							0.31,
+							0.25
+						],
+						"step_interval": 1.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 30,
+						"frequency": 0.86
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 3.2
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.21,
+					"fire_profile": {
+						"rates": [
+							0.21,
+							0.16,
+							0.13,
+							0.1
+						],
+						"step_interval": 0.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -50
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 2.1
+				}
+			]
+		},
+		{
+			"id": "boss_alien_1",
+			"name": "Sentinelle Chitineuse",
+			"loot_table": [
+				"unique_hive_spike",
+				"unique_bio_nucleus"
+			],
+			"hp": 22000,
+			"score": 22000,
+			"size": {
+				"width": 420,
+				"height": 420
+			},
+			"visual": {
+				"color": "#3B8E3B",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.62,
+					"fire_profile": {
+						"rates": [
+							0.62,
+							0.51,
+							0.42
+						],
+						"step_interval": 2.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 18
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 4.6
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.36,
+					"fire_profile": {
+						"rates": [
+							0.36,
+							0.29,
+							0.23
+						],
+						"step_interval": 1.3,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 32
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 3.1
+				}
+			]
+		},
+		{
+			"id": "boss_alien_2",
+			"name": "Oracle Parasite",
+			"loot_table": [
+				"unique_oracle_tendril",
+				"unique_hive_iris"
+			],
+			"hp": 23600,
+			"score": 23600,
+			"size": {
+				"width": 430,
+				"height": 430
+			},
+			"visual": {
+				"color": "#5BAE5B",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "random_chaos",
+					"fire_rate": 0.57,
+					"fire_profile": {
+						"rates": [
+							0.57,
+							0.47,
+							0.38
+						],
+						"step_interval": 1.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 16,
+						"frequency": 0.62
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 4.3
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.33,
+					"fire_profile": {
+						"rates": [
+							0.33,
+							0.26,
+							0.2
+						],
+						"step_interval": 1.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -34
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 2.9
+				}
+			]
+		},
+		{
+			"id": "boss_alien_3",
+			"name": "Ponctionneur Biomasse",
+			"loot_table": [
+				"unique_bio_pump",
+				"unique_resin_socket"
+			],
+			"hp": 25400,
+			"score": 25400,
+			"size": {
+				"width": 440,
+				"height": 440
+			},
+			"visual": {
+				"color": "#2E7D32",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.53,
+					"fire_profile": {
+						"rates": [
+							0.53,
+							0.43,
+							0.34
+						],
+						"step_interval": 1.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 14
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 4.1
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rain_top",
+					"fire_rate": 0.31,
+					"fire_profile": {
+						"rates": [
+							0.31,
+							0.24,
+							0.18
+						],
+						"step_interval": 1.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 2.8
+				}
+			]
+		},
+		{
+			"id": "boss_alien_4",
+			"name": "Régente de la Ruche",
+			"loot_table": [
+				"unique_brood_crown",
+				"unique_cocoon_drive"
+			],
+			"hp": 27400,
+			"score": 27400,
+			"size": {
+				"width": 450,
+				"height": 450
+			},
+			"visual": {
+				"color": "#6FBF73",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "double_side",
+					"fire_rate": 0.5,
+					"fire_profile": {
+						"rates": [
+							0.5,
+							0.4,
+							0.32
+						],
+						"step_interval": 1.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.72
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 3.8
+				},
+				{
+					"hp_threshold": 58,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "accelerating_burst",
+					"fire_rate": 0.32,
+					"fire_profile": {
+						"rates": [
+							0.32,
+							0.25,
+							0.2
+						],
+						"step_interval": 1.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -32
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 2.9
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.22,
+					"fire_profile": {
+						"rates": [
+							0.22,
+							0.17,
+							0.13,
+							0.1
+						],
+						"step_interval": 0.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 40
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 2.2
+				}
+			]
+		},
+		{
+			"id": "boss_alien_5",
+			"name": "Hydre Sépale",
+			"loot_table": [
+				"unique_sepal_fang",
+				"unique_umbra_nest"
+			],
+			"hp": 29600,
+			"score": 29600,
+			"size": {
+				"width": 460,
+				"height": 460
+			},
+			"visual": {
+				"color": "#3E8A45",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 0.44,
+					"fire_profile": {
+						"rates": [
+							0.44,
+							0.35,
+							0.28
+						],
+						"step_interval": 1.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 12,
+						"frequency": 0.56
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 3.4
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.29,
+					"fire_profile": {
+						"rates": [
+							0.29,
+							0.22,
+							0.17
+						],
+						"step_interval": 1.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -34
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 2.6
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.2,
+					"fire_profile": {
+						"rates": [
+							0.2,
+							0.15,
+							0.12,
+							0.1
+						],
+						"step_interval": 0.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 44
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 1.9
+				}
+			]
+		},
+		{
+			"id": "boss_alien_final",
+			"name": "Souverain de la Ruche",
+			"loot_table": [
+				"unique_hive_heart",
+				"unique_bio_crown",
+				"unique_xeno_matrix"
+			],
+			"hp": 34000,
+			"score": 34000,
+			"size": {
+				"width": 480,
+				"height": 480
+			},
+			"visual": {
+				"color": "#1F5F2A",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.45,
+					"fire_profile": {
+						"rates": [
+							0.45,
+							0.35,
+							0.27
+						],
+						"step_interval": 1.6,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 28
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 3.5
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.28,
+					"fire_profile": {
+						"rates": [
+							0.28,
+							0.21,
+							0.16
+						],
+						"step_interval": 1.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 30,
+						"frequency": 0.9
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 2.6
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.17,
+					"fire_profile": {
+						"rates": [
+							0.17,
+							0.13,
+							0.1,
+							0.1
+						],
+						"step_interval": 0.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -52
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 1.8
+				}
+			]
+		},
+		{
+			"id": "boss_magic_1",
+			"name": "Arpenteur Arcanique",
+			"loot_table": [
+				"unique_arcane_ink",
+				"unique_mana_lens"
+			],
+			"hp": 25000,
+			"score": 25000,
+			"size": {
+				"width": 430,
+				"height": 430
+			},
+			"visual": {
+				"color": "#8D3AB8",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "circle_8",
+					"fire_rate": 0.52,
+					"fire_profile": {
+						"rates": [
+							0.52,
+							0.41,
+							0.32
+						],
+						"step_interval": 1.8,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 30
+					},
+					"special_power_id": "power_root_snare",
+					"special_power_interval": 3.9
+				},
+				{
+					"hp_threshold": 45,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.31,
+					"fire_profile": {
+						"rates": [
+							0.31,
+							0.24,
+							0.18
+						],
+						"step_interval": 1.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 28,
+						"frequency": 0.82
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 2.7
+				}
+			]
+		},
+		{
+			"id": "boss_magic_2",
+			"name": "Tisseuse de Mana",
+			"loot_table": [
+				"unique_mana_weave",
+				"unique_prism_sigil"
+			],
+			"hp": 26800,
+			"score": 26800,
+			"size": {
+				"width": 440,
+				"height": 440
+			},
+			"visual": {
+				"color": "#A14ED0",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "random_chaos",
+					"fire_rate": 0.48,
+					"fire_profile": {
+						"rates": [
+							0.48,
+							0.38,
+							0.3
+						],
+						"step_interval": 1.7,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 18,
+						"frequency": 0.68
+					},
+					"special_power_id": "power_moss_shield",
+					"special_power_interval": 3.5
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.29,
+					"fire_profile": {
+						"rates": [
+							0.29,
+							0.22,
+							0.17
+						],
+						"step_interval": 1.1,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -36
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 2.4
+				}
+			]
+		},
+		{
+			"id": "boss_magic_3",
+			"name": "Gardien Prismatique",
+			"loot_table": [
+				"unique_prism_lattice",
+				"unique_rune_anchor"
+			],
+			"hp": 28800,
+			"score": 28800,
+			"size": {
+				"width": 450,
+				"height": 450
+			},
+			"visual": {
+				"color": "#6F2E91",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.43,
+					"fire_profile": {
+						"rates": [
+							0.43,
+							0.33,
+							0.25
+						],
+						"step_interval": 1.5,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 16
+					},
+					"special_power_id": "power_leaf_storm",
+					"special_power_interval": 3.3
+				},
+				{
+					"hp_threshold": 40,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rain_top",
+					"fire_rate": 0.26,
+					"fire_profile": {
+						"rates": [
+							0.26,
+							0.2,
+							0.15
+						],
+						"step_interval": 1.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 0
+					},
+					"special_power_id": "power_bramble_burst",
+					"special_power_interval": 2.2
+				}
+			]
+		},
+		{
+			"id": "boss_magic_4",
+			"name": "Scribe des Plans",
+			"loot_table": [
+				"unique_planar_quill",
+				"unique_hex_compass"
+			],
+			"hp": 31000,
+			"score": 31000,
+			"size": {
+				"width": 460,
+				"height": 460
+			},
+			"visual": {
+				"color": "#B062DC",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "double_side",
+					"fire_rate": 0.4,
+					"fire_profile": {
+						"rates": [
+							0.4,
+							0.31,
+							0.24
+						],
+						"step_interval": 1.4,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 22,
+						"frequency": 0.76
+					},
+					"special_power_id": "power_spore_cloud",
+					"special_power_interval": 3.0
+				},
+				{
+					"hp_threshold": 58,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "accelerating_burst",
+					"fire_rate": 0.25,
+					"fire_profile": {
+						"rates": [
+							0.25,
+							0.19,
+							0.14
+						],
+						"step_interval": 1.0,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -34
+					},
+					"special_power_id": "power_canopy_crush",
+					"special_power_interval": 2.3
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.18,
+					"fire_profile": {
+						"rates": [
+							0.18,
+							0.14,
+							0.11,
+							0.1
+						],
+						"step_interval": 0.75,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 42
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 1.7
+				}
+			]
+		},
+		{
+			"id": "boss_magic_5",
+			"name": "Hydre d'Éther",
+			"loot_table": [
+				"unique_ether_fang",
+				"unique_arcana_shell"
+			],
+			"hp": 33400,
+			"score": 33400,
+			"size": {
+				"width": 470,
+				"height": 470
+			},
+			"visual": {
+				"color": "#8F44B6",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "circle_clockwise",
+					"missile_pattern_id": "aimed_player",
+					"fire_rate": 0.34,
+					"fire_profile": {
+						"rates": [
+							0.34,
+							0.26,
+							0.2
+						],
+						"step_interval": 1.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 14,
+						"frequency": 0.58
+					},
+					"special_power_id": "power_mushroom_gas",
+					"special_power_interval": 2.8
+				},
+				{
+					"hp_threshold": 50,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "flanking_attack",
+					"fire_rate": 0.23,
+					"fire_profile": {
+						"rates": [
+							0.23,
+							0.17,
+							0.13
+						],
+						"step_interval": 0.9,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -36
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 2.0
+				},
+				{
+					"hp_threshold": 20,
+					"move_pattern_id": "stationary",
+					"missile_pattern_id": "corner_ambush",
+					"fire_rate": 0.16,
+					"fire_profile": {
+						"rates": [
+							0.16,
+							0.12,
+							0.1,
+							0.1
+						],
+						"step_interval": 0.65,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 46
+					},
+					"special_power_id": "power_forest_fury",
+					"special_power_interval": 1.5
+				}
+			]
+		},
+		{
+			"id": "boss_magic_final",
+			"name": "Monarque Éthéré",
+			"loot_table": [
+				"unique_ethereal_heart",
+				"unique_monarch_crown",
+				"unique_reality_core"
+			],
+			"hp": 39000,
+			"score": 39000,
+			"size": {
+				"width": 500,
+				"height": 500
+			},
+			"visual": {
+				"color": "#C67DFF",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"sounds": {
+				"asset": "res://assets/sounds/boss_roar.wav",
+				"repeat": -1,
+				"interval": 5.0
+			},
+			"missile_id": "missile_boss_heavy",
+			"phases": [
+				{
+					"hp_threshold": 100,
+					"move_pattern_id": "bounce_horizontal",
+					"missile_pattern_id": "encircle_attack",
+					"fire_rate": 0.36,
+					"fire_profile": {
+						"rates": [
+							0.36,
+							0.27,
+							0.2
+						],
+						"step_interval": 1.2,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": 30
+					},
+					"special_power_id": "power_tree_slam",
+					"special_power_interval": 2.9
+				},
+				{
+					"hp_threshold": 60,
+					"move_pattern_id": "figure_eight",
+					"missile_pattern_id": "screen_bottom_wave",
+					"fire_rate": 0.23,
+					"fire_profile": {
+						"rates": [
+							0.23,
+							0.17,
+							0.13
+						],
+						"step_interval": 0.85,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "oscillate",
+						"amplitude_deg": 32,
+						"frequency": 0.95
+					},
+					"special_power_id": "power_nature_wrath",
+					"special_power_interval": 2.0
+				},
+				{
+					"hp_threshold": 25,
+					"move_pattern_id": "random_strafe",
+					"missile_pattern_id": "rapid_burst",
+					"fire_rate": 0.14,
+					"fire_profile": {
+						"rates": [
+							0.14,
+							0.1,
+							0.1,
+							0.1
+						],
+						"step_interval": 0.55,
+						"loop": true
+					},
+					"rotation_profile": {
+						"mode": "continuous",
+						"speed_deg": -54
+					},
+					"special_power_id": "power_guardian_rage",
+					"special_power_interval": 1.3
 				}
 			]
 		}

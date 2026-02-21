@@ -11,6 +11,8 @@ signal shield_broken
 const DEFAULT_SHIELD_SCENE := "res://addons/nojoule-energy-shield/shield_sphere.tscn"
 const COLLAPSE_DURATION_SEC := 1.0
 const BASE_VISUAL_DIAMETER := 140.0
+const STRONG_RESOURCE_CACHE_MAX: int = 64
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 @export var max_hp: int = 800
 var current_hp: int = 800
@@ -113,7 +115,8 @@ func _build_visual() -> void:
 	camera.current = true
 	viewport.add_child(camera)
 	
-	var shield_scene: PackedScene = load(_shield_scene_path) as PackedScene
+	var shield_res: Resource = _load_cached_resource(_shield_scene_path)
+	var shield_scene: PackedScene = shield_res as PackedScene
 	if shield_scene == null:
 		return
 	
@@ -164,3 +167,17 @@ func _play_deflect_sfx() -> void:
 	if not ResourceLoader.exists(_deflect_sfx_path):
 		return
 	AudioManager.play_sfx(_deflect_sfx_path, 0.05)
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

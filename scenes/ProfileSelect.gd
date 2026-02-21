@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## ProfileSelect — Sélection/création de profil avec popup pour création.
 ## Design moderne avec fond similaire à HomeScreen.
@@ -49,6 +50,7 @@ func _ready() -> void:
 	popup_portrait_option.clear()
 	for i in range(6):
 		popup_portrait_option.add_item("Portrait " + str(i + 1), i)
+	_apply_dropdown_style(popup_portrait_option)
 	
 	create_popup.visible = false
 	_refresh_list()
@@ -80,17 +82,12 @@ func _apply_popup_style() -> void:
 	if not create_popup: return
 	
 	var popup_config: Dictionary = _game_config.get("popups", {})
-	var popup_bg_asset: String = str(popup_config.get("background", {}).get("asset", ""))
+	var popup_bg_cfg: Dictionary = popup_config.get("background", {}) if popup_config.get("background") is Dictionary else {}
+	var popup_bg_asset: String = str(popup_bg_cfg.get("asset", ""))
 	var margin: int = int(popup_config.get("margin", 20))
 	
-	if popup_bg_asset != "" and ResourceLoader.exists(popup_bg_asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(popup_bg_asset)
-		style.content_margin_top = margin
-		style.content_margin_bottom = margin
-		style.content_margin_left = margin
-		style.content_margin_right = margin
-		
+	var style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, margin)
+	if style:
 		create_popup.add_theme_stylebox_override("panel", style)
 	
 	# Back button styling
@@ -98,6 +95,37 @@ func _apply_popup_style() -> void:
 	var back_icon_path: String = str(ui_icons.get("back_button", ""))
 	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
 		back_button.texture_normal = load(back_icon_path)
+
+func _apply_dropdown_style(opt_btn: OptionButton) -> void:
+	if not opt_btn:
+		return
+
+	var dropdown_cfg: Dictionary = _game_config.get("ui_dropdown", {})
+	var popup: PopupMenu = opt_btn.get_popup()
+	if not popup:
+		return
+
+	for i in range(popup.item_count):
+		popup.set_item_as_checkable(i, false)
+
+	var item_bg_asset: String = str(dropdown_cfg.get("item_bg_asset", ""))
+	var popup_style: StyleBox = StyleBoxFlat.new()
+	var tex_style := UIStyle.build_texture_stylebox(item_bg_asset, dropdown_cfg, 10)
+	if tex_style:
+		popup_style = tex_style
+	else:
+		var flat := popup_style as StyleBoxFlat
+		flat.bg_color = Color(0.1, 0.1, 0.1, 0.95)
+
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(dropdown_cfg.get("highlight_bg_color", "#FFD700"))
+	var item_text := Color(dropdown_cfg.get("item_text_color", "#000000"))
+	var hover_text := Color(dropdown_cfg.get("highlight_text_color", "#000000"))
+
+	popup.add_theme_stylebox_override("panel", popup_style)
+	popup.add_theme_stylebox_override("hover", hover_style)
+	popup.add_theme_color_override("font_color", item_text)
+	popup.add_theme_color_override("font_hover_color", hover_text)
 
 func _refresh_list() -> void:
 	profile_list.clear()

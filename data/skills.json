@@ -109,7 +109,7 @@
                 "pool_damage_per_sec": 8,
                 "pool_duration": 3.0,
                 "pool_radius": 50,
-                "pool_fluid_id": "poison_pool",
+                "pool_fluid_id": "",
                 "pool_asset_anim": "",
                 "pool_asset_anim_duration": 10.0,
                 "pool_asset_anim_loop": true,

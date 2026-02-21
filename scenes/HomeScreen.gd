@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## HomeScreen — Écran d'accueil après sélection/chargement du profil.
 ## Layout: Top 40% for title/info, Bottom 60% for buttons.
@@ -185,13 +186,35 @@ func _center_logo_anim() -> void:
 
 func _setup_buttons() -> void:
 	var buttons_config: Dictionary = _game_config.get("buttons", {})
+	var shared_cfg := _extract_shared_button_cfg(buttons_config)
 	
-	_setup_single_button(play_button, buttons_config.get("play", {}), "home_play")
-	_setup_single_button(ship_button, buttons_config.get("ship", {}), "home_ship_menu")
-	_setup_single_button(options_button, buttons_config.get("options", {}), "home_options")
-	_setup_single_button(quit_button, buttons_config.get("quit", {}), "home_quit")
-	_setup_single_button(skills_button, buttons_config.get("skills", {}), "home_skills")
-	_setup_single_button(change_profile_button, buttons_config.get("change_profile", {}), "home_change_profile_short")
+	_setup_single_button(play_button, _merge_button_cfg(shared_cfg, buttons_config.get("play", {})), "home_play")
+	_setup_single_button(ship_button, _merge_button_cfg(shared_cfg, buttons_config.get("ship", {})), "home_ship_menu")
+	_setup_single_button(options_button, _merge_button_cfg(shared_cfg, buttons_config.get("options", {})), "home_options")
+	_setup_single_button(quit_button, _merge_button_cfg(shared_cfg, buttons_config.get("quit", {})), "home_quit")
+	_setup_single_button(skills_button, _merge_button_cfg(shared_cfg, buttons_config.get("skills", {})), "home_skills")
+	_setup_single_button(change_profile_button, _merge_button_cfg(shared_cfg, buttons_config.get("change_profile", {})), "home_change_profile_short")
+
+func _extract_shared_button_cfg(buttons_config: Dictionary) -> Dictionary:
+	var shared := {}
+	if buttons_config.has("default_nine_slice"):
+		shared["nine_slice"] = buttons_config.get("default_nine_slice", {})
+	if buttons_config.has("default_content_margin"):
+		shared["content_margin"] = buttons_config.get("default_content_margin", {})
+	if buttons_config.has("default_stretch_horizontal"):
+		shared["stretch_horizontal"] = buttons_config.get("default_stretch_horizontal", "stretch")
+	if buttons_config.has("default_stretch_vertical"):
+		shared["stretch_vertical"] = buttons_config.get("default_stretch_vertical", "stretch")
+	if buttons_config.has("default_draw_center"):
+		shared["draw_center"] = buttons_config.get("default_draw_center", true)
+	return shared
+
+func _merge_button_cfg(shared_cfg: Dictionary, per_button_cfg: Variant) -> Dictionary:
+	var merged := shared_cfg.duplicate(true)
+	if per_button_cfg is Dictionary:
+		for key in (per_button_cfg as Dictionary).keys():
+			merged[key] = (per_button_cfg as Dictionary)[key]
+	return merged
 
 func _setup_single_button(button: Button, config: Dictionary, translation_key: String) -> void:
 	var asset_path: String = str(config.get("asset", ""))
@@ -247,13 +270,9 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 	
 	# 2. GESTION ASSET STATIQUE (Priorité 2)
 	elif asset_path != "" and ResourceLoader.exists(asset_path):
-		var tex = load(asset_path)
-		if tex:
+		var style := UIStyle.build_texture_stylebox(asset_path, config, 10)
+		if style:
 			has_visual_bg = true
-			var style = StyleBoxTexture.new()
-			style.texture = tex
-			# On garde la couleur originale
-			
 			_apply_style_override(button, style)
 	
 	# 3. TEXTE

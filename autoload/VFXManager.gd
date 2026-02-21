@@ -11,15 +11,30 @@ var _camera: Camera2D = null
 var _shake_amount: float = 0.0
 var _shake_duration: float = 0.0
 const _ANIM_META_SEQ_KEY: String = "_anim_playback_seq"
+const _SPRITEFRAMES_VARIANT_CACHE_MAX: int = 128
+var _spriteframes_variant_cache: Dictionary = {}
 
 func set_camera(camera: Camera2D) -> void:
 	_camera = camera
 
 func screen_shake(intensity: float, duration: float) -> void:
+	if not bool(ProfileManager.get_setting("screenshake_enabled", true)):
+		_shake_amount = 0.0
+		_shake_duration = 0.0
+		if _camera:
+			_camera.offset = Vector2.ZERO
+		return
 	_shake_amount = intensity
 	_shake_duration = duration
 
 func _process(delta: float) -> void:
+	if not bool(ProfileManager.get_setting("screenshake_enabled", true)):
+		_shake_amount = 0.0
+		_shake_duration = 0.0
+		if _camera:
+			_camera.offset = Vector2.ZERO
+		return
+
 	if _shake_duration > 0:
 		_shake_duration -= delta
 		
@@ -93,11 +108,9 @@ func play_sprite_frames(
 	if anim_name == &"":
 		return &""
 
-	var playback_frames: SpriteFrames = source_frames
-	var duplicated: Resource = source_frames.duplicate(true)
-	if duplicated is SpriteFrames:
-		playback_frames = duplicated as SpriteFrames
-	playback_frames.set_animation_loop(anim_name, loop)
+	var playback_frames: SpriteFrames = _resolve_playback_frames(source_frames, anim_name, loop)
+	if playback_frames == null:
+		return &""
 
 	anim_sprite.sprite_frames = playback_frames
 	anim_sprite.animation = anim_name
@@ -141,6 +154,41 @@ func play_sprite_frames(
 			)
 
 	return anim_name
+
+func _resolve_playback_frames(source_frames: SpriteFrames, anim_name: StringName, loop: bool) -> SpriteFrames:
+	if source_frames == null:
+		return null
+	if anim_name == &"" or not source_frames.has_animation(anim_name):
+		return source_frames
+
+	# Fast path: no mutation needed, so no duplicate/allocation.
+	if source_frames.get_animation_loop(anim_name) == loop:
+		return source_frames
+
+	var cache_key: String = _build_spriteframes_variant_key(source_frames, anim_name, loop)
+	if _spriteframes_variant_cache.has(cache_key):
+		var cached_variant: Variant = _spriteframes_variant_cache[cache_key]
+		if cached_variant is SpriteFrames:
+			return cached_variant as SpriteFrames
+
+	# Duplicate only the SpriteFrames resource metadata (no deep subresources copy).
+	var duplicated_res: Resource = source_frames.duplicate(false)
+	if not (duplicated_res is SpriteFrames):
+		return source_frames
+
+	var duplicated_frames: SpriteFrames = duplicated_res as SpriteFrames
+	duplicated_frames.set_animation_loop(anim_name, loop)
+
+	if _spriteframes_variant_cache.size() >= _SPRITEFRAMES_VARIANT_CACHE_MAX:
+		_spriteframes_variant_cache.clear()
+	_spriteframes_variant_cache[cache_key] = duplicated_frames
+	return duplicated_frames
+
+func _build_spriteframes_variant_key(source_frames: SpriteFrames, anim_name: StringName, loop: bool) -> String:
+	var path: String = source_frames.resource_path
+	if path == "":
+		path = "rid:" + str(source_frames.get_rid().get_id())
+	return path + "|" + String(anim_name) + "|" + ("1" if loop else "0")
 
 # =============================================================================
 # EXPLOSION

@@ -165,6 +165,10 @@ func _spawn_row() -> void:
 			else:
 				drift_dirs_for_row.append("")
 		enriched_data["_drift_directions_per_obstacle"] = drift_dirs_for_row
+		# Override sprite_path si défini dans la wave data
+		var wave_sprite: String = str(_wave_data.get("sprite_path", ""))
+		if wave_sprite != "":
+			enriched_data["sprite_path"] = wave_sprite
 		obstacle_spawn_request.emit(enriched_data, positions, _speed)
 
 

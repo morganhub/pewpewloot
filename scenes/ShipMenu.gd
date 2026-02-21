@@ -16,6 +16,7 @@ const GRID_COLUMNS := 4
 const GRID_GAP := 12
 const ItemCardScene = preload("res://scenes/components/ItemCard.tscn")
 const ItemDetailsPopupScene = preload("res://scenes/components/ItemDetailsPopup.tscn")
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 var _item_card_size := Vector2(100, 75)
 var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time)
 
@@ -224,9 +225,9 @@ func _ready() -> void:
 	var power_letter_spacing: int = int(power_cfg.get("letter_spacing", 2))
 	
 	var power_style_box: StyleBox
-	if power_asset != "" and ResourceLoader.exists(power_asset):
-		power_style_box = StyleBoxTexture.new()
-		power_style_box.texture = load(power_asset)
+	var power_texture_style := UIStyle.build_texture_stylebox(power_asset, power_cfg, 10)
+	if power_texture_style:
+		power_style_box = power_texture_style
 	else:
 		power_style_box = StyleBoxFlat.new()
 		power_style_box.bg_color = Color(0.2, 0.2, 0.2, 1)
@@ -245,9 +246,9 @@ func _ready() -> void:
 	var up_letter_spacing: int = int(up_cfg.get("letter_spacing", 2))
 
 	var up_style_box: StyleBox
-	if up_asset != "" and ResourceLoader.exists(up_asset):
-		up_style_box = StyleBoxTexture.new()
-		up_style_box.texture = load(up_asset)
+	var up_texture_style := UIStyle.build_texture_stylebox(up_asset, up_cfg, 10)
+	if up_texture_style:
+		up_style_box = up_texture_style
 	else:
 		up_style_box = StyleBoxFlat.new()
 		up_style_box.bg_color = Color(0.2, 0.2, 0.2, 1)
@@ -449,17 +450,12 @@ func _setup_visuals() -> void:
 	
 	# 4. Popup Styling (Global)
 	var popup_config: Dictionary = _game_config.get("popups", {})
-	var popup_bg_asset: String = str(popup_config.get("background", {}).get("asset", ""))
+	var popup_bg_cfg: Dictionary = popup_config.get("background", {}) if popup_config.get("background") is Dictionary else {}
+	var popup_bg_asset: String = str(popup_bg_cfg.get("asset", ""))
 	var margin: int = int(popup_config.get("margin", 20))
 	
-	if popup_bg_asset != "" and ResourceLoader.exists(popup_bg_asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(popup_bg_asset)
-		style.content_margin_top = margin
-		style.content_margin_bottom = margin
-		style.content_margin_left = margin
-		style.content_margin_right = margin
-		
+	var style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, margin)
+	if style:
 		if item_popup: item_popup.add_theme_stylebox_override("panel", style)
 		if unlock_popup: unlock_popup.add_theme_stylebox_override("panel", style)
 		if unique_popup: unique_popup.add_theme_stylebox_override("panel", style)
@@ -590,9 +586,8 @@ func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 	# Styling via StyleBox overrides
 	var popup_style = StyleBoxFlat.new()
 	popup_style.bg_color = Color(0.1, 0.1, 0.1, 0.95)
-	if item_bg_asset != "" and ResourceLoader.exists(item_bg_asset):
-		var tex_style = StyleBoxTexture.new()
-		tex_style.texture = load(item_bg_asset)
+	var tex_style := UIStyle.build_texture_stylebox(item_bg_asset, dropdown_cfg, 10)
+	if tex_style:
 		popup_style = tex_style
 	
 	popup.add_theme_stylebox_override("panel", popup_style)
@@ -609,9 +604,11 @@ func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 
 
 func _update_popup_buttons_style() -> void:
+	var popups_cfg: Dictionary = _game_config.get("popups", {})
+	var global_btn_cfg: Dictionary = popups_cfg.get("button", {}) if popups_cfg.get("button") is Dictionary else {}
 	var details_cfg: Dictionary = _game_config.get("ship_menu", {}).get("ship_details", {}).get("buttons", {})
-	var font_sz = int(details_cfg.get("font_size", 18))
-	var text_col = Color(details_cfg.get("text_color", "#FFFFFF"))
+	var font_sz = int(details_cfg.get("font_size", global_btn_cfg.get("font_size", 18)))
+	var text_col = Color(details_cfg.get("text_color", global_btn_cfg.get("text_color", "#FFFFFF")))
 	
 	# Mapping key -> button node
 	var buttons_map = {
@@ -628,26 +625,24 @@ func _update_popup_buttons_style() -> void:
 		# Common styles
 		btn.add_theme_font_size_override("font_size", font_sz)
 		btn.add_theme_color_override("font_color", text_col)
+		btn.add_theme_color_override("font_pressed_color", text_col)
+		btn.add_theme_color_override("font_hover_color", text_col)
+		btn.add_theme_color_override("font_focus_color", text_col)
+		btn.add_theme_color_override("font_disabled_color", text_col)
 		
-		var btn_cfg = details_cfg.get(key, {})
-		if btn_cfg.is_empty(): continue
+		var btn_cfg = details_cfg.get(key, {}) if details_cfg.get(key) is Dictionary else {}
+		var merged_cfg := global_btn_cfg.duplicate(true)
+		for cfg_key in btn_cfg.keys():
+			merged_cfg[cfg_key] = btn_cfg[cfg_key]
 			
-		var w = int(btn_cfg.get("width", 140))
-		var h = int(btn_cfg.get("height", 50))
-		var asset = str(btn_cfg.get("asset", ""))
+		var w = int(merged_cfg.get("width", 140))
+		var h = int(merged_cfg.get("height", 50))
+		var asset = str(merged_cfg.get("asset", ""))
 		
 		btn.custom_minimum_size = Vector2(w, h)
 		
-		if asset != "" and ResourceLoader.exists(asset):
-			var style = StyleBoxTexture.new()
-			var tex = load(asset)
-			style.texture = tex
-			# Ensure text is readable over image
-			style.content_margin_left = 5
-			style.content_margin_right = 5
-			style.content_margin_top = 0
-			style.content_margin_bottom = 0
-			
+		var style := UIStyle.build_texture_stylebox(asset, merged_cfg, 5)
+		if style:
 			btn.add_theme_stylebox_override("normal", style)
 			btn.add_theme_stylebox_override("hover", style)
 			btn.add_theme_stylebox_override("pressed", style)
@@ -655,9 +650,6 @@ func _update_popup_buttons_style() -> void:
 			btn.add_theme_stylebox_override("disabled", style) # Ensure asset remains when disabled
 			# Only disable flat if we are using stylebox
 			btn.flat = false
-		else:
-			# If no asset, maybe keep default or flat
-			pass
 
 
 func _calculate_layout_metrics() -> void:
@@ -1229,31 +1221,26 @@ func _update_ship_info(ship_id: String) -> void:
 	col2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col2.add_theme_constant_override("separation", 10)
 	grid.add_child(col2)
-	
-	# Left Column: HP, Vitesse, Missile
-	var max_hp = max(float(max_vals.get("max_hp", 100)), float(final_stats.max_hp) * 1.2)
-	var hp_label = LocaleManager.translate("stat.max_hp").to_upper()
-	if hp_label == "STAT.MAX_HP": hp_label = "HP"
-	
-	_add_detailed_stat(col1, hp_label, final_stats.max_hp, max_hp, get_cfg.call("hp"), colors.get("hp", "#ffffff"))
-	# Right Column: Crit, Dodge, Special
-	# Values already in 1-100 format
-	var crit_val = final_stats.crit_chance
-	var dodge_val = final_stats.dodge_chance
-	
-	# Dynamic Max: Ensure bar isn't pegged if value exceeds default max
-	var max_crit = max(float(max_vals.get("crit_chance", 50)), crit_val * 1.2)
-	var max_dodge = max(float(max_vals.get("dodge_chance", 30)), dodge_val * 1.2)
-	var max_special = max(float(max_vals.get("special", 100)), float(final_stats.special_score) * 1.2)
-	var max_speed = max(float(max_vals.get("move_speed", 300)), float(final_stats.move_speed) * 1.2)
-	var max_missile = max(float(max_vals.get("missile", 100)), float(final_stats.missile_score) * 1.2)
-	
-	_add_detailed_stat(col1, "VITESSE", final_stats.move_speed, max_speed, get_cfg.call("speed"), colors.get("speed", "#ffffff"))
-	_add_detailed_stat(col1, "MISSILE", final_stats.missile_score, max_missile, get_cfg.call("missile"), colors.get("missile", "#ffffff"))
-	
-	_add_detailed_stat(col2, "CRIT CHANCE", crit_val, max_crit, get_cfg.call("crit_chance"), colors.get("crit_chance", "#ffffff"))
-	_add_detailed_stat(col2, "DODGE", dodge_val, max_dodge, get_cfg.call("dodge_chance"), colors.get("dodge_chance", "#ffffff"))
-	_add_detailed_stat(col2, "SPECIAL", final_stats.special_score, max_special, get_cfg.call("special"), colors.get("special", "#ffffff"))
+
+	var stat_order: Array[String] = _get_ship_stat_display_order()
+	var display_index: int = 0
+	for stat_key in stat_order:
+		if stat_key == "missile_count":
+			continue
+		# Power is already shown in the summary row.
+		if stat_key == "power":
+			continue
+
+		var value: float = float(final_stats.get(stat_key, 0.0))
+		var max_value: float = _resolve_ship_stat_max_value(stat_key, max_vals, value)
+		var label: String = _resolve_ship_stat_label(stat_key)
+		var cfg: Dictionary = _resolve_ship_stat_cfg(stat_key, get_cfg)
+		var color_hex: String = _resolve_ship_stat_color(stat_key, colors)
+
+		var target_col: VBoxContainer = col1 if (display_index % 2 == 0) else col2
+		_add_detailed_stat(target_col, stat_key, label, value, max_value, cfg, color_hex)
+		display_index += 1
+
 	_update_locking_ui(ship_id)
 	if ship_stats_container: _fix_mobile_scroll_recursive(ship_stats_container)
 	
@@ -2125,7 +2112,7 @@ func _on_multi_recycle_pressed() -> void:
 		if not i_id in equipped_ids:
 			items_to_recycle.append(i_id)
 			var r_id = str(item.get("rarity", "common"))
-			var level = int(item.get("upgrade", 0)) + 1
+			var level = int(item.get("level", int(item.get("upgrade", 0)) + 1))
 			var base_val: int = 5
 			match r_id:
 				"common": base_val = 5
@@ -2146,14 +2133,14 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	popup.custom_minimum_size = Vector2(420, 0)
 	
 	var pop_cfg = _game_config.get("popups", {})
-	var bg_cfg = pop_cfg.get("background", {})
-	var btn_cfg = pop_cfg.get("button", {})
+	var bg_cfg = pop_cfg.get("background", {}) if pop_cfg.get("background") is Dictionary else {}
+	var btn_cfg = pop_cfg.get("button", {}) if pop_cfg.get("button") is Dictionary else {}
 	var recycle_cfg = pop_cfg.get("recycle", {})
 	
-	var style = StyleBoxTexture.new()
-	var bg_asset = str(bg_cfg.get("asset", "res://assets/ui/popup_background.png"))
-	if ResourceLoader.exists(bg_asset): style.texture = load(bg_asset)
-	popup.add_theme_stylebox_override("panel", style)
+	var bg_asset = str(bg_cfg.get("asset", "res://assets/ui/popup_background.jpg"))
+	var popup_style := UIStyle.build_texture_stylebox(bg_asset, bg_cfg, int(pop_cfg.get("margin", 35)))
+	if popup_style:
+		popup.add_theme_stylebox_override("panel", popup_style)
 	
 	var margin = MarginContainer.new()
 	# Keep extra safety padding so text/buttons never overlap popup frame.
@@ -2202,9 +2189,7 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	vbox.add_child(hbox)
 	
 	var btn_asset = str(btn_cfg.get("asset", "res://assets/ui/button.png"))
-	var btn_style = StyleBoxTexture.new()
-	if ResourceLoader.exists(btn_asset):
-		btn_style.texture = load(btn_asset)
+	var btn_style := UIStyle.build_texture_stylebox(btn_asset, btn_cfg, 10)
 	
 	var btn_text_color = Color.html(str(btn_cfg.get("text_color", "#000000")))
 	var btn_font_size = int(btn_cfg.get("font_size", 18))
@@ -2213,9 +2198,12 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	# Confirm
 	var btn_confirm = Button.new()
 	btn_confirm.text = LocaleManager.translate("confirm")
-	btn_confirm.add_theme_stylebox_override("normal", btn_style)
-	btn_confirm.add_theme_stylebox_override("hover", btn_style)
-	btn_confirm.add_theme_stylebox_override("pressed", btn_style)
+	if btn_style:
+		btn_confirm.add_theme_stylebox_override("normal", btn_style)
+		btn_confirm.add_theme_stylebox_override("hover", btn_style)
+		btn_confirm.add_theme_stylebox_override("pressed", btn_style)
+		btn_confirm.add_theme_stylebox_override("focus", btn_style)
+		btn_confirm.add_theme_stylebox_override("disabled", btn_style)
 	btn_confirm.add_theme_color_override("font_color", btn_text_color)
 	btn_confirm.add_theme_font_size_override("font_size", btn_font_size)
 	btn_confirm.add_theme_constant_override("letter_spacing", btn_ls)
@@ -2229,9 +2217,12 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	# Cancel
 	var btn_cancel = Button.new()
 	btn_cancel.text = LocaleManager.translate("cancel")
-	btn_cancel.add_theme_stylebox_override("normal", btn_style)
-	btn_cancel.add_theme_stylebox_override("hover", btn_style)
-	btn_cancel.add_theme_stylebox_override("pressed", btn_style)
+	if btn_style:
+		btn_cancel.add_theme_stylebox_override("normal", btn_style)
+		btn_cancel.add_theme_stylebox_override("hover", btn_style)
+		btn_cancel.add_theme_stylebox_override("pressed", btn_style)
+		btn_cancel.add_theme_stylebox_override("focus", btn_style)
+		btn_cancel.add_theme_stylebox_override("disabled", btn_style)
 	btn_cancel.add_theme_color_override("font_color", btn_text_color)
 	btn_cancel.add_theme_font_size_override("font_size", btn_font_size)
 	btn_cancel.add_theme_constant_override("letter_spacing", btn_ls)
@@ -2392,11 +2383,14 @@ func _on_popup_upgrade_pressed() -> void:
 		return
 	
 	var item := ProfileManager.get_item_by_id(popup_item_id)
-	var level := int(item.get("level", 1))
+	if item.is_empty():
+		push_warning("[ShipMenu] Upgrade aborted: item not found for id=" + popup_item_id)
+		return
+	var level := int(item.get("level", int(item.get("upgrade", 0)) + 1))
 	
-	# MAX LEVEL CHECK (Now 9 instead of 10)
-	if level >= 9:
-		push_warning("[ShipMenu] Item already at max level (9)!")
+	# MAX LEVEL CHECK
+	if level >= 10:
+		push_warning("[ShipMenu] Item already at max level (10)!")
 		return
 
 	# COST CHECK
@@ -2517,23 +2511,32 @@ func _on_popup_upgrade_pressed() -> void:
 
 	# APPLY UPGRADE TO ITEM
 	# 1. Update Stats
-	var stats = item.get("stats", {})
-	for key in stats:
-		var val = float(stats[key])
+	var base_stats_var: Variant = item.get("stats", {})
+	var base_stats: Dictionary = base_stats_var if base_stats_var is Dictionary else {}
+	var updated_stats: Dictionary = base_stats.duplicate(true)
+	for key in updated_stats:
+		var val = float(updated_stats[key])
 		# Apply multiplier and ceil to ensure progress
 		# Special handling for small values (fire_rate 0.3) vs big (power 100, crit 5)
 		if val < 1.0 and val > 0.0:
 			# Percentage-like stats: simple multiply keeps them small
-			stats[key] = val * multiplier
+			updated_stats[key] = val * multiplier
 		else:
 			# Large numbers: ceil to avoid 10.0 -> 10.05 not showing change
-			stats[key] = ceil(val * multiplier)
-			
-	item["stats"] = stats
-	item["level"] = level + 1
-	
-	# 2. Save
-	ProfileManager.save_to_disk()
+			updated_stats[key] = ceil(val * multiplier)
+
+	# 2. Persist item upgrade in inventory
+	var applied: bool = ProfileManager.apply_item_upgrade(popup_item_id, level + 1, updated_stats)
+	if not applied:
+		# Rollback crystals if persistence failed.
+		ProfileManager.add_crystals(cost)
+		push_warning("[ShipMenu] Upgrade failed to persist for item id=" + popup_item_id)
+		if popup_upgrade_btn:
+			popup_upgrade_btn.disabled = false
+		if _item_details_popup and _item_details_popup.upgrade_btn:
+			_item_details_popup.upgrade_btn.disabled = false
+		_apply_translations()
+		return
 	
 	# VISUAL FEEDBACK (Animation & Delay)
 	_show_upgrade_feedback(tier, tier_label)
@@ -2543,12 +2546,17 @@ func _on_popup_upgrade_pressed() -> void:
 	
 	if popup_upgrade_btn: 
 		popup_upgrade_btn.disabled = false
+	if _item_details_popup and _item_details_popup.upgrade_btn:
+		_item_details_popup.upgrade_btn.disabled = false
 	
 	# Refresh UI
-	_show_item_popup(popup_item_id, popup_is_equipped, popup_slot_id)
+	var refreshed_equipped: bool = popup_is_equipped
+	if selected_ship_id != "" and popup_slot_id != "":
+		refreshed_equipped = ProfileManager.get_equipped_item_id(selected_ship_id, popup_slot_id) == popup_item_id
+	_show_item_popup(popup_item_id, refreshed_equipped, popup_slot_id)
 	_update_inventory_grid()
 	_update_slot_buttons()
-	if popup_is_equipped and selected_ship_id != "":
+	if selected_ship_id != "":
 		_update_ship_info(selected_ship_id)
 	_apply_translations() # Refresh crystal count
 
@@ -2657,10 +2665,18 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 	final_stats["move_speed"] = float(final_stats.get("move_speed", 200.0))
 	final_stats["fire_rate"] = float(final_stats.get("fire_rate", 0.3))
 	final_stats["missile_speed_pct"] = float(final_stats.get("missile_speed_pct", 100.0))
+	final_stats["missile_damage"] = float(final_stats.get("missile_damage", 0.0))
 	final_stats["crit_chance"] = float(final_stats.get("crit_chance", 5.0))
+	final_stats["crit_damage"] = float(final_stats.get("crit_damage", 0.0))
 	final_stats["dodge_chance"] = float(final_stats.get("dodge_chance", 2.0))
+	final_stats["damage_reduction"] = float(final_stats.get("damage_reduction", 0.0))
 	final_stats["special_damage"] = float(final_stats.get("special_damage", 0.0))
 	final_stats["special_cd"] = max(1.0, float(final_stats.get("special_cd", 10.0)))
+	final_stats["shield_capacity"] = float(final_stats.get("shield_capacity", 0.0))
+	final_stats["shield_regen"] = float(final_stats.get("shield_regen", 0.0))
+	final_stats["loot_radius"] = float(final_stats.get("loot_radius", 0.0))
+	final_stats["luck"] = float(final_stats.get("luck", 0.0))
+	final_stats["xp_multiplier"] = float(final_stats.get("xp_multiplier", 0.0))
 	
 	
 	# Composite Scores for UI
@@ -2678,6 +2694,119 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 	final_stats.special_score = dmg * (10.0 / max(1.0, cd))
 	
 	return final_stats
+
+func _get_ship_stat_display_order() -> Array[String]:
+	var ordered: Array[String] = [
+		"max_hp",
+		"move_speed",
+		"fire_rate",
+		"missile_speed_pct",
+		"missile_damage",
+		"crit_chance",
+		"crit_damage",
+		"dodge_chance",
+		"damage_reduction",
+		"special_damage",
+		"special_cd",
+		"shield_capacity",
+		"shield_regen",
+		"loot_radius",
+		"luck",
+		"xp_multiplier",
+		"power"
+	]
+
+	var slot_ids_variant: Variant = DataManager.get_slot_ids()
+	if slot_ids_variant is Array:
+		for slot_id_var in (slot_ids_variant as Array):
+			var slot_id := str(slot_id_var)
+			var affixes_variant: Variant = DataManager.get_affixes_for_slot(slot_id)
+			if not (affixes_variant is Array):
+				continue
+
+			for affix_variant in (affixes_variant as Array):
+				if not (affix_variant is Dictionary):
+					continue
+				var stat_key := str((affix_variant as Dictionary).get("stat", ""))
+				if stat_key == "" or stat_key == "missile_count":
+					continue
+				if not ordered.has(stat_key):
+					ordered.append(stat_key)
+
+	return ordered
+
+func _get_ship_stat_aliases(stat_key: String) -> Array[String]:
+	match stat_key:
+		"max_hp":
+			return ["max_hp", "hp"]
+		"move_speed":
+			return ["move_speed", "speed"]
+		"missile_speed_pct", "missile_damage":
+			return [stat_key, "missile"]
+		"crit_damage":
+			return ["crit_damage", "crit_chance"]
+		"special_cd", "special_damage":
+			return [stat_key, "special"]
+		"shield_capacity", "shield_regen":
+			return [stat_key, "special", "hp"]
+		"loot_radius":
+			return [stat_key, "speed"]
+		"luck":
+			return [stat_key, "crit_chance"]
+		"xp_multiplier":
+			return [stat_key, "special"]
+		_:
+			return [stat_key]
+
+func _resolve_ship_stat_cfg(stat_key: String, get_cfg: Callable) -> Dictionary:
+	var aliases: Array[String] = _get_ship_stat_aliases(stat_key)
+	for alias in aliases:
+		var cfg_variant: Variant = get_cfg.call(alias)
+		if cfg_variant is Dictionary and not (cfg_variant as Dictionary).is_empty():
+			return cfg_variant as Dictionary
+	return {}
+
+func _resolve_ship_stat_color(stat_key: String, colors: Dictionary) -> String:
+	var aliases: Array[String] = _get_ship_stat_aliases(stat_key)
+	for alias in aliases:
+		var color_hex := str(colors.get(alias, ""))
+		if color_hex != "":
+			return color_hex
+	return "#ffffff"
+
+func _resolve_ship_stat_label(stat_key: String) -> String:
+	var locale_key := "stat." + stat_key
+	var translated := LocaleManager.translate(locale_key)
+	if translated == locale_key:
+		translated = stat_key.replace("_", " ")
+	return translated.to_upper()
+
+func _resolve_ship_stat_max_value(stat_key: String, max_vals: Dictionary, value: float) -> float:
+	var aliases: Array[String] = _get_ship_stat_aliases(stat_key)
+	var configured_max: float = 0.0
+	for alias in aliases:
+		configured_max = maxf(configured_max, float(max_vals.get(alias, 0.0)))
+
+	if _is_ship_stat_percent(stat_key):
+		configured_max = maxf(configured_max, 100.0)
+	elif stat_key == "special_cd":
+		configured_max = maxf(configured_max, 20.0)
+
+	var abs_value: float = absf(value)
+	var dynamic_max: float = maxf(1.0, abs_value * 1.2)
+	return maxf(configured_max, dynamic_max)
+
+func _is_ship_stat_percent(stat_key: String) -> bool:
+	return stat_key in [
+		"crit_chance",
+		"crit_damage",
+		"dodge_chance",
+		"damage_reduction",
+		"missile_speed_pct",
+		"missile_damage",
+		"loot_radius",
+		"xp_multiplier"
+	]
 
 func _calculate_levels_completed() -> int:
 	var profile = ProfileManager.get_active_profile()
@@ -2864,7 +2993,7 @@ func _repeat_ship_stat_icon(
 			return
 		VFXManager.play_sprite_frames(anim, source_frames, anim_name, play_loop, play_duration)
 
-func _add_detailed_stat(parent: Control, label_text: String, current_value: float, max_value: float, cfg: Dictionary, bar_color_hex: String) -> void:
+func _add_detailed_stat(parent: Control, stat_key: String, label_text: String, current_value: float, max_value: float, cfg: Dictionary, bar_color_hex: String) -> void:
 	var item_hbox = HBoxContainer.new()
 	item_hbox.add_theme_constant_override("separation", 10)
 	parent.add_child(item_hbox)
@@ -2912,17 +3041,20 @@ func _add_detailed_stat(parent: Control, label_text: String, current_value: floa
 	
 	# Formatting logic
 	var val_str: String = ""
-	if current_value is float:
-		if label_text in ["CRIT CHANCE", "DODGE"]: # Removed MISSILE from here
-			# Crit/Dodge stored in 1-100 format, display directly as percentage
-			val_str = str(snapped(current_value, 0.1))
-			if val_str.ends_with(".0"): val_str = val_str.left(-2)
-			val_str += "%"
-		else:
-			val_str = str(snapped(current_value, 0.1))
-			if val_str.ends_with(".0"): val_str = val_str.left(-2)
+	if _is_ship_stat_percent(stat_key):
+		val_str = str(snapped(current_value, 0.1))
+		if val_str.ends_with(".0"):
+			val_str = val_str.left(-2)
+		val_str += "%"
+	elif stat_key == "special_cd":
+		val_str = str(snapped(current_value, 0.1))
+		if val_str.ends_with(".0"):
+			val_str = val_str.left(-2)
+		val_str += "s"
 	else:
-		val_str = str(current_value)
+		val_str = str(snapped(current_value, 0.1))
+		if val_str.ends_with(".0"):
+			val_str = val_str.left(-2)
 	
 	# Max 4 chars constraint (approximate implementation)
 	# User wants 4 digits max. 
@@ -2991,20 +3123,11 @@ func _apply_popup_style() -> void:
 	_apply_bg_to_popup(unlock_popup, default_bg)
 
 func _fix_mobile_scroll_recursive(node: Node) -> void:
-	# Si c'est un élément d'interface (Control)
 	if node is Control:
-		# Si c'est un bouton ou quelque chose d'interactif
-		if node is Button or node is TextureButton or node is OptionButton:
+		if node is VScrollBar or node is HScrollBar:
+			node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		else:
 			node.mouse_filter = Control.MOUSE_FILTER_PASS
-			# Cas particulier : parfois les boutons ont des enfants (labels, icones) qui bloquent
-			# On continuera la récursion pour les mettre en IGNORE
-		
-		# Si c'est purement visuel (Label, TextureRect, Panel, Barres, etc.)
-		# ET que ce n'est pas le ScrollContainer lui-même
-		elif not node is ScrollContainer and not node is VScrollBar and not node is HScrollBar:
-			# Preserve explicit PASS already configured for swipe propagation.
-			if node.mouse_filter != Control.MOUSE_FILTER_PASS:
-				node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# On applique la même chose à tous les enfants (Récursion)
 	for child in node.get_children():
@@ -3017,10 +3140,11 @@ func _apply_bg_to_popup(popup: PanelContainer, bg_path: String) -> void:
 	var style: StyleBoxFlat
 	# Si on a une image, on l'utilise, sinon fallback bleu foncé
 	if bg_path != "" and ResourceLoader.exists(bg_path):
-		var texture = load(bg_path)
-		var texture_style = StyleBoxTexture.new()
-		texture_style.texture = texture
-		popup.add_theme_stylebox_override("panel", texture_style)
+		var popups_cfg: Dictionary = _game_config.get("popups", {})
+		var bg_cfg: Dictionary = popups_cfg.get("background", {}) if popups_cfg.get("background") is Dictionary else {}
+		var stylebox := UIStyle.build_texture_stylebox(bg_path, bg_cfg, int(popups_cfg.get("margin", 35)))
+		if stylebox:
+			popup.add_theme_stylebox_override("panel", stylebox)
 	else:
 		if popup.get_theme_stylebox("panel") is StyleBoxFlat:
 			style = popup.get_theme_stylebox("panel")

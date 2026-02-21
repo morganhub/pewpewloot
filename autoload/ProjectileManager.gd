@@ -11,6 +11,7 @@ const PROJECTILE_SCENE := preload("res://scenes/Projectile.tscn")
 
 const POOL_SIZE_PLAYER: int = 100
 const POOL_SIZE_ENEMY: int = 200
+const ENEMY_POOL_EXPAND_STEP: int = 64
 
 var _player_pool: Array = []
 var _enemy_pool: Array = []
@@ -19,6 +20,7 @@ var _active_player_projectiles: Array = []
 var _active_enemy_projectiles: Array = []
 
 var _projectile_container: Node2D = null
+var _last_enemy_pool_warning_ms: int = -10000
 
 # =============================================================================
 # INIT
@@ -88,8 +90,13 @@ func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, dam
 
 func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, damage: int, pattern_data: Dictionary = {}) -> void:
 	if _enemy_pool.is_empty():
-		push_warning("[ProjectileManager] Enemy pool empty!")
-		return
+		_expand_enemy_pool(ENEMY_POOL_EXPAND_STEP)
+		if _enemy_pool.is_empty():
+			var now_ms: int = Time.get_ticks_msec()
+			if now_ms - _last_enemy_pool_warning_ms > 1000:
+				push_warning("[ProjectileManager] Enemy pool empty!")
+				_last_enemy_pool_warning_ms = now_ms
+			return
 	
 	var projectile: Area2D = _enemy_pool.pop_back() # Cast explicite
 	_active_enemy_projectiles.append(projectile)
@@ -115,6 +122,15 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 		_projectile_container.add_child(projectile)
 	
 	projectile.activate(pos, direction, speed, damage, pattern_data, false, vp_size)
+
+func _expand_enemy_pool(count: int) -> void:
+	if count <= 0:
+		return
+	for i in range(count):
+		var projectile := PROJECTILE_SCENE.instantiate()
+		projectile.is_player_projectile = false
+		projectile.projectile_deactivated.connect(_on_projectile_deactivated)
+		_enemy_pool.append(projectile)
 
 func _activate_projectile_deferred(
 	projectile: Area2D,
@@ -176,3 +192,9 @@ func clear_all_projectiles() -> void:
 			projectile.deactivate()
 	
 	print("[ProjectileManager] All projectiles cleared")
+
+func get_active_player_projectile_count() -> int:
+	return _active_player_projectiles.size()
+
+func get_active_enemy_projectile_count() -> int:
+	return _active_enemy_projectiles.size()

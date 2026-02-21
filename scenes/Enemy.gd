@@ -22,6 +22,7 @@ var loot_chance: float = 0.1
 var death_asset: String = ""
 var death_anim: String = ""
 var loot_quality_multiplier: float = 1.0
+var _hit_sfx_path: String = ""
 
 # Movement
 var move_pattern_id: String = "straight_down"
@@ -47,12 +48,24 @@ var _path_reached_end: bool = false
 var _path_end_timer: float = 0.0
 const PATH_END_DESPAWN_DELAY: float = 0.5  # Grace period before despawn after path ends
 const OFFSCREEN_MARGIN: float = 120.0
+const RESOURCE_PATH_TOP_SPAWN_MARGIN: float = 260.0
 
 # Fluid trail
 var _fluid_id: String = ""
 
-const DEBUG_MOVE_PATTERN_LOG := true
+const DEBUG_MOVE_PATTERN_LOG := false
+const DEBUG_ASSET_LOAD_LOG := true
+const DEBUG_SETUP_COST_LOG := false
+const DEBUG_SETUP_COST_THRESHOLD_MS := 4.0
+const RESOURCE_CURVE_CACHE_MAX: int = 256
+const STRONG_RESOURCE_CACHE_MAX: int = 512
 static var _logged_patterns: Dictionary = {}  # pattern_id -> true (log une seule fois par pattern)
+static var _resource_curve_cache: Dictionary = {}  # key -> Curve2D (post-fit, reusable)
+static var _resource_curve_length_cache: Dictionary = {}  # key -> baked length (float)
+static var _strong_resource_cache: Dictionary = {}  # path -> Resource
+static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
+static var _enemy_health_bar_config_loaded: bool = false
+static var _enemy_health_bar_config_cache: Dictionary = {}
 
 # Shooting
 var missile_pattern_id: String = "single_straight"
@@ -60,12 +73,14 @@ var missile_id: String = "missile_default"
 var fire_rate: float = 2.0
 var _fire_timer: float = 0.0
 var _missile_pattern_data: Dictionary = {}
+var _missile_data_cache: Dictionary = {}
 
 # Shared ability: mine spawner (minefreak)
 const MINE_SCENE = preload("res://scenes/objects/Mine.tscn")
 const ARCANE_ORB_SCENE = preload("res://scenes/objects/ArcaneOrb.tscn")
 const GRAVITY_WELL_SCENE = preload("res://scenes/objects/GravityWell.tscn")
 const SUPPRESSOR_SHIELD_SCENE = preload("res://scenes/objects/SuppressorShield.tscn")
+const LOOT_DROP_SCENE: PackedScene = preload("res://scenes/LootDrop.tscn")
 var _minefreak_enabled: bool = false
 var _minefreak_visuals: Dictionary = {}
 var _minefreak_ability_config: Dictionary = {}
@@ -79,10 +94,13 @@ var _suppressor_enabled: bool = false
 var _suppressor_visuals: Dictionary = {}
 var _suppressor_ability_config: Dictionary = {}
 var _suppressor_shield: Area2D = null
+var _game_controller_cache: Node = null
 
 # Visual
 @onready var visual_container: Node2D = $Visual
 @onready var shape_visual: Polygon2D = $Visual/Shape
+@onready var sprite_visual: Sprite2D = $Visual/Sprite2D
+@onready var animated_visual: AnimatedSprite2D = $Visual/AnimatedSprite2D
 @onready var health_bar: ProgressBar = $HealthBar
 @onready var collision: CollisionShape2D = $CollisionShape2D
 var path_2d: Path2D = null
@@ -97,6 +115,11 @@ var _aura_exposure_time: float = 0.0 # Time spent in player aura (for Deep Freez
 var _is_poisoned: bool = false
 var _freeze_mark_node: Node2D = null
 var path_follow: PathFollow2D = null
+var _health_bar_fill_style: StyleBoxFlat = null
+var _health_bar_background_style: StyleBoxFlat = null
+var _health_bar_color_high: Color = Color.GREEN
+var _health_bar_color_mid: Color = Color.YELLOW
+var _health_bar_color_low: Color = Color.RED
 
 # TODO: Remplacer par Sprite2D
 # @onready var sprite: Sprite2D = $Sprite2D
@@ -106,6 +129,10 @@ var path_follow: PathFollow2D = null
 # =============================================================================
 
 func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: String = "") -> void:
+	var t0_usec: int = 0
+	if DEBUG_SETUP_COST_LOG:
+		t0_usec = Time.get_ticks_usec()
+
 	enemy_id = str(enemy_data.get("id", "unknown"))
 	enemy_name = str(enemy_data.get("name", "Enemy"))
 	max_hp = int(enemy_data.get("hp", 50) * stat_multiplier)  # Scaling HP
@@ -116,7 +143,11 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	
 	# Movement pattern
 	move_pattern_id = str(enemy_data.get("move_pattern_id", "straight_down"))
-	_move_pattern_data = DataManager.get_move_pattern(move_pattern_id)
+	var prebound_move_pattern: Variant = enemy_data.get("_move_pattern_data", {})
+	if prebound_move_pattern is Dictionary and not (prebound_move_pattern as Dictionary).is_empty():
+		_move_pattern_data = prebound_move_pattern as Dictionary
+	else:
+		_move_pattern_data = DataManager.get_move_pattern(move_pattern_id)
 	var base_pattern_speed: float = float(_move_pattern_data.get("speed", 100.0))
 	var enemy_speed_mult: float = float(enemy_data.get("base_speed", 1.0))
 	move_speed = base_pattern_speed * maxf(enemy_speed_mult, 0.0)
@@ -126,16 +157,29 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	missile_pattern_id = str(enemy_data.get("missile_pattern_id", "single_straight"))
 	missile_id = str(enemy_data.get("missile_id", "missile_default"))
 	_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
+	_missile_data_cache = DataManager.get_missile(missile_id)
 	fire_rate = float(enemy_data.get("fire_rate", 2.0))
 	_fluid_id = str(enemy_data.get("fluid_id", ""))
+	var t_data_bound_usec: int = 0
+	if DEBUG_SETUP_COST_LOG:
+		t_data_bound_usec = Time.get_ticks_usec()
 	
 	# Visual setup
 	_setup_visual(enemy_data)
+	var t_visual_usec: int = 0
+	if DEBUG_SETUP_COST_LOG:
+		t_visual_usec = Time.get_ticks_usec()
 	_setup_health_bar()
+	var t_health_usec: int = 0
+	if DEBUG_SETUP_COST_LOG:
+		t_health_usec = Time.get_ticks_usec()
 	
 	_start_position = global_position
 	_ensure_path_nodes()
 	setup_movement(_move_pattern_data)
+	var t_movement_usec: int = 0
+	if DEBUG_SETUP_COST_LOG:
+		t_movement_usec = Time.get_ticks_usec()
 	_fire_timer = randf_range(0, fire_rate)  # Random offset
 	
 	# Apply Modifier (Elite)
@@ -144,6 +188,26 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 		
 	if modifier_id != "":
 		EnemyModifiers.apply_modifier(self, modifier_id)
+
+	if DEBUG_SETUP_COST_LOG:
+		var t_end_usec: int = Time.get_ticks_usec()
+		var total_ms: float = float(t_end_usec - t0_usec) / 1000.0
+		if total_ms >= DEBUG_SETUP_COST_THRESHOLD_MS:
+			var bind_ms: float = float(t_data_bound_usec - t0_usec) / 1000.0
+			var visual_ms: float = float(t_visual_usec - t_data_bound_usec) / 1000.0
+			var health_ms: float = float(t_health_usec - t_visual_usec) / 1000.0
+			var movement_ms: float = float(t_movement_usec - t_health_usec) / 1000.0
+			var post_ms: float = float(t_end_usec - t_movement_usec) / 1000.0
+			print(
+				"[EnemySetup] total=", snappedf(total_ms, 0.1), "ms",
+				" bind=", snappedf(bind_ms, 0.1), "ms",
+				" visual=", snappedf(visual_ms, 0.1), "ms",
+				" health=", snappedf(health_ms, 0.1), "ms",
+				" movement=", snappedf(movement_ms, 0.1), "ms",
+				" post=", snappedf(post_ms, 0.1), "ms",
+				" enemy=", enemy_id,
+				" pattern=", move_pattern_id
+			)
 
 func _setup_visual(enemy_data: Dictionary) -> void:
 	var size_data: Variant = enemy_data.get("size", {"width": 30, "height": 30})
@@ -176,56 +240,71 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 	var use_asset: bool = false
 	
 	# Priority 1: AnimatedSprite (asset_anim)
-	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames: Resource = load(asset_anim)
+	if asset_anim != "":
+		var frames: Resource = _load_cached_resource(asset_anim, "asset_anim")
 		if frames is SpriteFrames:
 			use_asset = true
 			shape_visual.visible = false
 			
-			var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+			var anim_sprite: AnimatedSprite2D = animated_visual
 			if not anim_sprite:
 				anim_sprite = AnimatedSprite2D.new()
 				anim_sprite.name = "AnimatedSprite2D"
 				visual_container.add_child(anim_sprite)
+				animated_visual = anim_sprite
 			
 			anim_sprite.visible = true
-			var played_anim: StringName = VFXManager.play_sprite_frames(
-				anim_sprite,
-				frames as SpriteFrames,
-				&"default",
-				asset_anim_loop,
-				asset_anim_duration
-			)
+			var played_anim: StringName = &""
+			var frames_data: SpriteFrames = frames as SpriteFrames
+			var default_anim: StringName = VFXManager.get_first_animation_name(frames_data, &"default")
+			# Fast path for looping enemy visuals: skip generic playback wrapper.
+			if asset_anim_loop and asset_anim_duration <= 0.0 and default_anim != &"":
+				anim_sprite.sprite_frames = frames_data
+				anim_sprite.animation = default_anim
+				anim_sprite.speed_scale = 1.0
+				anim_sprite.frame = 0
+				anim_sprite.play(default_anim)
+				played_anim = default_anim
+			else:
+				played_anim = VFXManager.play_sprite_frames(
+					anim_sprite,
+					frames_data,
+					&"default",
+					asset_anim_loop,
+					asset_anim_duration
+				)
 			
 			# Scale
 			var frame_tex: Texture2D = null
 			if played_anim != &"" and anim_sprite.sprite_frames:
-				frame_tex = anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
+				frame_tex = _get_cached_first_frame_texture(anim_sprite.sprite_frames, played_anim)
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				anim_sprite.scale = Vector2(width / f_size.x, height / f_size.y) * 1.2
 				
 			# Hide static sprite
-			var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+			var sprite: Sprite2D = sprite_visual
 			if sprite: sprite.visible = false
 	
 	# Priority 2: Static Sprite (asset)
-	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
-		var texture = load(asset_path)
-		if texture:
+	if not use_asset and asset_path != "":
+		var texture_res: Resource = _load_cached_resource(asset_path, "asset")
+		if texture_res is Texture2D:
+			var texture: Texture2D = texture_res as Texture2D
 			use_asset = true
 			shape_visual.visible = false
 			
 			# Hide anim sprite
-			var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+			var anim_sprite: AnimatedSprite2D = animated_visual
 			if anim_sprite: anim_sprite.visible = false
 			
 			# Chercher ou créer le Sprite2D
-			var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+			var sprite: Sprite2D = sprite_visual
 			if not sprite:
 				sprite = Sprite2D.new()
 				sprite.name = "Sprite2D"
 				visual_container.add_child(sprite)
+				sprite_visual = sprite
 			
 			sprite.visible = true
 			sprite.texture = texture
@@ -240,10 +319,10 @@ func _setup_visual(enemy_data: Dictionary) -> void:
 		var color := Color(color_hex)
 		
 		# Cacher le sprite si existant
-		var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = sprite_visual
 		if sprite:
 			sprite.visible = false
-		var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+		var anim_sprite: AnimatedSprite2D = animated_visual
 		if anim_sprite: anim_sprite.visible = false
 			
 		shape_visual.visible = true
@@ -277,10 +356,18 @@ func get_contact_damage() -> int:
 	return int(dmg * _stat_multiplier)
 
 func _setup_health_bar() -> void:
+	var hp_bar_cfg: Dictionary = _get_enemy_health_bar_config()
+	var bar_width: float = maxf(1.0, float(hp_bar_cfg.get("width", 40.0)))
+	var bar_height: float = maxf(1.0, float(hp_bar_cfg.get("height", 8.0)))
+	var offset_x: float = float(hp_bar_cfg.get("offset_x", -bar_width * 0.5))
+	var offset_y: float = float(hp_bar_cfg.get("offset_y", -30.0))
+
 	health_bar.max_value = max_hp
 	health_bar.value = current_hp
-	health_bar.size = Vector2(40, 4)
-	health_bar.position = Vector2(-20, -30)
+	health_bar.size = Vector2(bar_width, bar_height)
+	health_bar.position = Vector2(offset_x, offset_y)
+	health_bar.show_percentage = false
+	_configure_enemy_health_bar_styles(hp_bar_cfg)
 	_update_health_bar_color()
 
 func apply_stat_multipliers(stats: Dictionary) -> void:
@@ -434,21 +521,22 @@ func setup_movement(pattern_data: Dictionary) -> void:
 	if _path_anchor_mode == "":
 		_path_anchor_mode = "viewport" if bool(pattern_data.get("fit_to_viewport", false)) else "spawn"
 
-	var curve := _resolve_curve(pattern_data)
+	var curve := _resolve_curve_with_cache(pattern_data)
 	if curve == null or curve.point_count < 2:
 		curve = _generate_fallback_path()
 		_path_loop = false
 		_path_rotate_to_path = false
-
-	if bool(pattern_data.get("fit_to_viewport", false)):
-		curve = _fit_curve_to_viewport(curve, pattern_data)
 
 	path_2d.curve = curve
 	_path_is_valid = (path_2d.curve != null and path_2d.curve.point_count >= 2)
 	if not _path_is_valid:
 		return
 
-	_path_length = maxf(path_2d.curve.get_baked_length(), 0.001)
+	var cached_pattern_length: float = _get_cached_resource_curve_length(pattern_data)
+	if cached_pattern_length > 0.0:
+		_path_length = cached_pattern_length
+	else:
+		_path_length = maxf(path_2d.curve.get_baked_length(), 0.001)
 	var start_sample := _curve_start_point(path_2d.curve)
 	if _path_direction_sign < 0.0 and not _path_loop:
 		start_sample = path_2d.curve.sample_baked(_path_length, true)
@@ -493,16 +581,143 @@ func _resolve_curve(pattern_data: Dictionary) -> Curve2D:
 	return _build_procedural_curve(pattern_data)
 
 func _load_curve_resource(resource_path: String) -> Curve2D:
-	if not ResourceLoader.exists(resource_path):
-		push_warning("[Enemy] Move pattern resource not found: " + resource_path)
-		return null
-
-	var resource := load(resource_path)
+	var resource: Resource = _load_cached_resource(resource_path, "move_curve")
 	if resource is Curve2D:
 		return (resource as Curve2D).duplicate()
 
-	push_warning("[Enemy] Resource is not a Curve2D: " + resource_path)
+	if resource == null:
+		push_warning("[Enemy] Move pattern resource not found: " + resource_path)
+	else:
+		push_warning("[Enemy] Resource is not a Curve2D: " + resource_path)
 	return null
+
+func _load_cached_resource(path: String, debug_label: String = "") -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var strong_cached: Variant = _strong_resource_cache[path]
+		if strong_cached is Resource:
+			if DEBUG_ASSET_LOAD_LOG:
+				print("[EnemyAsset] reused(strong) ", debug_label, " ", path)
+			return strong_cached as Resource
+	var was_cached: bool = ResourceLoader.has_cached(path)
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+			_first_frame_texture_cache.clear()
+		_strong_resource_cache[path] = resource
+	if DEBUG_ASSET_LOAD_LOG:
+		var state: String = "reused " if was_cached else "loaded "
+		print("[EnemyAsset] ", state, debug_label, " ", path)
+	return resource
+
+func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
+	if frames == null or anim_name == &"":
+		return null
+	var frame_key: String = _build_frame_cache_key(frames, anim_name)
+	if _first_frame_texture_cache.has(frame_key):
+		var cached: Variant = _first_frame_texture_cache[frame_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+
+	var texture: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if texture != null:
+		_first_frame_texture_cache[frame_key] = texture
+	return texture
+
+func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> String:
+	var path: String = frames.resource_path
+	if path == "":
+		path = "rid:" + str(frames.get_rid().get_id())
+	return path + "|" + String(anim_name)
+
+func _resolve_curve_with_cache(pattern_data: Dictionary) -> Curve2D:
+	var pattern_type: String = str(pattern_data.get("type", ""))
+	if pattern_type == "resource":
+		var cached: Curve2D = _get_cached_resource_curve(pattern_data)
+		if cached != null:
+			return cached
+
+	var curve := _resolve_curve(pattern_data)
+	if curve == null:
+		return null
+
+	if bool(pattern_data.get("fit_to_viewport", false)):
+		curve = _fit_curve_to_viewport(curve, pattern_data)
+	if _should_force_top_outside_spawn(pattern_data):
+		var top_margin: float = maxf(40.0, float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN)))
+		curve = _translate_curve_to_top_margin(curve, top_margin)
+	return curve
+
+func _get_cached_resource_curve(pattern_data: Dictionary) -> Curve2D:
+	var resource_path: String = str(pattern_data.get("path", pattern_data.get("resource", "")))
+	if resource_path == "":
+		return null
+
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var cache_key: String = _build_resource_curve_cache_key(pattern_data, viewport_size)
+	if _resource_curve_cache.has(cache_key):
+		var cached_variant: Variant = _resource_curve_cache[cache_key]
+		if cached_variant is Curve2D:
+			if not _resource_curve_length_cache.has(cache_key):
+				_resource_curve_length_cache[cache_key] = maxf((cached_variant as Curve2D).get_baked_length(), 0.001)
+			return cached_variant as Curve2D
+
+	var curve := _resolve_curve(pattern_data)
+	if curve == null:
+		return null
+
+	if bool(pattern_data.get("fit_to_viewport", false)):
+		curve = _fit_curve_to_viewport(curve, pattern_data)
+	if _should_force_top_outside_spawn(pattern_data):
+		var top_margin: float = maxf(40.0, float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN)))
+		curve = _translate_curve_to_top_margin(curve, top_margin)
+
+	if _resource_curve_cache.size() >= RESOURCE_CURVE_CACHE_MAX:
+		_resource_curve_cache.clear()
+		_resource_curve_length_cache.clear()
+	_resource_curve_cache[cache_key] = curve
+	_resource_curve_length_cache[cache_key] = maxf(curve.get_baked_length(), 0.001)
+	return curve
+
+func _get_cached_resource_curve_length(pattern_data: Dictionary) -> float:
+	var pattern_type: String = str(pattern_data.get("type", ""))
+	if pattern_type != "resource":
+		return -1.0
+
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var cache_key: String = _build_resource_curve_cache_key(pattern_data, viewport_size)
+	if _resource_curve_length_cache.has(cache_key):
+		return float(_resource_curve_length_cache[cache_key])
+	return -1.0
+
+func _build_resource_curve_cache_key(pattern_data: Dictionary, viewport_size: Vector2) -> String:
+	var resource_path: String = str(pattern_data.get("path", pattern_data.get("resource", "")))
+	var path_anchor: String = str(pattern_data.get("path_anchor", ""))
+	if path_anchor == "":
+		path_anchor = "viewport" if bool(pattern_data.get("fit_to_viewport", false)) else "spawn"
+	var fit: bool = bool(pattern_data.get("fit_to_viewport", false))
+	var fit_width_ratio: float = float(pattern_data.get("fit_width_ratio", 1.0))
+	var fit_height_ratio: float = float(pattern_data.get("fit_height_ratio", 1.0))
+	var fit_preserve_aspect: bool = bool(pattern_data.get("fit_preserve_aspect", false))
+	var fit_align_x: float = float(pattern_data.get("fit_align_x", 0.0))
+	var fit_align_y: float = float(pattern_data.get("fit_align_y", 0.0))
+	var top_margin: float = float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN))
+	var force_top: bool = _should_force_top_outside_spawn(pattern_data)
+	return (
+		resource_path + "|" +
+		str(int(viewport_size.x)) + "x" + str(int(viewport_size.y)) + "|" +
+		path_anchor + "|" +
+		("1" if fit else "0") + "|" +
+		str(snappedf(fit_width_ratio, 0.001)) + "|" +
+		str(snappedf(fit_height_ratio, 0.001)) + "|" +
+		("1" if fit_preserve_aspect else "0") + "|" +
+		str(snappedf(fit_align_x, 0.001)) + "|" +
+		str(snappedf(fit_align_y, 0.001)) + "|" +
+		("1" if force_top else "0") + "|" +
+		str(snappedf(top_margin, 0.1))
+	)
 
 func _build_proc_curve(proc_func: String, pattern_data: Dictionary) -> Curve2D:
 	match proc_func:
@@ -764,6 +979,41 @@ func _fit_curve_to_viewport(curve: Curve2D, pattern_data: Dictionary) -> Curve2D
 
 	return result
 
+func _should_force_top_outside_spawn(pattern_data: Dictionary) -> bool:
+	if _path_anchor_mode != "viewport":
+		return false
+
+	var force_outside_top: bool = bool(pattern_data.get("force_spawn_outside_top", true))
+	if not force_outside_top:
+		return false
+
+	var pattern_type: String = str(pattern_data.get("type", ""))
+	if pattern_type == "resource":
+		return true
+
+	var resource_path: String = str(pattern_data.get("path", pattern_data.get("resource", ""))).to_lower()
+	return resource_path.ends_with(".tres") or resource_path.ends_with(".res")
+
+func _translate_curve_to_top_margin(curve: Curve2D, top_margin: float) -> Curve2D:
+	if curve == null or curve.point_count <= 0:
+		return curve
+
+	var start_point: Vector2 = _curve_start_point(curve)
+	var target_start_y: float = -absf(top_margin)
+	var delta: Vector2 = Vector2(0.0, target_start_y - start_point.y)
+	if absf(delta.y) <= 0.001:
+		return curve
+
+	var translated := Curve2D.new()
+	var point_count: int = curve.point_count
+	for i in range(point_count):
+		var pos: Vector2 = curve.get_point_position(i) + delta
+		var in_handle: Vector2 = curve.get_point_in(i)
+		var out_handle: Vector2 = curve.get_point_out(i)
+		translated.add_point(pos, in_handle, out_handle)
+
+	return translated
+
 func _get_curve_bounds(curve: Curve2D) -> Rect2:
 	var point_count: int = curve.point_count
 	if point_count <= 0:
@@ -1008,7 +1258,7 @@ func _fire_single_wave() -> void:
 	var spawn_strategy: String = str(_missile_pattern_data.get("spawn_strategy", "shooter"))
 
 	# Injecter les data visuelles du missile et override speed
-	var missile_data := DataManager.get_missile(missile_id)
+	var missile_data: Dictionary = _missile_data_cache
 	var visual_data: Dictionary = missile_data.get("visual", {})
 	if not visual_data.is_empty():
 		_missile_pattern_data["visual_data"] = visual_data
@@ -1016,6 +1266,12 @@ func _fire_single_wave() -> void:
 	# Inject acceleration from missile
 	var acceleration: float = float(missile_data.get("acceleration", 0.0))
 	_missile_pattern_data["acceleration"] = acceleration
+
+	# Optional homing lock duration override from missile data.
+	if not _missile_pattern_data.has("homing_duration"):
+		var homing_duration: float = float(missile_data.get("homing_duration", -1.0))
+		if homing_duration >= 0.0:
+			_missile_pattern_data["homing_duration"] = homing_duration
 	
 	# Inject explosion data from missile (individual) or use default
 	var missile_explosion: Dictionary = missile_data.get("explosion", {})
@@ -1364,10 +1620,11 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 	# Play SFX (Enemy Hit)
 	# Check if we should play every hit? Maybe limit frequency or only critical?
 	# For now playing on every hit.
-	var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
-	var sfx_path = str(sfx_config.get("enemy", ""))
-	if sfx_path != "":
-		AudioManager.play_sfx(sfx_path, 0.2)
+	if _hit_sfx_path == "":
+		var sfx_config = DataManager.get_game_data().get("gameplay", {}).get("sfx", {}).get("collisions", {})
+		_hit_sfx_path = str(sfx_config.get("enemy", ""))
+	if _hit_sfx_path != "":
+		AudioManager.play_sfx(_hit_sfx_path, 0.2)
 	
 	# Feedback visuel
 	var flash_color := Color.WHITE
@@ -1414,53 +1671,92 @@ func die() -> void:
 	VFXManager.screen_shake(3, 0.2)
 	
 	# --- LOOT DROP LOGIC ---
-	# Config: Chance of Equipment vs PowerUp
-	# Let's say: 10% base chance for ANY loot.
-	# If loot drops: 20% Equipment, 80% PowerUp? Or separate rolls?
-	# Implementation: Separate rolls.
-	
-	# 1. Equipment (LootGenerator)
-	# Chance based on enemy strength/type?
-	# Using loot_chance * loot_quality_multiplier for Equipment
+	# Single decision path: max 1 drop per enemy death.
 	var utility_bonuses: Dictionary = SkillManager.get_utility_bonuses()
 	var drop_rate_bonus: float = float(utility_bonuses.get("drop_rate_bonus", 0.0))
 	var drop_multiplier: float = maxf(0.0, 1.0 + drop_rate_bonus)
-	var equipment_drop_chance: float = clampf((loot_chance * 0.5) * drop_multiplier, 0.0, 1.0)
-	if randf() <= equipment_drop_chance: # Halve chance for equipment to balance
-		var level: int = 1
-		if App: level = App.current_level_index + 1
-		
-		var item: LootItem = LootGenerator.generate_loot(level, "", "", loot_quality_multiplier)
-		if item:
-			var drop_scene = load("res://scenes/LootDrop.tscn")
-			if drop_scene:
-				var drop = drop_scene.instantiate()
-				get_parent().call_deferred("add_child", drop)
-				drop.call_deferred("setup", item.to_dict(), global_position)
-	
-	# 2. PowerUps (Shield / Rapid Fire)
-	# Using loot_chance for PowerUps
-	var powerup_drop_chance: float = clampf(loot_chance * drop_multiplier, 0.0, 1.0)
-	if randf() <= powerup_drop_chance:
-		_spawn_powerup()
+	var drop_data: Dictionary = _roll_enemy_drop(drop_multiplier)
+	if not drop_data.is_empty():
+		_spawn_loot_drop(drop_data)
 	
 	queue_free()
 
-func _spawn_powerup() -> void:
+func _roll_enemy_drop(drop_multiplier: float) -> Dictionary:
+	var rules: Dictionary = _get_loot_drop_rules()
+	if not bool(rules.get("enabled", true)):
+		return {}
+
+	var global_scale: float = maxf(0.0, float(rules.get("global_chance_scale", 1.0)))
+	var equipment_scale: float = maxf(0.0, float(rules.get("equipment_chance_scale", 0.5)))
+	var powerup_scale: float = maxf(0.0, float(rules.get("powerup_chance_scale", 1.0)))
+
+	var allow_equipment: bool = bool(rules.get("allow_equipment", true))
+	var allow_powerup: bool = bool(rules.get("allow_powerups", true))
+	var can_drop_powerup: bool = allow_powerup and _has_available_powerup_slot()
+
+	var equipment_drop_chance: float = 0.0
+	var powerup_drop_chance: float = 0.0
+	if allow_equipment:
+		equipment_drop_chance = clampf(loot_chance * equipment_scale * global_scale * drop_multiplier, 0.0, 1.0)
+	if can_drop_powerup:
+		powerup_drop_chance = clampf(loot_chance * powerup_scale * global_scale * drop_multiplier, 0.0, 1.0)
+
+	var total_chance: float = equipment_drop_chance + powerup_drop_chance
+	if total_chance <= 0.0:
+		return {}
+
+	var clamped_total_chance: float = clampf(total_chance, 0.0, 1.0)
+	if randf() > clamped_total_chance:
+		return {}
+
+	if equipment_drop_chance > 0.0 and powerup_drop_chance > 0.0:
+		var pick_roll: float = randf() * (equipment_drop_chance + powerup_drop_chance)
+		if pick_roll < equipment_drop_chance:
+			return _build_equipment_drop()
+		return _build_powerup_drop(rules)
+	if equipment_drop_chance > 0.0:
+		return _build_equipment_drop()
+	return _build_powerup_drop(rules)
+
+func _build_equipment_drop() -> Dictionary:
+	var level: int = 1
+	if App:
+		level = App.current_level_index + 1
+
+	var item: LootItem = LootGenerator.generate_loot(level, "", "", loot_quality_multiplier)
+	if item:
+		return item.to_dict()
+	return {}
+
+func _build_powerup_drop(rules: Dictionary = {}) -> Dictionary:
 	var gameplay_config = DataManager.get_game_data().get("gameplay", {}).get("power_ups", {})
 	if gameplay_config.is_empty():
-		return
+		return {}
 	
 	var shield_cfg: Dictionary = gameplay_config.get("shield", {})
 	var rapid_fire_cfg: Dictionary = gameplay_config.get("rapid_fire", {})
 
-	# Roll Type
-	# 50/50 split between Shield and Rapid Fire
-	var type_roll = randf()
-	var item_data: Dictionary = {}
-	
-	if type_roll < 0.5:
-		item_data = {
+	var can_shield: bool = _can_spawn_powerup_effect("shield")
+	var can_rapid: bool = _can_spawn_powerup_effect("fire_rate")
+	if not can_shield and not can_rapid:
+		return {}
+
+	var shield_weight: float = maxf(0.0, float(rules.get("shield_weight", 1.0)))
+	var rapid_weight: float = maxf(0.0, float(rules.get("rapid_fire_weight", 1.0)))
+
+	var pick_shield: bool = false
+	if can_shield and not can_rapid:
+		pick_shield = true
+	elif can_rapid and not can_shield:
+		pick_shield = false
+	else:
+		var total_weight: float = maxf(0.001, shield_weight + rapid_weight)
+		pick_shield = (randf() * total_weight) < shield_weight
+
+	if pick_shield:
+		if not _reserve_powerup_slot("shield"):
+			return {}
+		return {
 			"type": "powerup",
 			"effect": "shield",
 			"name": "Shield Module",
@@ -1468,32 +1764,153 @@ func _spawn_powerup() -> void:
 			"width": float(shield_cfg.get("width", 56.0)),
 			"height": float(shield_cfg.get("height", 56.0))
 		}
-	else:
-		item_data = {
-			"type": "powerup",
-			"effect": "fire_rate",
-			"name": "Rapid Fire",
-			"visual_asset": str(rapid_fire_cfg.get("asset", "")),
-			"width": float(rapid_fire_cfg.get("width", 56.0)),
-			"height": float(rapid_fire_cfg.get("height", 56.0))
-		}
-	
-	# Spawn Drop
-	var drop_scene = load("res://scenes/LootDrop.tscn")
-	if drop_scene:
-		var drop = drop_scene.instantiate()
-		get_parent().call_deferred("add_child", drop)
-		drop.call_deferred("setup", item_data, global_position)
+
+	if not _reserve_powerup_slot("fire_rate"):
+		return {}
+	return {
+		"type": "powerup",
+		"effect": "fire_rate",
+		"name": "Rapid Fire",
+		"visual_asset": str(rapid_fire_cfg.get("asset", "")),
+		"width": float(rapid_fire_cfg.get("width", 56.0)),
+		"height": float(rapid_fire_cfg.get("height", 56.0))
+	}
+
+func _spawn_loot_drop(item_data: Dictionary) -> void:
+	if item_data.is_empty():
+		return
+	if LOOT_DROP_SCENE == null:
+		return
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		return
+
+	var drop: Node = LOOT_DROP_SCENE.instantiate()
+	parent_node.call_deferred("add_child", drop)
+	drop.call_deferred("setup", item_data, global_position)
+
+func _get_loot_drop_rules() -> Dictionary:
+	var game_controller: Node = _get_game_controller()
+	if game_controller and game_controller.has_method("get_loot_drop_rules"):
+		var rules_variant: Variant = game_controller.call("get_loot_drop_rules")
+		if rules_variant is Dictionary:
+			return (rules_variant as Dictionary).duplicate(true)
+	var gameplay_cfg: Dictionary = DataManager.get_game_data().get("gameplay", {})
+	return gameplay_cfg.get("loot_drops", {})
+
+func _has_available_powerup_slot() -> bool:
+	return _can_spawn_powerup_effect("shield") or _can_spawn_powerup_effect("fire_rate")
+
+func _can_spawn_powerup_effect(effect: String) -> bool:
+	var game_controller: Node = _get_game_controller()
+	if game_controller and game_controller.has_method("can_spawn_powerup_drop"):
+		return bool(game_controller.call("can_spawn_powerup_drop", effect))
+	return true
+
+func _reserve_powerup_slot(effect: String) -> bool:
+	var game_controller: Node = _get_game_controller()
+	if game_controller and game_controller.has_method("try_reserve_powerup_drop"):
+		return bool(game_controller.call("try_reserve_powerup_drop", effect))
+	return true
+
+func _get_game_controller() -> Node:
+	if _game_controller_cache and is_instance_valid(_game_controller_cache):
+		return _game_controller_cache
+	var controllers: Array = get_tree().get_nodes_in_group("game_controller")
+	if controllers.is_empty():
+		return null
+	var controller: Variant = controllers[0]
+	if controller is Node:
+		_game_controller_cache = controller as Node
+		return _game_controller_cache
+	return null
 
 func _update_health_bar_color() -> void:
 	var hp_percent := float(current_hp) / float(max_hp)
-	
+	var target_fill_color: Color = _health_bar_color_low
 	if hp_percent > 0.75:
-		health_bar.modulate = Color.GREEN
+		target_fill_color = _health_bar_color_high
 	elif hp_percent > 0.33:
-		health_bar.modulate = Color.YELLOW
+		target_fill_color = _health_bar_color_mid
+
+	if _health_bar_fill_style:
+		_health_bar_fill_style.bg_color = target_fill_color
+		health_bar.modulate = Color.WHITE
 	else:
-		health_bar.modulate = Color.RED
+		# Fallback in case style setup was skipped for any reason.
+		health_bar.modulate = target_fill_color
+
+func _configure_enemy_health_bar_styles(cfg: Dictionary) -> void:
+	if not health_bar:
+		return
+
+	if not (_health_bar_fill_style is StyleBoxFlat):
+		_health_bar_fill_style = StyleBoxFlat.new()
+	if not (_health_bar_background_style is StyleBoxFlat):
+		_health_bar_background_style = StyleBoxFlat.new()
+
+	var outline_px: int = maxi(0, int(cfg.get("outline_px", 1)))
+	var outline_color: Color = _parse_color_or_default(str(cfg.get("outline_color", "#000000")), Color.BLACK)
+	var background_color: Color = _parse_color_or_default(str(cfg.get("background_color", "#33000000")), Color(0.0, 0.0, 0.0, 0.2))
+	var corner_radius: int = maxi(0, int(cfg.get("corner_radius", 1)))
+
+	_health_bar_color_high = _parse_color_or_default(str(cfg.get("color_high", "#00FF00")), Color.GREEN)
+	_health_bar_color_mid = _parse_color_or_default(str(cfg.get("color_mid", "#FFFF00")), Color.YELLOW)
+	_health_bar_color_low = _parse_color_or_default(str(cfg.get("color_low", "#FF0000")), Color.RED)
+
+	_health_bar_fill_style.bg_color = _health_bar_color_high
+	_health_bar_fill_style.border_color = outline_color
+	_health_bar_fill_style.border_width_left = outline_px
+	_health_bar_fill_style.border_width_top = outline_px
+	_health_bar_fill_style.border_width_right = outline_px
+	_health_bar_fill_style.border_width_bottom = outline_px
+	_health_bar_fill_style.corner_radius_top_left = corner_radius
+	_health_bar_fill_style.corner_radius_top_right = corner_radius
+	_health_bar_fill_style.corner_radius_bottom_left = corner_radius
+	_health_bar_fill_style.corner_radius_bottom_right = corner_radius
+
+	_health_bar_background_style.bg_color = background_color
+	_health_bar_background_style.border_color = outline_color
+	_health_bar_background_style.border_width_left = outline_px
+	_health_bar_background_style.border_width_top = outline_px
+	_health_bar_background_style.border_width_right = outline_px
+	_health_bar_background_style.border_width_bottom = outline_px
+	_health_bar_background_style.corner_radius_top_left = corner_radius
+	_health_bar_background_style.corner_radius_top_right = corner_radius
+	_health_bar_background_style.corner_radius_bottom_left = corner_radius
+	_health_bar_background_style.corner_radius_bottom_right = corner_radius
+
+	health_bar.add_theme_stylebox_override("fill", _health_bar_fill_style)
+	health_bar.add_theme_stylebox_override("background", _health_bar_background_style)
+	health_bar.modulate = Color.WHITE
+
+static func _get_enemy_health_bar_config() -> Dictionary:
+	if _enemy_health_bar_config_loaded:
+		return _enemy_health_bar_config_cache
+
+	_enemy_health_bar_config_loaded = true
+	_enemy_health_bar_config_cache = {}
+
+	var game_data: Dictionary = DataManager.get_game_data()
+	if game_data.is_empty():
+		return _enemy_health_bar_config_cache
+
+	var gameplay_data: Variant = game_data.get("gameplay", {})
+	if not (gameplay_data is Dictionary):
+		return _enemy_health_bar_config_cache
+
+	var bar_cfg: Variant = (gameplay_data as Dictionary).get("enemy_health_bar", {})
+	if bar_cfg is Dictionary:
+		_enemy_health_bar_config_cache = (bar_cfg as Dictionary).duplicate(true)
+
+	return _enemy_health_bar_config_cache
+
+func _parse_color_or_default(color_value: String, fallback: Color) -> Color:
+	if color_value == "":
+		return fallback
+	if Color.html_is_valid(color_value):
+		return Color.html(color_value)
+	return fallback
 
 # =============================================================================
 # STATUS EFFECTS

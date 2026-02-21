@@ -1,243 +1,124 @@
 {
 	"enemies": [
 		{
-			"id": "scout_basic",
-			"name": "Éclaireur",
-			"hp": 70,
+			"id": "swarmer",
+			"name": "Essaimeur",
+			"hp": 230,
 			"size": {
-				"width": 45,
-				"height": 75
+				"width": 64,
+				"height": 64
 			},
 			"visual": {
 				"color": "#FF4444",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/voidoss.tres",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "enter_hover_leave",
-			"base_speed": 4.0,
-			"missile_pattern_id": "single_straight",
-			"missile_id": "missile_default",
-			"fire_rate": 5.2,
-			"score": 10,
-			"loot_chance": 0.1
-		},
-		{
-			"id": "fighter_aggressive",
-			"name": "Chasseur",
-			"hp": 120,
-			"size": {
-				"width": 35,
-				"height": 35
-			},
-			"visual": {
-				"color": "#FF2222",
-				"shape": "triangle",
-				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "figure_eight",
-			"base_speed": 2.0,
-			"missile_pattern_id": "aimed_player",
-			"missile_id": "missile_default",
-			"fire_rate": 1.5,
-			"score": 25,
-			"loot_chance": 0.15
-		},
-		{
-			"id": "bomber_heavy",
-			"name": "Bombardier",
-			"hp": 160,
-			"size": {
-				"width": 45,
-				"height": 40
-			},
-			"visual": {
-				"color": "#DD3333",
-				"shape": "rectangle",
-				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "straight_down",
-			"base_speed": 1.0,
-			"missile_pattern_id": "burst_5",
-			"missile_id": "missile_default",
-			"fire_rate": 3.0,
-			"score": 40,
-			"loot_chance": 0.2
-		},
-		{
-			"id": "spinner_circular",
-			"name": "Virevoltant",
-			"hp": 30,
-			"size": {
-				"width": 32,
-				"height": 32
-			},
-			"visual": {
-				"color": "#FF6644",
-				"shape": "circle",
-				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "circle_clockwise",
-			"base_speed": 1.0,
-			"missile_pattern_id": "circle_8",
-			"missile_id": "missile_default",
-			"fire_rate": 4.0,
-			"score": 50,
-			"loot_chance": 0.25
-		},
-		{
-			"id": "sniper_precise",
-			"name": "Tireur d'élite",
-			"hp": 25,
-			"size": {
-				"width": 28,
-				"height": 28
-			},
-			"visual": {
-				"color": "#FF8844",
-				"shape": "diamond",
-				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "random_strafe",
-			"base_speed": 1.0,
-			"missile_pattern_id": "aimed_player",
-			"missile_id": "missile_default",
-			"fire_rate": 2.5,
-			"score": 35,
-			"loot_chance": 0.18
-		},
-		{
-			"id": "tank_armored",
-			"name": "Tank blindé",
-			"hp": 100,
-			"size": {
-				"width": 50,
-				"height": 45
-			},
-			"visual": {
-				"color": "#CC2222",
-				"shape": "rectangle",
-				"asset": "res://assets/enemies/ennemy.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "straight_down",
-			"base_speed": 1.0,
-			"missile_pattern_id": "cone_forward",
-			"missile_id": "missile_default",
-			"fire_rate": 2.0,
-			"score": 60,
-			"loot_chance": 0.3
-		},
-		{
-			"id": "drone_fast",
-			"name": "Drone rapide",
-			"hp": 15,
-			"size": {
-				"width": 25,
-				"height": 25
-			},
-			"visual": {
-				"color": "#FF5555",
-				"shape": "circle",
-				"asset": "",
-				"asset_anim": "",
+				"asset_anim": "res://assets/enemies/forest/forest_swarmer.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "rush_player",
-			"base_speed": 1.0,
-			"missile_pattern_id": "double_side",
+			"base_speed": 4.0,
+			"missile_pattern_id": "single_straight",
 			"missile_id": "missile_default",
-			"fire_rate": 1.0,
-			"score": 20,
-			"loot_chance": 0.12
+			"fire_rate": 3.0,
+			"score": 10,
+			"loot_chance": 0.1
 		},
 		{
-			"id": "artillery_stationary",
-			"name": "Artillerie",
-			"hp": 80,
+			"id": "fighter",
+			"name": "Combattant",
+			"hp": 380,
 			"size": {
-				"width": 40,
-				"height": 40
+				"width": 70,
+				"height": 70
+			},
+			"visual": {
+				"color": "#FF8844",
+				"shape": "triangle",
+				"asset": "",
+				"asset_anim": "res://assets/enemies/forest/forest_fighter.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"move_pattern_id": "figure_eight",
+			"base_speed": 2.5,
+			"missile_pattern_id": "aimed_player",
+			"missile_id": "missile_default",
+			"fire_rate": 2.0,
+			"score": 25,
+			"loot_chance": 0.15
+		},
+		{
+			"id": "tank",
+			"name": "Blindé",
+			"hp": 700,
+			"size": {
+				"width": 90,
+				"height": 90
+			},
+			"visual": {
+				"color": "#CC2222",
+				"shape": "square",
+				"asset": "",
+				"asset_anim": "res://assets/enemies/forest/forest_tank.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			},
+			"move_pattern_id": "straight_down",
+			"base_speed": 1.0,
+			"missile_pattern_id": "aimed_player",
+			"missile_id": "missile_default",
+			"fire_rate": 1.5,
+			"score": 50,
+			"loot_chance": 0.25
+		},
+		{
+			"id": "artillery",
+			"name": "Artillerie",
+			"hp": 300,
+			"size": {
+				"width": 70,
+				"height": 70
 			},
 			"visual": {
 				"color": "#AA2222",
 				"shape": "hexagon",
 				"asset": "",
-				"asset_anim": "",
+				"asset_anim": "res://assets/enemies/forest/forest_artillery.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "stationary",
-			"base_speed": 1.0,
+			"base_speed": 0.0,
 			"missile_pattern_id": "spiral_continuous",
 			"missile_id": "missile_default",
-			"fire_rate": 0.5,
-			"score": 70,
-			"loot_chance": 0.35
+			"fire_rate": 1.0,
+			"score": 40,
+			"loot_chance": 0.2
 		},
 		{
-			"id": "interceptor_diagonal",
-			"name": "Intercepteur",
-			"hp": 35,
+			"id": "elite",
+			"name": "Élite",
+			"hp": 1000,
 			"size": {
-				"width": 33,
-				"height": 30
+				"width": 100,
+				"height": 100
 			},
 			"visual": {
-				"color": "#FF3344",
-				"shape": "triangle",
+				"color": "#880000",
+				"shape": "diamond",
 				"asset": "",
-				"asset_anim": "",
+				"asset_anim": "res://assets/enemies/forest/forest_elite.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
-			"move_pattern_id": "bezier_curve",
-			"base_speed": 1.0,
+			"move_pattern_id": "random_strafe",
+			"base_speed": 1.2,
 			"missile_pattern_id": "homing_barrage",
 			"missile_id": "missile_homing",
-			"fire_rate": 1.2,
-			"score": 30,
-			"loot_chance": 0.16
-		},
-		{
-			"id": "bouncer_erratic",
-			"name": "Rebondisseur",
-			"hp": 45,
-			"size": {
-				"width": 38,
-				"height": 38
-			},
-			"visual": {
-				"color": "#EE4444",
-				"shape": "circle",
-				"asset": "",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"move_pattern_id": "bounce_horizontal",
-			"base_speed": 1.0,
-			"missile_pattern_id": "wave_pattern",
-			"fire_rate": 1.8,
-			"score": 45,
-			"loot_chance": 0.22
+			"fire_rate": 1,
+			"score": 100,
+			"loot_chance": 0.4
 		}
 	]
 }

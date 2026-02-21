@@ -19,6 +19,8 @@ extends Area2D
 
 var _time_alive: float = 0.0
 var _next_damage_time_msec: int = 0
+const STRONG_RESOURCE_CACHE_MAX: int = 128
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 @onready var orb_sprite: Sprite2D = $Orb
 @onready var orb_collision: CollisionShape2D = $CollisionShape2D
@@ -55,8 +57,8 @@ func _process(delta: float) -> void:
 func _setup_orb_visual() -> void:
 	var tex: Texture2D = null
 	var frames: SpriteFrames = null
-	if ability_asset != "" and ResourceLoader.exists(ability_asset):
-		var res = load(ability_asset)
+	if ability_asset != "":
+		var res: Resource = _load_cached_resource(ability_asset)
 		if res is SpriteFrames:
 			frames = res as SpriteFrames
 		elif res is Texture2D:
@@ -85,8 +87,8 @@ func _setup_laser() -> void:
 	
 	var tex: Texture2D = null
 	var frames: SpriteFrames = null
-	if laser_asset != "" and ResourceLoader.exists(laser_asset):
-		var res = load(laser_asset)
+	if laser_asset != "":
+		var res: Resource = _load_cached_resource(laser_asset)
 		if res is SpriteFrames:
 			frames = res as SpriteFrames
 		elif res is Texture2D:
@@ -245,3 +247,17 @@ func _get_centering_offset(texture_size: Vector2i, used_rect: Rect2) -> Vector2:
 	var texture_center := Vector2(texture_size) * 0.5
 	var used_center := used_rect.position + used_rect.size * 0.5
 	return texture_center - used_center
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

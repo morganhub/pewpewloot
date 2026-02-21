@@ -179,6 +179,16 @@ func _sanitize_inventory_entries(raw_inventory: Variant) -> Dictionary:
 		var item_id: String = str(item.get("id", "")).strip_edges()
 		var is_unique: bool = bool(item.get("is_unique", false))
 		var unique_template_id: String = str(item.get("unique_template_id", "")).strip_edges()
+		
+		# Migration: legacy "upgrade" field -> canonical "level" field.
+		if not item.has("level"):
+			item["level"] = maxi(1, int(item.get("upgrade", 0)) + 1)
+			changed = true
+		else:
+			var clamped_level := maxi(1, int(item.get("level", 1)))
+			if clamped_level != int(item.get("level", 1)):
+				item["level"] = clamped_level
+				changed = true
 
 		# Backward-compat: old unique instances used the base unique ID as item ID.
 		if is_unique and unique_template_id == "":
@@ -186,6 +196,60 @@ func _sanitize_inventory_entries(raw_inventory: Variant) -> Dictionary:
 				unique_template_id = item_id
 				item["unique_template_id"] = unique_template_id
 				changed = true
+
+		# Sanitize stats: remove zero-value vestiges and enforce a minimum stat.
+		var stats_raw: Variant = item.get("stats", {})
+		var cleaned_stats: Dictionary = {}
+		if stats_raw is Dictionary:
+			for raw_key in (stats_raw as Dictionary).keys():
+				var key: String = str(raw_key)
+				var value: float = float((stats_raw as Dictionary).get(raw_key, 0.0))
+				if absf(value) < 0.001:
+					continue
+				cleaned_stats[key] = value
+
+		if cleaned_stats.is_empty() and is_unique:
+			var template_id_for_stats: String = unique_template_id if unique_template_id != "" else item_id
+			var template_unique: Dictionary = DataManager.get_unique(template_id_for_stats)
+			var template_stats: Variant = template_unique.get("stats", {})
+			if template_stats is Dictionary:
+				var copied_count: int = 0
+				for raw_key in (template_stats as Dictionary).keys():
+					if copied_count >= 6:
+						break
+					var key: String = str(raw_key)
+					var value: float = float((template_stats as Dictionary).get(raw_key, 0.0))
+					if absf(value) < 0.001:
+						continue
+					cleaned_stats[key] = value
+					copied_count += 1
+
+		if cleaned_stats.is_empty():
+			cleaned_stats["power"] = 1.0
+
+		if item.get("stats", {}) != cleaned_stats:
+			item["stats"] = cleaned_stats
+			changed = true
+
+		# Enforce unique -> unique power linkage.
+		if is_unique:
+			var power_id: String = str(item.get("unique_power_id", item.get("special_ability_id", ""))).strip_edges()
+			if power_id == "":
+				var template_id_for_power: String = unique_template_id if unique_template_id != "" else item_id
+				var template_unique_power: Dictionary = DataManager.get_unique(template_id_for_power)
+				power_id = str(template_unique_power.get("unique_power_id", template_unique_power.get("special_ability_id", ""))).strip_edges()
+			if power_id == "" or DataManager.get_unique_power(power_id).is_empty():
+				if DataManager.has_method("get_unique_power_ids"):
+					var available_power_ids: Array = DataManager.get_unique_power_ids()
+					if available_power_ids.size() > 0:
+						power_id = str(available_power_ids[0])
+			if power_id != "":
+				if str(item.get("unique_power_id", "")) != power_id:
+					item["unique_power_id"] = power_id
+					changed = true
+				if str(item.get("special_ability_id", "")) != power_id:
+					item["special_ability_id"] = power_id
+					changed = true
 
 		if item_id == "":
 			item_id = _generate_inventory_instance_id("item_instance", used_ids)
@@ -706,14 +770,31 @@ func upgrade_item(item_id: String) -> bool:
 			stats[key] = ceil(val * multiplier)
 	
 	# Update globally
-	var inv := get_inventory()
+	return apply_item_upgrade(item_id, current_level + 1, stats)
+
+## Applique un upgrade déjà calculé (niveau + stats) et persiste l'inventaire.
+## Utilisé par ShipMenu qui gère ses propres animations/tiers.
+func apply_item_upgrade(item_id: String, new_level: int, new_stats: Dictionary) -> bool:
+	if item_id.strip_edges() == "":
+		return false
+
+	var inv: Array = get_inventory().duplicate(true)
 	for i in range(inv.size()):
-		if inv[i] is Dictionary and str(inv[i].get("id", "")) == item_id:
-			inv[i]["level"] = current_level + 1
-			inv[i]["stats"] = stats
-			_update_active_profile("inventory", inv)
-			return true
-	
+		var entry: Variant = inv[i]
+		if not (entry is Dictionary):
+			continue
+
+		var item_dict := entry as Dictionary
+		if str(item_dict.get("id", "")) != item_id:
+			continue
+
+		var updated := item_dict.duplicate(true)
+		updated["level"] = maxi(1, new_level)
+		updated["stats"] = new_stats.duplicate(true)
+		inv[i] = updated
+		_update_active_profile("inventory", inv)
+		return true
+
 	return false
 
 
@@ -847,6 +928,8 @@ func get_available_unique_powers(ship_id: String) -> Array:
 		var power_id: String = str(item.get("unique_power_id", ""))
 		if power_id == "":
 			power_id = str(item.get("special_ability_id", ""))
+		if power_id != "" and DataManager.get_unique_power(power_id).is_empty():
+			power_id = ""
 		# Fallback: Check base unique definition in DataManager
 		if power_id == "":
 			var template_id: String = str(item.get("unique_template_id", ""))
@@ -854,7 +937,9 @@ func get_available_unique_powers(ship_id: String) -> Array:
 				template_id = item_id
 			var base_unique := DataManager.get_unique(template_id)
 			if not base_unique.is_empty():
-				power_id = str(base_unique.get("unique_power_id", ""))
+				power_id = str(base_unique.get("unique_power_id", base_unique.get("special_ability_id", "")))
+				if power_id != "" and DataManager.get_unique_power(power_id).is_empty():
+					power_id = ""
 		
 		if power_id != "" and not powers.has(power_id):
 			powers.append(power_id)
@@ -879,6 +964,10 @@ func get_active_unique_power(ship_id: String) -> String:
 
 ## Défini l'Unique Power actif
 func set_active_unique_power(ship_id: String, power_id: String) -> void:
+	var available: Array = get_available_unique_powers(ship_id)
+	if power_id != "" and not available.has(power_id):
+		return
+
 	var profile := get_active_profile()
 	var loadouts: Variant = profile.get("loadouts", {})
 	var loadouts_dict: Dictionary = {}

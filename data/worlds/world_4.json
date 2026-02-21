@@ -3,6 +3,11 @@
 	"name": "Fournaise",
 	"description": "Un monde volcanique en perpétuelle éruption où la lave coule sans fin entre les roches ardentes.",
 	"order": 4,
+	"skin_overrides": {
+		"enemies": {},
+		"bosses": {},
+		"obstacles": {}
+	},
 	"multipliers": {
 		"hp": 4.0,
 		"damage": 3.0,
@@ -36,54 +41,59 @@
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 3,
+					"enemy_id": "fighter",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 12.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 3,
+					"time": 10.7,
+					"enemy_id": "tank",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 21.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 3,
+					"time": 18.4,
+					"enemy_id": "elite",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 30.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 4,
+					"time": 26.1,
+					"type": "obstacle",
+					"obstacle_id": "energy_barrier",
+					"pattern": "gates",
+					"duration": 15.0,
+					"speed": 150,
+					"gap_width": 200,
+					"row_interval": 2.0
+				},
+				{
+					"time": 33.9,
+					"enemy_id": "tank",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 39.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 4,
+					"time": 41.6,
+					"enemy_id": "swarmer",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 48.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 4,
+					"time": 49.3,
+					"enemy_id": "artillery",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
-			"events": []
+			"events": [],
+			"boss_id": "boss_lava_1"
 		},
 		{
 			"index": 1,
@@ -107,70 +117,89 @@
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 4,
+					"enemy_id": "elite",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 12.2,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 4,
+					"time": 10.4,
+					"enemy_id": "artillery",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 21.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 4,
+					"time": 17.8,
+					"enemy_id": "artillery",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 30.8,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 5,
+					"time": 25.2,
+					"type": "obstacle",
+					"obstacle_id": "metal_wall",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 150,
+					"gap_width": 200,
+					"row_interval": 1.5
+				},
+				{
+					"time": 32.6,
+					"enemy_id": "tank",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 40.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 5,
+					"enemy_id": "swarmer",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 49.2,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 5,
+					"time": 47.4,
+					"enemy_id": "swarmer",
+					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 58.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 54.8,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_large",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 130,
+					"gap_width": 200,
+					"row_interval": 2.0,
+					"drift_speed": 8,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 62.2,
+					"enemy_id": "fighter",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 67.8,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 69.6,
+					"enemy_id": "swarmer",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
-			"events": []
+			"events": [],
+			"boss_id": "boss_lava_2"
 		},
 		{
 			"index": 2,
@@ -194,86 +223,119 @@
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 5,
+					"enemy_id": "artillery",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 12.4,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 5,
+					"time": 10.2,
+					"enemy_id": "elite",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 21.8,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 5,
+					"time": 17.5,
+					"enemy_id": "artillery",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 31.2,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 24.7,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_large",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 130,
+					"gap_width": 200,
+					"row_interval": 2.0,
+					"drift_speed": 8,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 31.9,
+					"enemy_id": "swarmer",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 40.6,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 39.2,
+					"enemy_id": "fighter",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 50.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 46.4,
+					"enemy_id": "swarmer",
+					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 59.4,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 53.6,
+					"type": "obstacle",
+					"obstacle_id": "planet_medium",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 90,
+					"gap_width": 260,
+					"row_interval": 2.5
+				},
+				{
+					"time": 60.8,
+					"enemy_id": "swarmer",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 68.8,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 68.1,
+					"enemy_id": "tank",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 78.2,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 75.3,
+					"enemy_id": "elite",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 87.6,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"time": 82.5,
+					"type": "obstacle",
+					"obstacle_id": "planet_small",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 110,
+					"gap_width": 220,
+					"row_interval": 2.0,
+					"drift_speed": 12,
+					"drift_directions": [
+						"S",
+						"SW",
+						"SE"
+					]
+				},
+				{
+					"time": 89.8,
+					"enemy_id": "fighter",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
-			"events": []
+			"events": [],
+			"boss_id": "boss_lava_3"
 		},
 		{
 			"index": 3,
@@ -297,102 +359,139 @@
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"enemy_id": "swarmer",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 12.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 10.6,
+					"enemy_id": "artillery",
+					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 22.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 6,
+					"time": 18.2,
+					"enemy_id": "swarmer",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 31.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 25.8,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_large",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 130,
+					"gap_width": 200,
+					"row_interval": 2.0,
+					"drift_speed": 8,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 33.4,
+					"enemy_id": "artillery",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 41.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"enemy_id": "swarmer",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 50.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 48.6,
+					"enemy_id": "swarmer",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 60.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"time": 56.2,
+					"type": "obstacle",
+					"obstacle_id": "planet_large",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 70,
+					"gap_width": 300,
+					"row_interval": 3.0,
+					"drift_speed": 5,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 63.8,
+					"enemy_id": "artillery",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 69.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"time": 71.4,
+					"enemy_id": "tank",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 79.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"enemy_id": "fighter",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 88.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
+					"time": 86.6,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_small",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 250,
+					"gap_width": 130,
+					"row_interval": 0.6,
+					"drift_speed": 25,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 94.2,
+					"enemy_id": "fighter",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 98.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
+					"time": 101.8,
+					"enemy_id": "tank",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 107.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
+					"time": 109.4,
+					"enemy_id": "artillery",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
-			"events": []
+			"events": [],
+			"boss_id": "boss_lava_4"
 		},
 		{
 			"index": 4,
@@ -416,118 +515,163 @@
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"enemy_id": "tank",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 12.6,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 10.4,
+					"enemy_id": "artillery",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 22.1,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 7,
+					"time": 17.9,
+					"enemy_id": "fighter",
+					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 31.7,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"time": 25.3,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_small",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 180,
+					"gap_width": 160,
+					"row_interval": 1.0,
+					"drift_speed": 15,
+					"drift_directions": [
+						"S",
+						"SW",
+						"SE"
+					]
+				},
+				{
+					"time": 32.8,
+					"enemy_id": "swarmer",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 41.3,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"time": 40.2,
+					"enemy_id": "elite",
+					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 50.9,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
+					"time": 47.7,
+					"enemy_id": "swarmer",
+					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 60.4,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
+					"time": 55.1,
+					"type": "obstacle",
+					"obstacle_id": "planet_medium",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 90,
+					"gap_width": 260,
+					"row_interval": 2.5
+				},
+				{
+					"time": 62.6,
+					"enemy_id": "elite",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 70.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
+					"enemy_id": "tank",
+					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 79.6,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 89.1,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 98.7,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 108.3,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 117.9,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
+					"time": 77.4,
+					"enemy_id": "tank",
 					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 127.4,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
+					"time": 84.9,
+					"type": "obstacle",
+					"obstacle_id": "planet_small",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 110,
+					"gap_width": 220,
+					"row_interval": 2.0,
+					"drift_speed": 12,
+					"drift_directions": [
+						"S",
+						"SW",
+						"SE"
+					]
+				},
+				{
+					"time": 92.3,
+					"enemy_id": "tank",
 					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 99.8,
+					"enemy_id": "artillery",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 107.2,
+					"enemy_id": "fighter",
+					"count": 16,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 114.7,
+					"type": "obstacle",
+					"obstacle_id": "planet_large",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 70,
+					"gap_width": 300,
+					"row_interval": 3.0,
+					"drift_speed": 5,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 122.1,
+					"enemy_id": "fighter",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 129.6,
+					"enemy_id": "fighter",
+					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
-			"events": []
+			"events": [],
+			"boss_id": "boss_lava_5"
 		},
 		{
 			"index": 5,
@@ -551,135 +695,199 @@
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 12.6,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 22.2,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 8,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 31.9,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 41.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 51.1,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 9,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 60.8,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 70.4,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 80.0,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 89.6,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 11,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 99.2,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 11,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 108.9,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 11,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 118.5,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 12,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 128.1,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 12,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 137.8,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
-					"count": 12,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"time": 147.4,
-					"enemy_id": "scout_basic",
-					"enemy_skin": "",
+					"enemy_id": "tank",
 					"count": 13,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 10.3,
+					"enemy_id": "tank",
+					"count": 12,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 17.7,
+					"enemy_id": "tank",
+					"count": 14,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 25.0,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_large",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 130,
+					"gap_width": 200,
+					"row_interval": 2.0,
+					"drift_speed": 8,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 32.3,
+					"enemy_id": "tank",
+					"count": 13,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 39.7,
+					"enemy_id": "swarmer",
+					"count": 15,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 47.0,
+					"enemy_id": "artillery",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 54.3,
+					"type": "obstacle",
+					"obstacle_id": "planet_large",
+					"pattern": "slalom",
+					"duration": 15.0,
+					"speed": 70,
+					"gap_width": 300,
+					"row_interval": 3.0,
+					"drift_speed": 5,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 61.7,
+					"enemy_id": "fighter",
+					"count": 16,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 69.0,
+					"enemy_id": "elite",
+					"count": 16,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 76.3,
+					"enemy_id": "fighter",
+					"count": 15,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 83.7,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_large",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 130,
+					"gap_width": 200,
+					"row_interval": 2.0,
+					"drift_speed": 8,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 91.0,
+					"enemy_id": "tank",
+					"count": 15,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 98.3,
+					"enemy_id": "fighter",
+					"count": 14,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 105.7,
+					"enemy_id": "swarmer",
+					"count": 10,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 113.0,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_small",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 180,
+					"gap_width": 160,
+					"row_interval": 1.0,
+					"drift_speed": 15,
+					"drift_directions": [
+						"S",
+						"SW",
+						"SE"
+					]
+				},
+				{
+					"time": 120.3,
+					"enemy_id": "artillery",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 127.7,
+					"enemy_id": "artillery",
+					"count": 15,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 135.0,
+					"enemy_id": "elite",
+					"count": 11,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"time": 142.3,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_small",
+					"pattern": "rain",
+					"duration": 15.0,
+					"speed": 250,
+					"gap_width": 130,
+					"row_interval": 0.6,
+					"drift_speed": 25,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
+				},
+				{
+					"time": 149.7,
+					"enemy_id": "elite",
+					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_world1"
+			"boss_id": "boss_lava_final"
 		}
 	],
 	"unlock_condition": {

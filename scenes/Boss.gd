@@ -30,12 +30,20 @@ var move_pattern_id: String = "stationary"
 var missile_pattern_id: String = "circle_8"
 var missile_id: String = "missile_default"
 var fire_rate: float = 2.0
+var _base_fire_rate: float = 2.0
 
 var _move_pattern_data: Dictionary = {}
 var _missile_pattern_data: Dictionary = {}
 var _fire_timer: float = 0.0
 var _move_time: float = 0.0
 var _start_position: Vector2 = Vector2.ZERO
+var _fire_rate_sequence: Array = []
+var _fire_rate_sequence_index: int = 0
+var _fire_rate_sequence_step_interval: float = 0.0
+var _fire_rate_sequence_step_timer: float = 0.0
+var _fire_rate_sequence_loop: bool = false
+var _rotation_profile: Dictionary = {}
+var _rotation_base_deg: float = 0.0
 
 # Special Power
 var special_power_id: String = ""
@@ -50,13 +58,25 @@ var _sound_remaining_repeats: int = 0
 # Visual
 @onready var visual_container: Node2D = $Visual
 @onready var shape_visual: Polygon2D = $Visual/Shape
+@onready var sprite_visual: Sprite2D = $Visual/Sprite2D
+@onready var animated_visual: AnimatedSprite2D = $Visual/AnimatedSprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
+
+const STRONG_RESOURCE_CACHE_MAX: int = 256
+const DEBUG_BOSS_SETUP_COST_LOG := false
+const DEBUG_BOSS_SETUP_COST_THRESHOLD_MS := 4.0
+static var _strong_resource_cache: Dictionary = {}  # path -> Resource
+static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
 
 # =============================================================================
 # SETUP
 # =============================================================================
 
 func setup(boss_data: Dictionary) -> void:
+	var t0_usec: int = 0
+	if DEBUG_BOSS_SETUP_COST_LOG:
+		t0_usec = Time.get_ticks_usec()
+
 	boss_id = str(boss_data.get("id", "boss_unknown"))
 	boss_name = str(boss_data.get("name", "Boss"))
 	max_hp = int(boss_data.get("hp", 500))
@@ -83,12 +103,33 @@ func setup(boss_data: Dictionary) -> void:
 		# On va lancer immédiatement si on a un repeat prévu.
 		if _sound_remaining_repeats != 0:
 			_play_boss_sound()
+	var t_before_visual_usec: int = 0
+	if DEBUG_BOSS_SETUP_COST_LOG:
+		t_before_visual_usec = Time.get_ticks_usec()
 	
 	# Visual setup
 	_setup_visual(boss_data)
+	var t_after_visual_usec: int = 0
+	if DEBUG_BOSS_SETUP_COST_LOG:
+		t_after_visual_usec = Time.get_ticks_usec()
 	
 	_start_position = global_position
-	_fire_timer = randf_range(0, fire_rate)
+	_fire_timer = randf_range(0.0, _get_effective_fire_rate())
+
+	if DEBUG_BOSS_SETUP_COST_LOG:
+		var t_end_usec: int = Time.get_ticks_usec()
+		var total_ms: float = float(t_end_usec - t0_usec) / 1000.0
+		if total_ms >= DEBUG_BOSS_SETUP_COST_THRESHOLD_MS:
+			var pre_visual_ms: float = float(t_before_visual_usec - t0_usec) / 1000.0
+			var visual_ms: float = float(t_after_visual_usec - t_before_visual_usec) / 1000.0
+			var post_ms: float = float(t_end_usec - t_after_visual_usec) / 1000.0
+			print(
+				"[BossSetup] total=", snappedf(total_ms, 0.1), "ms",
+				" pre_visual=", snappedf(pre_visual_ms, 0.1), "ms",
+				" visual=", snappedf(visual_ms, 0.1), "ms",
+				" post=", snappedf(post_ms, 0.1), "ms",
+				" boss=", boss_id
+			)
 	
 	print("[Boss] ", boss_name, " spawned with ", max_hp, " HP and ", phases.size(), " phases")
 
@@ -123,31 +164,43 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	var use_asset: bool = false
 	
 	# Priority 1: AnimatedSprite (asset_anim)
-	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var sprite_frames: Resource = load(asset_anim)
+	if asset_anim != "":
+		var sprite_frames: Resource = _load_cached_resource(asset_anim, "asset_anim")
 		if sprite_frames is SpriteFrames:
 			use_asset = true
 			shape_visual.visible = false
 			
-			var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+			var anim_sprite: AnimatedSprite2D = animated_visual
 			if not anim_sprite:
 				anim_sprite = AnimatedSprite2D.new()
 				anim_sprite.name = "AnimatedSprite2D"
 				visual_container.add_child(anim_sprite)
+				animated_visual = anim_sprite
 			
 			anim_sprite.visible = true
-			var played_anim: StringName = VFXManager.play_sprite_frames(
-				anim_sprite,
-				sprite_frames as SpriteFrames,
-				&"default",
-				asset_anim_loop,
-				asset_anim_duration
-			)
+			var played_anim: StringName = &""
+			var frames_data: SpriteFrames = sprite_frames as SpriteFrames
+			var default_anim: StringName = VFXManager.get_first_animation_name(frames_data, &"default")
+			if asset_anim_loop and asset_anim_duration <= 0.0 and default_anim != &"":
+				anim_sprite.sprite_frames = frames_data
+				anim_sprite.animation = default_anim
+				anim_sprite.speed_scale = 1.0
+				anim_sprite.frame = 0
+				anim_sprite.play(default_anim)
+				played_anim = default_anim
+			else:
+				played_anim = VFXManager.play_sprite_frames(
+					anim_sprite,
+					frames_data,
+					&"default",
+					asset_anim_loop,
+					asset_anim_duration
+				)
 			
 			# Scale to size
 			var frame_tex: Texture2D = null
 			if played_anim != &"" and anim_sprite.sprite_frames:
-				frame_tex = anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
+				frame_tex = _get_cached_first_frame_texture(anim_sprite.sprite_frames, played_anim)
 			if frame_tex:
 				var f_size = frame_tex.get_size()
 				anim_sprite.scale = Vector2(width / f_size.x, height / f_size.y) * 1.5
@@ -156,24 +209,26 @@ func _setup_visual(boss_data: Dictionary) -> void:
 				anim_sprite.scale = Vector2(width / 100.0, height / 100.0) * 1.5
 			
 			# Hide static sprite
-			var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+			var sprite: Sprite2D = sprite_visual
 			if sprite: sprite.visible = false
 	
 	# Priority 2: Static Sprite (asset)
-	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
-		var texture = load(asset_path)
-		if texture:
+	if not use_asset and asset_path != "":
+		var texture_res: Resource = _load_cached_resource(asset_path, "asset")
+		if texture_res is Texture2D:
+			var texture: Texture2D = texture_res as Texture2D
 			use_asset = true
 			shape_visual.visible = false
 			
-			var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+			var anim_sprite: AnimatedSprite2D = animated_visual
 			if anim_sprite: anim_sprite.visible = false
 			
-			var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+			var sprite: Sprite2D = sprite_visual
 			if not sprite:
 				sprite = Sprite2D.new()
 				sprite.name = "Sprite2D"
 				visual_container.add_child(sprite)
+				sprite_visual = sprite
 			
 			sprite.visible = true
 			sprite.texture = texture
@@ -185,9 +240,9 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	if not use_asset:
 		var color := Color(color_hex)
 		
-		var sprite: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = sprite_visual
 		if sprite: sprite.visible = false
-		var anim_sprite: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+		var anim_sprite: AnimatedSprite2D = animated_visual
 		if anim_sprite: anim_sprite.visible = false
 		
 		shape_visual.visible = true
@@ -203,6 +258,42 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	# Physics Layer Setup
 	collision_layer = 4 # Layer 3: Enemy
 	collision_mask = 1 + 8 # World + PlayerProjectiles (No Player)
+
+func _load_cached_resource(path: String, debug_label: String = "") -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var strong_cached: Variant = _strong_resource_cache[path]
+		if strong_cached is Resource:
+			return strong_cached as Resource
+
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+			_first_frame_texture_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource
+
+func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
+	if frames == null or anim_name == &"":
+		return null
+	var frame_key: String = _build_frame_cache_key(frames, anim_name)
+	if _first_frame_texture_cache.has(frame_key):
+		var cached: Variant = _first_frame_texture_cache[frame_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+
+	var texture: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if texture != null:
+		_first_frame_texture_cache[frame_key] = texture
+	return texture
+
+func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> String:
+	var path: String = frames.resource_path
+	if path == "":
+		path = "rid:" + str(frames.get_rid().get_id())
+	return path + "|" + String(anim_name)
 
 func get_contact_damage() -> int:
 	# Dégâts de contact du boss (assez élevés)
@@ -223,11 +314,38 @@ func _process(delta: float) -> void:
 	
 	if not _is_executing_power:
 		_update_movement(delta)
+	_update_phase_modulators(delta)
 	
 	_update_shooting(delta)
 	_update_special_power(delta)
 	_update_sounds(delta)
 	_check_phase_transition()
+
+func _update_phase_modulators(delta: float) -> void:
+	if _fire_rate_sequence_step_interval > 0.0 and _fire_rate_sequence.size() > 1:
+		_fire_rate_sequence_step_timer -= delta
+		if _fire_rate_sequence_step_timer <= 0.0:
+			if _fire_rate_sequence_index < _fire_rate_sequence.size() - 1:
+				_fire_rate_sequence_index += 1
+			elif _fire_rate_sequence_loop:
+				_fire_rate_sequence_index = 0
+			_fire_rate_sequence_step_timer = _fire_rate_sequence_step_interval
+
+	if _rotation_profile.is_empty():
+		return
+
+	var mode: String = str(_rotation_profile.get("mode", "none"))
+	match mode:
+		"continuous":
+			var speed_deg: float = float(_rotation_profile.get("speed_deg", 0.0))
+			visual_container.rotation_degrees += speed_deg * delta
+		"oscillate":
+			var amplitude_deg: float = float(_rotation_profile.get("amplitude_deg", 0.0))
+			var frequency: float = maxf(0.01, float(_rotation_profile.get("frequency", 1.0)))
+			var phase := sin(_move_time * frequency * TAU)
+			visual_container.rotation_degrees = _rotation_base_deg + (phase * amplitude_deg)
+		_:
+			pass
 
 func _update_special_power(delta: float) -> void:
 	if special_power_id == "": return
@@ -302,7 +420,15 @@ func _apply_phase(phase_index: int) -> void:
 		missile_pattern_id = str(phase_dict.get("missile_pattern_id", "circle_8"))
 		if phase_dict.has("missile_id"):
 			missile_id = str(phase_dict.get("missile_id", "missile_default"))
-		fire_rate = float(phase_dict.get("fire_rate", 2.0))
+		_base_fire_rate = maxf(0.05, float(phase_dict.get("fire_rate", 2.0)))
+		fire_rate = _base_fire_rate
+		_move_pattern_data = _resolve_move_pattern_data(move_pattern_id)
+
+		# Optional phase-based firing cadence
+		_configure_fire_profile(phase_dict)
+
+		# Optional phase-based visual rotation profile
+		_configure_rotation_profile(phase_dict)
 		
 		_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
 		
@@ -317,6 +443,107 @@ func _apply_phase(phase_index: int) -> void:
 		# VFX de changement de phase
 		VFXManager.screen_shake(15, 0.5)
 		VFXManager.flash_sprite(visual_container, Color.WHITE, 0.3)
+
+func _configure_fire_profile(phase_dict: Dictionary) -> void:
+	_fire_rate_sequence.clear()
+	_fire_rate_sequence_index = 0
+	_fire_rate_sequence_step_interval = 0.0
+	_fire_rate_sequence_step_timer = 0.0
+	_fire_rate_sequence_loop = false
+
+	var raw_profile: Variant = phase_dict.get("fire_profile", null)
+	if not (raw_profile is Dictionary):
+		return
+
+	var profile := raw_profile as Dictionary
+	var raw_rates: Variant = profile.get("rates", [])
+	if raw_rates is Array:
+		for rate in raw_rates:
+			_fire_rate_sequence.append(maxf(0.05, float(rate)))
+
+	if _fire_rate_sequence.is_empty():
+		return
+
+	_fire_rate_sequence_step_interval = maxf(0.0, float(profile.get("step_interval", 0.0)))
+	_fire_rate_sequence_step_timer = _fire_rate_sequence_step_interval
+	_fire_rate_sequence_loop = bool(profile.get("loop", false))
+
+func _configure_rotation_profile(phase_dict: Dictionary) -> void:
+	_rotation_profile.clear()
+	_rotation_base_deg = visual_container.rotation_degrees
+
+	var raw_profile: Variant = phase_dict.get("rotation_profile", null)
+	if raw_profile is Dictionary:
+		_rotation_profile = (raw_profile as Dictionary).duplicate(true)
+
+func _resolve_move_pattern_data(pattern_id: String) -> Dictionary:
+	var data: Dictionary = DataManager.get_move_pattern(pattern_id)
+	if data.is_empty():
+		return _legacy_boss_move_pattern(pattern_id)
+
+	var normalized := data.duplicate(true)
+	var pattern_type: String = str(normalized.get("type", ""))
+	if pattern_type == "proc":
+		var proc_func: String = str(normalized.get("proc_func", ""))
+		match proc_func:
+			"sine_wave_vertical":
+				normalized["type"] = "sine_wave"
+				normalized["amplitude"] = float(normalized.get("amplitude", 160.0))
+				normalized["frequency"] = float(normalized.get("frequency", 0.45))
+			"figure_eight_vertical":
+				normalized["type"] = "figure_eight"
+				normalized["radius"] = float(normalized.get("radius", 140.0))
+				normalized["frequency"] = float(normalized.get("frequency", 0.40))
+			"impatient_circle":
+				normalized["type"] = "circular"
+				normalized["radius"] = float(normalized.get("radius", 140.0))
+				normalized["angular_speed"] = float(normalized.get("angular_speed", 0.8))
+				normalized["clockwise"] = true
+			_:
+				normalized = _legacy_boss_move_pattern(pattern_id)
+	elif pattern_type == "resource":
+		normalized = _legacy_boss_move_pattern(pattern_id)
+
+	if normalized.is_empty():
+		return _legacy_boss_move_pattern(pattern_id)
+	return normalized
+
+func _legacy_boss_move_pattern(pattern_id: String) -> Dictionary:
+	match pattern_id:
+		"circle_clockwise":
+			return {
+				"type": "circular",
+				"radius": 180.0,
+				"angular_speed": 0.55,
+				"clockwise": true,
+				"speed": 65.0
+			}
+		"bounce_horizontal":
+			return {
+				"type": "sine_wave",
+				"amplitude": 210.0,
+				"frequency": 0.42,
+				"speed": 60.0
+			}
+		"figure_eight":
+			return {
+				"type": "figure_eight",
+				"radius": 150.0,
+				"frequency": 0.36,
+				"speed": 62.0
+			}
+		"random_strafe":
+			return {
+				"type": "sine_wave",
+				"amplitude": 280.0,
+				"frequency": 0.24,
+				"speed": 68.0
+			}
+		_:
+			return {
+				"type": "static",
+				"speed": 0.0
+			}
 
 # =============================================================================
 # MOVEMENT (Copié et adapté d'Enemy.gd)
@@ -335,6 +562,8 @@ func _update_movement(delta: float) -> void:
 			_move_circular(delta, move_speed)
 		"sine_wave":
 			_move_sine_wave(delta, move_speed)
+		"figure_eight":
+			_move_figure_eight(delta, move_speed)
 		"homing":
 			_move_homing(delta, move_speed)
 		_:
@@ -356,6 +585,14 @@ func _move_sine_wave(_delta: float, _speed: float) -> void:
 	var wave_x := sin(_move_time * frequency * TAU) * amplitude
 	global_position.x = _start_position.x + wave_x
 
+func _move_figure_eight(_delta: float, _speed: float) -> void:
+	var radius: float = float(_move_pattern_data.get("radius", 140.0))
+	var frequency: float = float(_move_pattern_data.get("frequency", 0.35))
+	var t: float = _move_time * frequency * TAU
+	var x: float = sin(t) * radius
+	var y: float = sin(2.0 * t) * (radius * 0.45)
+	global_position = _start_position + Vector2(x, y)
+
 func _move_homing(delta: float, speed: float) -> void:
 	var player_node := get_tree().get_first_node_in_group("player")
 	if player_node and player_node is Node2D:
@@ -373,7 +610,13 @@ func _update_shooting(delta: float) -> void:
 	
 	if _fire_timer <= 0:
 		_fire()
-		_fire_timer = fire_rate
+		_fire_timer = _get_effective_fire_rate()
+
+func _get_effective_fire_rate() -> float:
+	if _fire_rate_sequence.is_empty():
+		return maxf(0.05, _base_fire_rate)
+	var idx: int = clampi(_fire_rate_sequence_index, 0, _fire_rate_sequence.size() - 1)
+	return maxf(0.05, float(_fire_rate_sequence[idx]))
 
 func _fire() -> void:
 	if _missile_pattern_data.is_empty():
@@ -395,6 +638,12 @@ func _fire() -> void:
 	# Inject acceleration from missile
 	var acceleration: float = float(missile_data.get("acceleration", 0.0))
 	_missile_pattern_data["acceleration"] = acceleration
+
+	# Optional homing lock duration override from missile data.
+	if not _missile_pattern_data.has("homing_duration"):
+		var homing_duration: float = float(missile_data.get("homing_duration", -1.0))
+		if homing_duration >= 0.0:
+			_missile_pattern_data["homing_duration"] = homing_duration
 	
 	# Inject explosion data from missile
 	var missile_explosion: Dictionary = missile_data.get("explosion", {})

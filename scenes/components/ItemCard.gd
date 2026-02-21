@@ -104,7 +104,7 @@ func setup_item(data: Dictionary, p_slot_id: String, config: Dictionary = {}) ->
 	icon_rect.offset_bottom = 0
 	
 	# 3. Level Badge
-	var level = int(data.get("level", 1))
+	var level = int(data.get("level", int(data.get("upgrade", 0)) + 1))
 	_setup_level_badge(level, config.get("level_assets", {}))
 	
 	# 4. Slot Indicator

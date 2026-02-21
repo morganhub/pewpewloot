@@ -205,7 +205,7 @@ func _on_back_pressed() -> void:
 ## Vérifie si un monde visible possède une story non vue et la lance
 func _check_story_triggers() -> void:
 	for w in App.get_worlds():
-		var world_id: String = str(w.get("id", ""))
+		var _world_id: String = str(w.get("id", ""))
 		var story_id: String = str(w.get("story_id", ""))
 		
 		if story_id == "":

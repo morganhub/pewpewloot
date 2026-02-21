@@ -8,6 +8,8 @@ var wall_asset_path: String = ""
 # Wall scene to instantiate
 # Since we created Wall.tscn, we can load it
 const WALL_SCENE = preload("res://scenes/abilities/objects/Wall.tscn")
+const STRONG_RESOURCE_CACHE_MAX: int = 128
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 func _ready() -> void:
 	# Random start delay
@@ -72,15 +74,19 @@ func _spawn_wall_at(pos: Vector2) -> void:
 		var sprite = wall.get_node_or_null("Sprite2D")
 		var col = wall.get_node_or_null("CollisionShape2D")
 		if sprite:
-			var tex = load(wall_asset_path)
-			sprite.texture = tex
+			var tex_res: Resource = _load_cached_resource(wall_asset_path)
+			var tex: Texture2D = tex_res as Texture2D
+			if tex != null:
+				sprite.texture = tex
+			else:
+				sprite.texture = null
 			# Disable region crop from placeholder
 			sprite.region_enabled = false
 			
 			if col and col.shape is RectangleShape2D:
 				col.shape = col.shape.duplicate()
 				var target_size: Vector2 = col.shape.size # Garder la taille de collision d'origine
-				var tex_size: Vector2 = tex.get_size()
+				var tex_size: Vector2 = tex.get_size() if tex != null else Vector2.ZERO
 				
 				# Stretch : on scale le sprite pour couvrir exactement la hitbox
 				if tex_size.x > 0 and tex_size.y > 0:
@@ -111,4 +117,18 @@ func _spawn_wall_at(pos: Vector2) -> void:
 		
 	# Register with Manager
 	EnemyAbilityManager.register_spawn(ability_id, wall, config)
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource
 

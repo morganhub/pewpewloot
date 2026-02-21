@@ -147,12 +147,20 @@ func _on_music_finished() -> void:
 
 const MAX_SFX_PLAYERS: int = 24
 var _sfx_players: Array[AudioStreamPlayer] = []
+var _sfx_stream_cache: Dictionary = {}
 
 func play_sfx(path: String, pitch_rng: float = 0.0) -> void:
 	if path == "" or not ResourceLoader.exists(path):
 		return
-		
-	var stream = load(path)
+
+	var stream: AudioStream = _sfx_stream_cache.get(path, null)
+	if stream == null:
+		var loaded: Resource = load(path)
+		if loaded is AudioStream:
+			stream = loaded as AudioStream
+			_sfx_stream_cache[path] = stream
+		else:
+			return
 	if not stream: return
 	
 	var player = _get_available_sfx_player()

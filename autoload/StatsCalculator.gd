@@ -22,11 +22,18 @@ func calculate_ship_stats(ship_id: String) -> Dictionary:
 		"power": 10,
 		"fire_rate": 0.3,
 		"crit_chance": 5.0,
+		"crit_damage": 0.0,
 		"dodge_chance": 2.0,
 		"missile_speed_pct": 100.0,
+		"missile_damage": 0.0,
 		"special_cd": 10.0,
 		"special_damage": 50,
-		"damage_reduction": 0.0
+		"damage_reduction": 0.0,
+		"shield_capacity": 0.0,
+		"shield_regen": 0.0,
+		"loot_radius": 0.0,
+		"luck": 0.0,
+		"xp_multiplier": 0.0
 	}
 	
 	# Apply base ship stats
@@ -67,13 +74,20 @@ func calculate_ship_stats(ship_id: String) -> Dictionary:
 	final_stats["max_hp"] = int(round(float(final_stats["max_hp"])))
 	final_stats["power"] = int(round(float(final_stats["power"])))
 	final_stats["special_damage"] = int(round(float(final_stats["special_damage"])))
+	final_stats["shield_capacity"] = int(round(float(final_stats.get("shield_capacity", 0.0))))
 	final_stats["move_speed"] = snapped(float(final_stats["move_speed"]), 0.1)
 	final_stats["fire_rate"] = snapped(float(final_stats["fire_rate"]), 0.01)
 	final_stats["crit_chance"] = snapped(float(final_stats["crit_chance"]), 0.1)
+	final_stats["crit_damage"] = snapped(float(final_stats.get("crit_damage", 0.0)), 0.1)
 	final_stats["dodge_chance"] = snapped(float(final_stats["dodge_chance"]), 0.1)
 	final_stats["missile_speed_pct"] = snapped(float(final_stats["missile_speed_pct"]), 1.0)
+	final_stats["missile_damage"] = snapped(float(final_stats.get("missile_damage", 0.0)), 0.1)
 	final_stats["special_cd"] = max(1.0, snapped(float(final_stats["special_cd"]), 0.1))
 	final_stats["damage_reduction"] = clamp(snapped(float(final_stats["damage_reduction"]), 0.1), 0.0, 75.0)
+	final_stats["shield_regen"] = snapped(maxf(0.0, float(final_stats.get("shield_regen", 0.0))), 0.1)
+	final_stats["loot_radius"] = snapped(maxf(0.0, float(final_stats.get("loot_radius", 0.0))), 0.1)
+	final_stats["luck"] = snapped(maxf(0.0, float(final_stats.get("luck", 0.0))), 0.1)
+	final_stats["xp_multiplier"] = snapped(maxf(0.0, float(final_stats.get("xp_multiplier", 0.0))), 0.1)
 	
 	# --- Skill Tree: Apply Paragon (Pew Pew) stat bonuses ---
 	_apply_skill_tree_bonuses(final_stats)
@@ -98,6 +112,10 @@ func _apply_item_stats(final_stats: Dictionary, item_stats: Dictionary) -> void:
 			final_stats["dodge_chance"] = float(final_stats.get("dodge_chance", 0)) + val_float
 		elif stat_key == "crit":
 			final_stats["crit_chance"] = float(final_stats.get("crit_chance", 0)) + val_float
+		elif stat_key == "xp_bonus":
+			final_stats["xp_multiplier"] = float(final_stats.get("xp_multiplier", 0)) + val_float
+		elif stat_key == "loot_magnet":
+			final_stats["loot_radius"] = float(final_stats.get("loot_radius", 0)) + val_float
 		elif stat_key == "cd_reduction":
 			# Multiplicative reduction for CD? Or flat? Let's assume flat if simple, or %
 			# Using simple additive for now as per ShipMenu logic
@@ -136,6 +154,10 @@ func calculate_total_power(ship_id: String) -> int:
 ## Get the unique power ID from equipped items (if any).
 ## Returns the first unique power found, or empty string if none.
 func get_equipped_unique_power(ship_id: String) -> String:
+	var selected_power: String = ProfileManager.get_active_unique_power(ship_id)
+	if selected_power != "":
+		return selected_power
+
 	var loadout := ProfileManager.get_loadout_for_ship(ship_id)
 	
 	for slot_id in loadout.keys():
@@ -149,7 +171,7 @@ func get_equipped_unique_power(ship_id: String) -> String:
 		
 		# Check if unique with special ability
 		if item_data.get("is_unique", false):
-			var ability_id: String = str(item_data.get("special_ability_id", ""))
+			var ability_id: String = str(item_data.get("unique_power_id", item_data.get("special_ability_id", "")))
 			if ability_id != "":
 				return ability_id
 	
@@ -167,7 +189,7 @@ func get_all_equipped_unique_powers(ship_id: String) -> Array[String]:
 		
 		var item_data := ProfileManager.get_item_by_id(item_id)
 		if item_data.get("is_unique", false):
-			var ability_id: String = str(item_data.get("special_ability_id", ""))
+			var ability_id: String = str(item_data.get("unique_power_id", item_data.get("special_ability_id", "")))
 			if ability_id != "" and ability_id not in powers:
 				powers.append(ability_id)
 	

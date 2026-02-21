@@ -31,6 +31,218 @@
                 "wave_delay": 0.0,
                 "color": "#00FFFF"
             }
+        },
+        {
+            "id": "unique_root_maelstrom",
+            "name": "Root Maelstrom",
+            "description": "Unleashes a radial root burst with safe gaps.",
+            "duration": 2.4,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 36,
+                "trajectory": "radial",
+                "size": 34,
+                "waves": 3,
+                "wave_delay": 0.25,
+                "color": "#7BC96F",
+                "safe_zones": {
+                    "count": 1,
+                    "width_degrees": 30
+                }
+            }
+        },
+        {
+            "id": "unique_bark_bastion",
+            "name": "Bark Bastion",
+            "description": "A dense bark ring pushes enemies away.",
+            "duration": 2.2,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 24,
+                "trajectory": "radial",
+                "size": 42,
+                "waves": 2,
+                "wave_delay": 0.3,
+                "color": "#A17444"
+            }
+        },
+        {
+            "id": "unique_thorn_hurricane",
+            "name": "Thorn Hurricane",
+            "description": "Spawns spiraling thorns around the ship.",
+            "duration": 2.8,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 28,
+                "trajectory": "spiral",
+                "size": 30,
+                "waves": 4,
+                "wave_delay": 0.22,
+                "color": "#9BE75A"
+            }
+        },
+        {
+            "id": "unique_vine_catapult",
+            "name": "Vine Catapult",
+            "description": "Launches repeated heavy vine volleys.",
+            "duration": 2.0,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 16,
+                "trajectory": "radial",
+                "size": 44,
+                "waves": 3,
+                "wave_delay": 0.3,
+                "color": "#4DBA87"
+            }
+        },
+        {
+            "id": "unique_spore_tempest",
+            "name": "Spore Tempest",
+            "description": "Rains toxic spores from above.",
+            "duration": 3.2,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 42,
+                "trajectory": "rain_down",
+                "size": 34,
+                "waves": 4,
+                "wave_delay": 0.35,
+                "color": "#7ED957"
+            }
+        },
+        {
+            "id": "unique_mycelium_nova",
+            "name": "Mycelium Nova",
+            "description": "A fungal nova detonates in successive rings.",
+            "duration": 2.6,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 30,
+                "trajectory": "radial",
+                "size": 40,
+                "waves": 3,
+                "wave_delay": 0.28,
+                "color": "#B8E986"
+            }
+        },
+        {
+            "id": "unique_heartwood_crush",
+            "name": "Heartwood Crush",
+            "description": "Summons colossal wood strikes from the sky.",
+            "duration": 2.9,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 24,
+                "trajectory": "rain_down",
+                "size": 56,
+                "waves": 3,
+                "wave_delay": 0.35,
+                "color": "#8B5A2B"
+            }
+        },
+        {
+            "id": "unique_ancient_sapflow",
+            "name": "Ancient Sapflow",
+            "description": "A sticky spiral barrage overwhelms foes.",
+            "duration": 2.5,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 26,
+                "trajectory": "spiral",
+                "size": 36,
+                "waves": 3,
+                "wave_delay": 0.24,
+                "color": "#D4A017"
+            }
+        },
+        {
+            "id": "unique_fungal_eruption",
+            "name": "Fungal Eruption",
+            "description": "Massive fungal spikes burst in all directions.",
+            "duration": 2.7,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 34,
+                "trajectory": "radial",
+                "size": 38,
+                "waves": 3,
+                "wave_delay": 0.27,
+                "color": "#9DCE4A"
+            }
+        },
+        {
+            "id": "unique_decay_supercell",
+            "name": "Decay Supercell",
+            "description": "Corrosive meteors saturate the battlefield.",
+            "duration": 3.1,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 44,
+                "trajectory": "rain_down",
+                "size": 40,
+                "waves": 4,
+                "wave_delay": 0.33,
+                "color": "#9B59B6"
+            }
+        },
+        {
+            "id": "unique_guardian_overload",
+            "name": "Guardian Overload",
+            "description": "The guardian core erupts in layered shock rings.",
+            "duration": 2.8,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 40,
+                "trajectory": "radial",
+                "size": 44,
+                "waves": 4,
+                "wave_delay": 0.2,
+                "color": "#3BC9DB"
+            }
+        },
+        {
+            "id": "unique_primordial_bloom",
+            "name": "Primordial Bloom",
+            "description": "An ancient spiral bloom tears through enemies.",
+            "duration": 3.0,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 32,
+                "trajectory": "spiral",
+                "size": 42,
+                "waves": 4,
+                "wave_delay": 0.24,
+                "color": "#5EEAD4"
+            }
+        },
+        {
+            "id": "unique_sylvan_judgement",
+            "name": "Sylvan Judgement",
+            "description": "Calls down the final wrath of the forest.",
+            "duration": 3.4,
+            "invincibility": true,
+            "ship_movement": null,
+            "projectile": {
+                "count": 54,
+                "trajectory": "rain_down",
+                "size": 62,
+                "waves": 5,
+                "wave_delay": 0.3,
+                "color": "#1FAF6C"
+            }
         }
     ]
 }

@@ -18,6 +18,8 @@ extends Area2D
 var current_hp: int = 20
 var _exploded: bool = false
 var _velocity: Vector2 = Vector2.ZERO
+const STRONG_RESOURCE_CACHE_MAX: int = 128
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -84,8 +86,8 @@ func _explode() -> void:
 	
 	var asset_path := ""
 	var asset_anim := ""
-	if explosion_asset != "" and ResourceLoader.exists(explosion_asset):
-		var res = load(explosion_asset)
+	if explosion_asset != "":
+		var res: Resource = _load_cached_resource(explosion_asset)
 		if res is SpriteFrames:
 			asset_anim = explosion_asset
 		elif res is Texture2D:
@@ -110,8 +112,8 @@ func _explode() -> void:
 	queue_free()
 
 func _apply_visual() -> void:
-	if visual_asset != "" and ResourceLoader.exists(visual_asset):
-		var res = load(visual_asset)
+	if visual_asset != "":
+		var res: Resource = _load_cached_resource(visual_asset)
 		if res is SpriteFrames:
 			_apply_animated_visual(res as SpriteFrames)
 		elif res is Texture2D:
@@ -184,3 +186,17 @@ func _apply_animated_visual(frames: SpriteFrames) -> void:
 				anim_sprite.scale = Vector2(float(mine_width) / f_size.x, float(mine_height) / f_size.y)
 	
 	sprite.visible = false
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

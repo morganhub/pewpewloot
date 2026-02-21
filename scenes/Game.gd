@@ -14,6 +14,39 @@ extends Node2D
 
 const SCROLLING_LAYER_SCRIPT: Script = preload("res://scenes/ScrollingLayer.gd")
 const ENEMY_SCRIPT: Script = preload("res://scenes/Enemy.gd")
+const WAVE_MANAGER_SCRIPT: Script = preload("res://scenes/WaveManager.gd")
+const ENEMY_SCENE: PackedScene = preload("res://scenes/Enemy.tscn")
+const BOSS_SCENE: PackedScene = preload("res://scenes/Boss.tscn")
+const RUNTIME_WARMUP_PATHS: PackedStringArray = [
+	"res://scenes/obstacles/ObstacleExplosive.tscn",
+	"res://scenes/obstacles/ObstaclePusher.tscn",
+	"res://scenes/objects/Mine.tscn",
+	"res://scenes/objects/ArcaneOrb.tscn",
+	"res://scenes/objects/GravityWell.tscn",
+	"res://scenes/objects/SuppressorShield.tscn",
+	"res://scenes/effects/ToxicPool.tscn",
+	"res://scenes/effects/Singularity.tscn",
+	"res://scenes/effects/IceAura.tscn",
+	"res://scenes/effects/IceShards.tscn",
+	"res://scenes/effects/VacuumRadius.tscn",
+	"res://scenes/abilities/objects/Wall.tscn",
+	"res://scenes/abilities/WallSpawner.gd",
+	"res://scenes/effects/BossVoidZone.gd",
+	"res://scenes/effects/BossLaserZone.gd"
+]
+const RUNTIME_WARMUP_PREFIXES: PackedStringArray = [
+	"res://scenes/abilities/",
+	"res://scenes/effects/",
+	"res://scenes/objects/",
+	"res://scenes/obstacles/"
+]
+const DEBUG_PERF_HITCH_LOG := true
+const DEBUG_PERF_HITCH_THRESHOLD_MS := 22.0
+const DEBUG_PERF_HITCH_COOLDOWN_MS := 250
+const DEBUG_LEVEL_WARMUP_LOG := true
+const DEBUG_RUNTIME_ENEMY_PREWARM_LOG := true
+const DEBUG_SPAWN_PIPELINE_LOG := false
+const DEBUG_SPAWN_PIPELINE_THRESHOLD_MS := 4.0
 
 var player: CharacterBody2D = null
 var hud: CanvasLayer = null
@@ -38,6 +71,10 @@ const END_SCREEN_ACTION_WORLD_SELECT := "world_select"
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
 var _world_multipliers: Dictionary = {"hp": 1.0, "damage": 1.0, "speed": 1.0}
+var _world_skin_overrides: Dictionary = {} # Centralized skin overrides from world JSON
+var _last_hitch_log_ms: int = -10000
+var _loot_drop_rules: Dictionary = {}
+var _wave_powerup_drop_counts: Dictionary = {"shield": 0, "fire_rate": 0}
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -62,7 +99,9 @@ func _ready() -> void:
 	# Music
 	var world = App.get_world(current_world_id)
 	_world_multipliers = world.get("multipliers", {"hp": 1.0, "damage": 1.0, "speed": 1.0})
+	_world_skin_overrides = DataManager.get_world_skin_overrides(current_world_id)
 	print("[Game] World multipliers: ", _world_multipliers)
+	print("[Game] World skin overrides keys: ", _world_skin_overrides.keys())
 	var world_theme = world.get("theme", {})
 	var music = str(world_theme.get("music", ""))
 	if music != "":
@@ -82,13 +121,33 @@ func _load_gameplay_config() -> void:
 	var game_cfg: Dictionary = DataManager.get_game_config()
 	var gameplay_cfg: Variant = game_cfg.get("gameplay", {})
 	if not (gameplay_cfg is Dictionary):
+		_loot_drop_rules = _build_default_loot_drop_rules()
 		return
+
+	_loot_drop_rules = _build_default_loot_drop_rules()
+	var loot_cfg: Variant = (gameplay_cfg as Dictionary).get("loot_drops", {})
+	if loot_cfg is Dictionary:
+		_loot_drop_rules.merge((loot_cfg as Dictionary), true)
 
 	var end_session_cfg: Variant = (gameplay_cfg as Dictionary).get("end_session", {})
 	if not (end_session_cfg is Dictionary):
 		return
 
 	_end_screen_delay_seconds = maxf(0.0, float((end_session_cfg as Dictionary).get("post_battle_delay_seconds", 1.5)))
+
+func _build_default_loot_drop_rules() -> Dictionary:
+	return {
+		"enabled": true,
+		"allow_equipment": true,
+		"allow_powerups": true,
+		"global_chance_scale": 0.7,
+		"equipment_chance_scale": 0.45,
+		"powerup_chance_scale": 0.55,
+		"max_shield_per_wave": 1,
+		"max_rapid_fire_per_wave": 1,
+		"shield_weight": 1.0,
+		"rapid_fire_weight": 1.0
+	}
 
 func _setup_background() -> void:
 	# Nettoyer le placeholder existant
@@ -186,11 +245,46 @@ func _flatten_layer_entries(data: Variant, default_opacity: float = 1.0) -> Arra
 			})
 	return result
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# Le background se gère tout seul via ScrollingLayer._process
+	_debug_log_frame_hitch(delta)
 	_update_hud()
 
 # func _update_background(delta: float) -> void: ... DELETED
+
+func _debug_log_frame_hitch(delta: float) -> void:
+	if not DEBUG_PERF_HITCH_LOG:
+		return
+
+	var delta_ms: float = delta * 1000.0
+	if delta_ms < DEBUG_PERF_HITCH_THRESHOLD_MS:
+		return
+
+	var now_ms: int = Time.get_ticks_msec()
+	if now_ms - _last_hitch_log_ms < DEBUG_PERF_HITCH_COOLDOWN_MS:
+		return
+	_last_hitch_log_ms = now_ms
+
+	var enemy_count: int = get_tree().get_nodes_in_group("enemies").size()
+	var pending_spawns: int = -1
+	if wave_manager and wave_manager.has_method("get_pending_spawn_count"):
+		pending_spawns = int(wave_manager.call("get_pending_spawn_count"))
+
+	var enemy_projectiles: int = -1
+	if ProjectileManager and ProjectileManager.has_method("get_active_enemy_projectile_count"):
+		enemy_projectiles = int(ProjectileManager.call("get_active_enemy_projectile_count"))
+
+	var camera_offset: Vector2 = Vector2.ZERO
+	if camera:
+		camera_offset = camera.offset
+
+	print(
+		"[Perf] Hitch dt=", snappedf(delta_ms, 0.1), "ms",
+		" enemies=", enemy_count,
+		" pending_spawns=", pending_spawns,
+		" enemy_projectiles=", enemy_projectiles,
+		" cam_offset=", camera_offset
+	)
 
 # =============================================================================
 # CAMERA
@@ -311,8 +405,7 @@ var wave_manager: Node = null
 
 func _start_enemy_spawner() -> void:
 	# Instancier le WaveManager
-	var wm_script = load("res://scenes/WaveManager.gd")
-	wave_manager = wm_script.new()
+	wave_manager = WAVE_MANAGER_SCRIPT.new()
 	wave_manager.name = "WaveManager"
 	add_child(wave_manager)
 	
@@ -323,8 +416,268 @@ func _start_enemy_spawner() -> void:
 	
 	# Démarrer le niveau actuel
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)
+	_prime_runtime_enemy_spawn_costs(level_id)
+	_prewarm_level_spawn_assets(level_id)
+	_prewarm_runtime_support_assets()
 	_configure_wave_counter(level_id)
-	wave_manager.setup(level_id)
+	_reset_wave_powerup_drop_counters()
+	wave_manager.setup(level_id, current_world_id)
+
+func _prime_runtime_enemy_spawn_costs(level_id: String) -> void:
+	var t0_usec: int = Time.get_ticks_usec()
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	if level_data.is_empty():
+		return
+
+	var payloads: Array = _build_runtime_enemy_warmup_payloads(level_data)
+	if payloads.is_empty():
+		return
+
+	var host := Node2D.new()
+	host.name = "RuntimeEnemyWarmupHost"
+	host.visible = false
+	game_layer.add_child(host)
+
+	var patterns_warmed: bool = false
+	for payload_variant in payloads:
+		if not (payload_variant is Dictionary):
+			continue
+		var payload: Dictionary = payload_variant as Dictionary
+		var enemy: CharacterBody2D = ENEMY_SCENE.instantiate()
+		enemy.process_mode = Node.PROCESS_MODE_DISABLED
+		enemy.visible = false
+		host.add_child(enemy)
+		enemy.global_position = Vector2(360.0, -280.0)
+		enemy.setup(payload)
+
+		# Warm all movement patterns in a real in-scene Enemy instance.
+		# This avoids first-use curve fitting/path bake hitch when wave starts.
+		if not patterns_warmed:
+			var all_patterns: Array = DataManager.get_all_move_patterns()
+			for pattern_variant in all_patterns:
+				if pattern_variant is Dictionary:
+					enemy.call("setup_movement", pattern_variant as Dictionary)
+			patterns_warmed = true
+
+		enemy.queue_free()
+
+	host.queue_free()
+
+	if DEBUG_RUNTIME_ENEMY_PREWARM_LOG:
+		var elapsed_ms: float = float(Time.get_ticks_usec() - t0_usec) / 1000.0
+		print(
+			"[Game] Runtime enemy warmup done in ",
+			snappedf(elapsed_ms, 0.1),
+			"ms payloads=",
+			payloads.size()
+		)
+
+func _build_runtime_enemy_warmup_payloads(level_data: Dictionary) -> Array:
+	var result: Array = []
+	var seen: Dictionary = {}
+
+	var world_skin_overrides: Dictionary = DataManager.get_world_skin_overrides(current_world_id)
+	var enemy_overrides: Dictionary = {}
+	var raw_enemy_overrides: Variant = world_skin_overrides.get("enemies", {})
+	if raw_enemy_overrides is Dictionary:
+		enemy_overrides = raw_enemy_overrides as Dictionary
+
+	var waves_variant: Variant = level_data.get("waves", [])
+	if not (waves_variant is Array):
+		return result
+
+	for wave_variant in (waves_variant as Array):
+		if not (wave_variant is Dictionary):
+			continue
+		var wave: Dictionary = wave_variant as Dictionary
+		if str(wave.get("type", "enemy")) == "obstacle":
+			continue
+
+		var enemy_id: String = str(wave.get("enemy_id", ""))
+		if enemy_id == "":
+			continue
+
+		var enemy_skin: String = str(enemy_overrides.get(enemy_id, ""))
+		if enemy_skin == "":
+			enemy_skin = str(wave.get("enemy_skin", ""))
+
+		var key: String = enemy_id + "|" + enemy_skin
+		if seen.has(key):
+			continue
+		seen[key] = true
+
+		var enemy_data: Dictionary = DataManager.get_enemy(enemy_id).duplicate(true)
+		if enemy_data.is_empty():
+			continue
+		_apply_runtime_enemy_skin_override(enemy_data, enemy_skin)
+		result.append(enemy_data)
+
+	return result
+
+func _apply_runtime_enemy_skin_override(enemy_data: Dictionary, enemy_skin: String) -> void:
+	if enemy_skin == "":
+		return
+	if not ResourceLoader.exists(enemy_skin):
+		return
+
+	var visual: Dictionary = {}
+	var visual_variant: Variant = enemy_data.get("visual", {})
+	if visual_variant is Dictionary:
+		visual = (visual_variant as Dictionary).duplicate(true)
+
+	var skin_res: Resource = ResourceLoader.load(enemy_skin, "", ResourceLoader.CACHE_MODE_REUSE)
+	var ext: String = enemy_skin.get_extension().to_lower()
+	var is_frames: bool = (skin_res is SpriteFrames) or ext == "tres" or ext == "res"
+	if is_frames:
+		visual["asset_anim"] = enemy_skin
+		visual["asset"] = ""
+	else:
+		visual["asset"] = enemy_skin
+		visual["asset_anim"] = ""
+
+	enemy_data["visual"] = visual
+
+func _prewarm_level_spawn_assets(level_id: String) -> void:
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	if level_data.is_empty():
+		return
+
+	var boss_id: String = str(level_data.get("boss_id", ""))
+	if boss_id == "":
+		return
+
+	var boss_data: Dictionary = DataManager.get_boss(boss_id)
+	if boss_data.is_empty():
+		return
+
+	var visual_variant: Variant = boss_data.get("visual", {})
+	if visual_variant is Dictionary:
+		var visual: Dictionary = visual_variant as Dictionary
+		_warmup_resource_path(str(visual.get("asset", "")))
+		_warmup_resource_path(str(visual.get("asset_anim", "")))
+		_warmup_resource_path(str(visual.get("on_death_asset", "")))
+		_warmup_resource_path(str(visual.get("on_death_asset_anim", "")))
+
+	var boss_overrides: Variant = _world_skin_overrides.get("bosses", {})
+	if boss_overrides is Dictionary:
+		_warmup_resource_path(str((boss_overrides as Dictionary).get(boss_id, "")))
+
+func _prewarm_runtime_support_assets() -> void:
+	var runtime_paths: Dictionary = {}
+	for path_variant in RUNTIME_WARMUP_PATHS:
+		var path: String = str(path_variant)
+		if path != "":
+			runtime_paths[path] = true
+
+	_collect_runtime_support_paths(runtime_paths)
+	for path_variant in runtime_paths.keys():
+		_warmup_resource_path(str(path_variant))
+	_warmup_runtime_support_nodes(runtime_paths)
+
+func _warmup_runtime_support_nodes(runtime_paths: Dictionary) -> void:
+	if runtime_paths.is_empty():
+		return
+
+	var host := Node2D.new()
+	host.name = "RuntimeSupportWarmupHost"
+	host.visible = true
+	game_layer.add_child(host)
+
+	for path_variant in runtime_paths.keys():
+		var path: String = str(path_variant)
+		if not _is_runtime_warmup_path(path):
+			continue
+		var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+		var instance: Node = null
+		if resource is PackedScene:
+			instance = (resource as PackedScene).instantiate()
+		elif resource is Script:
+			var script_resource: Script = resource as Script
+			if script_resource != null and script_resource.can_instantiate():
+				var created: Variant = script_resource.new()
+				if created is Node:
+					instance = created as Node
+		if instance == null:
+			continue
+
+		instance.process_mode = Node.PROCESS_MODE_DISABLED
+		if instance is CanvasItem:
+			(instance as CanvasItem).visible = true
+		if instance is Node2D:
+			(instance as Node2D).global_position = Vector2(360.0, 360.0)
+		host.add_child(instance)
+		instance.queue_free()
+
+	host.queue_free()
+
+func _is_runtime_warmup_path(path: String) -> bool:
+	if path == "":
+		return false
+	for prefix_variant in RUNTIME_WARMUP_PREFIXES:
+		var prefix: String = str(prefix_variant)
+		if path.begins_with(prefix):
+			return true
+	return false
+
+func _collect_runtime_support_paths(target: Dictionary) -> void:
+	var modifiers_data: Variant = _load_json_file("res://data/enemy_modifiers.json")
+	_collect_resource_paths_recursive(modifiers_data, target)
+
+	_collect_current_level_wave_assets(target)
+	_collect_resource_paths_recursive(DataManager.get_skills_config(), target)
+	_collect_resource_paths_recursive(DataManager.get_game_config().get("gameplay", {}), target)
+	_collect_resource_paths_recursive(DataManager.get_all_obstacles(), target)
+
+	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/super_powers.json"), target)
+	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/unique_powers.json"), target)
+	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/boss_powers.json"), target)
+
+func _collect_current_level_wave_assets(target: Dictionary) -> void:
+	var level_id: String = current_world_id + "_lvl_" + str(current_level_index)
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	if level_data.is_empty():
+		return
+
+	var waves_variant: Variant = level_data.get("waves", [])
+	if waves_variant is Array:
+		for wave_variant in (waves_variant as Array):
+			_collect_resource_paths_recursive(wave_variant, target)
+
+func _load_json_file(path: String) -> Variant:
+	if path == "" or not FileAccess.file_exists(path):
+		return {}
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	return json.data
+
+func _collect_resource_paths_recursive(value: Variant, target: Dictionary) -> void:
+	if value is Dictionary:
+		for nested in (value as Dictionary).values():
+			_collect_resource_paths_recursive(nested, target)
+		return
+	if value is Array:
+		for nested in (value as Array):
+			_collect_resource_paths_recursive(nested, target)
+		return
+	if value is String:
+		var path: String = str(value).strip_edges()
+		if path.begins_with("res://"):
+			target[path] = true
+
+func _warmup_resource_path(path: String) -> void:
+	if path == "":
+		return
+	var was_cached: bool = ResourceLoader.has_cached(path)
+	var loaded: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if DEBUG_LEVEL_WARMUP_LOG:
+		if loaded:
+			print("[Game] Warmup ", ("reused " if was_cached else "loaded "), path)
+		else:
+			print("[Game] Warmup failed ", path)
 
 func _configure_wave_counter(level_id: String) -> void:
 	var level_data: Dictionary = DataManager.get_level_data(level_id)
@@ -341,14 +694,55 @@ func _configure_wave_counter(level_id: String) -> void:
 		hud.call("configure_wave_counter", _wave_total_with_boss)
 
 func _on_wave_started(wave_index: int) -> void:
+	_reset_wave_powerup_drop_counters()
 	var current_wave: int = wave_index + 1
 	if hud and hud.has_method("update_wave_counter"):
 		hud.call("update_wave_counter", current_wave)
 
+func _reset_wave_powerup_drop_counters() -> void:
+	_wave_powerup_drop_counts["shield"] = 0
+	_wave_powerup_drop_counts["fire_rate"] = 0
+
+func get_loot_drop_rules() -> Dictionary:
+	return _loot_drop_rules.duplicate(true)
+
+func can_spawn_powerup_drop(effect: String) -> bool:
+	var normalized: String = effect.strip_edges().to_lower()
+	if not bool(_loot_drop_rules.get("allow_powerups", true)):
+		return false
+
+	match normalized:
+		"shield":
+			return int(_wave_powerup_drop_counts.get("shield", 0)) < maxi(0, int(_loot_drop_rules.get("max_shield_per_wave", 1)))
+		"fire_rate", "rapid_fire":
+			return int(_wave_powerup_drop_counts.get("fire_rate", 0)) < maxi(0, int(_loot_drop_rules.get("max_rapid_fire_per_wave", 1)))
+		_:
+			return true
+
+func try_reserve_powerup_drop(effect: String) -> bool:
+	var normalized: String = effect.strip_edges().to_lower()
+	if not can_spawn_powerup_drop(normalized):
+		return false
+
+	match normalized:
+		"shield":
+			_wave_powerup_drop_counts["shield"] = int(_wave_powerup_drop_counts.get("shield", 0)) + 1
+		"fire_rate", "rapid_fire":
+			_wave_powerup_drop_counts["fire_rate"] = int(_wave_powerup_drop_counts.get("fire_rate", 0)) + 1
+		_:
+			pass
+	return true
+
 func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
+	var t0_usec: int = 0
+	if DEBUG_SPAWN_PIPELINE_LOG:
+		t0_usec = Time.get_ticks_usec()
+
 	# Instancier l'ennemi
-	var enemy_scene := load("res://scenes/Enemy.tscn")
-	var enemy: CharacterBody2D = enemy_scene.instantiate()
+	var enemy: CharacterBody2D = ENEMY_SCENE.instantiate()
+	var t_instantiate_usec: int = 0
+	if DEBUG_SPAWN_PIPELINE_LOG:
+		t_instantiate_usec = Time.get_ticks_usec()
 	
 	# Scaling basé sur les multipliers du world + progression dans le world
 	var level_bonus: float = current_level_index * 0.05
@@ -358,11 +752,35 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	
 	game_layer.add_child(enemy)
 	enemy.global_position = spawn_pos
+	var t_added_usec: int = 0
+	if DEBUG_SPAWN_PIPELINE_LOG:
+		t_added_usec = Time.get_ticks_usec()
 	enemy.setup(enemy_data)
+	var t_setup_usec: int = 0
+	if DEBUG_SPAWN_PIPELINE_LOG:
+		t_setup_usec = Time.get_ticks_usec()
 	enemy.apply_stat_multipliers({"hp_mult": hp_mult, "damage_mult": dmg_mult, "speed_mult": spd_mult})
 	
 	# Connecter le signal de mort
 	enemy.enemy_died.connect(_on_enemy_died)
+
+	if DEBUG_SPAWN_PIPELINE_LOG:
+		var t_end_usec: int = Time.get_ticks_usec()
+		var total_ms: float = float(t_end_usec - t0_usec) / 1000.0
+		if total_ms >= DEBUG_SPAWN_PIPELINE_THRESHOLD_MS:
+			var instantiate_ms: float = float(t_instantiate_usec - t0_usec) / 1000.0
+			var add_ms: float = float(t_added_usec - t_instantiate_usec) / 1000.0
+			var setup_ms: float = float(t_setup_usec - t_added_usec) / 1000.0
+			var stats_ms: float = float(t_end_usec - t_setup_usec) / 1000.0
+			print(
+				"[GameSpawn] total=", snappedf(total_ms, 0.1), "ms",
+				" instantiate=", snappedf(instantiate_ms, 0.1), "ms",
+				" add=", snappedf(add_ms, 0.1), "ms",
+				" setup=", snappedf(setup_ms, 0.1), "ms",
+				" stats+signals=", snappedf(stats_ms, 0.1), "ms",
+				" enemy=", str(enemy_data.get("id", "?")),
+				" pattern=", str(enemy_data.get("move_pattern_id", ""))
+			)
 	# print("[Game] Wave Spawn: ", enemy_data.get("name", "?"))
 
 # =============================================================================
@@ -422,6 +840,18 @@ func _randomize_obstacle_dimensions(data: Dictionary) -> void:
 		data["height"] = rand_w * ratio
 
 func _pick_random_sprite(data: Dictionary) -> void:
+	# Check world-level obstacle skin overrides first
+	var shape: String = str(data.get("shape", ""))
+	var obs_overrides: Variant = _world_skin_overrides.get("obstacles", {})
+	if obs_overrides is Dictionary and shape != "":
+		var shape_sprites: Variant = (obs_overrides as Dictionary).get(shape, [])
+		if shape_sprites is Array:
+			var arr: Array = shape_sprites as Array
+			if arr.size() > 0:
+				data["sprite_path"] = str(arr[randi() % arr.size()])
+				return
+	
+	# Fallback to default sprite_path from obstacles.json
 	var sprite_paths: Variant = data.get("sprite_path", "")
 	if sprite_paths is Array:
 		var arr: Array = sprite_paths as Array
@@ -479,14 +909,29 @@ func _spawn_boss(boss_id: String) -> void:
 		print("[Game] Boss data not found!")
 		return
 	
-	var boss_scene := load("res://scenes/Boss.tscn")
-	var boss: CharacterBody2D = boss_scene.instantiate()
+	var boss: CharacterBody2D = BOSS_SCENE.instantiate()
 	
 	var viewport_width := get_viewport_rect().size.x
 	var spawn_pos := Vector2(viewport_width / 2, 100)
 	
 	game_layer.add_child(boss)
 	boss.global_position = spawn_pos
+	
+	# Apply world-level boss skin override
+	var boss_overrides: Variant = _world_skin_overrides.get("bosses", {})
+	if boss_overrides is Dictionary:
+		var boss_skin: String = str((boss_overrides as Dictionary).get(boss_id, ""))
+		if boss_skin != "" and ResourceLoader.exists(boss_skin):
+			var visual: Dictionary = boss_data.get("visual", {}).duplicate(true)
+			var ext: String = boss_skin.get_extension().to_lower()
+			if ext == "tres" or ext == "res":
+				visual["asset_anim"] = boss_skin
+				visual["asset"] = ""
+			else:
+				visual["asset"] = boss_skin
+				visual["asset_anim"] = ""
+			boss_data["visual"] = visual
+	
 	boss.setup(boss_data)
 	
 	# Appliquer les multipliers du world au boss
@@ -562,11 +1007,13 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 	# --- Skill Tree: Grant session XP ---
 	var xp_before := ProfileManager.get_player_xp()
 	var level_before := ProfileManager.get_player_level()
+	var xp_mult: float = _resolve_session_xp_multiplier()
+	var effective_session_xp: int = int(round(float(session_xp) * xp_mult))
 	if session_xp > 0:
-		ProfileManager.gain_xp(session_xp)
+		ProfileManager.gain_xp(effective_session_xp)
 	var xp_after := ProfileManager.get_player_xp()
 	var level_after := ProfileManager.get_player_level()
-	var xp_gained := session_xp
+	var xp_gained := effective_session_xp
 	var _levels_gained := level_after - level_before
 	
 	# 2. Main Reward (Boss Loot) - Only on Victory
@@ -620,6 +1067,18 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 		loot_screen.exit_requested.connect(_on_end_screen_context_requested)
 		if loot_screen.has_signal("menu_requested"):
 			loot_screen.menu_requested.connect(_return_to_home)
+
+func _resolve_session_xp_multiplier() -> float:
+	if is_instance_valid(player) and player.has_method("get_xp_gain_multiplier"):
+		return maxf(1.0, float(player.call("get_xp_gain_multiplier")))
+
+	var active_ship_id := ProfileManager.get_active_ship_id()
+	if active_ship_id != "" and StatsCalculator and StatsCalculator.has_method("calculate_ship_stats"):
+		var stats: Dictionary = StatsCalculator.calculate_ship_stats(active_ship_id)
+		var bonus_pct: float = float(stats.get("xp_multiplier", 0.0))
+		return maxf(1.0, 1.0 + (bonus_pct / 100.0))
+
+	return 1.0
 
 func _apply_victory_progress() -> void:
 	var levels_per_world: int = max(1, App.get_world_level_count(current_world_id))

@@ -229,17 +229,32 @@ func _generate_unique_item(preferred_slot: String, allowed_unique_ids: Array = [
 	item.level = 1 # Uniques don't scale by level
 	item.slot = str(unique_data.get("slot", ""))
 	item.is_unique = true
-	item.special_ability_id = str(unique_data.get("special_ability_id", unique_data.get("unique_power_id", "")))
+	var power_id: String = str(unique_data.get("unique_power_id", unique_data.get("special_ability_id", ""))).strip_edges()
+	if power_id == "" or (DataManager and DataManager.get_unique_power(power_id).is_empty()):
+		if DataManager and DataManager.has_method("get_unique_power_ids"):
+			var power_ids: Array = DataManager.get_unique_power_ids()
+			if power_ids.size() > 0:
+				power_id = str(power_ids[0])
+	item.unique_power_id = power_id
+	item.special_ability_id = power_id
 	item.source_boss_id = str(unique_data.get("source_boss", ""))
 	item.asset = str(unique_data.get("icon", unique_data.get("sprite", unique_data.get("asset", ""))))
 	
-	# Fixed stats (already harmonized in uniques.json)
+	# Fixed stats (up to 6 meaningful stats for unique items).
 	var stats_raw: Variant = unique_data.get("stats", {})
 	if stats_raw is Dictionary:
+		var added_count: int = 0
 		for raw_key in (stats_raw as Dictionary).keys():
+			if added_count >= 6:
+				break
 			var key := str(raw_key)
 			var value := float((stats_raw as Dictionary)[raw_key])
+			if absf(value) < 0.001:
+				continue
 			item.base_stats[key] = float(item.base_stats.get(key, 0.0)) + value
+			added_count += 1
+	if item.base_stats.is_empty():
+		item.base_stats["power"] = 10.0
 	
 	return item
 
@@ -301,7 +316,24 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 	
 	# Get rarity config
 	var rarity_cfg: Dictionary = _rarity_config.get(rarity_str, {}) as Dictionary
-	var affix_count: int = int(rarity_cfg.get("affix_count", 0))
+	var default_affix_count: int = 1
+	match rarity_str:
+		"common":
+			default_affix_count = 1
+		"uncommon":
+			default_affix_count = 2
+		"rare":
+			default_affix_count = 3
+		"epic":
+			default_affix_count = 4
+		"legendary":
+			default_affix_count = 5
+		"unique":
+			default_affix_count = 6
+		_:
+			default_affix_count = 1
+	var affix_count: int = max(default_affix_count, int(rarity_cfg.get("affix_count", default_affix_count)))
+	affix_count = mini(6, affix_count)
 	var power_mult: float = float(rarity_cfg.get("power_multiplier", 1.0))
 	
 	# Level scaling: +10% per level
@@ -335,6 +367,13 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 			if stat not in used_stats:
 				selected_affixes.append(affix as Dictionary)
 				used_stats.append(stat)
+
+	# Safety: ensure at least one stat for generated non-unique items.
+	if selected_affixes.is_empty() and not available_affixes.is_empty():
+		for affix in available_affixes:
+			if affix is Dictionary:
+				selected_affixes.append(affix as Dictionary)
+				break
 	
 	# Calculate stat values using per-rarity ranges
 	for affix in selected_affixes:

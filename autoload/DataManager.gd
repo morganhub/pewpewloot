@@ -210,6 +210,14 @@ func _sort_by_order(a: Dictionary, b: Dictionary) -> bool:
 func get_world(world_id: String) -> Dictionary:
 	return _worlds.get(world_id, {})
 
+## Retourne les skin_overrides d'un monde (enemies, bosses, obstacles)
+func get_world_skin_overrides(world_id: String) -> Dictionary:
+	var world: Dictionary = _worlds.get(world_id, {})
+	var overrides: Variant = world.get("skin_overrides", {})
+	if overrides is Dictionary:
+		return overrides as Dictionary
+	return {}
+
 ## Retourne la liste des IDs de mondes
 func get_world_ids() -> Array:
 	return _worlds.keys()
@@ -402,6 +410,11 @@ func get_super_power(power_id: String) -> Dictionary:
 func get_unique_power(power_id: String) -> Dictionary:
 	return _unique_powers.get(power_id, {})
 
+func get_unique_power_ids() -> Array:
+	var ids: Array = _unique_powers.keys()
+	ids.sort()
+	return ids
+
 func get_power(power_id: String) -> Dictionary:
 	if _super_powers.has(power_id):
 		return _super_powers[power_id]
@@ -508,13 +521,15 @@ func _load_loot_data() -> void:
 	var uniques_data := _load_json("res://data/loot/uniques.json")
 	var raw_uniques: Variant = uniques_data.get("uniques", [])
 	if raw_uniques is Array:
-		_uniques = raw_uniques as Array
-		for unique in _uniques:
-			if unique is Dictionary:
-				var unique_dict := unique as Dictionary
-				var unique_id: String = str(unique_dict.get("id", ""))
-				if unique_id != "":
-					_uniques_by_id[unique_id] = unique_dict
+		for unique in (raw_uniques as Array):
+			if not (unique is Dictionary):
+				continue
+			var unique_dict := _sanitize_unique_definition(unique as Dictionary)
+			var unique_id: String = str(unique_dict.get("id", "")).strip_edges()
+			if unique_id == "":
+				continue
+			_uniques.append(unique_dict)
+			_uniques_by_id[unique_id] = unique_dict
 
 ## Retourne tous les slots (avec leurs métadonnées)
 func get_slots() -> Array:
@@ -544,9 +559,13 @@ func get_rarity(rarity_id: String) -> Dictionary:
 
 ## Retourne la couleur hexadécimale associée à une rareté
 func get_rarity_color(rarity_id: String) -> Color:
+	var rarity_colors: Variant = _game_config.get("rarity_colors", {})
+	if rarity_colors is Dictionary and (rarity_colors as Dictionary).has(rarity_id):
+		return Color.html(str((rarity_colors as Dictionary).get(rarity_id, "#FFFFFF")))
+
 	var rarity := get_rarity(rarity_id)
 	var color_code := str(rarity.get("color", "#FFFFFF"))
-	return Color(color_code)
+	return Color.html(color_code)
 
 ## Retourne le chemin de la frame (bordure) associée à une rareté
 func get_rarity_frame_path(rarity_id: String) -> String:
@@ -587,6 +606,39 @@ func get_uniques_for_boss(boss_id: String) -> Array:
 		if unique is Dictionary and str(unique.get("source_boss", "")) == boss_id:
 			result.append(unique)
 	return result
+
+func _sanitize_unique_definition(raw_unique: Dictionary) -> Dictionary:
+	var unique := raw_unique.duplicate(true)
+
+	# Keep at most 6 meaningful stats and drop zero-value vestiges.
+	var stats_raw: Variant = unique.get("stats", {})
+	var cleaned_stats: Dictionary = {}
+	if stats_raw is Dictionary:
+		var stat_count: int = 0
+		for raw_key in (stats_raw as Dictionary).keys():
+			if stat_count >= 6:
+				break
+			var stat_key: String = str(raw_key)
+			var stat_value: float = float((stats_raw as Dictionary).get(raw_key, 0.0))
+			if absf(stat_value) < 0.001:
+				continue
+			cleaned_stats[stat_key] = stat_value
+			stat_count += 1
+	if cleaned_stats.is_empty():
+		cleaned_stats["power"] = 10.0
+	unique["stats"] = cleaned_stats
+
+	# Enforce unique power presence and validity.
+	var power_id: String = str(unique.get("unique_power_id", unique.get("special_ability_id", ""))).strip_edges()
+	if power_id == "" or get_unique_power(power_id).is_empty():
+		var available_ids: Array = get_unique_power_ids()
+		if available_ids.size() > 0:
+			power_id = str(available_ids[0])
+	if power_id != "":
+		unique["unique_power_id"] = power_id
+		unique["special_ability_id"] = power_id
+
+	return unique
 
 # =============================================================================
 # UTILITY

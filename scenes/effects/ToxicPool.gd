@@ -16,6 +16,8 @@ var _visual_size: float = 120.0
 var _pool_fluid_id: String = ""
 var _fluid_pool_handle: int = -1
 const TICK_INTERVAL: float = 0.5
+const STRONG_RESOURCE_CACHE_MAX: int = 128
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 func setup(radius: float, duration: float, dps: float, visual_data: Dictionary = {}) -> void:
 	pool_radius = radius
@@ -135,7 +137,7 @@ func _try_add_animated_visual(
 ) -> bool:
 	if asset_anim == "" or not ResourceLoader.exists(asset_anim):
 		return false
-	var res := load(asset_anim)
+	var res: Resource = _load_cached_resource(asset_anim)
 	if not (res is SpriteFrames):
 		return false
 	var frames := res as SpriteFrames
@@ -170,7 +172,7 @@ func _try_add_animated_visual(
 func _try_add_static_visual(parent: Node2D, asset: String, target_size: float, tint: Color) -> bool:
 	if asset == "" or not ResourceLoader.exists(asset):
 		return false
-	var res := load(asset)
+	var res: Resource = _load_cached_resource(asset)
 	if not (res is Texture2D):
 		return false
 	var texture := res as Texture2D
@@ -184,3 +186,17 @@ func _try_add_static_visual(parent: Node2D, asset: String, target_size: float, t
 		var scale_factor: float = target_size / maxf(tex_size.x, tex_size.y)
 		sprite.scale = Vector2.ONE * scale_factor
 	return true
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

@@ -32,7 +32,12 @@ var _first_frame: bool = true
 var _acceleration: float = 0.0
 var _explosion_data: Dictionary = {}
 var _homing_turn_rate: float = 3.0
+var _homing_duration: float = -1.0
 var _target: Node2D = null
+const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.tscn")
+const SINGULARITY_SCENE: PackedScene = preload("res://scenes/effects/Singularity.tscn")
+const STRONG_RESOURCE_CACHE_MAX: int = 256
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 # Skill Tree Modifiers
 var skill_modifiers: Dictionary = {}
@@ -78,6 +83,7 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	damage = dmg
 	_pattern_data = pattern_data
 	_time_alive = 0.0
+	_max_lifetime = maxf(0.1, float(pattern_data.get("despawn_after_sec", pattern_data.get("max_lifetime", 20.0))))
 	is_active = true
 	is_critical = is_crit
 	_fluid_id = str(pattern_data.get("fluid_id", ""))
@@ -98,12 +104,18 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 
 	# Appliquer le pattern
 	_trajectory_type = str(pattern_data.get("trajectory", "straight"))
+	_target = null
 	
 	# Acceleration from missile data
 	_acceleration = float(pattern_data.get("acceleration", 0.0))
 	
 	# Homing turn rate
 	_homing_turn_rate = float(pattern_data.get("homing_turn_rate", 3.0))
+	_homing_duration = float(pattern_data.get("homing_duration", pattern_data.get("homing_lock_duration", -1.0)))
+	if _trajectory_type == "homing" and _homing_duration < 0.0 and not is_player_projectile:
+		_homing_duration = 1.5
+	if _trajectory_type != "homing":
+		_homing_duration = -1.0
 	
 	# Explosion data (missile-specific or default)
 	var missile_explosion: Dictionary = pattern_data.get("explosion_data", {})
@@ -181,7 +193,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 	
 	# Priority 1: AnimatedSprite (asset_anim)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames_res: Resource = load(asset_anim)
+		var frames_res: Resource = _load_cached_resource(asset_anim)
 		if frames_res is SpriteFrames:
 			var frames: SpriteFrames = frames_res as SpriteFrames
 			use_asset = true
@@ -190,7 +202,7 @@ func _setup_visual(visual_data: Dictionary, viewport_size_arg: Vector2) -> void:
 
 	# Priority 2: Static Sprite (asset)
 	if not use_asset and asset_path != "" and ResourceLoader.exists(asset_path):
-		var asset_res: Resource = load(asset_path)
+		var asset_res: Resource = _load_cached_resource(asset_path)
 		if asset_res is SpriteFrames:
 			use_asset = true
 			visual.visible = false
@@ -425,6 +437,11 @@ func _move_spiral(delta: float) -> void:
 	global_position += direction * speed * delta
 
 func _move_homing(delta: float) -> void:
+	# After homing_duration, keep current heading (straight line).
+	if _homing_duration >= 0.0 and _time_alive >= _homing_duration:
+		global_position += direction * speed * delta
+		return
+
 	# Find target if not set
 	if _target == null or not is_instance_valid(_target):
 		if is_player_projectile:
@@ -666,59 +683,57 @@ func _spawn_ice_shards(body: Node2D) -> void:
 		)
 
 func _spawn_toxic_pool(pos: Vector2) -> void:
-	var pool_scene_res: Resource = load("res://scenes/effects/ToxicPool.tscn")
-	if pool_scene_res is PackedScene:
-		var pool_scene: PackedScene = pool_scene_res as PackedScene
-		var pool_node: Node = pool_scene.instantiate()
-		if not (pool_node is Node2D):
-			return
-		var pool: Node2D = pool_node as Node2D
-		var container := get_parent()
-		if container:
-			container.call_deferred("add_child", pool)
-			pool.call_deferred("set_global_position", pos)
-			if pool.has_method("setup"):
-				var pool_radius: float = float(skill_modifiers.get("pool_radius", 50))
-				pool_radius *= (1.0 + float(skill_modifiers.get("pool_radius_bonus", 0.0)))
-				var pool_duration: float = float(skill_modifiers.get("pool_duration", 3.0))
-				var pool_dps: float = float(skill_modifiers.get("pool_damage_per_sec", 8))
-				var visual_data: Dictionary = {
-					"asset": str(skill_modifiers.get("pool_asset", "")),
-					"asset_anim": str(skill_modifiers.get("pool_asset_anim", "")),
-					"asset_anim_duration": float(skill_modifiers.get("pool_asset_anim_duration", 0.0)),
-					"asset_anim_loop": bool(skill_modifiers.get("pool_asset_anim_loop", true)),
-					"size": float(skill_modifiers.get("pool_asset_size", pool_radius * 2.0)),
-					"pool_fluid_id": str(skill_modifiers.get("pool_fluid_id", ""))
-				}
-				pool.call_deferred("setup", pool_radius, pool_duration, pool_dps, visual_data)
+	if TOXIC_POOL_SCENE == null:
+		return
+	var pool_node: Node = TOXIC_POOL_SCENE.instantiate()
+	if not (pool_node is Node2D):
+		return
+	var pool: Node2D = pool_node as Node2D
+	var container := get_parent()
+	if container:
+		container.call_deferred("add_child", pool)
+		pool.call_deferred("set_global_position", pos)
+		if pool.has_method("setup"):
+			var pool_radius: float = float(skill_modifiers.get("pool_radius", 50))
+			pool_radius *= (1.0 + float(skill_modifiers.get("pool_radius_bonus", 0.0)))
+			var pool_duration: float = float(skill_modifiers.get("pool_duration", 3.0))
+			var pool_dps: float = float(skill_modifiers.get("pool_damage_per_sec", 8))
+			var visual_data: Dictionary = {
+				"asset": str(skill_modifiers.get("pool_asset", "")),
+				"asset_anim": str(skill_modifiers.get("pool_asset_anim", "")),
+				"asset_anim_duration": float(skill_modifiers.get("pool_asset_anim_duration", 0.0)),
+				"asset_anim_loop": bool(skill_modifiers.get("pool_asset_anim_loop", true)),
+				"size": float(skill_modifiers.get("pool_asset_size", pool_radius * 2.0)),
+				"pool_fluid_id": str(skill_modifiers.get("pool_fluid_id", ""))
+			}
+			pool.call_deferred("setup", pool_radius, pool_duration, pool_dps, visual_data)
 
 func _spawn_singularity(pos: Vector2) -> void:
-	var singularity_scene_res: Resource = load("res://scenes/effects/Singularity.tscn")
-	if singularity_scene_res is PackedScene:
-		var singularity_scene: PackedScene = singularity_scene_res as PackedScene
-		var singularity_node: Node = singularity_scene.instantiate()
-		if not (singularity_node is Node2D):
-			return
-		var singularity: Node2D = singularity_node as Node2D
-		var container := get_parent()
-		if container:
-			container.call_deferred("add_child", singularity)
-			singularity.call_deferred("set_global_position", pos)
-			if singularity.has_method("setup"):
-				var s_radius: float = float(skill_modifiers.get("singularity_radius", 80))
-				s_radius *= (1.0 + float(skill_modifiers.get("void_radius_bonus", 0.0)))
-				var s_duration: float = float(skill_modifiers.get("singularity_duration", 1.0))
-				var s_dmg_base: float = float(skill_modifiers.get("singularity_damage_base", 5))
-				var s_dmg_exp: float = float(skill_modifiers.get("singularity_damage_exponent", 2.0))
-				var has_spaghetti: bool = bool(skill_modifiers.get("spaghettification_enabled", false))
-				var visual_data: Dictionary = {
-					"asset": str(skill_modifiers.get("singularity_asset", "")),
-					"asset_anim": str(skill_modifiers.get("singularity_asset_anim", "")),
-					"asset_anim_duration": float(skill_modifiers.get("singularity_asset_anim_duration", 0.0)),
-					"asset_anim_loop": bool(skill_modifiers.get("singularity_asset_anim_loop", true)),
-					"size": float(skill_modifiers.get("singularity_asset_size", s_radius * 2.0))
-				}
-				singularity.call_deferred("setup", s_radius, s_duration, s_dmg_base, s_dmg_exp, has_spaghetti, visual_data)
+	if SINGULARITY_SCENE == null:
+		return
+	var singularity_node: Node = SINGULARITY_SCENE.instantiate()
+	if not (singularity_node is Node2D):
+		return
+	var singularity: Node2D = singularity_node as Node2D
+	var container := get_parent()
+	if container:
+		container.call_deferred("add_child", singularity)
+		singularity.call_deferred("set_global_position", pos)
+		if singularity.has_method("setup"):
+			var s_radius: float = float(skill_modifiers.get("singularity_radius", 80))
+			s_radius *= (1.0 + float(skill_modifiers.get("void_radius_bonus", 0.0)))
+			var s_duration: float = float(skill_modifiers.get("singularity_duration", 1.0))
+			var s_dmg_base: float = float(skill_modifiers.get("singularity_damage_base", 5))
+			var s_dmg_exp: float = float(skill_modifiers.get("singularity_damage_exponent", 2.0))
+			var has_spaghetti: bool = bool(skill_modifiers.get("spaghettification_enabled", false))
+			var visual_data: Dictionary = {
+				"asset": str(skill_modifiers.get("singularity_asset", "")),
+				"asset_anim": str(skill_modifiers.get("singularity_asset_anim", "")),
+				"asset_anim_duration": float(skill_modifiers.get("singularity_asset_anim_duration", 0.0)),
+				"asset_anim_loop": bool(skill_modifiers.get("singularity_asset_anim_loop", true)),
+				"size": float(skill_modifiers.get("singularity_asset_size", s_radius * 2.0))
+			}
+			singularity.call_deferred("setup", s_radius, s_duration, s_dmg_base, s_dmg_exp, has_spaghetti, visual_data)
 
 # =============================================================================
 # UTILITY
@@ -755,3 +770,18 @@ func _create_circle_polygon(radius: float) -> PackedVector2Array:
 		var angle := (i / float(num_points)) * TAU
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

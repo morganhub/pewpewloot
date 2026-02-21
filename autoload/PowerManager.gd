@@ -3,6 +3,9 @@ extends Node
 ## PowerManager — Gère l'exécution des super pouvoirs et pouvoirs uniques.
 ## Gère l'invincibilité, les mouvements cinématiques et les patterns de tirs spéciaux.
 
+const BOSS_VOID_ZONE := preload("res://scenes/effects/BossVoidZone.gd")
+const BOSS_LASER_ZONE := preload("res://scenes/effects/BossLaserZone.gd")
+
 func execute_power(power_id: String, source: Node2D) -> void:
 	var data := DataManager.get_power(power_id)
 	if data.is_empty():
@@ -44,6 +47,57 @@ func execute_power(power_id: String, source: Node2D) -> void:
 	var proj_data: Variant = data.get("projectile", null)
 	if proj_data is Dictionary:
 		_handle_projectiles(source, proj_data as Dictionary)
+
+	# 4. Hazards (boss-only): void zones, lasers, etc.
+	var hazard_data: Variant = data.get("hazard", null)
+	if hazard_data is Dictionary:
+		_handle_hazard(source, hazard_data as Dictionary, duration)
+
+	var hazards_data: Variant = data.get("hazards", null)
+	if hazards_data is Array:
+		for entry in (hazards_data as Array):
+			if entry is Dictionary:
+				_handle_hazard(source, entry as Dictionary, duration)
+
+func _handle_hazard(source: Node2D, hazard_data: Dictionary, default_duration: float) -> void:
+	if not is_instance_valid(source):
+		return
+
+	var hazard_type: String = str(hazard_data.get("type", ""))
+	if hazard_type == "":
+		return
+
+	var container: Node = source.get_parent()
+	if container == null:
+		container = get_tree().root
+
+	match hazard_type:
+		"void_zone":
+			var zone_node: Variant = BOSS_VOID_ZONE.new()
+			if zone_node is Area2D:
+				var zone := zone_node as Area2D
+				container.add_child(zone)
+				zone.global_position = source.global_position
+				if zone.has_method("setup"):
+					zone.call("setup", source, hazard_data, default_duration)
+
+		"laser_line", "laser_cone":
+			var laser_data := hazard_data.duplicate(true)
+			if hazard_type == "laser_line":
+				laser_data["mode"] = "line"
+			else:
+				laser_data["mode"] = "cone"
+
+			var laser_node: Variant = BOSS_LASER_ZONE.new()
+			if laser_node is Area2D:
+				var laser := laser_node as Area2D
+				container.add_child(laser)
+				laser.global_position = source.global_position
+				if laser.has_method("setup"):
+					laser.call("setup", source, laser_data, default_duration)
+
+		_:
+			push_warning("[PowerManager] Unknown hazard type: " + hazard_type)
 
 func _handle_movement(source: Node2D, move_data: Dictionary, duration: float) -> void:
 	var type: String = str(move_data.get("type", ""))
@@ -99,6 +153,11 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 	var color_hex: String = str(proj_data.get("color", "#FFFF00"))
 	var safe_zones: Variant = proj_data.get("safe_zones", null)
 	var aim_target: bool = bool(proj_data.get("aim_target", false))
+	var homing_turn_rate: float = float(proj_data.get("homing_turn_rate", 3.0))
+	var homing_duration: float = float(proj_data.get("homing_duration", -1.0))
+	var is_player_source: bool = source.is_in_group("player")
+	if trajectory == "homing" and homing_duration < 0.0 and not is_player_source:
+		homing_duration = 1.5
 	
 	var pattern := {
 		"trajectory": trajectory,
@@ -115,6 +174,10 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 			"asset_anim_loop": bool(proj_data.get("asset_anim_loop", true))
 		}
 	}
+	if trajectory == "homing":
+		pattern["homing_turn_rate"] = homing_turn_rate
+		if homing_duration >= 0.0:
+			pattern["homing_duration"] = homing_duration
 	
 	for i in range(waves):
 		call_deferred("_spawn_wave", source, count, pattern, trajectory, safe_zones)

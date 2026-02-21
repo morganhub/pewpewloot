@@ -1,4 +1,5 @@
 extends PanelContainer
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 signal close_requested
 signal upgrade_requested(item_id: String)
@@ -55,19 +56,15 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 	var rarity_params = game_cfg.get("rarity_colors", {})
 	
 	# Apply Popup Background
-	var popup_bg = str(popup_cfg.get("background", {}).get("asset", ""))
-	if popup_bg != "" and ResourceLoader.exists(popup_bg):
-		var style = StyleBoxTexture.new()
-		style.texture = load(popup_bg)
-		var m = int(popup_cfg.get("margin", 30))
-		style.content_margin_left = m
-		style.content_margin_right = m
-		style.content_margin_top = m
-		style.content_margin_bottom = m
+	var popup_bg_cfg: Dictionary = popup_cfg.get("background", {}) if popup_cfg.get("background") is Dictionary else {}
+	var popup_bg = str(popup_bg_cfg.get("asset", ""))
+	var m = int(popup_cfg.get("margin", 30))
+	var style := UIStyle.build_texture_stylebox(popup_bg, popup_bg_cfg, m)
+	if style:
 		add_theme_stylebox_override("panel", style)
 	
 	var rarity = str(item.get("rarity", "common"))
-	var level = int(item.get("level", 1))
+	var level = int(item.get("level", int(item.get("upgrade", 0)) + 1))
 	var asset = str(item.get("asset", ""))
 	
 	# Icon
@@ -165,19 +162,17 @@ func set_actions_visible(p_visible: bool) -> void:
 	if equip_btn: equip_btn.visible = p_visible
 
 func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) -> void:
-	if btn_cfg.is_empty(): return
+	var merged_cfg := global_cfg.duplicate(true)
+	for key in btn_cfg.keys():
+		merged_cfg[key] = btn_cfg[key]
 	
-	var w = int(btn_cfg.get("width", 140) * 1.4)
-	var h = int(btn_cfg.get("height", 50) * 1.4)
+	var w = int(merged_cfg.get("width", 140) * 1.4)
+	var h = int(merged_cfg.get("height", 50) * 1.4)
 	btn.custom_minimum_size = Vector2(w, h)
 	
-	var asset = str(btn_cfg.get("asset", ""))
-	if asset != "" and ResourceLoader.exists(asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(asset)
-		# Add margins if needed for text
-		style.content_margin_left = 10
-		style.content_margin_right = 10
+	var asset = str(merged_cfg.get("asset", ""))
+	var style := UIStyle.build_texture_stylebox(asset, merged_cfg, 10)
+	if style:
 		btn.add_theme_stylebox_override("normal", style)
 		btn.add_theme_stylebox_override("hover", style)
 		btn.add_theme_stylebox_override("pressed", style)
@@ -186,10 +181,14 @@ func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) 
 		# Remove any flat style if using texture
 		btn.flat = false
 	
-	var f_sz = int(global_cfg.get("font_size", 18))
-	var col = Color.html(str(global_cfg.get("text_color", "#FFFFFF")))
+	var f_sz = int(merged_cfg.get("font_size", 18))
+	var col = Color.html(str(merged_cfg.get("text_color", "#FFFFFF")))
 	btn.add_theme_font_size_override("font_size", f_sz)
 	btn.add_theme_color_override("font_color", col)
+	btn.add_theme_color_override("font_pressed_color", col)
+	btn.add_theme_color_override("font_hover_color", col)
+	btn.add_theme_color_override("font_focus_color", col)
+	btn.add_theme_color_override("font_disabled_color", col)
 
 
 func _add_stat_row(stat_name: String, value: float) -> void:

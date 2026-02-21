@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## PauseMenu — Menu de pause avec options de navigation.
 
@@ -25,17 +26,12 @@ func _apply_popup_style() -> void:
 			game_config = json.data
 	
 	var popup_config: Dictionary = game_config.get("popups", {})
-	var popup_bg_asset: String = str(popup_config.get("background", {}).get("asset", ""))
+	var popup_bg_cfg: Dictionary = popup_config.get("background", {}) if popup_config.get("background") is Dictionary else {}
+	var popup_bg_asset: String = str(popup_bg_cfg.get("asset", ""))
 	var margin: int = int(popup_config.get("margin", 20))
 	
-	if popup_bg_asset != "" and ResourceLoader.exists(popup_bg_asset):
-		var style = StyleBoxTexture.new()
-		style.texture = load(popup_bg_asset)
-		style.content_margin_top = margin
-		style.content_margin_bottom = margin
-		style.content_margin_left = margin
-		style.content_margin_right = margin
-		
+	var style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, margin)
+	if style:
 		panel.add_theme_stylebox_override("panel", style)
 
 func show_menu() -> void:

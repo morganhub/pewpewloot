@@ -52,12 +52,12 @@ theme_override_constants/separation = 10
 
 [node name="BackButtonMargin" type="MarginContainer" parent="MarginContainer/ScrollContainer/Content/Header"]
 layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
+theme_override_constants/margin_left = 25
+theme_override_constants/margin_top = 25
 
 [node name="BackButton" type="TextureButton" parent="MarginContainer/ScrollContainer/Content/Header/BackButtonMargin" unique_id=806286378]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(50, 50)
+custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 ignore_texture_size = true
 stretch_mode = 5

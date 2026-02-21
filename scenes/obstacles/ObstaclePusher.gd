@@ -11,6 +11,7 @@ signal obstacle_destroyed(obstacle: Node2D)
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var detection_area: Area2D = $DetectionArea
+@onready var detection_collision_shape: CollisionShape2D = $DetectionArea/CollisionShape2D
 
 var _anim_sprite: AnimatedSprite2D = null  # Créé dynamiquement si .tres
 var _visual_node: Node2D = null  # Pointe vers sprite ou _anim_sprite selon le cas
@@ -30,6 +31,9 @@ var _drift_velocity: Vector2 = Vector2.ZERO
 var _fluid_id: String = ""
 
 const OFFSCREEN_MARGIN: float = 100.0
+const STRONG_RESOURCE_CACHE_MAX: int = 256
+static var _strong_resource_cache: Dictionary = {}  # path -> Resource
+static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
 
 # Directions de drift (normalisées)
 const DRIFT_DIR_VECTORS: Dictionary = {
@@ -50,6 +54,7 @@ func setup(data: Dictionary, scroll_speed: float) -> void:
 	hp = float(data.get("hp", 0))
 	max_hp = hp
 	_fluid_id = str(data.get("fluid_id", ""))
+	contact_sfx_path = str(data.get("contact_sfx", ""))
 	_shape_type = str(data.get("shape", "rectangle"))
 	
 	# Dimensions selon le type de shape
@@ -65,11 +70,10 @@ func setup(data: Dictionary, scroll_speed: float) -> void:
 		circle_shape.radius = radius
 		collision_shape.shape = circle_shape
 		# Shape de la detection area
-		var det_col := detection_area.get_node_or_null("CollisionShape2D") as CollisionShape2D
-		if det_col:
+		if detection_collision_shape:
 			var det_circle := CircleShape2D.new()
 			det_circle.radius = radius
-			det_col.shape = det_circle
+			detection_collision_shape.shape = det_circle
 	else:
 		target_width = float(data.get("width", 200))
 		target_height = float(data.get("height", 30))
@@ -78,11 +82,10 @@ func setup(data: Dictionary, scroll_speed: float) -> void:
 		rect_shape.size = Vector2(target_width, target_height)
 		collision_shape.shape = rect_shape
 		# Shape de la detection area
-		var det_col := detection_area.get_node_or_null("CollisionShape2D") as CollisionShape2D
-		if det_col:
+		if detection_collision_shape:
 			var det_rect := RectangleShape2D.new()
 			det_rect.size = Vector2(target_width, target_height)
-			det_col.shape = det_rect
+			detection_collision_shape.shape = det_rect
 	
 	# Charger le visuel (sprite statique ou animé .tres)
 	_apply_visual(target_width, target_height, data)
@@ -105,36 +108,56 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	var sprite_duration: float = maxf(0.0, float(data.get("sprite_duration", 0.0)))
 	var sprite_loop: bool = bool(data.get("sprite_loop", true))
 	
-	if sprite_path == "" or not ResourceLoader.exists(sprite_path):
+	if sprite_path == "":
 		_visual_node = sprite
+		if _anim_sprite:
+			_anim_sprite.visible = false
 		if sprite.texture:
 			var tex_size := sprite.texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
 				sprite.scale = Vector2(target_w / tex_size.x, target_h / tex_size.y)
 		return
 	
-	var res: Resource = load(sprite_path)
+	var res: Resource = _load_cached_resource(sprite_path)
+	if res == null:
+		_visual_node = sprite
+		if _anim_sprite:
+			_anim_sprite.visible = false
+		return
 	
 	# Cas 1 : SpriteFrames (.tres animé) → AnimatedSprite2D
 	if res is SpriteFrames:
 		sprite.visible = false
-		_anim_sprite = AnimatedSprite2D.new()
-		_anim_sprite.name = "AnimatedSprite2D"
-		add_child(_anim_sprite)
+		if _anim_sprite == null or not is_instance_valid(_anim_sprite):
+			_anim_sprite = AnimatedSprite2D.new()
+			_anim_sprite.name = "AnimatedSprite2D"
+			add_child(_anim_sprite)
 		_visual_node = _anim_sprite
+		_anim_sprite.visible = true
 		
-		var played_anim: StringName = VFXManager.play_sprite_frames(
-			_anim_sprite,
-			res as SpriteFrames,
-			&"default",
-			sprite_loop,
-			sprite_duration
-		)
+		var played_anim: StringName = &""
+		var frames_data: SpriteFrames = res as SpriteFrames
+		var default_anim: StringName = VFXManager.get_first_animation_name(frames_data, &"default")
+		if sprite_loop and sprite_duration <= 0.0 and default_anim != &"":
+			_anim_sprite.sprite_frames = frames_data
+			_anim_sprite.animation = default_anim
+			_anim_sprite.speed_scale = 1.0
+			_anim_sprite.frame = 0
+			_anim_sprite.play(default_anim)
+			played_anim = default_anim
+		else:
+			played_anim = VFXManager.play_sprite_frames(
+				_anim_sprite,
+				frames_data,
+				&"default",
+				sprite_loop,
+				sprite_duration
+			)
 		
 		# Scale l'animation pour couvrir target_w x target_h
 		var frame_tex: Texture2D = null
 		if played_anim != &"" and _anim_sprite.sprite_frames:
-			frame_tex = _anim_sprite.sprite_frames.get_frame_texture(played_anim, 0)
+			frame_tex = _get_cached_first_frame_texture(_anim_sprite.sprite_frames, played_anim)
 		if frame_tex:
 			var f_size := frame_tex.get_size()
 			if f_size.x > 0 and f_size.y > 0:
@@ -149,10 +172,49 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	
 	_visual_node = sprite
 	sprite.texture = tex
+	sprite.visible = true
+	if _anim_sprite:
+		_anim_sprite.visible = false
 	sprite.region_enabled = false
 	var loaded_tex_size := tex.get_size()
 	if loaded_tex_size.x > 0 and loaded_tex_size.y > 0:
 		sprite.scale = Vector2(target_w / loaded_tex_size.x, target_h / loaded_tex_size.y)
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+			_first_frame_texture_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource
+
+func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
+	if frames == null or anim_name == &"":
+		return null
+	var frame_key: String = _build_frame_cache_key(frames, anim_name)
+	if _first_frame_texture_cache.has(frame_key):
+		var cached: Variant = _first_frame_texture_cache[frame_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+
+	var texture: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if texture != null:
+		_first_frame_texture_cache[frame_key] = texture
+	return texture
+
+func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> String:
+	var path: String = frames.resource_path
+	if path == "":
+		path = "rid:" + str(frames.get_rid().get_id())
+	return path + "|" + String(anim_name)
 
 func _setup_drift(data: Dictionary) -> void:
 	var drift_spd: float = float(data.get("_drift_speed", data.get("drift_speed", 0.0)))
@@ -184,7 +246,7 @@ func _physics_process(delta: float) -> void:
 
 func _on_detection_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
-		if contact_sfx_path != "" and ResourceLoader.exists(contact_sfx_path):
+		if contact_sfx_path != "":
 			AudioManager.play_sfx(contact_sfx_path)
 
 func take_damage(amount: float, _is_critical: bool = false) -> void:
