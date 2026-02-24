@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1g6d1siayn43"
-path="res://.godot/imported/logo_ppl.png-d59976825bc43adf0fc87e855c2d1f13.ctex"
+uid="uid://t8giokdk8d5d"
+path="res://.godot/imported/energy_burst.png-ac109fe2c825f06f8730f434483e0086.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/logo/logo_ppl.png"
-dest_files=["res://.godot/imported/logo_ppl.png-d59976825bc43adf0fc87e855c2d1f13.ctex"]
+source_file="res://assets/missiles/energy_burst.png"
+dest_files=["res://.godot/imported/energy_burst.png-ac109fe2c825f06f8730f434483e0086.ctex"]
 
 [params]
 

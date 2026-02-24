@@ -115,6 +115,7 @@
 	"upgrade_perfect": "Parfait !",
 	"ship_menu_rarity_label": "Rareté:",
 	"ship_menu_multi_recycle_confirm": "Êtes-vous sûr de vouloir recycler {count} objet{item_suffix} pour un total de {crystals} cristaux ?",
+	"ship_menu_single_recycle_confirm": "Êtes-vous sûr de vouloir recycler cet objet pour {crystals} cristaux ?",
 	"ship_menu_multi_recycle_popup_title": "Recyclage",
 	"confirm": "Confirmer",
 	"cancel": "Annuler",

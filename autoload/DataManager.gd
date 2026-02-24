@@ -141,6 +141,110 @@ func get_game_config() -> Dictionary:
 func get_game_data() -> Dictionary:
 	return _game_config
 
+func get_shared_asset_config(asset_id: String) -> Dictionary:
+	var shared_assets: Variant = _game_config.get("shared_assets", {})
+	if not (shared_assets is Dictionary):
+		return {}
+
+	var raw_entry: Variant = (shared_assets as Dictionary).get(asset_id, {})
+	if raw_entry is Dictionary:
+		return (raw_entry as Dictionary).duplicate(true)
+
+	var raw_path: String = str(raw_entry).strip_edges()
+	if raw_path == "":
+		return {}
+	return {"asset": raw_path}
+
+func get_shared_asset_path(asset_id: String, fallback: String = "") -> String:
+	var cfg: Dictionary = get_shared_asset_config(asset_id)
+	var path: String = str(cfg.get("asset", cfg.get("path", ""))).strip_edges()
+	if path != "" and ResourceLoader.exists(path):
+		return path
+	return fallback
+
+func get_shared_crystal_icon_config() -> Dictionary:
+	var cfg: Dictionary = get_shared_asset_config("crystal_icon")
+	var fallback := "res://assets/ui/icons/crystal.png"
+	var asset_path := str(cfg.get("asset", "")).strip_edges()
+
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		if ResourceLoader.exists(fallback):
+			asset_path = fallback
+		elif asset_path == "":
+			asset_path = fallback
+	cfg["asset"] = asset_path
+
+	if not cfg.has("animation_repeat_seconds"):
+		cfg["animation_repeat_seconds"] = 0.0
+	if not cfg.has("animation_type"):
+		cfg["animation_type"] = "loop"
+	if not cfg.has("animation_duration"):
+		cfg["animation_duration"] = 2.0
+	return cfg
+
+func get_shared_crystal_icon_path() -> String:
+	var fallback := "res://assets/ui/icons/crystal.png"
+	var cfg: Dictionary = get_shared_crystal_icon_config()
+	var path := str(cfg.get("asset", fallback)).strip_edges()
+	if path != "" and ResourceLoader.exists(path):
+		return path
+	if ResourceLoader.exists(fallback):
+		return fallback
+	return fallback
+
+func get_texture_from_resource_path(path: String) -> Texture2D:
+	var clean_path := path.strip_edges()
+	if clean_path.begins_with("shared:"):
+		var shared_id := clean_path.trim_prefix("shared:")
+		clean_path = get_shared_asset_path(shared_id, "")
+	if clean_path == "" or not ResourceLoader.exists(clean_path):
+		return null
+	var resource: Resource = ResourceLoader.load(clean_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	return _extract_texture_from_resource(resource, clean_path)
+
+func _extract_texture_from_resource(resource: Resource, source_path: String = "") -> Texture2D:
+	if resource is Texture2D:
+		return resource as Texture2D
+	if resource is SpriteFrames:
+		var frames := resource as SpriteFrames
+		var anim_name: StringName = &"default"
+		if not frames.has_animation(anim_name):
+			var names: PackedStringArray = frames.get_animation_names()
+			if names.is_empty():
+				return _fallback_texture_from_spriteframes_path(source_path)
+			anim_name = StringName(names[0])
+		if frames.get_frame_count(anim_name) <= 0:
+			return _fallback_texture_from_spriteframes_path(source_path)
+		var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+		if frame_tex != null:
+			return frame_tex
+		return _fallback_texture_from_spriteframes_path(source_path)
+	return null
+
+func _fallback_texture_from_spriteframes_path(source_path: String) -> Texture2D:
+	var clean_path := source_path.strip_edges()
+	if clean_path == "":
+		return null
+
+	var base_path := clean_path.get_basename()
+	if base_path == "":
+		return null
+
+	var candidates: Array[String] = [
+		base_path + ".png",
+		base_path + ".webp",
+		base_path + ".jpg",
+		base_path + ".jpeg"
+	]
+
+	for candidate in candidates:
+		if not ResourceLoader.exists(candidate):
+			continue
+		var fallback_res: Resource = ResourceLoader.load(candidate, "", ResourceLoader.CACHE_MODE_REUSE)
+		if fallback_res is Texture2D:
+			return fallback_res as Texture2D
+	return null
+
 ## Retourne le fluid_id par défaut pour les explosions (depuis game.json)
 func get_default_explosion_fluid_id() -> String:
 	var explosion_cfg: Variant = _game_config.get("default_explosion", {})
@@ -407,13 +511,22 @@ func _load_powers() -> void:
 func get_super_power(power_id: String) -> Dictionary:
 	return _super_powers.get(power_id, {})
 
+func get_all_super_powers() -> Array:
+	return _super_powers.values()
+
 func get_unique_power(power_id: String) -> Dictionary:
 	return _unique_powers.get(power_id, {})
+
+func get_all_unique_powers() -> Array:
+	return _unique_powers.values()
 
 func get_unique_power_ids() -> Array:
 	var ids: Array = _unique_powers.keys()
 	ids.sort()
 	return ids
+
+func get_all_boss_powers() -> Array:
+	return _boss_powers.values()
 
 func get_power(power_id: String) -> Dictionary:
 	if _super_powers.has(power_id):

@@ -58,21 +58,60 @@ text = "PEWPEWLOOT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ProfileInfo" type="HBoxContainer" parent="TopSection"]
+[node name="ProfileInfoPanel" type="PanelContainer" parent="TopSection"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 40
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(540, 70)
 
-[node name="CrystalLabel" type="Label" parent="TopSection/ProfileInfo"]
+[node name="Margin" type="MarginContainer" parent="TopSection/ProfileInfoPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 10
+
+[node name="ProfileInfo" type="HBoxContainer" parent="TopSection/ProfileInfoPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CrystalIcon" type="TextureRect" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 28)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CrystalLabel" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(0.4, 1, 1, 1)
-text = "💎 0"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "0"
+vertical_alignment = 1
 
-[node name="ShipPreview" type="HBoxContainer" parent="TopSection/ProfileInfo"]
+[node name="SeparatorOne" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
 layout_mode = 2
-alignment = 1
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "|"
+vertical_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Nv.1"
+vertical_alignment = 1
+
+[node name="SeparatorTwo" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "|"
+vertical_alignment = 1
+
+[node name="ShipPreview" type="HBoxContainer" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
 
 [node name="BottomSection" type="VBoxContainer" parent="."]
 layout_mode = 1

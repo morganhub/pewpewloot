@@ -55,10 +55,10 @@
 				"shape": "triangle",
 				"asset": "",
 				"asset_anim": "res://assets/enemies/swordwing.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
-			"missile_id": "missile_default",
+			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",
 			"special_power_id": "power_barrel_roll",
 			"fluid_id": ""

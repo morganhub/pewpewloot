@@ -24,6 +24,7 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/objects/ArcaneOrb.tscn",
 	"res://scenes/objects/GravityWell.tscn",
 	"res://scenes/objects/SuppressorShield.tscn",
+	"res://scenes/LootDrop.tscn",
 	"res://scenes/effects/ToxicPool.tscn",
 	"res://scenes/effects/Singularity.tscn",
 	"res://scenes/effects/IceAura.tscn",
@@ -38,6 +39,7 @@ const RUNTIME_WARMUP_PREFIXES: PackedStringArray = [
 	"res://scenes/abilities/",
 	"res://scenes/effects/",
 	"res://scenes/objects/",
+	"res://scenes/LootDrop",
 	"res://scenes/obstacles/"
 ]
 const DEBUG_PERF_HITCH_LOG := true
@@ -75,6 +77,7 @@ var _world_skin_overrides: Dictionary = {} # Centralized skin overrides from wor
 var _last_hitch_log_ms: int = -10000
 var _loot_drop_rules: Dictionary = {}
 var _wave_powerup_drop_counts: Dictionary = {"shield": 0, "fire_rate": 0}
+var _wave_equipment_drop_count: int = 0
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -145,6 +148,7 @@ func _build_default_loot_drop_rules() -> Dictionary:
 		"powerup_chance_scale": 0.55,
 		"max_shield_per_wave": 1,
 		"max_rapid_fire_per_wave": 1,
+		"max_equipment_per_wave": 1,
 		"shield_weight": 1.0,
 		"rapid_fire_weight": 1.0
 	}
@@ -702,6 +706,7 @@ func _on_wave_started(wave_index: int) -> void:
 func _reset_wave_powerup_drop_counters() -> void:
 	_wave_powerup_drop_counts["shield"] = 0
 	_wave_powerup_drop_counts["fire_rate"] = 0
+	_wave_equipment_drop_count = 0
 
 func get_loot_drop_rules() -> Dictionary:
 	return _loot_drop_rules.duplicate(true)
@@ -731,6 +736,17 @@ func try_reserve_powerup_drop(effect: String) -> bool:
 			_wave_powerup_drop_counts["fire_rate"] = int(_wave_powerup_drop_counts.get("fire_rate", 0)) + 1
 		_:
 			pass
+	return true
+
+func can_spawn_equipment_drop() -> bool:
+	if not bool(_loot_drop_rules.get("allow_equipment", true)):
+		return false
+	return _wave_equipment_drop_count < maxi(0, int(_loot_drop_rules.get("max_equipment_per_wave", 1)))
+
+func try_reserve_equipment_drop() -> bool:
+	if not can_spawn_equipment_drop():
+		return false
+	_wave_equipment_drop_count += 1
 	return true
 
 func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:

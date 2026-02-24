@@ -17,6 +17,9 @@ const GRID_GAP := 12
 const ItemCardScene = preload("res://scenes/components/ItemCard.tscn")
 const ItemDetailsPopupScene = preload("res://scenes/components/ItemDetailsPopup.tscn")
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
+const SCROLLING_LAYER_SCRIPT: Script = preload("res://scenes/ScrollingLayer.gd")
+const LEVEL_BACKGROUND_BASE_SPEED := 50.0
+const LEVEL_FAR_LAYER_SPEED_MULTIPLIER := 0.2
 var _item_card_size := Vector2(100, 75)
 var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time)
 
@@ -104,6 +107,7 @@ var _rarity_badge_buttons: Dictionary = {} # rarity_id -> Button
 var rarity_filter_label: Label = null
 var multi_recycle_btn: TextureButton = null
 var _item_details_popup: Control = null
+var _recycle_confirm_popup: PanelContainer = null
 
 
 # Ship scroll state for infinite cycling (replaced by pagination)
@@ -196,11 +200,6 @@ func _ready() -> void:
 	# Appliquer les traductions
 	_apply_translations()
 	App.play_menu_music()
-	
-	# Parallax Connection
-	var v_scroll: VScrollBar = scroll_container.get_v_scroll_bar()
-	v_scroll.value_changed.connect(_update_background_parallax)
-	
 
 
 	
@@ -297,39 +296,21 @@ func _on_resized() -> void:
 	_load_ships()
 	_update_inventory_grid()
 	_update_slot_buttons()
-	# Update background size for parallax
-	_setup_visuals() # Re-applies background size logic
-	if scroll_container:
-		_update_background_parallax(scroll_container.get_v_scroll_bar().value)
+	_setup_visuals()
 
-func _update_background_parallax(scroll_val: float) -> void:
-	var bg = get_node_or_null("Background")
-	if not bg or not scroll_container: return
-	
-	# Determine Scroll Progress (0.0 to 1.0)
-	var v_scroll: VScrollBar = scroll_container.get_v_scroll_bar()
-	var max_scroll: float = v_scroll.max_value - v_scroll.page
-	
-	var progress: float = 0.0
-	if max_scroll > 0:
-		progress = clamp(scroll_val / max_scroll, 0.0, 1.0)
-		
-	# Target: Move background UP as we scroll DOWN.
-	# Available movement = Background Height - Viewport Height
-	# We set bg height to 1.2x viewport in setup.
-	var viewport_h: float = get_viewport_rect().size.y
-	if viewport_h == 0: viewport_h = size.y
-	
-	var bg_h: float = bg.custom_minimum_size.y
-	if bg_h < viewport_h: bg_h = viewport_h # Safety
-	
-	var max_shift: float = bg_h - viewport_h
-	
-	# Apply slight ease or direct linear mapping? Linear is predictable.
-	var shift_y: float = -progress * max_shift
-	
-	bg.position.y = shift_y
+func _get_ship_menu_bg_scroll_speed() -> float:
+	return LEVEL_BACKGROUND_BASE_SPEED * LEVEL_FAR_LAYER_SPEED_MULTIPLIER
 
+func _resolve_asset_path(raw_path: String) -> String:
+	var clean_path := raw_path.strip_edges()
+	if clean_path == "":
+		return ""
+	if clean_path.begins_with("shared:"):
+		var shared_id := clean_path.trim_prefix("shared:")
+		if DataManager and DataManager.has_method("get_shared_asset_path"):
+			return str(DataManager.get_shared_asset_path(shared_id, ""))
+		return ""
+	return clean_path
 
 func _setup_visuals() -> void:
 	var content_vbox = $MarginContainer/ScrollContainer/Content
@@ -339,28 +320,26 @@ func _setup_visuals() -> void:
 	var bg_path: String = str(ship_config.get("background", main_config.get("background", "")))
 	
 	if bg_path != "" and ResourceLoader.exists(bg_path):
-		var tex = load(bg_path)
-		var bg = get_node_or_null("Background")
-		if not bg:
-			bg = TextureRect.new()
-			bg.name = "Background"
-			bg.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			# PARALLAX CHANGE: Use Top Wide to allow height modification and movement
-			bg.set_anchors_preset(Control.PRESET_TOP_WIDE)
-			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			add_child(bg)
-			move_child(bg, 0)
-		
-		# Ensure background is taller than screen for parallax (1.2x)
-		var viewport_h = get_viewport_rect().size.y
-		if viewport_h == 0: viewport_h = size.y
-		bg.custom_minimum_size.y = viewport_h * 1.2
-		bg.texture = tex
-		
-		# Initial Parallax Update
-		if scroll_container:
-			_update_background_parallax(scroll_container.get_v_scroll_bar().value)
+		var legacy_bg := get_node_or_null("Background")
+		if legacy_bg:
+			legacy_bg.queue_free()
+
+		var bg_resource: Resource = ResourceLoader.load(bg_path, "", ResourceLoader.CACHE_MODE_REUSE)
+		var bg_scroller := get_node_or_null("BackgroundScroller")
+		if bg_scroller == null:
+			bg_scroller = SCROLLING_LAYER_SCRIPT.new()
+			bg_scroller.name = "BackgroundScroller"
+			if bg_scroller is Node2D:
+				(bg_scroller as Node2D).z_index = -100
+			add_child(bg_scroller)
+			move_child(bg_scroller, 0)
+
+		var viewport_size := get_viewport_rect().size
+		bg_scroller.call("setup", bg_resource, _get_ship_menu_bg_scroll_speed(), viewport_size, false)
+	else:
+		var bg_scroller := get_node_or_null("BackgroundScroller")
+		if bg_scroller:
+			bg_scroller.queue_free()
 	
 	# 2. Section Backgrounds
 	var sections_cfg: Dictionary = ship_config.get("sections", {})
@@ -1129,7 +1108,7 @@ func _show_purchase_overlay(ship_id: String) -> void:
 			
 			# Prix
 			var price_label := Label.new()
-			price_label.text = str(price) + " 💎"
+			price_label.text = str(price) + " cristaux"
 			price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			price_label.add_theme_font_size_override("font_size", 20)
 			vbox.add_child(price_label)
@@ -1182,13 +1161,30 @@ func _update_ship_info(ship_id: String) -> void:
 	var stat_cfgs = sh_config.get("ship_stats", {})
 	var stat_icons_override = sh_config.get("stat_icons", {}) # NEW: Read overrides
 	var colors = sh_config.get("stat_colors", {})
+	var shared_crystal_icon_cfg: Dictionary = {}
+	var shared_crystal_icon_path: String = ""
+	if DataManager and DataManager.has_method("get_shared_crystal_icon_config"):
+		shared_crystal_icon_cfg = DataManager.get_shared_crystal_icon_config()
+		shared_crystal_icon_path = str(shared_crystal_icon_cfg.get("asset", ""))
+	if DataManager and DataManager.has_method("get_shared_crystal_icon_path"):
+		if shared_crystal_icon_path == "":
+			shared_crystal_icon_path = str(DataManager.get_shared_crystal_icon_path())
 	
 	# Helper to merge icon override
 	var get_cfg = func(key: String) -> Dictionary:
 		var cfg = stat_cfgs.get(key, {}).duplicate()
-		var cfg_icon = str(cfg.get("icon_asset", ""))
+		var cfg_icon = _resolve_asset_path(str(cfg.get("icon_asset", "")))
+		if cfg_icon != "":
+			cfg["icon_asset"] = cfg_icon
 		if (cfg_icon == "" or not ResourceLoader.exists(cfg_icon)) and stat_icons_override.has(key):
-			cfg["icon_asset"] = stat_icons_override[key]
+			var icon_override := _resolve_asset_path(str(stat_icons_override[key]))
+			if icon_override != "":
+				cfg["icon_asset"] = icon_override
+		if key == "crystals" and shared_crystal_icon_path != "" and ResourceLoader.exists(shared_crystal_icon_path):
+			cfg["icon_asset"] = shared_crystal_icon_path
+			for anim_key in ["animation_repeat_seconds", "animation_type", "animation_duration"]:
+				if shared_crystal_icon_cfg.has(anim_key):
+					cfg[anim_key] = shared_crystal_icon_cfg[anim_key]
 		return cfg
 	
 	# 2. SUMMARY ROW (Power, Crystals, Shop)
@@ -1254,7 +1250,7 @@ func _update_locking_ui(ship_id: String) -> void:
 		ship_unlock_btn.visible = true
 		var ship := DataManager.get_ship(ship_id)
 		var price := int(ship.get("crystal_price", 0))
-		ship_unlock_btn.text = "Acheter (" + str(price) + " 💎)"
+		ship_unlock_btn.text = "Acheter (" + str(price) + " cristaux)"
 		
 		var can_afford := (ProfileManager.get_crystals() >= price)
 		ship_unlock_btn.disabled = not can_afford
@@ -1562,45 +1558,36 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 	ProfileManager.equip_item(selected_ship_id, target_slot, item_id)
 	
 	
-	# Update UI but KEEP POPUP OPEN
+	# Update UI then close popup
 	_update_slot_buttons()
 	_update_inventory_grid()
 	_update_ship_info(selected_ship_id)
-	
-	# Refresh Popup State (Toggle button to Unequip)
-	# IMPORTANT: Pass resolved target_slot so popup knows where it is!
-	_show_item_popup(item_id, true, target_slot)
+	if _item_details_popup:
+		_item_details_popup.visible = false
 
 
-func _on_popup_unequip_requested(item_id: String, slot_id: String) -> void:
+func _on_popup_unequip_requested(_item_id: String, slot_id: String) -> void:
 	# Correctly pass slot_id instead of item_id
 	ProfileManager.unequip_item(selected_ship_id, slot_id)
 	
 	
-	# Update UI but KEEP POPUP OPEN
+	# Update UI then close popup
 	_update_slot_buttons()
 	_update_inventory_grid()
 	_update_ship_info(selected_ship_id)
-	
-	# Refresh Popup State (Toggle button to Equip)
-	# Pass slot_id (or generic if needed? Popup uses it for setup, but also sends it back).
-	# If we unequipped, it's now in inventory.
-	# But we want to show it as available.
-	# We can pass generic slot type if we know it, or keep specific slot_id?
-	# If we pass "missile_1", setup might fail to find "missile_1" data if item moved to inventory?
-	# Actually item maintains its slot type.
-	# Let's derive generic type from item data if possible, or just pass slot_id.
-	# It shouldn't hurt.
-	_show_item_popup(item_id, false, slot_id)
+	if _item_details_popup:
+		_item_details_popup.visible = false
 
 func _on_popup_recycle_pressed(item_id: String) -> void:
 	var item = ProfileManager.get_item_by_id(item_id)
-	if item.is_empty(): return
-	
-	# Calculate Value (Duplicate logic from ItemDetailsPopup for safety/speed)
-	var rarity = str(item.get("rarity", "common"))
-	var level = int(item.get("level", 1))
-	
+	if item.is_empty():
+		return
+	var val := _calculate_item_recycle_value(item)
+	_show_single_recycle_confirmation(item_id, val)
+
+func _calculate_item_recycle_value(item: Dictionary) -> int:
+	var rarity := str(item.get("rarity", "common"))
+	var level := int(item.get("level", int(item.get("upgrade", 0)) + 1))
 	var base_val: int = 5
 	match rarity:
 		"common": base_val = 5
@@ -1610,20 +1597,31 @@ func _on_popup_recycle_pressed(item_id: String) -> void:
 		"legendary": base_val = 250
 		"unique": base_val = 500
 	var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
-	var val = int(float(base_val) * multiplier)
-	
+	return int(float(base_val) * multiplier)
+
+func _show_single_recycle_confirmation(item_id: String, crystals_earned: int) -> void:
+	var template := LocaleManager.translate("ship_menu_single_recycle_confirm")
+	var msg := template.replace("{crystals}", str(crystals_earned))
+	_show_recycle_confirmation_popup(msg, func(): _confirm_single_recycle(item_id, crystals_earned))
+
+func _confirm_single_recycle(item_id: String, crystals_earned: int) -> void:
+	var item := ProfileManager.get_item_by_id(item_id)
+	if item.is_empty():
+		return
+
 	# Safety Check: Is this item equipped anywhere?
 	# Relying on popup_is_equipped might fail if state is stale or confusing
 	var loadout = ProfileManager.get_loadout_for_ship(selected_ship_id)
 	for s_key in loadout:
 		if str(loadout[s_key]) == item_id:
 			ProfileManager.unequip_item(selected_ship_id, s_key)
-			
-	if val > 0:
-		ProfileManager.add_crystals(val)
+
+	if crystals_earned > 0:
+		ProfileManager.add_crystals(crystals_earned)
 	ProfileManager.remove_item_from_inventory(item_id)
-	
-	if _item_details_popup: _item_details_popup.visible = false
+
+	if _item_details_popup:
+		_item_details_popup.visible = false
 	_update_inventory_grid()
 	_update_slot_buttons()
 	_update_ship_info(selected_ship_id)
@@ -2076,9 +2074,19 @@ func _setup_rarity_filter_ui() -> void:
 	rarity_box.add_child(spacer)
 	
 	multi_recycle_btn = TextureButton.new()
-	var recycle_icon_path = "res://assets/ui/icons/crystal.png"
-	if ResourceLoader.exists(recycle_icon_path):
-		multi_recycle_btn.texture_normal = load(recycle_icon_path)
+	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
+	var recycle_icon_path := _resolve_asset_path(str(ship_menu_cfg.get("recycle_all", "")))
+	if recycle_icon_path == "" and DataManager and DataManager.has_method("get_shared_crystal_icon_path"):
+		recycle_icon_path = str(DataManager.get_shared_crystal_icon_path())
+	var recycle_icon_texture: Texture2D = null
+	if DataManager and DataManager.has_method("get_texture_from_resource_path"):
+		recycle_icon_texture = DataManager.get_texture_from_resource_path(recycle_icon_path)
+	elif recycle_icon_path != "" and ResourceLoader.exists(recycle_icon_path):
+		var recycle_res: Resource = load(recycle_icon_path)
+		if recycle_res is Texture2D:
+			recycle_icon_texture = recycle_res as Texture2D
+	if recycle_icon_texture:
+		multi_recycle_btn.texture_normal = recycle_icon_texture
 
 	
 	# RESIZED: 50% larger (40 * 1.5 = 60)
@@ -2109,26 +2117,23 @@ func _on_multi_recycle_pressed() -> void:
 	
 	for item in filtered:
 		var i_id = str(item.get("id", ""))
-		if not i_id in equipped_ids:
+		if not equipped_ids.has(i_id):
 			items_to_recycle.append(i_id)
-			var r_id = str(item.get("rarity", "common"))
-			var level = int(item.get("level", int(item.get("upgrade", 0)) + 1))
-			var base_val: int = 5
-			match r_id:
-				"common": base_val = 5
-				"uncommon": base_val = 15
-				"rare": base_val = 40
-				"epic": base_val = 100
-				"legendary": base_val = 250
-				"unique": base_val = 500
-			var multiplier: float = 1.0 + (float(level) - 1.0) * 0.2
-			total_crystals += int(float(base_val) * multiplier)
+			total_crystals += _calculate_item_recycle_value(item)
 			
 	if items_to_recycle.is_empty(): return
 	_show_multi_recycle_confirmation(items_to_recycle, total_crystals)
 
 func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: int) -> void:
-	var popup = PanelContainer.new()
+	var template = LocaleManager.translate("ship_menu_multi_recycle_confirm")
+	var item_suffix := "s" if items_to_recycle.size() > 1 else ""
+	var message_text := template.replace("{count}", str(items_to_recycle.size())).replace("{crystals}", str(total_crystals)).replace("{item_suffix}", item_suffix)
+	_show_recycle_confirmation_popup(message_text, func(): _confirm_multi_recycle(items_to_recycle, total_crystals))
+
+func _show_recycle_confirmation_popup(message_text: String, on_confirm: Callable) -> void:
+	_close_recycle_confirmation_popup()
+	var popup := PanelContainer.new()
+	_recycle_confirm_popup = popup
 	# Start with width only; height will fit content.
 	popup.custom_minimum_size = Vector2(420, 0)
 	
@@ -2143,7 +2148,6 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 		popup.add_theme_stylebox_override("panel", popup_style)
 	
 	var margin = MarginContainer.new()
-	# Keep extra safety padding so text/buttons never overlap popup frame.
 	var m_val = 40
 	margin.add_theme_constant_override("margin_left", m_val)
 	margin.add_theme_constant_override("margin_right", m_val)
@@ -2163,11 +2167,9 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	title.add_theme_font_size_override("font_size", int(bg_cfg.get("font_size", 24)) + 4)
 	title.add_theme_color_override("font_color", Color.html(str(bg_cfg.get("text_color", "#000000"))))
 	vbox.add_child(title)
-	# Message
+	
 	var msg = Label.new()
-	var template = LocaleManager.translate("ship_menu_multi_recycle_confirm")
-	var item_suffix := "s" if items_to_recycle.size() > 1 else ""
-	msg.text = template.replace("{count}", str(items_to_recycle.size())).replace("{crystals}", str(total_crystals)).replace("{item_suffix}", item_suffix)
+	msg.text = message_text
 	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2177,12 +2179,10 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	msg.add_theme_constant_override("letter_spacing", int(bg_cfg.get("letter_spacing", 0)))
 	vbox.add_child(msg)
 	
-	# Spacer
 	var sps = Control.new()
 	sps.custom_minimum_size = Vector2(0, 10)
 	vbox.add_child(sps)
 	
-	# Buttons
 	var hbox = HBoxContainer.new()
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	hbox.add_theme_constant_override("separation", 30)
@@ -2190,12 +2190,10 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	
 	var btn_asset = str(btn_cfg.get("asset", "res://assets/ui/button.png"))
 	var btn_style := UIStyle.build_texture_stylebox(btn_asset, btn_cfg, 10)
-	
 	var btn_text_color = Color.html(str(btn_cfg.get("text_color", "#000000")))
 	var btn_font_size = int(btn_cfg.get("font_size", 18))
 	var btn_ls = int(btn_cfg.get("letter_spacing", 0))
 	
-	# Confirm
 	var btn_confirm = Button.new()
 	btn_confirm.text = LocaleManager.translate("confirm")
 	if btn_style:
@@ -2209,12 +2207,12 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	btn_confirm.add_theme_constant_override("letter_spacing", btn_ls)
 	btn_confirm.custom_minimum_size = Vector2(160, 50)
 	btn_confirm.pressed.connect(func():
-		_confirm_multi_recycle(items_to_recycle, total_crystals)
-		popup.queue_free()
+		if on_confirm.is_valid():
+			on_confirm.call()
+		_close_recycle_confirmation_popup()
 	)
 	hbox.add_child(btn_confirm)
 	
-	# Cancel
 	var btn_cancel = Button.new()
 	btn_cancel.text = LocaleManager.translate("cancel")
 	if btn_style:
@@ -2227,19 +2225,21 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	btn_cancel.add_theme_font_size_override("font_size", btn_font_size)
 	btn_cancel.add_theme_constant_override("letter_spacing", btn_ls)
 	btn_cancel.custom_minimum_size = Vector2(160, 50)
-	btn_cancel.pressed.connect(popup.queue_free)
+	btn_cancel.pressed.connect(_close_recycle_confirmation_popup)
 	hbox.add_child(btn_cancel)
 	
 	add_child(popup)
-	
-	# Center Popup
 	popup.layout_mode = 1 # Anchors
 	popup.set_anchors_preset(Control.PRESET_CENTER)
 	popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	popup.grow_vertical = Control.GROW_DIRECTION_BOTH
-	popup.z_index = 100 # Ensure on top
+	popup.z_index = 120 # Above item details popup
+	
+	popup.tree_exited.connect(func():
+		if _recycle_confirm_popup == popup:
+			_recycle_confirm_popup = null
+	)
 
-	# Fit popup to content size (and clamp to viewport) to avoid stretched/tall deformation.
 	await get_tree().process_frame
 	var content_min: Vector2 = margin.get_combined_minimum_size()
 	var viewport_size := get_viewport_rect().size
@@ -2250,6 +2250,11 @@ func _show_multi_recycle_confirmation(items_to_recycle: Array, total_crystals: i
 	popup.offset_right = desired_w / 2.0
 	popup.offset_top = -desired_h / 2.0
 	popup.offset_bottom = desired_h / 2.0
+
+func _close_recycle_confirmation_popup() -> void:
+	if is_instance_valid(_recycle_confirm_popup):
+		_recycle_confirm_popup.queue_free()
+	_recycle_confirm_popup = null
 
 func _confirm_multi_recycle(item_ids: Array, crystals_earned: int) -> void:
 	for i_id in item_ids:
@@ -2514,16 +2519,20 @@ func _on_popup_upgrade_pressed() -> void:
 	var base_stats_var: Variant = item.get("stats", {})
 	var base_stats: Dictionary = base_stats_var if base_stats_var is Dictionary else {}
 	var updated_stats: Dictionary = base_stats.duplicate(true)
-	for key in updated_stats:
-		var val = float(updated_stats[key])
-		# Apply multiplier and ceil to ensure progress
-		# Special handling for small values (fire_rate 0.3) vs big (power 100, crit 5)
+	var rarity_id: String = str(item.get("rarity", "common")).strip_edges().to_lower()
+	for raw_key in updated_stats.keys():
+		var key := str(raw_key)
+		var val := float(updated_stats[raw_key])
+		if ProfileManager.is_item_percent_stat(key):
+			var percent_inc := ProfileManager.roll_item_percent_upgrade_increment(rarity_id, tier)
+			var next_percent := maxf(val + percent_inc, ProfileManager.get_item_percent_floor(rarity_id))
+			updated_stats[raw_key] = snapped(next_percent, 0.1)
+			continue
+		# Keep multiplicative behavior for non-percent stats.
 		if val < 1.0 and val > 0.0:
-			# Percentage-like stats: simple multiply keeps them small
-			updated_stats[key] = val * multiplier
+			updated_stats[raw_key] = snapped(val * multiplier, 0.01)
 		else:
-			# Large numbers: ceil to avoid 10.0 -> 10.05 not showing change
-			updated_stats[key] = ceil(val * multiplier)
+			updated_stats[raw_key] = ceil(val * multiplier)
 
 	# 2. Persist item upgrade in inventory
 	var applied: bool = ProfileManager.apply_item_upgrade(popup_item_id, level + 1, updated_stats)
@@ -2837,7 +2846,7 @@ func _add_stat_summary_item(parent: Control, label_text: String, value_text: Str
 	item_hbox.add_theme_constant_override("separation", 10)
 	item_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
-	var icon_path = str(cfg.get("icon_asset", ""))
+	var icon_path = _resolve_asset_path(str(cfg.get("icon_asset", "")))
 	# Apply scaling: Icon +120% (x2.2), Font +25% (x1.25)
 	var w = int(cfg.get("icon_width", 32) * 2.2) 
 	var h = int(cfg.get("icon_height", 32) * 2.2)
@@ -2880,7 +2889,7 @@ func _add_stat_summary_shop_button(parent: Control, cfg: Dictionary) -> void:
 	item_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	parent.add_child(item_hbox)
 	
-	var icon_path = str(cfg.get("icon_asset", ""))
+	var icon_path = _resolve_asset_path(str(cfg.get("icon_asset", "")))
 	if icon_path == "" or not ResourceLoader.exists(icon_path):
 		var ui_icons: Dictionary = _game_config.get("ui_icons", {})
 		var fallback_shop_icon = str(ui_icons.get("shop_icon", ""))
@@ -2888,7 +2897,9 @@ func _add_stat_summary_shop_button(parent: Control, cfg: Dictionary) -> void:
 			icon_path = fallback_shop_icon
 	
 	if icon_path == "" or not ResourceLoader.exists(icon_path):
-		var default_icon = "res://assets/ui/icons/crystal.png"
+		var default_icon := ""
+		if DataManager and DataManager.has_method("get_shared_crystal_icon_path"):
+			default_icon = str(DataManager.get_shared_crystal_icon_path())
 		if ResourceLoader.exists(default_icon):
 			icon_path = default_icon
 	
@@ -2914,13 +2925,22 @@ func _add_stat_summary_shop_button(parent: Control, cfg: Dictionary) -> void:
 func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int, cfg: Dictionary) -> void:
 	if not icon_parent:
 		return
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
+	var resolved_icon_path := _resolve_asset_path(icon_path)
+	if resolved_icon_path == "" or not ResourceLoader.exists(resolved_icon_path):
 		return
 	
-	var icon_res: Resource = load(icon_path)
+	var icon_res: Resource = ResourceLoader.load(resolved_icon_path, "", ResourceLoader.CACHE_MODE_REUSE)
 	var repeat_seconds: float = maxf(0.0, float(cfg.get("animation_repeat_seconds", 0.0)))
-	var icon_anim_duration: float = maxf(0.0, float(cfg.get("icon_anim_duration", 0.0)))
+	var icon_anim_duration: float = maxf(0.0, float(cfg.get("animation_duration", cfg.get("icon_anim_duration", 0.0))))
+	var icon_anim_type: String = str(cfg.get("animation_type", "")).strip_edges().to_lower()
 	var icon_anim_loop: bool = bool(cfg.get("icon_anim_loop", repeat_seconds <= 0.0))
+	if icon_anim_type == "loop":
+		icon_anim_loop = true
+	elif icon_anim_type in ["once", "one_shot", "oneshot", "single"]:
+		icon_anim_loop = false
+	# If animation has a replay cadence, each playback must stop on its last frame.
+	if repeat_seconds > 0.0:
+		icon_anim_loop = false
 	
 	if icon_res is Texture2D:
 		var icon = TextureRect.new()
@@ -2936,6 +2956,17 @@ func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int
 		var source_frames := icon_res as SpriteFrames
 		var anim_name: StringName = _get_first_spriteframes_animation(source_frames)
 		if anim_name == &"":
+			# Graceful fallback for empty SpriteFrames resources.
+			if DataManager and DataManager.has_method("get_texture_from_resource_path"):
+				var fallback_tex: Texture2D = DataManager.get_texture_from_resource_path(resolved_icon_path)
+				if fallback_tex:
+					var fallback_icon := TextureRect.new()
+					fallback_icon.texture = fallback_tex
+					fallback_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+					fallback_icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+					fallback_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					fallback_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					icon_parent.add_child(fallback_icon)
 			return
 		
 		var frames_for_playback: SpriteFrames = source_frames
@@ -2998,7 +3029,7 @@ func _add_detailed_stat(parent: Control, stat_key: String, label_text: String, c
 	item_hbox.add_theme_constant_override("separation", 10)
 	parent.add_child(item_hbox)
 	
-	var icon_path = str(cfg.get("icon_asset", ""))
+	var icon_path = _resolve_asset_path(str(cfg.get("icon_asset", "")))
 	# Apply scaling: Icon +120% (x2.2), Font +25% (x1.25)
 	var w = int(cfg.get("icon_width", 24) * 2.2)
 	var h = int(cfg.get("icon_height", 24) * 2.2)

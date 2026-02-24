@@ -57,6 +57,7 @@ var unique_cd_current: float = 0.0
 # Boosts
 var _fire_rate_boost_timer: float = 0.0
 var _base_fire_rate: float = 0.3
+const MAX_FIRE_RATE: float = 80.0
 
 # Shooting and movement state
 var _fire_timer: float = 0.0
@@ -86,6 +87,7 @@ var _aura_radius: float = 0.0
 var _aura_tick_interval: float = 0.5
 var _aura_area: Area2D = null
 var _aura_visual: Node2D = null
+var _aura_targets: Array[Node] = []
 
 # --- DEBUG PATTERN ROTATION - START ---
 var _debug_pattern_rotation_enabled: bool = false # Set to false to disable
@@ -97,6 +99,9 @@ var _debug_has_fired_current_pattern: bool = false
 # --- DEBUG PATTERN ROTATION - END ---
 
 func _ready() -> void:
+	# Top-down movement: avoid carrying platform velocity after leaving moving obstacles.
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	platform_on_leave = CharacterBody2D.PLATFORM_ON_LEAVE_DO_NOTHING
 	_init_visual_nodes()
 	_setup_collision_layers()
 	_setup_hitbox()
@@ -397,7 +402,7 @@ func _load_stats_from_loadout() -> void:
 	max_hp = int(stats.get("max_hp", 100))
 	move_speed = float(stats.get("move_speed", 200))
 	base_damage = int(stats.get("power", 10))
-	fire_rate = float(stats.get("fire_rate", 0.3))
+	fire_rate = _clamp_fire_rate(float(stats.get("fire_rate", 0.3)))
 	_base_fire_rate = fire_rate
 	crit_chance = float(stats.get("crit_chance", 5.0))
 	dodge_chance = float(stats.get("dodge_chance", 2.0))
@@ -466,7 +471,7 @@ func add_fire_rate_boost(duration: float) -> void:
 	var multiplier: float = 1.0 + ((bonus_pct / 100.0) * (1.0 + intensity_bonus))
 	if multiplier <= 0.1: multiplier = 1.0 # Safety
 	
-	fire_rate = _base_fire_rate * multiplier
+	fire_rate = _clamp_fire_rate(_base_fire_rate * multiplier)
 	
 	# Visual feedback
 	VFXManager.spawn_floating_text(global_position, "RAPID FIRE! +" + str(int(bonus_pct)) + "%", Color.YELLOW, get_parent())
@@ -495,8 +500,11 @@ func _process(delta: float) -> void:
 		_fire_rate_boost_timer -= delta
 		if _fire_rate_boost_timer <= 0:
 			# Reset
-			fire_rate = _base_fire_rate
+			fire_rate = _clamp_fire_rate(_base_fire_rate)
 			modulate = Color.WHITE
+
+func _clamp_fire_rate(value: float) -> float:
+	return clampf(value, 0.01, MAX_FIRE_RATE)
 
 func set_can_shoot(state: bool) -> void:
 	_can_shoot = state
@@ -516,11 +524,21 @@ func _setup_aura_area() -> void:
 	_aura_area.name = "AuraZone"
 	_aura_area.collision_layer = 0
 	_aura_area.collision_mask = 4 # Same as hitbox: detects enemies
+	_aura_area.monitoring = true
+	_aura_area.monitorable = true
 	var col := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
 	shape.radius = 1.0 # Will be updated dynamically
 	col.shape = shape
 	_aura_area.add_child(col)
+	if not _aura_area.body_entered.is_connected(_on_aura_body_entered):
+		_aura_area.body_entered.connect(_on_aura_body_entered)
+	if not _aura_area.body_exited.is_connected(_on_aura_body_exited):
+		_aura_area.body_exited.connect(_on_aura_body_exited)
+	if not _aura_area.area_entered.is_connected(_on_aura_area_entered):
+		_aura_area.area_entered.connect(_on_aura_area_entered)
+	if not _aura_area.area_exited.is_connected(_on_aura_area_exited):
+		_aura_area.area_exited.connect(_on_aura_area_exited)
 	add_child(_aura_area)
 
 ## Activate the aura with the given fire_data parameters.
@@ -551,6 +569,7 @@ func _deactivate_aura() -> void:
 		return
 	_aura_active = false
 	_aura_timer = 0.0
+	_aura_targets.clear()
 	if _aura_visual and is_instance_valid(_aura_visual):
 		_aura_visual.queue_free()
 		_aura_visual = null
@@ -584,10 +603,60 @@ func _apply_aura_damage() -> void:
 	var tick_damage := int(_aura_dps * _aura_tick_interval * damage_multiplier)
 	if tick_damage <= 0:
 		tick_damage = 1
+
+	# Keep targets fresh from both body and area overlaps.
 	var bodies := _aura_area.get_overlapping_bodies()
 	for body in bodies:
-		if body.is_in_group("enemies") and body.has_method("take_damage"):
-			body.take_damage(tick_damage)
+		_register_aura_target(body)
+	var areas := _aura_area.get_overlapping_areas()
+	for area in areas:
+		_register_aura_target(area)
+
+	for target in _aura_targets.duplicate():
+		if not is_instance_valid(target):
+			_aura_targets.erase(target)
+			continue
+		if not target.is_in_group("enemies"):
+			_aura_targets.erase(target)
+			continue
+		if target.has_method("take_damage"):
+			target.take_damage(tick_damage)
+
+func _resolve_aura_enemy(node: Node) -> Node:
+	if node == null or not is_instance_valid(node):
+		return null
+	if node.is_in_group("enemies"):
+		return node
+	var parent := node.get_parent()
+	if parent and parent.is_in_group("enemies"):
+		return parent
+	return null
+
+func _register_aura_target(node: Node) -> void:
+	var enemy := _resolve_aura_enemy(node)
+	if enemy == null:
+		return
+	if not _aura_targets.has(enemy):
+		_aura_targets.append(enemy)
+
+func _unregister_aura_target(node: Node) -> void:
+	var enemy := _resolve_aura_enemy(node)
+	if enemy == null:
+		return
+	if _aura_targets.has(enemy):
+		_aura_targets.erase(enemy)
+
+func _on_aura_body_entered(body: Node2D) -> void:
+	_register_aura_target(body)
+
+func _on_aura_body_exited(body: Node2D) -> void:
+	_unregister_aura_target(body)
+
+func _on_aura_area_entered(area: Area2D) -> void:
+	_register_aura_target(area)
+
+func _on_aura_area_exited(area: Area2D) -> void:
+	_unregister_aura_target(area)
 
 ## Inner draw helper for the aura circle visual.
 class _AuraDrawNode extends Node2D:
@@ -813,6 +882,10 @@ func push_down(y_amount: float) -> void:
 	apply_external_displacement(Vector2(0, y_amount))
 
 func _handle_movement(delta: float) -> void:
+	var start_pos: Vector2 = global_position
+	# Clear any residual velocity from obstacle/platform contacts each frame.
+	velocity = Vector2.ZERO
+
 	var use_joystick := false
 	var has_external_force := _external_displacement.length_squared() > 0.000001
 	
@@ -878,6 +951,10 @@ func _handle_movement(delta: float) -> void:
 	# Significant margin to avoid accidental death on edge
 	if global_position.y > viewport_size.y + 50:
 		take_damage(99999)
+
+	# Keep velocity aligned with the actual frame displacement (used by fluid trail/VFX).
+	var dt: float = maxf(delta, 0.0001)
+	velocity = (global_position - start_pos) / dt
 
 func _handle_shooting(delta: float) -> void:
 	# --- DEBUG PATTERN ROTATION - START ---
@@ -951,6 +1028,10 @@ func _fire() -> void:
 			"size": 8,
 			"color": "#44FF44"
 		}
+
+	# Inject missile visuals/mechanics before reading pattern parameters.
+	# This ensures missile_data speed override is reflected in final_speed.
+	_inject_missile_properties(pattern_data)
 	
 	# --- Pattern Parameters ---
 	var base_speed: float = float(pattern_data.get("speed", 400))
@@ -976,14 +1057,12 @@ func _fire() -> void:
 	# Cooldown calculation: (Duration of burst) + (Reload time)
 	# Ship fire_rate acts as a multiplier on reload time (higher rate = lower reload)
 	var reload_modified: float = reload_time 
-	if fire_rate > 0.0:
-		reload_modified = reload_time / fire_rate
+	var effective_fire_rate: float = _clamp_fire_rate(fire_rate)
+	if effective_fire_rate > 0.0:
+		reload_modified = reload_time / effective_fire_rate
 	
 	var total_sequence_time: float = max(0.0, (burst_count - 1) * burst_interval) + reload_modified
 	_fire_timer = total_sequence_time
-	
-	# Inject Visuals & Mechanics
-	_inject_missile_properties(pattern_data)
 	
 	# Execute Burst Sequence
 	_execute_burst_sequence(pattern_data, burst_count, burst_interval, final_speed, final_damage)
@@ -1007,7 +1086,7 @@ func _inject_missile_properties(pattern_data: Dictionary) -> void:
 	# Speed Override
 	var missile_speed: float = float(missile_data.get("speed", 0))
 	if missile_speed > 0:
-		pattern_data["speed"] = missile_speed * (missile_speed_pct / 100.0)
+		pattern_data["speed"] = missile_speed
 		
 	# Sound
 	pattern_data["sound"] = str(missile_data.get("sound", ""))

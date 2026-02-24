@@ -1,10 +1,14 @@
 class_name LootNotification
 extends Control
 
-@onready var mover: Control = $Mover
 @onready var item_card: PanelContainer = $Mover/ItemCard
+@onready var mover: Control = $Mover
 
 var _data: Dictionary = {}
+const SLIDE_IN_DURATION: float = 0.22
+const VISIBLE_DURATION: float = 3.0
+const FADE_OUT_DURATION: float = 0.16
+const OFFSCREEN_MARGIN: float = 24.0
 
 func setup(data: Dictionary) -> void:
 	_data = data
@@ -29,25 +33,27 @@ func setup(data: Dictionary) -> void:
 		item_card.setup_item(_data, slot_id, config)
 
 func _ready() -> void:
-	# Keep item info active if needed, mainly visualize
-	# Mover initial state: offscreen right relative to slot
-	# LootNotification has width 200. Mover anchors right.
-	# We want Mover to start at position.x = +200 relative to anchor?
-	# Anchor Right (1.0). If we offset +200, it goes right.
-	
-	mover.position.x += 300 # Start off-screen
-	modulate.a = 0.0
-	
+	modulate.a = 1.0
+
+	# Slide in from right offscreen.
+	var final_left: float = 0.0
+	var final_right: float = 0.0
+	if mover:
+		final_left = mover.offset_left
+		final_right = mover.offset_right
+		var notif_width := maxf(110.0, custom_minimum_size.x)
+		var slide_distance := notif_width + OFFSCREEN_MARGIN
+		mover.offset_left = final_left + slide_distance
+		mover.offset_right = final_right + slide_distance
+
 	var tween = create_tween()
-	# Slide In
-	tween.tween_property(mover, "position:x", mover.position.x - 300.0, 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(self, "modulate:a", 1.0, 0.3)
-	
-	# Wait
-	tween.tween_interval(3.0)
-	
-	# Slide Out
-	tween.tween_property(mover, "position:x", mover.position.x + 300.0, 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tween.parallel().tween_property(self, "modulate:a", 0.0, 0.3)
-	
+	if mover:
+		tween.set_parallel(true)
+		tween.tween_property(mover, "offset_left", final_left, SLIDE_IN_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tween.tween_property(mover, "offset_right", final_right, SLIDE_IN_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tween.set_parallel(false)
+
+	# Keep visible for 3 seconds, then disappear.
+	tween.tween_interval(VISIBLE_DURATION)
+	tween.tween_property(self, "modulate:a", 0.0, FADE_OUT_DURATION)
 	tween.tween_callback(queue_free)

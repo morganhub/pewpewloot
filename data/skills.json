@@ -3,477 +3,476 @@
   "xp_curve_base": 100,
   "xp_curve_exponent": 1.5,
   "trees": {
-    "magic": {
-      "exclusive": true,
-      "branches": {
-        "frozen": {
-          "icon": "res://assets/ui/skills/branch_frozen.png",
-          "color": "#88DDFF",
-          "levels": [
-            {
-              "id": "frozen_1",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "",
-              "params": {
-                "missile_override": "missile_ice",
-                "on_hit_effect": "chill_slow",
-                "slow_percent": 0.15,
-                "max_stacks": 3
-              }
-            },
-            {
-              "id": "frozen_2",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "frozen_1",
-              "params": {
-                "aura_type": "ice_aura",
-                "aura_radius": 220,
-                "aura_slow_percent": 80,
-                "aura_asset_anim": "res://assets/skills/frost_aura.tres",
-                "aura_asset_anim_duration": 1.0,
-                "aura_asset_anim_loop": true,
-                "aura_asset_size": 240
-              }
-            },
-            {
-              "id": "frozen_3",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "frozen_2",
-              "params": {
-                "freeze_aura_time": 2.0,
-                "freeze_hit_count": 10,
-                "freeze_duration": 2.0,
-                "freeze_mark_asset_anim": "res://assets/missiles/blue_energy.tres",
-                "freeze_mark_asset_anim_duration": 0.0,
-                "freeze_mark_asset_anim_loop": true,
-                "freeze_mark_size": 58
-              }
-            },
-            {
-              "id": "frozen_4",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "frozen_3",
-              "params": {
-                "shatter_damage_pct": 0.5,
-                "shatter_radius": 80,
-                "shatter_projectile_count": 6,
-                "shard_asset": "res://assets/missiles/blue_ball.png",
-                "shard_asset_size": 16
-              }
-            },
-            {
-              "id": "frozen_5",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "frozen_4",
-              "params": {
-                "aura_radius_bonus": 0.5,
-                "freeze_dot_dps": 5
-              }
-            }
-          ]
-        },
-        "poison": {
-          "icon": "res://assets/ui/skills/branch_poison.png",
-          "color": "#66FF44",
-          "levels": [
-            {
-              "id": "poison_1",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "",
-              "params": {
-                "missile_override": "",
-                "on_hit_effect": "poison_dot",
-                "dot_percent": 0.2,
-                "dot_duration": 3.0
-              }
-            },
-            {
-              "id": "poison_2",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "poison_1",
-              "params": {
-                "pool_damage_per_sec": 8,
-                "pool_duration": 3.0,
-                "pool_radius": 50,
-                "pool_fluid_id": "",
-                "pool_asset_anim": "",
-                "pool_asset_anim_duration": 10.0,
-                "pool_asset_anim_loop": true,
-                "pool_asset_size": 160
-              }
-            },
-            {
-              "id": "poison_3",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "poison_2",
-              "params": {
-                "contagion_radius": 80,
-                "contagion_dot_duration": 3.0,
-                "contagion_asset_anim": "",
-                "contagion_asset_anim_duration": 0.6,
-                "contagion_asset_anim_loop": false
-              }
-            },
-            {
-              "id": "poison_4",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "poison_3",
-              "params": {
-                "vulnerability_bonus": 0.25
-              }
-            },
-            {
-              "id": "poison_5",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "poison_4",
-              "params": {
-                "pool_radius_bonus": 0.5,
-                "dot_duration_bonus": 2.0
-              }
-            }
-          ]
-        },
-        "void": {
-          "icon": "res://assets/ui/skills/branch_void.png",
-          "color": "#AA44FF",
-          "levels": [
-            {
-              "id": "void_1",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "",
-              "params": {
-                "missile_override": "missile_void",
-                "on_hit_effect": "void_pull",
-                "pull_strength": 30.0
-              }
-            },
-            {
-              "id": "void_2",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "void_1",
-              "params": {
-                "singularity_chance": 0.1,
-                "singularity_duration": 1.0,
-                "singularity_radius": 80,
-                "singularity_asset_anim": "res://assets/modifiers/graviton.tres",
-                "singularity_asset_anim_duration": 0.0,
-                "singularity_asset_anim_loop": true,
-                "singularity_asset_size": 190
-              }
-            },
-            {
-              "id": "void_3",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "void_2",
-              "params": {
-                "void_radius_bonus": 0.5
-              }
-            },
-            {
-              "id": "void_4",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "void_3",
-              "params": {
-                "singularity_damage_base": 5,
-                "singularity_damage_exponent": 2.0
-              }
-            },
-            {
-              "id": "void_5",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "void_4",
-              "params": {
-                "deflection_aura_radius": 100,
-                "deflection_strength": 0.3,
-                "deflection_aura_asset_anim": "res://assets/modifiers/arcane_orb.tres",
-                "deflection_aura_asset_anim_duration": 0.0,
-                "deflection_aura_asset_anim_loop": true,
-                "deflection_aura_asset_size": 210
-              }
-            }
-          ]
-        }
-      }
-    },
-    "utility": {
-      "exclusive": false,
-      "branches": {
-        "loot": {
-          "icon": "res://assets/ui/skills/branch_loot.png",
-          "color": "#FFD700",
-          "levels": [
-            {
-              "id": "loot_1",
-              "type": "loot_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "",
-              "params": {
-                "drop_rate_bonus": 0.05
-              }
-            },
-            {
-              "id": "loot_2",
-              "type": "loot_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "loot_1",
-              "params": {
-                "crystal_magnet_radius": 150
-              }
-            },
-            {
-              "id": "loot_3",
-              "type": "loot_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "loot_2",
-              "params": {
-                "loot_quality_bonus": 5.0
-              }
-            },
-            {
-              "id": "loot_4",
-              "type": "loot_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "loot_3",
-              "params": {
-                "recycle_bonus": 0.2
-              }
-            },
-            {
-              "id": "loot_5",
-              "type": "loot_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "loot_4",
-              "params": {
-                "boss_extra_loot_chance": 0.25
-              }
-            }
-          ]
-        },
-        "powers": {
-          "icon": "res://assets/ui/skills/branch_powers.png",
-          "color": "#00DDFF",
-          "levels": [
-            {
-              "id": "powers_1",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "",
-              "params": {
-                "vacuum_radius": 80
-              }
-            },
-            {
-              "id": "powers_2",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "powers_1",
-              "params": {
-                "reflect_chance": 0.1
-              }
-            },
-            {
-              "id": "powers_3",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "powers_2",
-              "params": {
-                "powerup_duration_bonus": 2.0
-              }
-            },
-            {
-              "id": "powers_4",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "powers_3",
-              "params": {
-                "powerup_intensity_bonus": 0.2
-              }
-            },
-            {
-              "id": "powers_5",
-              "type": "gameplay_modifier",
-              "cost": 1,
-              "max_rank": 1,
-              "prerequisite": "powers_4",
-              "params": {
-                "shockwave_radius": 150,
-                "shockwave_force": 300,
-                "shockwave_cooldown": 20.0,
-                "shockwave_duration": 0.6,
-                "shockwave_asset_anim": "res://assets/vfx/mine_explosion.tres",
-                "shockwave_asset_anim_duration": 0.6,
-                "shockwave_asset_anim_loop": false,
-                "shockwave_asset_size": 260
-              }
-            }
-          ]
-        }
-      }
-    },
-    "pew_pew": {
-      "exclusive": false,
-      "unlock_requirement": 15,
-      "infinite": true,
-      "branches": {
-        "fire_patterns": {
-          "icon": "res://assets/ui/skills/branch_fire.png",
-          "color": "#FF4444",
-          "exempt_unlock_requirement": true,
-          "levels": [
-            {
-              "id": "fire_straight",
-              "type": "fire_pattern",
-              "cost": 1,
-              "max_rank": 5,
-              "prerequisite": "",
-              "params": {
-                "base_pattern": "single_straight",
-                "projectile_counts": [1, 2, 3, 4, 5],
-                "spawn_widths": [0, 30, 50, 70, 90]
-              }
-            },
-            {
-              "id": "fire_cone",
-              "type": "fire_pattern",
-              "cost": 1,
-              "max_rank": 5,
-              "prerequisite": "",
-              "params": {
-                "base_pattern": "triple_spread",
-                "projectile_counts": [2, 3, 4, 5, 6],
-                "spread_angles": [20, 30, 40, 50, 60]
-              }
-            },
-            {
-              "id": "fire_360",
-              "type": "fire_pattern",
-              "cost": 1,
-              "max_rank": 5,
-              "prerequisite": "",
-              "params": {
-                "base_pattern": "single_straight",
-                "projectile_counts": [4, 6, 8, 10, 12],
-                "spread_angle": 360,
-                "trajectory": "radial"
-              }
-            },
-            {
-              "id": "fire_aura",
-              "type": "fire_pattern",
-              "cost": 1,
-              "max_rank": 5,
-              "prerequisite": "",
-              "params": {
-                "aura": true,
-                "radii": [60, 80, 100, 120, 150],
-                "tick_dps": [5, 8, 12, 18, 25],
-                "tick_interval": 0.5
-              }
-            }
-          ]
-        },
-        "stat_boosts": {
-          "icon": "res://assets/ui/skills/branch_paragon.png",
-          "color": "#FF6600",
-          "levels": [
-            {
-              "id": "paragon_damage",
-              "type": "stat_modifier",
-              "cost": 1,
-              "max_rank": 999,
-              "prerequisite": "",
-              "params": {
-                "stat": "damage",
-                "bonus_per_rank": 1
-              }
-            },
-            {
-              "id": "paragon_hp",
-              "type": "stat_modifier",
-              "cost": 1,
-              "max_rank": 999,
-              "prerequisite": "",
-              "params": {
-                "stat": "max_hp",
-                "bonus_per_rank": 2
-              }
-            },
-            {
-              "id": "paragon_shield",
-              "type": "stat_modifier",
-              "cost": 1,
-              "max_rank": 999,
-              "prerequisite": "",
-              "params": {
-                "stat": "shield_max",
-                "bonus_per_rank": 2
-              }
-            },
-            {
-              "id": "paragon_crit",
-              "type": "stat_modifier",
-              "cost": 1,
-              "max_rank": 999,
-              "prerequisite": "",
-              "params": {
-                "stat": "crit_chance",
-                "bonus_per_rank": 0.5
-              }
-            },
-            {
-              "id": "paragon_fire_rate",
-              "type": "stat_modifier",
-              "cost": 1,
-              "max_rank": 999,
-              "prerequisite": "",
-              "params": {
-                "stat": "fire_rate",
-                "bonus_per_rank": 0.5
-              }
-            }
-          ]
-        }
-      }
-    }
+	"magic": {
+	  "exclusive": true,
+	  "branches": {
+		"frozen": {
+		  "icon": "res://assets/ui/skills/branch_frozen.png",
+		  "color": "#88DDFF",
+		  "levels": [
+			{
+			  "id": "frozen_1",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "",
+			  "params": {
+				"missile_override": "missile_ice",
+				"on_hit_effect": "chill_slow",
+				"slow_percent": 0.15,
+				"max_stacks": 3
+			  }
+			},
+			{
+			  "id": "frozen_2",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "frozen_1",
+			  "params": {
+				"aura_type": "ice_aura",
+				"aura_radius": 220,
+				"aura_slow_percent": 80,
+				"aura_asset_anim": "res://assets/skills/frost_aura.tres",
+				"aura_asset_anim_duration": 1.0,
+				"aura_asset_anim_loop": true,
+				"aura_asset_size": 240
+			  }
+			},
+			{
+			  "id": "frozen_3",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "frozen_2",
+			  "params": {
+				"freeze_aura_time": 2.0,
+				"freeze_hit_count": 10,
+				"freeze_duration": 2.0,
+				"freeze_mark_asset_anim": "res://assets/missiles/blue_energy.tres",
+				"freeze_mark_asset_anim_duration": 0.0,
+				"freeze_mark_asset_anim_loop": true,
+				"freeze_mark_size": 58
+			  }
+			},
+			{
+			  "id": "frozen_4",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "frozen_3",
+			  "params": {
+				"shatter_damage_pct": 0.5,
+				"shatter_radius": 80,
+				"shatter_projectile_count": 6,
+				"shard_asset": "res://assets/missiles/blue_ball.png",
+				"shard_asset_size": 16
+			  }
+			},
+			{
+			  "id": "frozen_5",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "frozen_4",
+			  "params": {
+				"aura_radius_bonus": 0.5,
+				"freeze_dot_dps": 5
+			  }
+			}
+		  ]
+		},
+		"poison": {
+		  "icon": "res://assets/ui/skills/branch_poison.png",
+		  "color": "#66FF44",
+		  "levels": [
+			{
+			  "id": "poison_1",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "",
+			  "params": {
+				"missile_override": "",
+				"on_hit_effect": "poison_dot",
+				"dot_percent": 0.2,
+				"dot_duration": 3.0
+			  }
+			},
+			{
+			  "id": "poison_2",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "poison_1",
+			  "params": {
+				"pool_damage_per_sec": 8,
+				"pool_duration": 3.0,
+				"pool_radius": 50,
+				"pool_fluid_id": "",
+				"pool_asset_anim": "",
+				"pool_asset_anim_duration": 10.0,
+				"pool_asset_anim_loop": true,
+				"pool_asset_size": 160
+			  }
+			},
+			{
+			  "id": "poison_3",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "poison_2",
+			  "params": {
+				"contagion_radius": 80,
+				"contagion_dot_duration": 3.0,
+				"contagion_asset_anim": "",
+				"contagion_asset_anim_duration": 0.6,
+				"contagion_asset_anim_loop": false
+			  }
+			},
+			{
+			  "id": "poison_4",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "poison_3",
+			  "params": {
+				"vulnerability_bonus": 0.25
+			  }
+			},
+			{
+			  "id": "poison_5",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "poison_4",
+			  "params": {
+				"pool_radius_bonus": 0.5,
+				"dot_duration_bonus": 2.0
+			  }
+			}
+		  ]
+		},
+		"void": {
+		  "icon": "res://assets/ui/skills/branch_void.png",
+		  "color": "#AA44FF",
+		  "levels": [
+			{
+			  "id": "void_1",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "",
+			  "params": {
+				"missile_override": "missile_void",
+				"on_hit_effect": "void_pull",
+				"pull_strength": 30.0
+			  }
+			},
+			{
+			  "id": "void_2",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "void_1",
+			  "params": {
+				"singularity_chance": 0.1,
+				"singularity_duration": 1.0,
+				"singularity_radius": 80,
+				"singularity_asset_anim": "res://assets/modifiers/graviton.tres",
+				"singularity_asset_anim_duration": 0.0,
+				"singularity_asset_anim_loop": true,
+				"singularity_asset_size": 190
+			  }
+			},
+			{
+			  "id": "void_3",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "void_2",
+			  "params": {
+				"void_radius_bonus": 0.5
+			  }
+			},
+			{
+			  "id": "void_4",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "void_3",
+			  "params": {
+				"singularity_damage_base": 5,
+				"singularity_damage_exponent": 2.0
+			  }
+			},
+			{
+			  "id": "void_5",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "void_4",
+			  "params": {
+				"deflection_aura_radius": 100,
+				"deflection_strength": 0.3,
+				"deflection_aura_asset_anim": "res://assets/modifiers/arcane_orb.tres",
+				"deflection_aura_asset_anim_duration": 0.0,
+				"deflection_aura_asset_anim_loop": true,
+				"deflection_aura_asset_size": 210
+			  }
+			}
+		  ]
+		}
+	  }
+	},
+	"utility": {
+	  "exclusive": false,
+	  "branches": {
+		"loot": {
+		  "icon": "res://assets/ui/skills/branch_loot.png",
+		  "color": "#FFD700",
+		  "levels": [
+			{
+			  "id": "loot_1",
+			  "type": "loot_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "",
+			  "params": {
+				"drop_rate_bonus": 0.05
+			  }
+			},
+			{
+			  "id": "loot_2",
+			  "type": "loot_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "loot_1",
+			  "params": {
+				"crystal_magnet_radius": 150
+			  }
+			},
+			{
+			  "id": "loot_3",
+			  "type": "loot_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "loot_2",
+			  "params": {
+				"loot_quality_bonus": 5.0
+			  }
+			},
+			{
+			  "id": "loot_4",
+			  "type": "loot_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "loot_3",
+			  "params": {
+				"recycle_bonus": 0.2
+			  }
+			},
+			{
+			  "id": "loot_5",
+			  "type": "loot_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "loot_4",
+			  "params": {
+				"boss_extra_loot_chance": 0.25
+			  }
+			}
+		  ]
+		},
+		"powers": {
+		  "icon": "res://assets/ui/skills/branch_powers.png",
+		  "color": "#00DDFF",
+		  "levels": [
+			{
+			  "id": "powers_1",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "",
+			  "params": {
+				"vacuum_radius": 80
+			  }
+			},
+			{
+			  "id": "powers_2",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "powers_1",
+			  "params": {
+				"reflect_chance": 0.1
+			  }
+			},
+			{
+			  "id": "powers_3",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "powers_2",
+			  "params": {
+				"powerup_duration_bonus": 2.0
+			  }
+			},
+			{
+			  "id": "powers_4",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "powers_3",
+			  "params": {
+				"powerup_intensity_bonus": 0.2
+			  }
+			},
+			{
+			  "id": "powers_5",
+			  "type": "gameplay_modifier",
+			  "cost": 1,
+			  "max_rank": 1,
+			  "prerequisite": "powers_4",
+			  "params": {
+				"shockwave_radius": 150,
+				"shockwave_force": 300,
+				"shockwave_cooldown": 20.0,
+				"shockwave_duration": 0.6,
+				"shockwave_asset_anim": "res://assets/vfx/mine_explosion.tres",
+				"shockwave_asset_anim_duration": 0.6,
+				"shockwave_asset_anim_loop": false,
+				"shockwave_asset_size": 260
+			  }
+			}
+		  ]
+		}
+	  }
+	},
+	"pew_pew": {
+	  "exclusive": false,
+	  "unlock_requirement": 15,
+	  "infinite": true,
+	  "branches": {
+		"fire_patterns": {
+		  "icon": "res://assets/ui/skills/branch_fire.png",
+		  "color": "#FF4444",
+		  "exempt_unlock_requirement": true,
+		  "levels": [
+			{
+			  "id": "fire_straight",
+			  "type": "fire_pattern",
+			  "cost": 1,
+			  "max_rank": 5,
+			  "prerequisite": "",
+			  "params": {
+				"base_pattern": "single_straight",
+				"projectile_counts": [1, 2, 3, 4, 5],
+				"spawn_widths": [0, 30, 50, 70, 90]
+			  }
+			},
+			{
+			  "id": "fire_cone",
+			  "type": "fire_pattern",
+			  "cost": 1,
+			  "max_rank": 5,
+			  "prerequisite": "",
+			  "params": {
+				"base_pattern": "triple_spread",
+				"projectile_counts": [2, 3, 4, 5, 6],
+				"spread_angles": [20, 30, 40, 50, 60]
+			  }
+			},
+			{
+			  "id": "fire_360",
+			  "type": "fire_pattern",
+			  "cost": 1,
+			  "max_rank": 5,
+			  "prerequisite": "",
+			  "params": {
+				"base_pattern": "single_straight",
+				"projectile_counts": [4, 6, 8, 10, 12],
+				"spread_angle": 360,
+				"trajectory": "radial"
+			  }
+			},
+			{
+			  "id": "fire_aura",
+			  "type": "fire_pattern",
+			  "cost": 1,
+			  "max_rank": 5,
+			  "prerequisite": "",
+			  "params": {
+				"aura": true,
+				"radii": [60, 80, 100, 120, 150],
+				"tick_dps": [5, 8, 12, 18, 25],
+				"tick_interval": 0.5
+			  }
+			}
+		  ]
+		},
+		"stat_boosts": {
+		  "icon": "res://assets/ui/skills/branch_paragon.png",
+		  "color": "#FF6600",
+		  "levels": [
+			{
+			  "id": "paragon_damage",
+			  "type": "stat_modifier",
+			  "cost": 1,
+			  "max_rank": 999,
+			  "prerequisite": "",
+			  "params": {
+				"stat": "damage",
+				"bonus_per_rank": 1
+			  }
+			},
+			{
+			  "id": "paragon_hp",
+			  "type": "stat_modifier",
+			  "cost": 1,
+			  "max_rank": 999,
+			  "prerequisite": "",
+			  "params": {
+				"stat": "max_hp",
+				"bonus_per_rank": 2
+			  }
+			},
+			{
+			  "id": "paragon_shield",
+			  "type": "stat_modifier",
+			  "cost": 1,
+			  "max_rank": 999,
+			  "prerequisite": "",
+			  "params": {
+				"stat": "shield_max",
+				"bonus_per_rank": 2
+			  }
+			},
+			{
+			  "id": "paragon_crit",
+			  "type": "stat_modifier",
+			  "cost": 1,
+			  "max_rank": 999,
+			  "prerequisite": "",
+			  "params": {
+				"stat": "crit_chance",
+				"bonus_per_rank": 0.5
+			  }
+			},
+			{
+			  "id": "paragon_fire_rate",
+			  "type": "stat_modifier",
+			  "cost": 1,
+			  "max_rank": 999,
+			  "prerequisite": "",
+			  "params": {
+				"stat": "fire_rate",
+				"bonus_per_rank": 0.5
+			  }
+			}
+		  ]
+		}
+	  }
+	}
   }
 }
-

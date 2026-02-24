@@ -1,56 +1,80 @@
 {
-    "powers": [
-        {
-            "id": "power_paint_sweep",
-            "name": "Paint Sweep",
-            "description": "A massive wave of paint splashes across the screen.",
-            "duration": 2.0,
-            "invincibility": true,
-            "ship_movement": {
-                "type": "horizontal_sweep",
-                "distance_pct": 100,
-                "speed": 500
-            },
-            "projectile": {
-                "count": 20,
-                "trajectory": "radial",
-                "size": 40,
-                "waves": 3,
-                "wave_delay": 0.3,
-                "color": "#FF00FF"
-            }
-        },
-        {
-            "id": "power_barrel_roll",
-            "name": "Barrel Roll",
-            "description": "Dodge everything with a quick roll.",
-            "duration": 1.0,
-            "invincibility": true,
-            "ship_movement": {
-                "type": "horizontal_dodge",
-                "distance_pct": 50,
-                "speed": 800
-            },
-            "projectile": null
-        },
-        {
-            "id": "power_witch_circle",
-            "name": "Witch Circle",
-            "description": "Spinning burst of magic.",
-            "duration": 3.0,
-            "invincibility": true,
-            "ship_movement": {
-                "type": "spin_center",
-                "speed": 300
-            },
-            "projectile": {
-                "count": 12,
-                "trajectory": "spiral",
-                "size": 25,
-                "waves": 5,
-                "wave_delay": 0.5,
-                "color": "#AA44FF"
-            }
-        }
-    ]
+	"powers": [
+		{
+			"id": "power_paint_sweep",
+			"name": "Paint Sweep",
+			"description": "A massive wave of paint splashes across the screen.",
+			"duration": 2.4,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "horizontal_sweep",
+				"distance_pct": 100,
+				"speed": 500
+			},
+			"projectile": {
+				"count": 24,
+				"trajectory": "radial",
+				"size": 34,
+				"waves": 4,
+				"wave_delay": 0.22,
+				"speed": 470,
+				"damage": 66,
+				"despawn_after_sec": 5.5,
+				"rotation_speed": 130,
+				"color": "#FF33CC",
+				"asset_anim": "res://assets/missiles/energy_missile.tres",
+				"asset_anim_duration": 0.0,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_barrel_roll",
+			"name": "Barrel Roll",
+			"description": "Dodge everything with a quick roll.",
+			"duration": 1.2,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "horizontal_dodge",
+				"distance_pct": 50,
+				"speed": 800
+			},
+			"projectile": {
+				"count": 10,
+				"trajectory": "radial",
+				"size": 22,
+				"waves": 1,
+				"wave_delay": 0.0,
+				"speed": 520,
+				"damage": 58,
+				"despawn_after_sec": 3.5,
+				"color": "#56E0FF",
+				"asset": "res://assets/missiles/energy_missile.tres"
+			}
+		},
+		{
+			"id": "power_witch_circle",
+			"name": "Witch Circle",
+			"description": "Spinning burst of magic.",
+			"duration": 3.2,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "spin_center",
+				"speed": 300
+			},
+			"projectile": {
+				"count": 14,
+				"trajectory": "spiral",
+				"size": 28,
+				"waves": 6,
+				"wave_delay": 0.35,
+				"speed": 440,
+				"damage": 72,
+				"despawn_after_sec": 6.0,
+				"rotation_speed": 170,
+				"color": "#AA44FF",
+				"asset": "res://assets/missiles/energy_missile.tres",
+				"missile_id": "missile_default"
+			}
+		}
+	]
 }

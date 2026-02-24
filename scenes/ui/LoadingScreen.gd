@@ -59,6 +59,7 @@ var _packed_scene: PackedScene = null
 var _loading_screen_config: Dictionary = {}
 var _show_loading_label: bool = false
 var _level_preview: TextureRect = null
+var _displayed_progress_pct: float = 0.0
 
 func _ready() -> void:
 	modulate.a = 0.0 # Start invisible
@@ -250,8 +251,9 @@ func _set_loading_label_text(text: String) -> void:
 
 func _perform_loading() -> void:
 	_set_loading_label_text("LOADING...")
+	_displayed_progress_pct = 0.0
 	if progress_bar:
-		progress_bar.value = 0.0
+		progress_bar.value = _displayed_progress_pct
 
 	var plan: Array = _build_loading_plan(_target_scene_path)
 	var loaded_resources: Dictionary = {}
@@ -318,7 +320,10 @@ func fade_out() -> void:
 
 func _update_progress(done_steps: int, total_steps: int, _phase: String) -> void:
 	var clamped_total: int = max(1, total_steps)
-	var pct: float = clampf((float(done_steps) / float(clamped_total)) * 100.0, 0.0, 100.0)
+	var raw_pct: float = clampf((float(done_steps) / float(clamped_total)) * 100.0, 0.0, 100.0)
+	# Never move the loading bar backwards even if total_steps increases mid-load.
+	_displayed_progress_pct = maxf(_displayed_progress_pct, raw_pct)
+	var pct: float = _displayed_progress_pct
 	if progress_bar:
 		progress_bar.value = pct
 	if loading_label and _show_loading_label:

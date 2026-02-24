@@ -18,6 +18,77 @@ var settings: Dictionary = {
 	"locale": "en"
 }
 
+const ITEM_PERCENT_STATS: Array[String] = [
+	"crit_chance",
+	"crit_damage",
+	"dodge_chance",
+	"damage_reduction",
+	"fire_rate",
+	"missile_damage",
+	"missile_speed_pct",
+	"loot_radius",
+	"xp_multiplier",
+	"mark_damage_bonus"
+]
+
+const ITEM_PERCENT_FLOORS := {
+	"common": 0.1,
+	"uncommon": 0.3,
+	"rare": 0.5,
+	"epic": 0.8,
+	"legendary": 1.5,
+	"unique": 2.0
+}
+
+const ITEM_PERCENT_UPGRADE_RANGES := {
+	"common": [0.1, 0.4],
+	"uncommon": [0.3, 0.6],
+	"rare": [0.5, 0.8],
+	"epic": [0.7, 1.0],
+	"legendary": [0.9, 1.2],
+	"unique": [1.0, 1.5]
+}
+
+func is_item_percent_stat(stat_key: String) -> bool:
+	return ITEM_PERCENT_STATS.has(stat_key)
+
+func get_item_percent_floor(rarity_id: String) -> float:
+	var rarity_key := rarity_id.strip_edges().to_lower()
+	return float(ITEM_PERCENT_FLOORS.get(rarity_key, 0.1))
+
+func get_item_percent_upgrade_range(rarity_id: String) -> Vector2:
+	var rarity_key := rarity_id.strip_edges().to_lower()
+	var raw_range: Variant = ITEM_PERCENT_UPGRADE_RANGES.get(rarity_key, [0.1, 0.4])
+	if raw_range is Array and (raw_range as Array).size() >= 2:
+		var arr := raw_range as Array
+		return Vector2(float(arr[0]), float(arr[1]))
+	return Vector2(0.1, 0.4)
+
+func _get_item_percent_upgrade_tier_band(range_min: float, range_max: float, tier: String) -> Vector2:
+	var low := minf(range_min, range_max)
+	var high := maxf(range_min, range_max)
+	if is_equal_approx(low, high):
+		return Vector2(low, high)
+	var step := (high - low) / 3.0
+	match tier:
+		"decent":
+			return Vector2(low, low + step)
+		"great":
+			return Vector2(low + step, low + step * 2.0)
+		"perfect":
+			return Vector2(low + step * 2.0, high)
+		_:
+			return Vector2(low, high)
+
+func roll_item_percent_upgrade_increment(rarity_id: String, tier: String) -> float:
+	var rarity_range := get_item_percent_upgrade_range(rarity_id)
+	var band := _get_item_percent_upgrade_tier_band(rarity_range.x, rarity_range.y, tier)
+	var low := minf(band.x, band.y)
+	var high := maxf(band.x, band.y)
+	if is_equal_approx(low, high):
+		return snapped(low, 0.1)
+	return snapped(randf_range(low, high), 0.1)
+
 # =============================================================================
 # CHARGEMENT / SAUVEGARDE
 # =============================================================================
@@ -179,6 +250,7 @@ func _sanitize_inventory_entries(raw_inventory: Variant) -> Dictionary:
 		var item_id: String = str(item.get("id", "")).strip_edges()
 		var is_unique: bool = bool(item.get("is_unique", false))
 		var unique_template_id: String = str(item.get("unique_template_id", "")).strip_edges()
+		var rarity_id: String = str(item.get("rarity", "common")).strip_edges().to_lower()
 		
 		# Migration: legacy "upgrade" field -> canonical "level" field.
 		if not item.has("level"):
@@ -204,6 +276,8 @@ func _sanitize_inventory_entries(raw_inventory: Variant) -> Dictionary:
 			for raw_key in (stats_raw as Dictionary).keys():
 				var key: String = str(raw_key)
 				var value: float = float((stats_raw as Dictionary).get(raw_key, 0.0))
+				if is_item_percent_stat(key):
+					value = maxf(value, get_item_percent_floor(rarity_id))
 				if absf(value) < 0.001:
 					continue
 				cleaned_stats[key] = value
@@ -219,6 +293,8 @@ func _sanitize_inventory_entries(raw_inventory: Variant) -> Dictionary:
 						break
 					var key: String = str(raw_key)
 					var value: float = float((template_stats as Dictionary).get(raw_key, 0.0))
+					if is_item_percent_stat(key):
+						value = maxf(value, get_item_percent_floor(rarity_id))
 					if absf(value) < 0.001:
 						continue
 					cleaned_stats[key] = value
@@ -757,17 +833,22 @@ func upgrade_item(item_id: String) -> bool:
 	var mult_min = float(tier_data.get("multiplier_min", 1.05))
 	var mult_max = float(tier_data.get("multiplier_max", 1.10))
 	var multiplier = randf_range(mult_min, mult_max)
+	var rarity_id: String = str(item.get("rarity", "common")).strip_edges().to_lower()
 	
-	var stats = item.get("stats", {}).duplicate()
-	for key in stats:
-		var val = float(stats[key])
-		# Heuristic: if small integer, increment or keep as float?
-		# Match ShipMenu logic
-		if val < 5.0 and val > 1.0:
-			stats[key] = val * multiplier
+	var stats_raw: Variant = item.get("stats", {})
+	var stats: Dictionary = (stats_raw as Dictionary).duplicate(true) if stats_raw is Dictionary else {}
+	for raw_key in stats.keys():
+		var key := str(raw_key)
+		var val := float(stats[raw_key])
+		if is_item_percent_stat(key):
+			var increment := roll_item_percent_upgrade_increment(rarity_id, tier)
+			var next_percent := maxf(val + increment, get_item_percent_floor(rarity_id))
+			stats[raw_key] = snapped(next_percent, 0.1)
+			continue
+		if val < 1.0 and val > 0.0:
+			stats[raw_key] = snapped(val * multiplier, 0.01)
 		else:
-			# Large numbers (HP, Shield, Damage)
-			stats[key] = ceil(val * multiplier)
+			stats[raw_key] = ceil(val * multiplier)
 	
 	# Update globally
 	return apply_item_upgrade(item_id, current_level + 1, stats)

@@ -52,6 +52,10 @@ var _inventory_warning_was_full: bool = false
 var _inventory_warning_tween: Tween = null
 var _game_config: Dictionary = {}
 const INVENTORY_WARNING_INTERVAL: float = 10.0
+const MAX_SIMULTANEOUS_NOTIFICATIONS: int = 4
+const NOTIFICATION_SLOT_Y: float = 146.0
+const NOTIFICATION_SLOT_GAP: float = 10.0
+const LOOT_NOTIFICATION_SCENE: PackedScene = preload("res://scenes/ui/LootNotification.tscn")
 const HP_FILL_REVEAL_SHADER_CODE: String = """
 shader_type canvas_item;
 uniform float fill_ratio : hint_range(0.0, 1.0) = 1.0;
@@ -105,10 +109,11 @@ func _ready() -> void:
 	
 	add_to_group("game_hud")
 
-var notification_area: VBoxContainer = null
+var notification_area: Control = null
+var _notification_slots_by_id: Dictionary = {}
 
 func _setup_notification_area() -> void:
-	notification_area = VBoxContainer.new()
+	notification_area = Control.new()
 	notification_area.name = "NotificationArea"
 	notification_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Setup Layout (Top Right, below score)
@@ -120,17 +125,41 @@ func _setup_notification_area() -> void:
 	notification_area.offset_left = -130 # card 110 + 20 margin
 	notification_area.offset_right = -20
 	notification_area.offset_top = 100
-	notification_area.offset_bottom = 600
+	notification_area.offset_bottom = 100 + (MAX_SIMULTANEOUS_NOTIFICATIONS * (NOTIFICATION_SLOT_Y + NOTIFICATION_SLOT_GAP))
 	
 	add_child(notification_area)
 
 func show_loot_notification(item_data: Dictionary) -> void:
-	if notification_area:
-		var scene = load("res://scenes/ui/LootNotification.tscn")
-		if scene:
-			var notif = scene.instantiate()
-			notification_area.add_child(notif)
-			notif.setup(item_data)
+	if notification_area == null or LOOT_NOTIFICATION_SCENE == null:
+		return
+	var slot_index: int = _acquire_notification_slot()
+	if slot_index < 0:
+		return
+	var notif_node: Node = LOOT_NOTIFICATION_SCENE.instantiate()
+	if not (notif_node is Control):
+		return
+	var notif: Control = notif_node as Control
+	notif.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	notification_area.add_child(notif)
+	notif.position = Vector2.ZERO
+	notif.position.y = float(slot_index) * (NOTIFICATION_SLOT_Y + NOTIFICATION_SLOT_GAP)
+	var notif_id: int = notif.get_instance_id()
+	_notification_slots_by_id[notif_id] = slot_index
+	notif.tree_exiting.connect(_on_notification_tree_exiting.bind(notif_id))
+	if notif.has_method("setup"):
+		notif.call("setup", item_data)
+
+func _acquire_notification_slot() -> int:
+	var used_slots: Dictionary = {}
+	for slot_variant in _notification_slots_by_id.values():
+		used_slots[int(slot_variant)] = true
+	for i in range(MAX_SIMULTANEOUS_NOTIFICATIONS):
+		if not used_slots.has(i):
+			return i
+	return -1
+
+func _on_notification_tree_exiting(notification_id: int) -> void:
+	_notification_slots_by_id.erase(notification_id)
 
 func _load_assets() -> void:
 	_game_config = {}

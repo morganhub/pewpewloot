@@ -13,8 +13,14 @@ var fall_speed: float = 100.0
 var _is_collected: bool = false
 var _drift_velocity: Vector2 = Vector2.ZERO
 var _viewport_width: float = 0.0
+var _sprite_node: Sprite2D = null
+var _anim_sprite_node: AnimatedSprite2D = null
 
 @onready var visual: Polygon2D = $Visual
+
+const STRONG_RESOURCE_CACHE_MAX: int = 128
+static var _strong_resource_cache: Dictionary = {}  # path -> Resource
+static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
 
 # Directions de drift (normalisées)
 const DRIFT_DIR_VECTORS: Array = [
@@ -64,13 +70,9 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 			asset_anim_loop = bool(loot_cfg.get("asset_anim_loop", loot_cfg.get("asset_loop", asset_anim_loop)))
 	
 	if asset_path != "" and ResourceLoader.exists(asset_path):
-		var loaded_res = load(asset_path)
+		var loaded_res: Resource = _load_cached_resource(asset_path)
 		if loaded_res is SpriteFrames:
-			var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
-			if not anim_sprite:
-				anim_sprite = AnimatedSprite2D.new()
-				anim_sprite.name = "AnimatedSprite2D"
-				add_child(anim_sprite)
+			var anim_sprite: AnimatedSprite2D = _get_or_create_anim_sprite()
 			anim_sprite.visible = true
 			anim_sprite.position = Vector2.ZERO
 			anim_sprite.centered = true
@@ -84,22 +86,18 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 				asset_anim_duration
 			)
 			if anim_name != &"" and anim_sprite.sprite_frames:
-				var frame_tex: Texture2D = anim_sprite.sprite_frames.get_frame_texture(anim_name, 0)
+				var frame_tex: Texture2D = _get_cached_first_frame_texture(anim_sprite.sprite_frames, anim_name)
 				if frame_tex:
 					var frame_size := frame_tex.get_size()
 					if frame_size.x > 0 and frame_size.y > 0:
 						anim_sprite.scale = Vector2(target_width / frame_size.x, target_height / frame_size.y)
 			
-			var sprite_to_hide: Sprite2D = get_node_or_null("Sprite2D") as Sprite2D
+			var sprite_to_hide: Sprite2D = _sprite_node
 			if sprite_to_hide:
 				sprite_to_hide.visible = false
 			visual.visible = false
 		elif loaded_res is Texture2D:
-			var sprite: Sprite2D = get_node_or_null("Sprite2D") as Sprite2D
-			if not sprite:
-				sprite = Sprite2D.new()
-				sprite.name = "Sprite2D"
-				add_child(sprite)
+			var sprite: Sprite2D = _get_or_create_sprite()
 			sprite.visible = true
 			sprite.texture = loaded_res as Texture2D
 			visual.visible = false # Hide polygon
@@ -108,7 +106,7 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 			if tex_size.x > 0 and tex_size.y > 0:
 				sprite.scale = Vector2(target_width / tex_size.x, target_height / tex_size.y)
 			
-			var anim_to_hide: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+			var anim_to_hide: AnimatedSprite2D = _anim_sprite_node
 			if anim_to_hide:
 				anim_to_hide.visible = false
 		else:
@@ -132,6 +130,66 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	
 	# Drift lent dans une direction aléatoire (lecture config game.json)
 	_setup_drift()
+
+func _get_or_create_sprite() -> Sprite2D:
+	if _sprite_node and is_instance_valid(_sprite_node):
+		return _sprite_node
+	var existing: Node = get_node_or_null("Sprite2D")
+	if existing is Sprite2D:
+		_sprite_node = existing as Sprite2D
+		return _sprite_node
+	_sprite_node = Sprite2D.new()
+	_sprite_node.name = "Sprite2D"
+	add_child(_sprite_node)
+	return _sprite_node
+
+func _get_or_create_anim_sprite() -> AnimatedSprite2D:
+	if _anim_sprite_node and is_instance_valid(_anim_sprite_node):
+		return _anim_sprite_node
+	var existing: Node = get_node_or_null("AnimatedSprite2D")
+	if existing is AnimatedSprite2D:
+		_anim_sprite_node = existing as AnimatedSprite2D
+		return _anim_sprite_node
+	_anim_sprite_node = AnimatedSprite2D.new()
+	_anim_sprite_node.name = "AnimatedSprite2D"
+	add_child(_anim_sprite_node)
+	return _anim_sprite_node
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+			_first_frame_texture_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource
+
+func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
+	if frames == null or anim_name == &"":
+		return null
+	var frame_key: String = _build_frame_cache_key(frames, anim_name)
+	if _first_frame_texture_cache.has(frame_key):
+		var cached: Variant = _first_frame_texture_cache[frame_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+
+	var texture: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if texture != null:
+		_first_frame_texture_cache[frame_key] = texture
+	return texture
+
+func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> String:
+	var path: String = frames.resource_path
+	if path == "":
+		path = "rid:" + str(frames.get_rid().get_id())
+	return path + "|" + String(anim_name)
 
 func _setup_drift() -> void:
 	var gameplay_cfg: Dictionary = DataManager.get_game_data().get("gameplay", {})
@@ -251,10 +309,10 @@ func _collect() -> void:
 		queue_free()
 
 func _apply_polygon_fallback(target_width: float, target_height: float) -> void:
-	var sprite: Sprite2D = get_node_or_null("Sprite2D") as Sprite2D
+	var sprite: Sprite2D = _sprite_node
 	if sprite:
 		sprite.visible = false
-	var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	var anim_sprite: AnimatedSprite2D = _anim_sprite_node
 	if anim_sprite:
 		anim_sprite.visible = false
 	
@@ -274,10 +332,10 @@ func _apply_polygon_fallback(target_width: float, target_height: float) -> void:
 	])
 
 func _get_active_visual_node() -> Node2D:
-	var anim_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	var anim_sprite: AnimatedSprite2D = _anim_sprite_node
 	if anim_sprite and anim_sprite.visible:
 		return anim_sprite
-	var sprite: Sprite2D = get_node_or_null("Sprite2D") as Sprite2D
+	var sprite: Sprite2D = _sprite_node
 	if sprite and sprite.visible:
 		return sprite
 	if visual and visual.visible:

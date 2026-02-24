@@ -38,6 +38,7 @@ const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.ts
 const SINGULARITY_SCENE: PackedScene = preload("res://scenes/effects/Singularity.tscn")
 const STRONG_RESOURCE_CACHE_MAX: int = 256
 static var _strong_resource_cache: Dictionary = {} # path -> Resource
+static var _first_frame_texture_cache: Dictionary = {} # frame_key -> Texture2D
 
 # Skill Tree Modifiers
 var skill_modifiers: Dictionary = {}
@@ -316,7 +317,7 @@ func _apply_sprite_frames_visual(frames: SpriteFrames, final_width: float, final
 	var playback_frames: SpriteFrames = anim_sprite.sprite_frames
 	var frame_tex: Texture2D = null
 	if playback_frames:
-		frame_tex = playback_frames.get_frame_texture(played_anim, 0)
+		frame_tex = _get_cached_first_frame_texture(playback_frames, played_anim)
 	if frame_tex:
 		var f_size: Vector2 = frame_tex.get_size()
 		if f_size.x > 0 and f_size.y > 0:
@@ -783,5 +784,26 @@ func _load_cached_resource(path: String) -> Resource:
 	if resource != null:
 		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
 			_strong_resource_cache.clear()
+			_first_frame_texture_cache.clear()
 		_strong_resource_cache[path] = resource
 	return resource
+
+func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
+	if frames == null or anim_name == &"":
+		return null
+	var frame_key: String = _build_frame_cache_key(frames, anim_name)
+	if _first_frame_texture_cache.has(frame_key):
+		var cached: Variant = _first_frame_texture_cache[frame_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+
+	var texture: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if texture != null:
+		_first_frame_texture_cache[frame_key] = texture
+	return texture
+
+func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> String:
+	var path: String = frames.resource_path
+	if path == "":
+		path = "rid:" + str(frames.get_rid().get_id())
+	return path + "|" + String(anim_name)

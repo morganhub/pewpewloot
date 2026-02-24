@@ -1692,11 +1692,12 @@ func _roll_enemy_drop(drop_multiplier: float) -> Dictionary:
 
 	var allow_equipment: bool = bool(rules.get("allow_equipment", true))
 	var allow_powerup: bool = bool(rules.get("allow_powerups", true))
+	var can_drop_equipment: bool = allow_equipment and _has_available_equipment_slot()
 	var can_drop_powerup: bool = allow_powerup and _has_available_powerup_slot()
 
 	var equipment_drop_chance: float = 0.0
 	var powerup_drop_chance: float = 0.0
-	if allow_equipment:
+	if can_drop_equipment:
 		equipment_drop_chance = clampf(loot_chance * equipment_scale * global_scale * drop_multiplier, 0.0, 1.0)
 	if can_drop_powerup:
 		powerup_drop_chance = clampf(loot_chance * powerup_scale * global_scale * drop_multiplier, 0.0, 1.0)
@@ -1724,7 +1725,7 @@ func _build_equipment_drop() -> Dictionary:
 		level = App.current_level_index + 1
 
 	var item: LootItem = LootGenerator.generate_loot(level, "", "", loot_quality_multiplier)
-	if item:
+	if item and _reserve_equipment_slot():
 		return item.to_dict()
 	return {}
 
@@ -1797,6 +1798,18 @@ func _get_loot_drop_rules() -> Dictionary:
 			return (rules_variant as Dictionary).duplicate(true)
 	var gameplay_cfg: Dictionary = DataManager.get_game_data().get("gameplay", {})
 	return gameplay_cfg.get("loot_drops", {})
+
+func _has_available_equipment_slot() -> bool:
+	var game_controller: Node = _get_game_controller()
+	if game_controller and game_controller.has_method("can_spawn_equipment_drop"):
+		return bool(game_controller.call("can_spawn_equipment_drop"))
+	return true
+
+func _reserve_equipment_slot() -> bool:
+	var game_controller: Node = _get_game_controller()
+	if game_controller and game_controller.has_method("try_reserve_equipment_drop"):
+		return bool(game_controller.call("try_reserve_equipment_drop"))
+	return true
 
 func _has_available_powerup_slot() -> bool:
 	return _can_spawn_powerup_effect("shield") or _can_spawn_powerup_effect("fire_rate")

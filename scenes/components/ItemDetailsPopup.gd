@@ -15,11 +15,17 @@ signal unequip_requested(item_id: String, slot_id: String)
 @onready var recycle_btn = %RecycleBtn
 @onready var equip_btn = %EquipBtn
 @onready var close_btn = %CloseBtn
+@onready var actions_grid: GridContainer = %Actions
+@onready var margin_root: MarginContainer = $Margin
 
 var current_item_id: String = ""
 var current_slot_id: String = ""
 var is_equipped: bool = false
 var config: Dictionary = {}
+var _action_profile: String = "full"
+var _show_upgrade_recycle: bool = true
+var _first_open_layout_pending: bool = true
+var _setup_serial: int = 0
 
 func _ensure_nodes() -> void:
 	if not icon_rect: icon_rect = %Icon
@@ -30,6 +36,8 @@ func _ensure_nodes() -> void:
 	if not recycle_btn: recycle_btn = %RecycleBtn
 	if not equip_btn: equip_btn = %EquipBtn
 	if not close_btn: close_btn = %CloseBtn
+	if not actions_grid: actions_grid = %Actions
+	if not margin_root: margin_root = $Margin
 
 func _ready() -> void:
 	_ensure_nodes()
@@ -38,16 +46,37 @@ func _ready() -> void:
 	recycle_btn.pressed.connect(_on_recycle_pressed)
 	equip_btn.pressed.connect(_on_equip_pressed)
 
-func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionary = {}) -> void:
+func setup(
+	item_id: String,
+	slot_id: String,
+	equipped: bool,
+	p_config: Dictionary = {},
+	show_upgrade_recycle: bool = true,
+	item_data_override: Dictionary = {}
+) -> void:
+	_setup_serial += 1
+	var setup_serial_snapshot: int = _setup_serial
 	current_item_id = item_id
 	current_slot_id = slot_id
 	is_equipped = equipped
 	config = p_config
+	_show_upgrade_recycle = show_upgrade_recycle
 	
 	var item = ProfileManager.get_item_by_id(item_id)
+	if item.is_empty() and not item_data_override.is_empty():
+		item = item_data_override.duplicate(true)
+		if current_item_id == "":
+			current_item_id = str(item.get("id", ""))
+		if current_slot_id == "":
+			current_slot_id = str(item.get("slot", ""))
+		if current_slot_id != "":
+			var active_ship_id := ProfileManager.get_active_ship_id()
+			var equipped_item_id := ProfileManager.get_equipped_item_id(active_ship_id, current_slot_id)
+			is_equipped = (equipped_item_id != "" and equipped_item_id == current_item_id)
 	if item.is_empty():
 		visible = false
 		return
+	var effective_slot_id: String = current_slot_id if current_slot_id != "" else slot_id
 	
 	# Fetch Global Config for styles
 	var game_cfg = DataManager.get_game_config()
@@ -72,7 +101,7 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 	
 	# Try DataManager lookup if asset missing
 	if final_path == "" or not ResourceLoader.exists(final_path):
-		var s_data = DataManager.get_slot(slot_id)
+		var s_data = DataManager.get_slot(effective_slot_id)
 		var icon_def = s_data.get("icon")
 		if icon_def is Dictionary:
 			final_path = str(icon_def.get(rarity, icon_def.get("common", "")))
@@ -82,13 +111,13 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 	# Fallback to placeholder
 	if final_path == "" or not ResourceLoader.exists(final_path):
 		var placeholders = config.get("placeholders", {})
-		final_path = str(placeholders.get(slot_id, ""))
+		final_path = str(placeholders.get(effective_slot_id, ""))
 	
 	_update_icon(final_path)
 	
 	# Name & Rarity
-	var slot_data = DataManager.get_slot(slot_id)
-	var base_name = str(slot_data.get("name", slot_id))
+	var slot_data = DataManager.get_slot(effective_slot_id)
+	var base_name = str(slot_data.get("name", effective_slot_id))
 	name_label.text = base_name.capitalize()
 	
 	# Name Styling (Title Font Size + Rarity Color)
@@ -111,7 +140,8 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 	
 	# Stats
 	for child in stats_box.get_children():
-		child.queue_free()
+		stats_box.remove_child(child)
+		child.free()
 	
 	var stats = item.get("stats", {})
 	for key in stats:
@@ -145,21 +175,104 @@ func setup(item_id: String, slot_id: String, equipped: bool, p_config: Dictionar
 		# Check crystals
 		if ProfileManager.get_crystals() < cost:
 			upgrade_btn.disabled = true # or visual indicator
-	await get_tree().process_frame  # Attendre que le layout soit calculé
-	_limit_popup_height()
-	
-	
-func _limit_popup_height() -> void:
-	var max_height = 500  # Hauteur maximale souhaitée
-	if size.y > max_height:
-		custom_minimum_size.y = 0  # Réinitialiser
-		size.y = max_height
+
+	if _show_upgrade_recycle:
+		_action_profile = "full"
+	else:
+		_action_profile = "equip_close"
+	_apply_action_profile()
+	if _first_open_layout_pending:
+		modulate.a = 0.0
+		call_deferred("_finalize_first_open_layout", setup_serial_snapshot)
+	else:
+		modulate.a = 1.0
+		_fit_popup_to_content()
+		call_deferred("_fit_popup_to_content")
+
+func _finalize_first_open_layout(serial: int) -> void:
+	if serial != _setup_serial:
+		return
+	await get_tree().process_frame
+	if serial != _setup_serial:
+		return
+	_fit_popup_to_content()
+	await get_tree().process_frame
+	if serial != _setup_serial:
+		return
+	_fit_popup_to_content()
+	modulate.a = 1.0
+	_first_open_layout_pending = false
+
+func _fit_popup_to_content() -> void:
+	# Fit popup size to content (without keeping stale oversized height).
+	# Reset vertical minimum to avoid locking an oversized height across openings.
+	custom_minimum_size = Vector2(480.0, 0.0)
+	update_minimum_size()
+	if margin_root:
+		margin_root.update_minimum_size()
+	var content_min: Vector2 = margin_root.get_combined_minimum_size() if margin_root else Vector2.ZERO
+	var panel_style: StyleBox = get_theme_stylebox("panel")
+	var panel_left: float = panel_style.get_content_margin(SIDE_LEFT)
+	var panel_right: float = panel_style.get_content_margin(SIDE_RIGHT)
+	var panel_top: float = panel_style.get_content_margin(SIDE_TOP)
+	var panel_bottom: float = panel_style.get_content_margin(SIDE_BOTTOM)
+	var min_size: Vector2 = Vector2(content_min.x + panel_left + panel_right, content_min.y + panel_top + panel_bottom)
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var desired_w: float = clampf(maxf(480.0, min_size.x), 360.0, maxf(360.0, viewport_size.x - 40.0))
+	var desired_h: float = clampf(min_size.y, 0.0, maxf(180.0, viewport_size.y - 40.0))
+	# Keep flexible height; actual popup rect is controlled via offsets.
+	custom_minimum_size = Vector2(480.0, 0.0)
+	size = Vector2(desired_w, desired_h)
+	offset_left = -desired_w / 2.0
+	offset_right = desired_w / 2.0
+	offset_top = -desired_h / 2.0
+	offset_bottom = desired_h / 2.0
 
 func set_actions_visible(p_visible: bool) -> void:
 	_ensure_nodes()
 	if upgrade_btn: upgrade_btn.visible = p_visible
 	if recycle_btn: recycle_btn.visible = p_visible
 	if equip_btn: equip_btn.visible = p_visible
+
+func set_action_profile(profile: String) -> void:
+	_action_profile = profile.strip_edges().to_lower()
+	_apply_action_profile()
+
+func _apply_action_profile() -> void:
+	_ensure_nodes()
+	if _action_profile == "equip_close":
+		if upgrade_btn: upgrade_btn.visible = false
+		if recycle_btn: recycle_btn.visible = false
+		if equip_btn:
+			equip_btn.visible = true
+			equip_btn.text = LocaleManager.translate("item_popup_equip")
+		if close_btn: close_btn.visible = true
+		if actions_grid:
+			actions_grid.columns = 2
+			if equip_btn:
+				actions_grid.move_child(equip_btn, 0)
+			if close_btn:
+				actions_grid.move_child(close_btn, 1)
+			if upgrade_btn:
+				actions_grid.move_child(upgrade_btn, 2)
+			if recycle_btn:
+				actions_grid.move_child(recycle_btn, 3)
+		return
+
+	if upgrade_btn: upgrade_btn.visible = true
+	if recycle_btn: recycle_btn.visible = true
+	if equip_btn: equip_btn.visible = true
+	if close_btn: close_btn.visible = true
+	if actions_grid:
+		actions_grid.columns = 2
+		if upgrade_btn:
+			actions_grid.move_child(upgrade_btn, 0)
+		if recycle_btn:
+			actions_grid.move_child(recycle_btn, 1)
+		if equip_btn:
+			actions_grid.move_child(equip_btn, 2)
+		if close_btn:
+			actions_grid.move_child(close_btn, 3)
 
 func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) -> void:
 	var merged_cfg := global_cfg.duplicate(true)
@@ -231,6 +344,9 @@ func _add_stat_row(stat_name: String, value: float) -> void:
 	stats_box.add_child(hbox)
 
 func _on_equip_pressed() -> void:
+	if _action_profile == "equip_close":
+		equip_requested.emit(current_item_id, current_slot_id)
+		return
 	if is_equipped:
 		unequip_requested.emit(current_item_id, current_slot_id)
 	else:

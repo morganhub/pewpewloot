@@ -424,6 +424,11 @@ func _update_respec_button() -> void:
 	var cost := ProfileManager.get_respec_cost()
 	var crystals := ProfileManager.get_crystals()
 	_respec_button.text = _translate("skills.menu.respec.button", {"cost": cost}, "Respec (" + str(cost) + ")")
+	if DataManager and DataManager.has_method("get_shared_crystal_icon_path") and DataManager.has_method("get_texture_from_resource_path"):
+		var crystal_icon_path: String = str(DataManager.get_shared_crystal_icon_path())
+		_respec_button.icon = DataManager.get_texture_from_resource_path(crystal_icon_path)
+	else:
+		_respec_button.icon = null
 	_respec_button.disabled = crystals < cost
 
 	var unlocked := ProfileManager.get_skills_unlocked()

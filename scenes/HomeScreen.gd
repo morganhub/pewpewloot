@@ -17,9 +17,12 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var logo_texture: TextureRect = $TopSection/LogoTexture
 @onready var logo_anim_container: Control = $TopSection/LogoAnimContainer
 @onready var logo_anim: AnimatedSprite2D = $TopSection/LogoAnimContainer/LogoAnim
-@onready var profile_info: HBoxContainer = $TopSection/ProfileInfo
-@onready var crystal_label: Label = $TopSection/ProfileInfo/CrystalLabel
-@onready var ship_preview: Control = $TopSection/ProfileInfo/ShipPreview
+@onready var profile_info_panel: PanelContainer = $TopSection/ProfileInfoPanel
+@onready var profile_info: HBoxContainer = $TopSection/ProfileInfoPanel/Margin/ProfileInfo
+@onready var crystal_icon: TextureRect = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/CrystalIcon
+@onready var crystal_label: Label = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/CrystalLabel
+@onready var level_label: Label = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/LevelLabel
+@onready var ship_preview: HBoxContainer = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/ShipPreview
 
 @onready var play_button: Button = $BottomSection/PlayButton
 @onready var ship_button: Button = $BottomSection/ShipButton
@@ -30,6 +33,7 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var unlock_all_button: Button = $BottomSection/UnlockAllButton
 
 var _game_config: Dictionary = {}
+var _crystal_anim: AnimatedSprite2D = null
 
 # =============================================================================
 # LIFECYCLE
@@ -42,8 +46,10 @@ func _ready() -> void:
 	_setup_background()
 	_setup_logo()
 	_setup_buttons()
+	_setup_profile_info_bar()
 	_apply_translations()
 	_update_info()
+	_request_menu_prewarm()
 	
 	# Connect signals
 	play_button.pressed.connect(_on_play_pressed)
@@ -72,6 +78,195 @@ func _setup_layout() -> void:
 	# Layout is handled by anchors
 	pass
 
+func _setup_profile_info_bar() -> void:
+	if profile_info_panel == null:
+		return
+
+	var target_width: float = 540.0
+	if play_button and play_button.custom_minimum_size.x > 0.0:
+		target_width = play_button.custom_minimum_size.x
+
+	var target_height: float = 70.0
+	if play_button and play_button.custom_minimum_size.y > 0.0:
+		target_height = play_button.custom_minimum_size.y
+	profile_info_panel.custom_minimum_size = Vector2(target_width, target_height)
+
+	var buttons_config: Dictionary = _game_config.get("buttons", {})
+	var shared_cfg := _extract_shared_button_cfg(buttons_config)
+	var play_cfg := _merge_button_cfg(shared_cfg, buttons_config.get("play", {}))
+	var play_asset: String = str(play_cfg.get("asset", ""))
+
+	var style: StyleBox = null
+	if play_asset != "" and ResourceLoader.exists(play_asset):
+		style = UIStyle.build_texture_stylebox(play_asset, play_cfg, 10)
+	if style == null:
+		var fallback_style := StyleBoxFlat.new()
+		fallback_style.bg_color = Color(0.04, 0.07, 0.15, 0.8)
+		fallback_style.set_corner_radius_all(10)
+		style = fallback_style
+	profile_info_panel.add_theme_stylebox_override("panel", style)
+
+	var crystal_icon_path := _get_shared_crystal_icon_path()
+	_setup_crystal_icon(crystal_icon_path)
+
+func _get_shared_crystal_icon_path() -> String:
+	if DataManager and DataManager.has_method("get_shared_crystal_icon_path"):
+		return str(DataManager.get_shared_crystal_icon_path())
+	return "res://assets/ui/icons/crystal.png"
+
+func _load_texture_from_resource_path(path: String) -> Texture2D:
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	if DataManager and DataManager.has_method("get_texture_from_resource_path"):
+		return DataManager.get_texture_from_resource_path(path)
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource is Texture2D:
+		return resource as Texture2D
+	if resource is SpriteFrames:
+		var frames := resource as SpriteFrames
+		var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
+		if anim_name != &"" and frames.get_frame_count(anim_name) > 0:
+			return frames.get_frame_texture(anim_name, 0)
+	return null
+
+func _get_shared_crystal_icon_cfg() -> Dictionary:
+	if DataManager and DataManager.has_method("get_shared_crystal_icon_config"):
+		return DataManager.get_shared_crystal_icon_config()
+	var path := _get_shared_crystal_icon_path()
+	return {
+		"asset": path,
+		"animation_repeat_seconds": 0.0,
+		"animation_type": "loop",
+		"animation_duration": 2.0
+	}
+
+func _setup_crystal_icon(path: String) -> void:
+	if crystal_icon == null:
+		return
+
+	var cfg: Dictionary = _get_shared_crystal_icon_cfg()
+	var resolved_path := str(cfg.get("asset", path)).strip_edges()
+	if resolved_path == "" or not ResourceLoader.exists(resolved_path):
+		resolved_path = path
+
+	if resolved_path == "" or not ResourceLoader.exists(resolved_path):
+		crystal_icon.texture = null
+		crystal_icon.visible = false
+		_clear_home_crystal_anim()
+		return
+
+	var res: Resource = ResourceLoader.load(resolved_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res is SpriteFrames:
+		var frames := res as SpriteFrames
+		var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
+		if anim_name != &"" and frames.get_frame_count(anim_name) > 0:
+			var first_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+			crystal_icon.texture = first_tex
+			crystal_icon.visible = true
+			_ensure_home_crystal_anim(frames, cfg)
+			return
+
+	var crystal_texture := _load_texture_from_resource_path(resolved_path)
+	crystal_icon.texture = crystal_texture
+	crystal_icon.visible = crystal_texture != null
+	_clear_home_crystal_anim()
+
+func _ensure_home_crystal_anim(frames: SpriteFrames, cfg: Dictionary) -> void:
+	if crystal_icon == null:
+		return
+	if _crystal_anim == null or not is_instance_valid(_crystal_anim):
+		_crystal_anim = AnimatedSprite2D.new()
+		_crystal_anim.name = "CrystalAnim"
+		_crystal_anim.centered = true
+		_crystal_anim.z_index = 0
+		crystal_icon.add_child(_crystal_anim)
+		if not crystal_icon.resized.is_connected(_on_home_crystal_icon_resized):
+			crystal_icon.resized.connect(_on_home_crystal_icon_resized)
+
+	_crystal_anim.sprite_frames = frames
+	_on_home_crystal_icon_resized()
+	_play_home_shared_icon(_crystal_anim, cfg)
+
+func _clear_home_crystal_anim() -> void:
+	if _crystal_anim != null and is_instance_valid(_crystal_anim):
+		_crystal_anim.stop()
+		_crystal_anim.visible = false
+		_crystal_anim.queue_free()
+	_crystal_anim = null
+
+func _stop_home_crystal_for_transition() -> void:
+	if crystal_icon:
+		crystal_icon.visible = false
+		crystal_icon.texture = null
+	_clear_home_crystal_anim()
+
+func prepare_for_transition() -> void:
+	_stop_home_crystal_for_transition()
+
+func _on_home_crystal_icon_resized() -> void:
+	if crystal_icon == null or _crystal_anim == null or not is_instance_valid(_crystal_anim):
+		return
+
+	_crystal_anim.position = crystal_icon.size * 0.5
+	var frames: SpriteFrames = _crystal_anim.sprite_frames
+	if frames == null:
+		return
+	var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
+	if anim_name == &"" or frames.get_frame_count(anim_name) <= 0:
+		return
+	var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if frame_tex == null:
+		return
+	var frame_size := frame_tex.get_size()
+	if frame_size.x <= 0.0 or frame_size.y <= 0.0:
+		return
+	var fit_scale := minf(crystal_icon.size.x / frame_size.x, crystal_icon.size.y / frame_size.y)
+	_crystal_anim.scale = Vector2(fit_scale, fit_scale)
+
+func _play_home_shared_icon(anim: AnimatedSprite2D, cfg: Dictionary) -> void:
+	if anim == null or not is_instance_valid(anim):
+		return
+	var frames: SpriteFrames = anim.sprite_frames
+	if frames == null:
+		return
+	var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
+	if anim_name == &"":
+		return
+
+	var repeat_seconds: float = maxf(0.0, float(cfg.get("animation_repeat_seconds", 0.0)))
+	var play_duration: float = maxf(0.0, float(cfg.get("animation_duration", 0.0)))
+	var anim_type: String = str(cfg.get("animation_type", "")).strip_edges().to_lower()
+	var play_loop := repeat_seconds <= 0.0
+	if anim_type == "loop":
+		play_loop = true
+	elif anim_type in ["once", "one_shot", "oneshot", "single"]:
+		play_loop = false
+	if repeat_seconds > 0.0:
+		play_loop = false
+
+	VFXManager.play_sprite_frames(anim, frames, anim_name, play_loop, play_duration)
+	if repeat_seconds > 0.0:
+		_repeat_home_shared_icon(anim, anim_name, repeat_seconds, play_duration, play_loop)
+
+func _repeat_home_shared_icon(
+	anim: AnimatedSprite2D,
+	anim_name: StringName,
+	repeat_seconds: float,
+	play_duration: float,
+	play_loop: bool
+) -> void:
+	while is_instance_valid(anim):
+		var tree := anim.get_tree()
+		if tree == null:
+			return
+		await tree.create_timer(repeat_seconds).timeout
+		if not is_instance_valid(anim):
+			return
+		var frames: SpriteFrames = anim.sprite_frames
+		if frames == null:
+			return
+		VFXManager.play_sprite_frames(anim, frames, anim_name, play_loop, play_duration)
+
 func _setup_background() -> void:
 	var menu_config: Dictionary = _game_config.get("main_menu", {})
 	var bg_path: String = str(menu_config.get("background", ""))
@@ -96,8 +291,8 @@ func _setup_logo() -> void:
 	var menu_config: Dictionary = _game_config.get("main_menu", {})
 	var logo_path: String = str(menu_config.get("logo", ""))
 	var logo_anim_path: String = str(menu_config.get("logo_anim", ""))
-	var logo_anim_duration: float = maxf(0.0, float(menu_config.get("logo_anim_duration", 0.0)))
-	var logo_anim_loop: bool = bool(menu_config.get("logo_anim_loop", true))
+	var logo_anim_duration: float = maxf(0.0, float(menu_config.get("logo_anim_duration", 2.0)))
+	var logo_anim_loop: bool = bool(menu_config.get("logo_anim_loop", false))
 	var width_pct: float = float(menu_config.get("logo_width_pct", 0.5))
 	var height_pct: float = float(menu_config.get("logo_height_pct", 0.2))
 	
@@ -321,19 +516,12 @@ func _update_info() -> void:
 	# Cristaux
 	var crystals: int = ProfileManager.get_crystals()
 	if crystal_label:
-		crystal_label.text = "💎 " + str(crystals)
-	
-	# Total Power
-	var ship_id := ProfileManager.get_active_ship_id()
-	var total_power := StatsCalculator.calculate_total_power(ship_id)
-	# Display in crystal_label for now (or add a new label)
-	if crystal_label:
-		crystal_label.text += "  ⚡ " + str(total_power)
+		crystal_label.text = str(crystals)
 	
 	# Player Level
 	var player_level := ProfileManager.get_player_level()
-	if crystal_label:
-		crystal_label.text += "  🌟 Nv." + str(player_level)
+	if level_label:
+		level_label.text = "Nv." + str(player_level)
 	
 	# Ship preview (visual)
 	_update_ship_preview()
@@ -348,42 +536,62 @@ func _update_ship_preview() -> void:
 		child.queue_free()
 	
 	var visual_data: Dictionary = ship.get("visual", {})
-	var _asset_path: String = str(visual_data.get("asset", ""))
-	var _asset_anim: String = str(visual_data.get("asset_anim", ""))
-	
-	# Create ship label
+	var asset_path: String = str(visual_data.get("asset", ""))
+	var asset_anim: String = str(visual_data.get("asset_anim", ""))
+
+	var ship_tex: Texture2D = _load_texture_from_resource_path(asset_path)
+	if ship_tex == null:
+		ship_tex = _load_texture_from_resource_path(asset_anim)
+
+	if ship_tex:
+		var ship_icon := TextureRect.new()
+		ship_icon.texture = ship_tex
+		ship_icon.custom_minimum_size = Vector2(56, 56)
+		ship_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ship_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ship_preview.add_child(ship_icon)
+		return
+
 	var ship_label := Label.new()
-	ship_label.text = "🚀 " + ship_name
-	ship_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ship_label.add_theme_font_size_override("font_size", 24)  # +50% from default ~16
+	ship_label.text = ship_name
+	ship_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	ship_label.add_theme_font_size_override("font_size", 20)
 	ship_preview.add_child(ship_label)
+
+func _request_menu_prewarm() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("request_menu_prewarm"):
+		switcher.call_deferred("request_menu_prewarm")
+
+func _goto_from_home(scene_path: String) -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen(scene_path)
+
+func _exit_tree() -> void:
+	_stop_home_crystal_for_transition()
 
 # =============================================================================
 # NAVIGATION
 # =============================================================================
 
 func _on_play_pressed() -> void:
-	var switcher := get_tree().current_scene
-	switcher.goto_screen("res://scenes/WorldSelect.tscn")
+	_goto_from_home("res://scenes/WorldSelect.tscn")
 
 func _on_ship_pressed() -> void:
-	var switcher := get_tree().current_scene
-	switcher.goto_screen("res://scenes/ShipMenu.tscn")
+	_goto_from_home("res://scenes/ShipMenu.tscn")
 
 func _on_skills_pressed() -> void:
-	var switcher := get_tree().current_scene
-	switcher.goto_screen("res://scenes/SkillsMenu.tscn")
+	_goto_from_home("res://scenes/SkillsMenu.tscn")
 
 func _on_options_pressed() -> void:
-	var switcher := get_tree().current_scene
-	switcher.goto_screen("res://scenes/OptionsMenu.tscn")
+	_goto_from_home("res://scenes/OptionsMenu.tscn")
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 func _on_change_profile_pressed() -> void:
-	var switcher := get_tree().current_scene
-	switcher.goto_screen("res://scenes/ProfileSelect.tscn")
+	_goto_from_home("res://scenes/ProfileSelect.tscn")
 
 func _on_unlock_all_pressed() -> void:
 	if not OS.has_feature("editor"):
@@ -395,12 +603,16 @@ func _on_unlock_all_pressed() -> void:
 	if profile.is_empty():
 		return
 
-	var progress: Dictionary = profile.get("progress", {})
-	for world_id in progress.keys():
-		var wp: Dictionary = progress[world_id]
-		wp["unlocked"] = true
-		wp["max_unlocked_level"] = 5
-		wp["boss_killed"] = true
+	for world_variant in App.get_worlds():
+		if not (world_variant is Dictionary):
+			continue
+		var world_id: String = str((world_variant as Dictionary).get("id", ""))
+		if world_id == "":
+			continue
+
+		var levels_per_world: int = max(1, App.get_world_level_count(world_id))
+		ProfileManager.complete_level(world_id, levels_per_world - 1, levels_per_world)
+
 	ProfileManager.save_to_disk()
 
 	unlock_all_button.disabled = true

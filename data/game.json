@@ -2,12 +2,22 @@
 	"default_explosion": {
 		"fluid_id": ""
 	},
+	"shared_assets": {
+		"crystal_icon": {
+			"asset": "res://assets/ui/icons/crystal.tres",
+			"animation_repeat_seconds": 6,
+			"animation_type": "loop",
+			"animation_duration": 2
+		}
+	},
 	"main_menu": {
 		"background": "res://assets/ui/main_menu_bg.jpg",
 		"background_anim": "",
 		"music": "res://assets/music/neon.ogg",
-		"logo": "res://assets/logo/pewpewloot.png",
-		"logo_anim": "",
+		"logo": "",
+		"logo_anim": "res://assets/logo/pewpewloot.tres",
+		"logo_anim_duration": 2.0,
+		"logo_anim_loop": false,
 		"logo_width_pct": 0.7,
 		"logo_height_pct": 0.4
 	},
@@ -44,6 +54,7 @@
 	},
 	"ship_menu": {
 		"background": "res://assets/backgrounds/menus/ship_background.jpg",
+		"recycle_all": "res://assets/ui/icons/crystal.png",
 		"back_button": "res://assets/ui/back_arrow.png",
 		"ship_selection": {
 			"width": 165,
@@ -117,7 +128,7 @@
 		"stat_icons": {
 			"power": "res://assets/ui/icons/power.png",
 			"level": "res://assets/ui/icons/trophy.png",
-			"crystals": "res://assets/ui/icons/crystal.png",
+			"crystals": "shared:crystal_icon",
 			"shop": "res://assets/ui/cart.png",
 			"hp": "res://assets/ui/icons/heart.png",
 			"speed": "res://assets/ui/icons/speed.png",
@@ -181,13 +192,12 @@
 				"animation_repeat_seconds": 0
 			},
 			"crystals": {
-				"icon_asset": "res://assets/ui/icons/crystals.png",
+				"icon_asset": "shared:crystal_icon",
 				"icon_height": 30,
 				"icon_width": 30,
 				"font_size": 22,
 				"font_color": "#FFFFFF",
-				"letter_spacing": 0,
-				"animation_repeat_seconds": 0
+				"letter_spacing": 0
 			},
 			"shop": {
 				"icon_asset": "res://assets/ui/cart.tres",
@@ -386,7 +396,7 @@
 		"background": "res://assets/ui/main_menu_bg.jpg"
 	},
 	"world_select": {
-		"background": "res://assets/backgrounds/menus/ship_background.jpg"
+		"background": "res://assets/backgrounds/menus/world_select_menu.jpg"
 	},
 	"popups": {
 		"margin": 35,

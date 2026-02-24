@@ -17,6 +17,26 @@ var _boss_loot_quality_bonus: float = 25.0
 # Total weight for rarity selection
 var _total_rarity_weight: float = 0.0
 const _RARITY_ORDER: Array[String] = ["common", "uncommon", "rare", "epic", "legendary", "unique"]
+const _ITEM_PERCENT_STATS: Array[String] = [
+	"crit_chance",
+	"crit_damage",
+	"dodge_chance",
+	"damage_reduction",
+	"fire_rate",
+	"missile_damage",
+	"missile_speed_pct",
+	"loot_radius",
+	"xp_multiplier",
+	"mark_damage_bonus"
+]
+const _ITEM_PERCENT_FLOORS := {
+	"common": 0.1,
+	"uncommon": 0.3,
+	"rare": 0.5,
+	"epic": 0.8,
+	"legendary": 1.5,
+	"unique": 2.0
+}
 
 # =============================================================================
 # INITIALIZATION
@@ -83,6 +103,21 @@ func _refresh_unique_items_cache() -> void:
 
 func get_boss_loot_quality_bonus() -> float:
 	return _boss_loot_quality_bonus
+
+func _is_item_percent_stat(stat_key: String) -> bool:
+	if ProfileManager and ProfileManager.has_method("is_item_percent_stat"):
+		return bool(ProfileManager.is_item_percent_stat(stat_key))
+	return _ITEM_PERCENT_STATS.has(stat_key)
+
+func _get_item_percent_floor(rarity_str: String) -> float:
+	if ProfileManager and ProfileManager.has_method("get_item_percent_floor"):
+		return float(ProfileManager.get_item_percent_floor(rarity_str))
+	return float(_ITEM_PERCENT_FLOORS.get(rarity_str.strip_edges().to_lower(), 0.1))
+
+func _apply_percent_floor(stat_key: String, value: float, rarity_str: String) -> float:
+	if not _is_item_percent_stat(stat_key):
+		return value
+	return maxf(value, _get_item_percent_floor(rarity_str))
 
 # =============================================================================
 # MAIN GENERATION
@@ -249,9 +284,11 @@ func _generate_unique_item(preferred_slot: String, allowed_unique_ids: Array = [
 				break
 			var key := str(raw_key)
 			var value := float((stats_raw as Dictionary)[raw_key])
+			value = _apply_percent_floor(key, value, "unique")
 			if absf(value) < 0.001:
 				continue
-			item.base_stats[key] = float(item.base_stats.get(key, 0.0)) + value
+			var normalized_value: float = snappedf(value, 0.1) if _is_item_percent_stat(key) else value
+			item.base_stats[key] = float(item.base_stats.get(key, 0.0)) + normalized_value
 			added_count += 1
 	if item.base_stats.is_empty():
 		item.base_stats["power"] = 10.0
@@ -397,10 +434,14 @@ func _generate_procedural_item(target_level: int, slot_type: String, rarity_str:
 					base_value = randf_range(max_val, min_val)
 				
 				var final_value: float = base_value * power_mult * level_mult
+				if affix_type == "percent":
+					final_value = _apply_percent_floor(stat_name, final_value, rarity_str)
 				
 				# Round appropriately based on affix type
 				if affix_type == "flat" and stat_name in ["max_hp", "power", "special_damage", "move_speed"]:
 					item.base_stats[stat_name] = int(round(final_value))
+				elif affix_type == "percent":
+					item.base_stats[stat_name] = snapped(final_value, 0.1)
 				else:
 					item.base_stats[stat_name] = snapped(final_value, 0.01)
 				

@@ -32,6 +32,7 @@ var _fluid_id: String = ""
 
 const OFFSCREEN_MARGIN: float = 100.0
 const STRONG_RESOURCE_CACHE_MAX: int = 256
+const OBSTACLE_BLEND_MODE := CanvasItemMaterial.BLEND_MODE_ADD
 static var _strong_resource_cache: Dictionary = {}  # path -> Resource
 static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
 
@@ -110,6 +111,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	
 	if sprite_path == "":
 		_visual_node = sprite
+		_ensure_obstacle_blend_mode(sprite)
 		if _anim_sprite:
 			_anim_sprite.visible = false
 		if sprite.texture:
@@ -121,6 +123,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	var res: Resource = _load_cached_resource(sprite_path)
 	if res == null:
 		_visual_node = sprite
+		_ensure_obstacle_blend_mode(sprite)
 		if _anim_sprite:
 			_anim_sprite.visible = false
 		return
@@ -132,6 +135,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 			_anim_sprite = AnimatedSprite2D.new()
 			_anim_sprite.name = "AnimatedSprite2D"
 			add_child(_anim_sprite)
+		_ensure_obstacle_blend_mode(_anim_sprite)
 		_visual_node = _anim_sprite
 		_anim_sprite.visible = true
 		
@@ -171,6 +175,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 		return
 	
 	_visual_node = sprite
+	_ensure_obstacle_blend_mode(sprite)
 	sprite.texture = tex
 	sprite.visible = true
 	if _anim_sprite:
@@ -215,6 +220,21 @@ func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> Stri
 	if path == "":
 		path = "rid:" + str(frames.get_rid().get_id())
 	return path + "|" + String(anim_name)
+
+func _ensure_obstacle_blend_mode(node: CanvasItem) -> void:
+	if node == null:
+		return
+
+	if node.material != null and not (node.material is CanvasItemMaterial):
+		return
+
+	var mat: CanvasItemMaterial = null
+	if node.material is CanvasItemMaterial:
+		mat = node.material as CanvasItemMaterial
+	else:
+		mat = CanvasItemMaterial.new()
+		node.material = mat
+	mat.blend_mode = OBSTACLE_BLEND_MODE
 
 func _setup_drift(data: Dictionary) -> void:
 	var drift_spd: float = float(data.get("_drift_speed", data.get("drift_speed", 0.0)))

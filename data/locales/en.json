@@ -115,6 +115,7 @@
     "upgrade_perfect": "PERFECT UPGRADE",
     "ship_menu_rarity_label": "Rarity:",
     "ship_menu_multi_recycle_confirm": "Are you sure you want to recycle {count} item{item_suffix} for a total of {crystals} crystals?",
+    "ship_menu_single_recycle_confirm": "Are you sure you want to recycle this item for {crystals} crystals?",
     "ship_menu_multi_recycle_popup_title": "Recycle",
     "confirm": "Confirm",
     "cancel": "Cancel",

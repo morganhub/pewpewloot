@@ -5,12 +5,22 @@ extends Node
 
 const BOSS_VOID_ZONE := preload("res://scenes/effects/BossVoidZone.gd")
 const BOSS_LASER_ZONE := preload("res://scenes/effects/BossLaserZone.gd")
+const STRONG_RESOURCE_CACHE_MAX: int = 256
+const DEFAULT_PLAYER_POWER_PROJECTILE_SPEED: float = 400.0
+const DEFAULT_BOSS_POWER_PROJECTILE_SPEED: float = 400.0
+const DEFAULT_PLAYER_POWER_PROJECTILE_DAMAGE: int = 50
+const DEFAULT_BOSS_POWER_PROJECTILE_DAMAGE: int = 20
+static var _strong_resource_cache: Dictionary = {} # path -> Resource
+
+func _ready() -> void:
+	call_deferred("_warmup_all_power_assets")
 
 func execute_power(power_id: String, source: Node2D) -> void:
 	var data := DataManager.get_power(power_id)
 	if data.is_empty():
 		push_warning("[PowerManager] Power not found: " + power_id)
 		return
+	_cache_power_resources(data)
 	
 	print("[PowerManager] Executing power: ", data.get("name", power_id), " on ", source.name)
 	
@@ -145,46 +155,57 @@ func _handle_movement(source: Node2D, move_data: Dictionary, duration: float) ->
 			pass
 
 func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
-	var waves: int = int(proj_data.get("waves", 1))
-	var wave_delay: float = float(proj_data.get("wave_delay", 0.2))
-	var count: int = int(proj_data.get("count", 10))
+	var waves: int = maxi(1, int(proj_data.get("waves", 1)))
+	var wave_delay: float = maxf(0.0, float(proj_data.get("wave_delay", 0.2)))
+	var count: int = maxi(1, int(proj_data.get("count", 10)))
 	var trajectory: String = str(proj_data.get("trajectory", "radial"))
-	var size: float = float(proj_data.get("size", 20))
-	var color_hex: String = str(proj_data.get("color", "#FFFF00"))
 	var safe_zones: Variant = proj_data.get("safe_zones", null)
 	var aim_target: bool = bool(proj_data.get("aim_target", false))
 	var homing_turn_rate: float = float(proj_data.get("homing_turn_rate", 3.0))
 	var homing_duration: float = float(proj_data.get("homing_duration", -1.0))
+	var max_lifetime: float = maxf(0.1, float(proj_data.get("despawn_after_sec", proj_data.get("max_lifetime", 20.0))))
+	var acceleration: float = float(proj_data.get("acceleration", 0.0))
+	var rotation_speed: float = float(proj_data.get("rotation_speed", 90.0))
 	var is_player_source: bool = source.is_in_group("player")
+	var default_speed: float = DEFAULT_PLAYER_POWER_PROJECTILE_SPEED if is_player_source else DEFAULT_BOSS_POWER_PROJECTILE_SPEED
+	var default_damage: int = DEFAULT_PLAYER_POWER_PROJECTILE_DAMAGE if is_player_source else DEFAULT_BOSS_POWER_PROJECTILE_DAMAGE
+	var projectile_speed: float = maxf(1.0, float(proj_data.get("speed", default_speed)))
+	var projectile_damage: int = maxi(1, int(round(float(proj_data.get("damage", default_damage)))))
+	var visual_data: Dictionary = _build_power_projectile_visual_data(proj_data)
+	var explosion_data: Dictionary = _build_power_projectile_explosion_data(proj_data)
 	if trajectory == "homing" and homing_duration < 0.0 and not is_player_source:
 		homing_duration = 1.5
 	
-	var pattern := {
+	var pattern: Dictionary = {
 		"trajectory": trajectory,
 		"aim_target": aim_target,
-		"speed": 400.0,
-		"damage": 50, # High damage info
-		"visual_data": {
-			"size": size,
-			"color": color_hex,
-			"shape": "circle",
-			"asset": str(proj_data.get("asset", "")),
-			"asset_anim": str(proj_data.get("asset_anim", "")),
-			"asset_anim_duration": float(proj_data.get("asset_anim_duration", 0.0)),
-			"asset_anim_loop": bool(proj_data.get("asset_anim_loop", true))
-		}
+		"max_lifetime": max_lifetime,
+		"despawn_after_sec": max_lifetime,
+		"acceleration": acceleration,
+		"rotation_speed": rotation_speed,
+		"visual_data": visual_data
 	}
+	if not explosion_data.is_empty():
+		pattern["explosion_data"] = explosion_data
 	if trajectory == "homing":
 		pattern["homing_turn_rate"] = homing_turn_rate
 		if homing_duration >= 0.0:
 			pattern["homing_duration"] = homing_duration
 	
 	for i in range(waves):
-		call_deferred("_spawn_wave", source, count, pattern, trajectory, safe_zones)
+		call_deferred("_spawn_wave", source, count, pattern, trajectory, projectile_speed, projectile_damage, safe_zones)
 		await source.get_tree().create_timer(wave_delay).timeout
 		if not is_instance_valid(source): return
 
-func _spawn_wave(source: Node2D, count: int, pattern: Dictionary, trajectory: String, safe_zones: Variant = null) -> void:
+func _spawn_wave(
+	source: Node2D,
+	count: int,
+	pattern: Dictionary,
+	trajectory: String,
+	projectile_speed: float,
+	projectile_damage: int,
+	safe_zones: Variant = null
+) -> void:
 	if not is_instance_valid(source): return
 	
 	var center := source.global_position
@@ -225,7 +246,7 @@ func _spawn_wave(source: Node2D, count: int, pattern: Dictionary, trajectory: St
 			if skip: continue
 
 			var dir := Vector2(cos(angle), sin(angle))
-			_spawn(center, dir, is_player, pattern)
+			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 			
 	elif trajectory == "rain_down":
 		var viewport_width := source.get_viewport_rect().size.x
@@ -233,23 +254,169 @@ func _spawn_wave(source: Node2D, count: int, pattern: Dictionary, trajectory: St
 			var x := randf_range(0, viewport_width)
 			var start := Vector2(x, -50)
 			var dir := Vector2.DOWN
-			_spawn(start, dir, is_player, pattern)
+			_spawn(start, dir, is_player, pattern, projectile_speed, projectile_damage)
 			
 	elif trajectory == "spiral":
-		pattern["trajectory"] = "spiral" # Handled in Projectile.gd
 		for j in range(count):
 			var angle := (j / float(count)) * TAU
 			var dir := Vector2(cos(angle), sin(angle))
-			_spawn(center, dir, is_player, pattern)
+			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 			
 	else:
 		# Default burst
 		for j in range(count):
 			var dir := Vector2.DOWN.rotated(randf_range(-0.5, 0.5))
-			_spawn(center, dir, is_player, pattern)
+			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 
-func _spawn(pos: Vector2, dir: Vector2, is_player: bool, pattern: Dictionary) -> void:
+func _spawn(
+	pos: Vector2,
+	dir: Vector2,
+	is_player: bool,
+	pattern: Dictionary,
+	projectile_speed: float,
+	projectile_damage: int
+) -> void:
 	if is_player:
-		ProjectileManager.spawn_player_projectile(pos, dir, 400, 50, pattern, true) # true = is_crit (visual effect)
+		ProjectileManager.spawn_player_projectile(pos, dir, projectile_speed, projectile_damage, pattern, true)
 	else:
-		ProjectileManager.spawn_enemy_projectile(pos, dir, 400, 20, pattern)
+		ProjectileManager.spawn_enemy_projectile(pos, dir, projectile_speed, projectile_damage, pattern)
+
+func _build_power_projectile_visual_data(proj_data: Dictionary) -> Dictionary:
+	var visual_data: Dictionary = {}
+	var missile_data: Dictionary = _get_power_missile_data(proj_data)
+	var missile_visual_variant: Variant = missile_data.get("visual", {})
+	if missile_visual_variant is Dictionary:
+		visual_data = (missile_visual_variant as Dictionary).duplicate(true)
+
+	var explicit_visual_variant: Variant = proj_data.get("visual", {})
+	if explicit_visual_variant is Dictionary:
+		visual_data.merge(explicit_visual_variant as Dictionary, true)
+
+	if proj_data.has("size"):
+		visual_data["size"] = float(proj_data.get("size", 20.0))
+	if proj_data.has("width_pct"):
+		visual_data["width_pct"] = float(proj_data.get("width_pct", 0.0))
+	if proj_data.has("height_pct"):
+		visual_data["height_pct"] = float(proj_data.get("height_pct", 0.0))
+	if proj_data.has("color"):
+		visual_data["color"] = str(proj_data.get("color", "#FFFF00"))
+	if proj_data.has("shape"):
+		visual_data["shape"] = str(proj_data.get("shape", "circle"))
+	if proj_data.has("asset"):
+		visual_data["asset"] = str(proj_data.get("asset", ""))
+	if proj_data.has("asset_anim"):
+		visual_data["asset_anim"] = str(proj_data.get("asset_anim", ""))
+	if proj_data.has("asset_anim_duration"):
+		visual_data["asset_anim_duration"] = float(proj_data.get("asset_anim_duration", 0.0))
+	if proj_data.has("asset_anim_loop"):
+		visual_data["asset_anim_loop"] = bool(proj_data.get("asset_anim_loop", true))
+	if proj_data.has("asset_duration"):
+		visual_data["asset_duration"] = float(proj_data.get("asset_duration", 0.0))
+	if proj_data.has("asset_loop"):
+		visual_data["asset_loop"] = bool(proj_data.get("asset_loop", true))
+	if proj_data.has("pulsating"):
+		visual_data["pulsating"] = bool(proj_data.get("pulsating", false))
+	if proj_data.has("pulsating_size"):
+		visual_data["pulsating_size"] = float(proj_data.get("pulsating_size", 1.0))
+	if proj_data.has("pulsating_frequency"):
+		visual_data["pulsating_frequency"] = float(proj_data.get("pulsating_frequency", 1.0))
+
+	if not visual_data.has("color"):
+		visual_data["color"] = "#FFFF00"
+	if not visual_data.has("shape"):
+		visual_data["shape"] = "circle"
+	if not visual_data.has("size") and not (visual_data.has("width_pct") and visual_data.has("height_pct")):
+		visual_data["size"] = 20.0
+
+	return visual_data
+
+func _build_power_projectile_explosion_data(proj_data: Dictionary) -> Dictionary:
+	var explosion_data: Dictionary = {}
+	var explicit_explosion_variant: Variant = proj_data.get("explosion", {})
+	if explicit_explosion_variant is Dictionary and not (explicit_explosion_variant as Dictionary).is_empty():
+		explosion_data = (explicit_explosion_variant as Dictionary).duplicate(true)
+
+	if explosion_data.is_empty():
+		var missile_data: Dictionary = _get_power_missile_data(proj_data)
+		var missile_explosion_variant: Variant = missile_data.get("explosion", {})
+		if missile_explosion_variant is Dictionary and not (missile_explosion_variant as Dictionary).is_empty():
+			explosion_data = (missile_explosion_variant as Dictionary).duplicate(true)
+
+	if explosion_data.is_empty():
+		explosion_data = DataManager.get_default_explosion()
+
+	return explosion_data
+
+func _get_power_missile_data(proj_data: Dictionary) -> Dictionary:
+	var missile_id: String = str(proj_data.get("missile_id", "")).strip_edges()
+	if missile_id == "":
+		return {}
+	return DataManager.get_missile(missile_id)
+
+func _warmup_all_power_assets() -> void:
+	var all_powers: Array = []
+	if DataManager and DataManager.has_method("get_all_super_powers"):
+		all_powers.append_array(DataManager.get_all_super_powers())
+	if DataManager and DataManager.has_method("get_all_unique_powers"):
+		all_powers.append_array(DataManager.get_all_unique_powers())
+	if DataManager and DataManager.has_method("get_all_boss_powers"):
+		all_powers.append_array(DataManager.get_all_boss_powers())
+
+	for power_variant in all_powers:
+		if power_variant is Dictionary:
+			_cache_power_resources(power_variant as Dictionary)
+
+func _cache_power_resources(power_data: Dictionary) -> void:
+	var paths: Array = []
+	var seen: Dictionary = {}
+
+	var projectile_variant: Variant = power_data.get("projectile", null)
+	if projectile_variant is Dictionary:
+		var projectile_data: Dictionary = projectile_variant as Dictionary
+		_collect_resource_paths_recursive(projectile_data, paths, seen)
+		var missile_data: Dictionary = _get_power_missile_data(projectile_data)
+		if not missile_data.is_empty():
+			_collect_resource_paths_recursive(missile_data.get("visual", {}), paths, seen)
+			_collect_resource_paths_recursive(missile_data.get("explosion", {}), paths, seen)
+
+	_collect_resource_paths_recursive(power_data.get("hazard", null), paths, seen)
+	_collect_resource_paths_recursive(power_data.get("hazards", null), paths, seen)
+
+	for path_variant in paths:
+		_load_cached_resource(str(path_variant))
+
+func _collect_resource_paths_recursive(value: Variant, out_paths: Array, seen: Dictionary) -> void:
+	if value is Dictionary:
+		for nested_value in (value as Dictionary).values():
+			_collect_resource_paths_recursive(nested_value, out_paths, seen)
+		return
+
+	if value is Array:
+		for nested_entry in (value as Array):
+			_collect_resource_paths_recursive(nested_entry, out_paths, seen)
+		return
+
+	if not (value is String):
+		return
+	var path: String = str(value).strip_edges()
+	if path == "" or not path.begins_with("res://"):
+		return
+	if seen.has(path):
+		return
+	seen[path] = true
+	out_paths.append(path)
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource

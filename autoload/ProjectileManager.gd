@@ -9,7 +9,7 @@ extends Node
 
 const PROJECTILE_SCENE := preload("res://scenes/Projectile.tscn")
 
-const POOL_SIZE_PLAYER: int = 100
+const POOL_SIZE_PLAYER: int = 200
 const POOL_SIZE_ENEMY: int = 200
 const ENEMY_POOL_EXPAND_STEP: int = 64
 

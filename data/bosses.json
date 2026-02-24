@@ -7,7 +7,7 @@
 				"unique_root_amulet",
 				"unique_bark_shield"
 			],
-			"hp": 15000,
+			"hp": 45000,
 			"score": 3000,
 			"size": {
 				"width": 380,
@@ -81,7 +81,7 @@
 				"unique_thorn_blade",
 				"unique_vine_whip"
 			],
-			"hp": 18000,
+			"hp": 68000,
 			"score": 8000,
 			"size": {
 				"width": 300,
@@ -155,7 +155,7 @@
 				"unique_spore_ring",
 				"unique_mycelium_core"
 			],
-			"hp": 25000,
+			"hp": 105000,
 			"score": 5000,
 			"size": {
 				"width": 320,
@@ -229,7 +229,7 @@
 				"unique_heartwood_plate",
 				"unique_ancient_sap"
 			],
-			"hp": 26500,
+			"hp": 226500,
 			"score": 6500,
 			"size": {
 				"width": 350,
@@ -324,7 +324,7 @@
 				"unique_fungal_crown",
 				"unique_decay_orb"
 			],
-			"hp": 38000,
+			"hp": 338000,
 			"score": 8000,
 			"size": {
 				"width": 360,
@@ -420,7 +420,7 @@
 				"unique_primordial_seed",
 				"unique_sylvan_crown"
 			],
-			"hp": 62000,
+			"hp": 562000,
 			"score": 12000,
 			"size": {
 				"width": 400,

@@ -18,6 +18,9 @@ var _is_victory: bool = true
 var _boss_loot_resolved: bool = false
 var _secondary_nav_label: String = "Sélection niveau"
 var _menu_nav_label: String = "Menu"
+var _item_details_popup: Control = null
+var _item_popup_input_blocker: Control = null
+var _boss_featured_row: HBoxContainer = null
 
 @onready var item_name_label: Label = %ItemNameLabel
 @onready var item_type_label: Label = %ItemTypeLabel
@@ -43,6 +46,7 @@ var _menu_nav_label: String = "Menu"
 @onready var item_spacer: Control = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Spacer
 @onready var boss_buttons_container: HBoxContainer = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer
 @onready var mid_separator: HSeparator = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator2
+@onready var session_title_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/SessionTitle
 
 func setup(item: Dictionary, session_loot: Array = [], is_victory: bool = true) -> void:
 	_item = item
@@ -162,46 +166,8 @@ func _update_ui() -> void:
 	if stats_container:
 		for child in stats_container.get_children():
 			child.queue_free()
-	
-	var has_boss_loot := _is_victory and not _item.is_empty()
-	_set_boss_loot_section_visible(has_boss_loot)
-		
-	if not has_boss_loot:
-		item_name_label.text = "Session Terminée"
-		item_type_label.visible = false
-		return
-	
-	item_type_label.visible = true
-	
-	var rarity: String = str(_item.get("rarity", "common"))
-	var slot_id: String = str(_item.get("slot", "unknown"))
-	
-	# Set Slot Type as Title (eg. "Shield")
-	var slot_data = DataManager.get_slot(slot_id)
-	var slot_pretty_name = str(slot_data.get("name", slot_id)).capitalize()
-	item_name_label.text = slot_pretty_name
-	
-	# Rarity Text + Color
-	var rarity_key := "rarity_" + rarity
-	var rarity_text := LocaleManager.translate(rarity_key)
-	if rarity_text == rarity_key:
-		rarity_text = rarity.capitalize()
-	item_type_label.text = rarity_text.to_upper()
-	var rarity_color := _get_rarity_color_from_config(rarity)
-	item_name_label.add_theme_color_override("font_color", rarity_color)
-	item_type_label.add_theme_color_override("font_color", rarity_color)
-	
-	# Stats with Icons
-	var stats = _item.get("stats", {})
-	if stats is Dictionary:
-		var s_dict = stats as Dictionary
-		for key in s_dict.keys():
-			_add_stat_row(key, s_dict[key])
-	
-	# Recycle value update
-	var val = ProfileManager.calculate_recycle_value(_item)
-	if disassemble_btn.icon == null:
-		disassemble_btn.text = "♻️ Recycler (+" + str(val) + " 💎)"
+	# Boss details/actions are now fully moved to ItemDetailsPopup.
+	_set_boss_loot_section_visible(false)
 
 func _set_boss_loot_section_visible(visible_state: bool) -> void:
 	if top_separator:
@@ -300,21 +266,21 @@ func _get_rarity_color_from_config(rarity: String) -> Color:
 	return DataManager.get_rarity_color(rarity)
 
 func _update_inventory_ui() -> void:
-	if _session_loot.is_empty():
+	var has_boss_loot := _is_victory and not _item.is_empty()
+	if _session_loot.is_empty() and not has_boss_loot:
 		session_container.visible = false
+		_clear_boss_featured_row()
 		return
 	
 	session_container.visible = true
+	if session_title_label:
+		session_title_label.visible = true
 	
-	# Clear grid
-	for child in items_grid.get_children():
-		child.queue_free()
-	
-	# Paginate
-	var start = _current_page * _items_per_page
-	var end = min(start + _items_per_page, _session_loot.size())
-	
-	var item_card_scene = load("res://scenes/components/ItemCard.tscn")
+	var item_card_scene_res: Resource = load("res://scenes/components/ItemCard.tscn")
+	if not (item_card_scene_res is PackedScene):
+		return
+	var item_card_scene: PackedScene = item_card_scene_res as PackedScene
+
 	var inv_config = {
 		"rarity_frames": _game_config.get("rarity_frames", {}),
 		"level_assets": _game_config.get("ship_options", {}).get("level_indicator_assets", {}),
@@ -322,17 +288,38 @@ func _update_inventory_ui() -> void:
 		"placeholders": _game_config.get("ship_options", {}).get("item_placeholders", {}),
 		"hide_badges": true
 	}
+
+	_update_boss_featured_row(item_card_scene, inv_config)
+
+	# Clear grid
+	for child in items_grid.get_children():
+		child.queue_free()
+
+	var inventory_hbox := items_grid.get_parent()
+	if inventory_hbox:
+		inventory_hbox.visible = not _session_loot.is_empty()
+	if _session_loot.is_empty():
+		prev_btn.visible = false
+		next_btn.visible = false
+		return
+	
+	# Paginate
+	var start = _current_page * _items_per_page
+	var end = min(start + _items_per_page, _session_loot.size())
 	
 	for i in range(start, end):
-		var item_data = _session_loot[i]
+		var item_data: Dictionary = _session_loot[i]
 		var card = item_card_scene.instantiate()
 		items_grid.add_child(card)
 		
 		var slot_id = str(item_data.get("slot", "primary"))
 		card.setup_item(item_data, slot_id, inv_config)
 		
-		# Connect click
-		card.card_pressed.connect(_on_item_clicked)
+		# Connect click with bound item payload (signal only sends id/slot).
+		var clicked_item_data: Dictionary = item_data.duplicate(true)
+		card.card_pressed.connect(func(id: String, slot: String) -> void:
+			_on_item_clicked(id, slot, clicked_item_data)
+		)
 	
 	# Update buttons
 	prev_btn.disabled = (_current_page == 0)
@@ -342,6 +329,42 @@ func _update_inventory_ui() -> void:
 	# Hide buttons if only 1 page
 	prev_btn.visible = (_session_loot.size() > _items_per_page)
 	next_btn.visible = (_session_loot.size() > _items_per_page)
+
+func _clear_boss_featured_row() -> void:
+	if _boss_featured_row and is_instance_valid(_boss_featured_row):
+		_boss_featured_row.queue_free()
+	_boss_featured_row = null
+
+func _update_boss_featured_row(item_card_scene: PackedScene, inv_config: Dictionary) -> void:
+	_clear_boss_featured_row()
+	if not _is_victory or _item.is_empty():
+		return
+
+	_boss_featured_row = HBoxContainer.new()
+	_boss_featured_row.name = "BossLootHeroRow"
+	_boss_featured_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_boss_featured_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	session_container.add_child(_boss_featured_row)
+
+	var inventory_hbox := items_grid.get_parent()
+	if inventory_hbox:
+		session_container.move_child(_boss_featured_row, inventory_hbox.get_index())
+
+	var hero_card = item_card_scene.instantiate()
+	if not hero_card:
+		return
+	_boss_featured_row.add_child(hero_card)
+	hero_card.custom_minimum_size = Vector2(132, 132)
+
+	var hero_cfg: Dictionary = inv_config.duplicate(true)
+	hero_cfg["hide_badges"] = true
+	var boss_slot := str(_item.get("slot", "primary"))
+	hero_card.setup_item(_item, boss_slot, hero_cfg)
+
+	var boss_item_copy: Dictionary = _item.duplicate(true)
+	hero_card.card_pressed.connect(func(id: String, slot: String) -> void:
+		_on_item_clicked(id, slot, boss_item_copy)
+	)
 
 func _on_prev_page() -> void:
 	if _current_page > 0:
@@ -355,64 +378,88 @@ func _on_next_page() -> void:
 		_update_inventory_ui()
 
 func _on_item_clicked(_id: String, _slot: String, item_data: Dictionary) -> void:
+	_close_item_details_popup()
 	# Show Details Popup
-	var popup_scene = load("res://scenes/components/ItemDetailsPopup.tscn")
-	if popup_scene:
-		var popup = popup_scene.instantiate()
-		add_child(popup)
-		
-		var inv_config = {
-			"rarity_frames": _game_config.get("rarity_frames", {}),
-			"level_assets": _game_config.get("ship_options", {}).get("level_indicator_assets", {}),
-			"slot_icons": _game_config.get("ship_options", {}).get("slot_icons", {}),
-			"placeholders": _game_config.get("ship_options", {}).get("item_placeholders", {})
-		}
-		
-		var item_id = str(item_data.get("id", ""))
-		var slot_id = str(item_data.get("slot", "primary"))
-		# Re-fetch from profile to have latest level/stats
-		var latest_item = ProfileManager.get_item_by_id(item_id)
-		if latest_item.is_empty(): latest_item = item_data
-		
-		popup.setup(item_id, slot_id, ProfileManager.is_item_equipped(item_id), inv_config)
-		
-		# Signals handling (Interactive popup)
-		popup.close_requested.connect(func(): popup.queue_free())
-		
-		popup.upgrade_requested.connect(func(id):
-			if ProfileManager.upgrade_item(id):
-				_update_inventory_ui()
-				# Re-setup popup with new data
-				popup.setup(id, slot_id, ProfileManager.is_item_equipped(id), inv_config)
-		)
-		
-		popup.recycle_requested.connect(func(id):
-			# Remove from inventory and session recap
-			for i in range(_session_loot.size()):
-				if str(_session_loot[i].get("id", "")) == id:
-					var item = _session_loot[i]
-					# Recycler via helper centralisé
-					ProfileManager.add_crystals(ProfileManager.calculate_recycle_value(item))
-					_session_loot.remove_at(i)
-					break
-			ProfileManager.remove_item_from_inventory(id)
-			_update_inventory_ui()
-			popup.queue_free()
-		)
-		
-		popup.equip_requested.connect(func(id, slot):
-			var ship_id = ProfileManager.get_active_ship_id()
-			ProfileManager.equip_item(ship_id, slot, id)
-			_update_inventory_ui()
-			popup.setup(id, slot, true, inv_config)
-		)
-		
-		popup.unequip_requested.connect(func(id, slot):
-			var ship_id = ProfileManager.get_active_ship_id()
-			ProfileManager.unequip_item(ship_id, slot)
-			_update_inventory_ui()
-			popup.setup(id, slot, false, inv_config)
-		)
+	var popup_scene_res: Resource = load("res://scenes/components/ItemDetailsPopup.tscn")
+	if not (popup_scene_res is PackedScene):
+		return
+	var popup_scene: PackedScene = popup_scene_res as PackedScene
+
+	# Modal input blocker so clicks do not leak to LootResultScreen controls.
+	_item_popup_input_blocker = Control.new()
+	_item_popup_input_blocker.name = "ItemPopupInputBlocker"
+	_item_popup_input_blocker.layout_mode = 1
+	_item_popup_input_blocker.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_item_popup_input_blocker.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_item_popup_input_blocker.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_item_popup_input_blocker.mouse_filter = Control.MOUSE_FILTER_STOP
+	_item_popup_input_blocker.z_index = 90
+	add_child(_item_popup_input_blocker)
+
+	var popup_node: Node = popup_scene.instantiate()
+	if not (popup_node is Control):
+		if is_instance_valid(_item_popup_input_blocker):
+			_item_popup_input_blocker.queue_free()
+		_item_popup_input_blocker = null
+		return
+
+	_item_details_popup = popup_node as Control
+	_item_details_popup.z_index = 100
+	_item_details_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_item_details_popup)
+	move_child(_item_details_popup, get_child_count() - 1)
+
+	var inv_config = {
+		"rarity_frames": _game_config.get("rarity_frames", {}),
+		"level_assets": _game_config.get("ship_options", {}).get("level_indicator_assets", {}),
+		"slot_icons": _game_config.get("ship_options", {}).get("slot_icons", {}),
+		"placeholders": _game_config.get("ship_options", {}).get("item_placeholders", {})
+	}
+
+	var item_id = str(item_data.get("id", ""))
+	var slot_id = str(item_data.get("slot", "primary"))
+	var equipped := false
+	if item_id != "":
+		equipped = ProfileManager.is_item_equipped(item_id)
+
+	# Force simplified actions (Equip/Close only) and allow display from raw item data.
+	_item_details_popup.setup(item_id, slot_id, equipped, inv_config, false, item_data)
+
+	# Simplified actions in result screen: Equip or Close only.
+	_item_details_popup.close_requested.connect(_close_item_details_popup)
+	_item_details_popup.equip_requested.connect(func(id, slot):
+		var resolved_item_id := _ensure_item_in_inventory(item_data)
+		if resolved_item_id == "":
+			return
+		var ship_id = ProfileManager.get_active_ship_id()
+		ProfileManager.equip_item(ship_id, slot, resolved_item_id)
+		if resolved_item_id == str(_item.get("id", "")):
+			_boss_loot_resolved = true
+		_update_inventory_ui()
+		_close_item_details_popup()
+	)
+
+func _ensure_item_in_inventory(item_data: Dictionary) -> String:
+	var item_id := str(item_data.get("id", ""))
+	if item_id != "" and not ProfileManager.get_item_by_id(item_id).is_empty():
+		return item_id
+
+	var item_to_add: Dictionary = item_data.duplicate(true)
+	if item_id == "":
+		item_id = "loot_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000000)
+		item_to_add["id"] = item_id
+
+	if ProfileManager.add_item_to_inventory(item_to_add):
+		return str(item_to_add.get("id", item_id))
+	return ""
+
+func _close_item_details_popup() -> void:
+	if _item_details_popup and is_instance_valid(_item_details_popup):
+		_item_details_popup.queue_free()
+	_item_details_popup = null
+	if _item_popup_input_blocker and is_instance_valid(_item_popup_input_blocker):
+		_item_popup_input_blocker.queue_free()
+	_item_popup_input_blocker = null
 
 func _on_equip_pressed() -> void:
 	if not _is_victory or _item.is_empty():
@@ -456,6 +503,7 @@ func _apply_navigation_labels() -> void:
 		menu_btn.text = _menu_nav_label
 
 func _close(emit_finished: bool = true) -> void:
+	_close_item_details_popup()
 	_finalize_boss_loot_if_needed()
 	if emit_finished:
 		finished.emit()
