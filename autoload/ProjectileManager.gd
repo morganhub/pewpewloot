@@ -21,6 +21,7 @@ var _active_enemy_projectiles: Array = []
 
 var _projectile_container: Node2D = null
 var _last_enemy_pool_warning_ms: int = -10000
+var _enemy_projectile_speed_multiplier: float = 1.0
 
 # =============================================================================
 # INIT
@@ -48,6 +49,9 @@ func _init_pools() -> void:
 		_enemy_pool.append(projectile)
 	
 	print("[ProjectileManager] Pools created: Player=", POOL_SIZE_PLAYER, ", Enemy=", POOL_SIZE_ENEMY)
+
+func set_enemy_projectile_speed_multiplier(multiplier: float) -> void:
+	_enemy_projectile_speed_multiplier = maxf(0.0, multiplier)
 
 # =============================================================================
 # SPAWN
@@ -100,6 +104,7 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 	
 	var projectile: Area2D = _enemy_pool.pop_back() # Cast explicite
 	_active_enemy_projectiles.append(projectile)
+	var final_speed: float = speed * _enemy_projectile_speed_multiplier
 	
 	var vp_size = get_viewport().get_visible_rect().size
 	if _projectile_container and Engine.is_in_physics_frame():
@@ -109,7 +114,7 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 			projectile,
 			pos,
 			direction,
-			speed,
+			final_speed,
 			damage,
 			pattern_data,
 			false,
@@ -121,7 +126,7 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 	if _projectile_container:
 		_projectile_container.add_child(projectile)
 	
-	projectile.activate(pos, direction, speed, damage, pattern_data, false, vp_size)
+	projectile.activate(pos, direction, final_speed, damage, pattern_data, false, vp_size)
 
 func _expand_enemy_pool(count: int) -> void:
 	if count <= 0:

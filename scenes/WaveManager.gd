@@ -20,6 +20,7 @@ var _available_move_pattern_ids: Array[String] = []
 var _active_obstacle_spawners: Array = [] # Active ObstacleSpawner nodes
 var _skin_overrides: Dictionary = {} # World-level skin overrides
 var _enemy_skin_type_cache: Dictionary = {} # skin_path -> "frames" | "texture" | "unknown"
+var _override_elite_replacement_chance: float = 0.0
 
 const DEFAULT_MOVE_PATTERN_ID := "linear_cross_fast"
 const DEBUG_WAVE_PATTERN_LOG := false
@@ -52,6 +53,9 @@ func setup(level_id: String, world_id: String = "") -> void:
 	
 	if DEBUG_WAVE_LIFECYCLE_LOG:
 		print("[WaveManager] Setup level: ", level_id, " with ", _waves.size(), " waves. Skin overrides: ", _skin_overrides.keys())
+
+func set_override_elite_replacement_chance(chance: float) -> void:
+	_override_elite_replacement_chance = clampf(chance, 0.0, 1.0)
 
 func stop() -> void:
 	_is_active = false
@@ -141,14 +145,27 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 	
 	# Ajouter les spawns prévus avec leur délai
 	for i in range(count):
+		var spawn_enemy_id: String = enemy_id
+		if enemy_id != "elite" and _override_elite_replacement_chance > 0.0:
+			if randf() <= _override_elite_replacement_chance and not DataManager.get_enemy("elite").is_empty():
+				spawn_enemy_id = "elite"
+		var spawn_skin: String = enemy_skin
+		if spawn_enemy_id != enemy_id:
+			spawn_skin = _resolve_enemy_skin_for_id(spawn_enemy_id)
 		var spawn_delay: float = i * interval
 		_pending_spawns.append({
 			"delay": spawn_delay,
-			"enemy_id": enemy_id,
+			"enemy_id": spawn_enemy_id,
 			"pattern_id": pattern_id,
 			"modifier_id": modifier_id,
-			"enemy_skin": enemy_skin
+			"enemy_skin": spawn_skin
 		})
+
+func _resolve_enemy_skin_for_id(enemy_id: String) -> String:
+	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})
+	if enemy_overrides is Dictionary:
+		return str((enemy_overrides as Dictionary).get(enemy_id, ""))
+	return ""
 
 func _start_obstacle_wave(wave: Dictionary) -> void:
 	var spawner_node: Node = ObstacleSpawnerScript.new()

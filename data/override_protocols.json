@@ -1,0 +1,190 @@
+{
+  "ui_settings": {
+    "popup_bg": "res://assets/ui/override_popup_bg.png",
+    "button_active_bg": "res://assets/ui/btn_override_active.png",
+    "button_inactive_bg": "res://assets/ui/btn_override_inactive.png",
+    "header_font_size": 32,
+    "header_text_color": "#ff3333",
+    "item_title_size": 20,
+    "item_title_color": "#ffffff",
+    "item_desc_size": 16,
+    "item_desc_color": "#cccccc",
+    "checkbox_checked": "res://assets/ui/checkbox_on.png",
+    "checkbox_unchecked": "res://assets/ui/checkbox_off.png",
+    "reward_multiplier_by_active_count": {
+      "0": 1.0,
+      "1": 1.12,
+      "2": 1.24,
+      "3": 1.36,
+      "4": 1.5,
+      "5": 1.66,
+      "6": 1.84,
+      "7": 2.04,
+      "8": 2.28,
+      "9": 2.56,
+      "10": 2.9
+    },
+    "crystal_multiplier_by_active_count": {
+      "0": 1.0,
+      "1": 1.12,
+      "2": 1.24,
+      "3": 1.36,
+      "4": 1.5,
+      "5": 1.66,
+      "6": 1.84,
+      "7": 2.04,
+      "8": 2.28,
+      "9": 2.56,
+      "10": 2.9
+    },
+    "crystal_reward_per_score": 0.01,
+    "crystal_reward_victory_only": true,
+    "base_reward_multiplier": 1.0,
+    "per_protocol_multiplier": 0.2,
+    "system_corruption_spawn_interval_sec": 6.0,
+    "system_corruption_pool_duration_sec": 4.5,
+    "system_corruption_pool_radius": 182.0,
+    "system_corruption_pool_dps": 16.0,
+    "system_corruption_max_active_pools": 3,
+    "nanite_heal_multiplier": 0.5,
+    "volatile_reactors_trigger_chance": 0.3,
+    "volatile_reactors_explosion_radius": 92.0,
+    "volatile_reactors_explosion_damage": 14,
+    "volatile_reactors_projectile_speed": 290.0,
+    "volatile_reactors_projectile_damage": 12,
+    "elite_base_replacement_chance": 0.08,
+    "emp_vignette_strength": 0.72,
+    "emp_vignette_radius": 0.58,
+    "boss_overdrive_fire_rate": 0.05
+  },
+  "protocols": [
+    {
+      "id": "system_corruption",
+      "title_key": "override.protocol.system_corruption.title",
+      "description_key": "override.protocol.system_corruption.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "spawn_interval_sec": 6.0,
+        "pool_duration_sec": 4.5,
+        "pool_radius": 82.0,
+        "pool_dps": 16.0,
+        "max_active_pools": 3,
+        "pool_behavior": {
+          "affects_enemies": false,
+          "affects_player": true,
+          "apply_poison_to_enemies": false
+        },
+        "pool_visual": {
+          "asset": "res://assets/missiles/missile_poison.png",
+          "asset_anim": "res://assets/missiles/missile_poison.tres",
+          "asset_anim_duration": 1.1,
+          "asset_anim_loop": true,
+          "size": 164.0,
+          "pool_fluid_id": ""
+        }
+      }
+    },
+    {
+      "id": "overclocked_thrusters",
+      "title_key": "override.protocol.overclocked_thrusters.title",
+      "description_key": "override.protocol.overclocked_thrusters.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "enemy_move_speed_multiplier": 1.4
+      }
+    },
+    {
+      "id": "hyper_ballistics",
+      "title_key": "override.protocol.hyper_ballistics.title",
+      "description_key": "override.protocol.hyper_ballistics.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "projectile_speed_multiplier": 1.5
+      }
+    },
+    {
+      "id": "ablative_armor",
+      "title_key": "override.protocol.ablative_armor.title",
+      "description_key": "override.protocol.ablative_armor.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "enemy_hp_multiplier": 1.3
+      }
+    },
+    {
+      "id": "critical_malfunction",
+      "title_key": "override.protocol.critical_malfunction.title",
+      "description_key": "override.protocol.critical_malfunction.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "player_start_hp": 1
+      }
+    },
+    {
+      "id": "nanite_suppression",
+      "title_key": "override.protocol.nanite_suppression.title",
+      "description_key": "override.protocol.nanite_suppression.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "heal_multiplier": 0.5,
+        "disable_repair_drops": true
+      }
+    },
+    {
+      "id": "volatile_reactors",
+      "title_key": "override.protocol.volatile_reactors.title",
+      "description_key": "override.protocol.volatile_reactors.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "trigger_chance": 0.3,
+        "explosion_mode_chance": 0.5,
+        "explosion_radius": 92.0,
+        "explosion_damage": 14,
+        "projectile_speed": 290.0,
+        "projectile_damage": 12,
+        "projectile_count": 3,
+        "projectile_spread_rad": 0.35,
+        "explosion_visual": {
+          "asset": "",
+          "asset_anim": "res://assets/vfx/mine_explosion.tres",
+          "asset_anim_duration": 0.6,
+          "asset_anim_loop": false,
+          "size_multiplier": 0.45,
+          "lifetime": -1.0,
+          "fade_out_duration": 0.28,
+          "color": "#ff5929bf"
+        }
+      }
+    },
+    {
+      "id": "elite_vanguard",
+      "title_key": "override.protocol.elite_vanguard.title",
+      "description_key": "override.protocol.elite_vanguard.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "elite_replacement_base_chance": 0.08,
+        "replacement_multiplier": 3.0
+      }
+    },
+    {
+      "id": "emp_interference",
+      "title_key": "override.protocol.emp_interference.title",
+      "description_key": "override.protocol.emp_interference.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "strength": 0.72,
+        "radius": 0.58,
+        "color": "#000000ff"
+      }
+    },
+    {
+      "id": "boss_overdrive",
+      "title_key": "override.protocol.boss_overdrive.title",
+      "description_key": "override.protocol.boss_overdrive.description",
+      "reward_multiplier": 0.2,
+      "settings": {
+        "fire_rate": 0.05
+      }
+    }
+  ]
+}

@@ -54,6 +54,8 @@ var _is_executing_power: bool = false
 var _sound_config: Dictionary = {}
 var _sound_timer: float = 0.0
 var _sound_remaining_repeats: int = 0
+var _overdrive_enabled: bool = false
+var _overdrive_fire_rate_override: float = 0.05
 
 # Visual
 @onready var visual_container: Node2D = $Visual
@@ -368,6 +370,13 @@ func set_invincible(state: bool) -> void:
 	else:
 		modulate.a = 1.0
 
+func set_overdrive_enabled(enabled: bool, fire_rate_override: float = 0.05) -> void:
+	_overdrive_enabled = enabled
+	_overdrive_fire_rate_override = maxf(0.01, fire_rate_override)
+	if _overdrive_enabled:
+		_fire_timer = minf(_fire_timer, _overdrive_fire_rate_override)
+		_special_timer = minf(_special_timer, 0.15)
+
 func _update_sounds(delta: float) -> void:
 	if _sound_remaining_repeats == 0: return
 	
@@ -436,6 +445,9 @@ func _apply_phase(phase_index: int) -> void:
 		special_power_id = str(phase_dict.get("special_power_id", ""))
 		special_power_interval = float(phase_dict.get("special_power_interval", 10.0))
 		_special_timer = special_power_interval # Reset timer on phase change
+		if _overdrive_enabled:
+			_fire_timer = minf(_fire_timer, _overdrive_fire_rate_override)
+			_special_timer = minf(_special_timer, 0.15)
 		
 		print("[Boss] Phase ", current_phase + 1, " activated!")
 		phase_changed.emit(current_phase + 1)
@@ -613,6 +625,8 @@ func _update_shooting(delta: float) -> void:
 		_fire_timer = _get_effective_fire_rate()
 
 func _get_effective_fire_rate() -> float:
+	if _overdrive_enabled:
+		return _overdrive_fire_rate_override
 	if _fire_rate_sequence.is_empty():
 		return maxf(0.05, _base_fire_rate)
 	var idx: int = clampi(_fire_rate_sequence_index, 0, _fire_rate_sequence.size() - 1)

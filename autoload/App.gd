@@ -6,6 +6,7 @@ extends Node
 
 var current_world_id: String = "world_1"
 var current_level_index: int = 0
+var active_override_protocol_ids: Array = []
 
 func _ready() -> void:
 	pass
@@ -53,3 +54,16 @@ func get_slots() -> Array:
 ## Retourne les vaisseaux débloqués par défaut
 func get_default_unlocked_ships() -> Array:
 	return DataManager.get_default_unlocked_ships()
+
+func set_active_override_protocols(protocol_ids: Array) -> void:
+	active_override_protocol_ids.clear()
+	for raw_id in protocol_ids:
+		var protocol_id: String = str(raw_id).strip_edges()
+		if protocol_id == "":
+			continue
+		if active_override_protocol_ids.has(protocol_id):
+			continue
+		active_override_protocol_ids.append(protocol_id)
+
+func has_override_protocol(protocol_id: String) -> bool:
+	return active_override_protocol_ids.has(protocol_id.strip_edges())

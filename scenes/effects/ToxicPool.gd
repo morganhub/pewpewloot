@@ -15,11 +15,14 @@ var _visual_asset_anim_loop: bool = true
 var _visual_size: float = 120.0
 var _pool_fluid_id: String = ""
 var _fluid_pool_handle: int = -1
+var _affects_enemies: bool = true
+var _affects_player: bool = false
+var _apply_poison_to_enemies: bool = true
 const TICK_INTERVAL: float = 0.5
 const STRONG_RESOURCE_CACHE_MAX: int = 128
 static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
-func setup(radius: float, duration: float, dps: float, visual_data: Dictionary = {}) -> void:
+func setup(radius: float, duration: float, dps: float, visual_data: Dictionary = {}, behavior: Dictionary = {}) -> void:
 	pool_radius = radius
 	pool_duration = duration
 	pool_dps = dps
@@ -29,6 +32,10 @@ func setup(radius: float, duration: float, dps: float, visual_data: Dictionary =
 	_visual_asset_anim_loop = bool(visual_data.get("asset_anim_loop", true))
 	_visual_size = maxf(20.0, float(visual_data.get("size", pool_radius * 2.0)))
 	_pool_fluid_id = str(visual_data.get("pool_fluid_id", ""))
+	_affects_enemies = bool(behavior.get("affects_enemies", true))
+	_affects_player = bool(behavior.get("affects_player", false))
+	_apply_poison_to_enemies = bool(behavior.get("apply_poison_to_enemies", true))
+	_update_collision_mask()
 	_update_visuals()
 	_update_shape()
 	# Démarrer le fluid pool si un preset est défini
@@ -37,7 +44,7 @@ func setup(radius: float, duration: float, dps: float, visual_data: Dictionary =
 
 func _ready() -> void:
 	collision_layer = 0
-	collision_mask = 4  # Enemy layer
+	_update_collision_mask()
 
 	var col := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
@@ -56,6 +63,13 @@ func _update_shape() -> void:
 		if child is CollisionShape2D and child.shape is CircleShape2D:
 			var circle := child.shape as CircleShape2D
 			circle.radius = pool_radius
+
+func _update_collision_mask() -> void:
+	collision_mask = 0
+	if _affects_enemies:
+		collision_mask |= 4 # Enemy layer
+	if _affects_player:
+		collision_mask |= 2 # Player layer
 
 func _update_visuals() -> void:
 	# Si un fluid pool est actif, pas besoin de visuel .tres
@@ -112,11 +126,13 @@ func _apply_damage() -> void:
 
 	var bodies := get_overlapping_bodies()
 	for body in bodies:
-		if body.is_in_group("enemies") and body.has_method("take_damage"):
+		if _affects_enemies and body.is_in_group("enemies") and body.has_method("take_damage"):
 			body.take_damage(tick_damage)
-		if body.has_method("apply_status_effect"):
+		if _affects_enemies and _apply_poison_to_enemies and body.has_method("apply_status_effect"):
 			var poison := StatusEffect.create_poison(float(tick_damage) * 2.0, 2.0)
 			body.apply_status_effect(poison)
+		if _affects_player and body.is_in_group("player") and body.has_method("take_damage"):
+			body.take_damage(tick_damage)
 
 func _fade_and_die() -> void:
 	# Arrêter le fluid pool si actif

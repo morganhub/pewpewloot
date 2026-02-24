@@ -22,6 +22,7 @@ var _unique_powers: Dictionary = {} # power_id -> data
 var _boss_powers: Dictionary = {} # power_id -> data
 var _effects: Dictionary = {} # effect_id -> data
 var _game_config: Dictionary = {} # game.json data
+var _override_protocols: Dictionary = {} # override_protocols.json data
 var _skills: Dictionary = {} # skills.json data
 var _obstacles: Dictionary = {} # obstacle_id -> data
 var _fluids: Dictionary = {} # fluid_preset_id -> data
@@ -35,6 +36,7 @@ func _ready() -> void:
 
 func _load_all_data() -> void:
 	_load_game_config() # Load generic game config first
+	_load_override_protocols()
 	_load_worlds()
 	_load_ships()
 	_load_patterns()
@@ -134,6 +136,84 @@ func get_xp_curve_exponent() -> float:
 
 func _load_game_config() -> void:
 	_game_config = _load_json("res://data/game.json")
+
+func _load_override_protocols() -> void:
+	_override_protocols = _load_json("res://data/override_protocols.json")
+
+func get_override_protocols_config() -> Dictionary:
+	return _override_protocols.duplicate(true)
+
+func get_override_protocols_ui_settings() -> Dictionary:
+	var ui_settings: Variant = _override_protocols.get("ui_settings", {})
+	if ui_settings is Dictionary:
+		return (ui_settings as Dictionary).duplicate(true)
+	return {}
+
+func get_override_protocols() -> Array:
+	var protocols: Variant = _override_protocols.get("protocols", [])
+	if protocols is Array:
+		return (protocols as Array).duplicate(true)
+	return []
+
+func get_override_protocol(protocol_id: String) -> Dictionary:
+	for protocol_variant in get_override_protocols():
+		if not (protocol_variant is Dictionary):
+			continue
+		var protocol_data := protocol_variant as Dictionary
+		if str(protocol_data.get("id", "")) == protocol_id:
+			return protocol_data.duplicate(true)
+	return {}
+
+func get_override_protocol_settings(protocol_id: String) -> Dictionary:
+	var protocol: Dictionary = get_override_protocol(protocol_id)
+	var settings: Variant = protocol.get("settings", {})
+	if settings is Dictionary:
+		return (settings as Dictionary).duplicate(true)
+	return {}
+
+func get_override_reward_multiplier(active_count: int) -> float:
+	var settings: Dictionary = get_override_protocols_ui_settings()
+	return _resolve_override_multiplier_for_count(
+		settings.get("reward_multiplier_by_active_count", {}),
+		active_count,
+		float(settings.get("base_reward_multiplier", 1.0)),
+		float(settings.get("per_protocol_multiplier", 0.2))
+	)
+
+func get_override_crystal_multiplier(active_count: int) -> float:
+	var settings: Dictionary = get_override_protocols_ui_settings()
+	return _resolve_override_multiplier_for_count(
+		settings.get("crystal_multiplier_by_active_count", settings.get("reward_multiplier_by_active_count", {})),
+		active_count,
+		float(settings.get("base_crystal_multiplier", 1.0)),
+		float(settings.get("per_protocol_crystal_multiplier", float(settings.get("per_protocol_multiplier", 0.2))))
+	)
+
+func _resolve_override_multiplier_for_count(
+	count_data: Variant,
+	active_count: int,
+	fallback_base: float,
+	fallback_per_protocol: float
+) -> float:
+	var count: int = maxi(0, mini(active_count, 10))
+	if count_data is Dictionary:
+		var mapping := count_data as Dictionary
+		if mapping.has(str(count)):
+			return maxf(0.0, float(mapping.get(str(count), fallback_base)))
+		# Fallback to nearest previous configured value.
+		for i in range(count, -1, -1):
+			var key := str(i)
+			if mapping.has(key):
+				return maxf(0.0, float(mapping.get(key, fallback_base)))
+
+	if count_data is Array:
+		var values := count_data as Array
+		if values.size() > count:
+			return maxf(0.0, float(values[count]))
+		if values.size() > 0:
+			return maxf(0.0, float(values[values.size() - 1]))
+
+	return maxf(0.0, fallback_base + fallback_per_protocol * float(count))
 
 func get_game_config() -> Dictionary:
 	return _game_config

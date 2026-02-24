@@ -137,6 +137,32 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	if not migrated.has("progress"):
 		migrated["progress"] = _create_default_progress()
 		needs_save = true
+
+	var progress_v: Variant = migrated.get("progress", {})
+	if progress_v is Dictionary:
+		var sanitized_progress := (progress_v as Dictionary).duplicate(true)
+		for world_key in sanitized_progress.keys():
+			var world_progress_v: Variant = sanitized_progress.get(world_key, {})
+			if not (world_progress_v is Dictionary):
+				sanitized_progress[world_key] = {
+					"unlocked": world_key == "world_1",
+					"max_unlocked_level": 0,
+					"boss_killed": false,
+					"active_override_protocols": []
+				}
+				needs_save = true
+				continue
+			var world_progress := (world_progress_v as Dictionary).duplicate(true)
+			if not world_progress.has("active_override_protocols"):
+				world_progress["active_override_protocols"] = []
+				needs_save = true
+			else:
+				var cleaned_protocols := _sanitize_protocol_id_array(world_progress.get("active_override_protocols", []))
+				if world_progress.get("active_override_protocols", []) != cleaned_protocols:
+					world_progress["active_override_protocols"] = cleaned_protocols
+					needs_save = true
+			sanitized_progress[world_key] = world_progress
+		migrated["progress"] = sanitized_progress
 	
 	# Migration: ships_unlocked
 	if not migrated.has("ships_unlocked"):
@@ -404,13 +430,27 @@ func _generate_inventory_instance_id(prefix: String, used_ids: Dictionary) -> St
 
 	return safe_prefix + "__" + str(Time.get_unix_time_from_system()) + "_" + str(randi())
 
+func _sanitize_protocol_id_array(protocol_ids: Variant) -> Array:
+	var cleaned: Array = []
+	if not (protocol_ids is Array):
+		return cleaned
+
+	for raw_id in (protocol_ids as Array):
+		var protocol_id: String = str(raw_id).strip_edges()
+		if protocol_id == "":
+			continue
+		if cleaned.has(protocol_id):
+			continue
+		cleaned.append(protocol_id)
+	return cleaned
+
 func _create_default_progress() -> Dictionary:
 	return {
-		"world_1": {"unlocked": true, "max_unlocked_level": 0, "boss_killed": false},
-		"world_2": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false},
-		"world_3": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false},
-		"world_4": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false},
-		"world_5": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false},
+		"world_1": {"unlocked": true, "max_unlocked_level": 0, "boss_killed": false, "active_override_protocols": []},
+		"world_2": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false, "active_override_protocols": []},
+		"world_3": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false, "active_override_protocols": []},
+		"world_4": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false, "active_override_protocols": []},
+		"world_5": {"unlocked": false, "max_unlocked_level": 0, "boss_killed": false, "active_override_protocols": []},
 	}
 
 # =============================================================================
@@ -530,6 +570,46 @@ func _get_progress_dict(profile: Dictionary) -> Dictionary:
 		return prog as Dictionary
 	return {}
 
+func get_world_progress(world_id: String) -> Dictionary:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return {}
+	var progress: Dictionary = _get_progress_dict(profile)
+	var world_progress_v: Variant = progress.get(world_id, {})
+	if world_progress_v is Dictionary:
+		return (world_progress_v as Dictionary).duplicate(true)
+	return {}
+
+func is_world_cleared(world_id: String) -> bool:
+	var world_progress: Dictionary = get_world_progress(world_id)
+	return bool(world_progress.get("boss_killed", false))
+
+func get_world_active_override_protocols(world_id: String) -> Array:
+	var world_progress: Dictionary = get_world_progress(world_id)
+	return _sanitize_protocol_id_array(world_progress.get("active_override_protocols", []))
+
+func set_world_active_override_protocols(world_id: String, protocol_ids: Array) -> void:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+
+	var progress: Dictionary = _get_progress_dict(profile)
+	var world_progress_v: Variant = progress.get(world_id, {})
+	var world_progress: Dictionary = {}
+	if world_progress_v is Dictionary:
+		world_progress = (world_progress_v as Dictionary).duplicate(true)
+	else:
+		world_progress = {
+			"unlocked": world_id == "world_1",
+			"max_unlocked_level": 0,
+			"boss_killed": false,
+			"active_override_protocols": []
+		}
+
+	world_progress["active_override_protocols"] = _sanitize_protocol_id_array(protocol_ids)
+	progress[world_id] = world_progress
+	_apply_progress_to_active_profile(progress)
+
 func complete_level(world_id: String, level_index: int, levels_per_world: int = 6) -> void:
 	var profile := get_active_profile()
 	if profile.is_empty():
@@ -543,9 +623,13 @@ func complete_level(world_id: String, level_index: int, levels_per_world: int = 
 	if raw_wp is Dictionary:
 		world_prog = raw_wp as Dictionary
 	else:
-		world_prog = {"unlocked": true, "max_unlocked_level": 0, "boss_killed": false}
+		world_prog = {"unlocked": true, "max_unlocked_level": 0, "boss_killed": false, "active_override_protocols": []}
 
 	world_prog["unlocked"] = true
+	if not world_prog.has("active_override_protocols"):
+		world_prog["active_override_protocols"] = []
+	else:
+		world_prog["active_override_protocols"] = _sanitize_protocol_id_array(world_prog.get("active_override_protocols", []))
 
 	var max_unlocked := int(world_prog.get("max_unlocked_level", 0))
 	if level_index >= max_unlocked:
@@ -580,6 +664,7 @@ func unlock_next_world_if_needed(current_world_id: String) -> void:
 		next_prog["unlocked"] = true
 		next_prog["max_unlocked_level"] = 0
 		next_prog["boss_killed"] = false
+		next_prog["active_override_protocols"] = []
 		prog[next_id] = next_prog
 		_apply_progress_to_active_profile(prog)
 

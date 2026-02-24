@@ -15,5 +15,6 @@
         },
         "ConvertFrom-Json": true,
         "ConvertTo-Json": true
-    }
+    },
+    "godotTools.editorPath.godot4": "c:\\Program Files (x86)\\Godot\\Godot_v4.6-stable_win64.exe"
 }

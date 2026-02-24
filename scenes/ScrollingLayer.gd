@@ -46,7 +46,7 @@ func setup(resource: Resource, scroll_speed: float, viewport_size: Vector2, use_
 
 	push_warning("[ScrollingLayer] Unsupported background resource type: " + str(resource.get_class()))
 
-func _setup_texture_layer(texture: Texture2D, viewport_size: Vector2) -> void:
+func _setup_texture_layer(texture: Texture2D, _viewport_size_arg: Vector2) -> void:
 	if texture == null:
 		return
 

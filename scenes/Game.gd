@@ -17,6 +17,7 @@ const ENEMY_SCRIPT: Script = preload("res://scenes/Enemy.gd")
 const WAVE_MANAGER_SCRIPT: Script = preload("res://scenes/WaveManager.gd")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/Enemy.tscn")
 const BOSS_SCENE: PackedScene = preload("res://scenes/Boss.tscn")
+const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.tscn")
 const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/obstacles/ObstacleExplosive.tscn",
 	"res://scenes/obstacles/ObstaclePusher.tscn",
@@ -49,6 +50,7 @@ const DEBUG_LEVEL_WARMUP_LOG := true
 const DEBUG_RUNTIME_ENEMY_PREWARM_LOG := true
 const DEBUG_SPAWN_PIPELINE_LOG := false
 const DEBUG_SPAWN_PIPELINE_THRESHOLD_MS := 4.0
+const OVERRIDE_STRONG_RESOURCE_CACHE_MAX: int = 128
 
 var player: CharacterBody2D = null
 var hud: CanvasLayer = null
@@ -78,6 +80,56 @@ var _last_hitch_log_ms: int = -10000
 var _loot_drop_rules: Dictionary = {}
 var _wave_powerup_drop_counts: Dictionary = {"shield": 0, "fire_rate": 0}
 var _wave_equipment_drop_count: int = 0
+var _active_override_protocol_ids: Array = []
+var _active_override_protocol_map: Dictionary = {}
+var _override_protocol_settings_map: Dictionary = {}
+var _override_ui_settings: Dictionary = {}
+var _override_enemy_move_multiplier: float = 1.0
+var _override_enemy_hp_multiplier: float = 1.0
+var _override_enemy_projectile_speed_multiplier: float = 1.0
+var _override_enemy_elite_replacement_chance: float = 0.0
+var _override_player_heal_multiplier: float = 1.0
+var _override_player_start_hp: int = -1
+var _override_reward_multiplier: float = 1.0
+var _override_crystal_multiplier: float = 1.0
+var _override_crystal_reward_per_score: float = 0.0
+var _override_crystal_reward_victory_only: bool = true
+var _override_force_one_hp: bool = false
+var _override_enable_toxic_pools: bool = false
+var _override_enable_volatile_reactors: bool = false
+var _override_enable_boss_overdrive: bool = false
+var _override_emp_vignette_enabled: bool = false
+var _override_toxic_pool_timer: float = 0.0
+var _override_toxic_pool_nodes: Array[Node] = []
+var _override_vignette_rect: ColorRect = null
+var _override_strong_resource_cache: Dictionary = {}
+var _override_toxic_pool_spawn_interval_sec: float = 6.0
+var _override_toxic_pool_radius: float = 82.0
+var _override_toxic_pool_duration_sec: float = 4.5
+var _override_toxic_pool_dps: float = 16.0
+var _override_toxic_pool_max_active: int = 3
+var _override_toxic_pool_visual_data: Dictionary = {}
+var _override_toxic_pool_behavior_data: Dictionary = {}
+var _override_volatile_trigger_chance: float = 0.3
+var _override_volatile_explosion_mode_chance: float = 0.5
+var _override_volatile_explosion_radius: float = 92.0
+var _override_volatile_explosion_damage: int = 14
+var _override_volatile_projectile_speed: float = 290.0
+var _override_volatile_projectile_damage: int = 12
+var _override_volatile_projectile_count: int = 3
+var _override_volatile_projectile_spread_rad: float = 0.35
+var _override_volatile_explosion_asset: String = ""
+var _override_volatile_explosion_asset_anim: String = ""
+var _override_volatile_explosion_asset_anim_duration: float = 0.0
+var _override_volatile_explosion_asset_anim_loop: bool = false
+var _override_volatile_explosion_size_multiplier: float = 0.45
+var _override_volatile_explosion_lifetime: float = -1.0
+var _override_volatile_explosion_fade_out_duration: float = 0.3
+var _override_volatile_explosion_color: Color = Color(1.0, 0.35, 0.1, 0.75)
+var _override_boss_overdrive_fire_rate: float = 0.05
+var _override_emp_vignette_strength: float = 0.72
+var _override_emp_vignette_radius: float = 0.58
+var _override_emp_vignette_color: Color = Color(0.0, 0.0, 0.0, 1.0)
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -92,6 +144,7 @@ func _ready() -> void:
 	current_level_index = App.current_level_index
 	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
 	_load_gameplay_config()
+	_load_override_protocol_state()
 	
 	add_to_group("game_controller")
 	
@@ -118,6 +171,8 @@ func _ready() -> void:
 	_spawn_player()
 	_setup_projectile_manager()
 	_setup_fluid_simulation()
+	_preload_override_visual_resources()
+	_setup_emp_vignette()
 	_start_enemy_spawner()
 
 func _load_gameplay_config() -> void:
@@ -152,6 +207,236 @@ func _build_default_loot_drop_rules() -> Dictionary:
 		"shield_weight": 1.0,
 		"rapid_fire_weight": 1.0
 	}
+
+func _load_override_protocol_state() -> void:
+	_active_override_protocol_ids.clear()
+	_active_override_protocol_map.clear()
+	_override_protocol_settings_map.clear()
+	_override_ui_settings = DataManager.get_override_protocols_ui_settings()
+
+	var selected_protocols_v: Variant = App.active_override_protocol_ids
+	if selected_protocols_v is Array:
+		for raw_id in (selected_protocols_v as Array):
+			var protocol_id: String = str(raw_id).strip_edges()
+			if protocol_id == "" or _active_override_protocol_map.has(protocol_id):
+				continue
+			_active_override_protocol_ids.append(protocol_id)
+			_active_override_protocol_map[protocol_id] = true
+			_override_protocol_settings_map[protocol_id] = DataManager.get_override_protocol_settings(protocol_id)
+
+	_override_enemy_move_multiplier = 1.0
+	_override_enemy_hp_multiplier = 1.0
+	_override_enemy_projectile_speed_multiplier = 1.0
+	_override_enemy_elite_replacement_chance = 0.0
+	_override_player_heal_multiplier = 1.0
+	_override_player_start_hp = -1
+	_override_reward_multiplier = 1.0
+	_override_crystal_multiplier = 1.0
+	_override_crystal_reward_per_score = maxf(0.0, float(_override_ui_settings.get("crystal_reward_per_score", 0.0)))
+	_override_crystal_reward_victory_only = bool(_override_ui_settings.get("crystal_reward_victory_only", true))
+	_override_force_one_hp = false
+	_override_enable_toxic_pools = false
+	_override_enable_volatile_reactors = false
+	_override_enable_boss_overdrive = false
+	_override_emp_vignette_enabled = false
+	_override_toxic_pool_spawn_interval_sec = maxf(0.1, float(_override_ui_settings.get("system_corruption_spawn_interval_sec", 6.0)))
+	_override_toxic_pool_radius = maxf(12.0, float(_override_ui_settings.get("system_corruption_pool_radius", 82.0)))
+	_override_toxic_pool_duration_sec = maxf(0.1, float(_override_ui_settings.get("system_corruption_pool_duration_sec", 4.5)))
+	_override_toxic_pool_dps = maxf(0.1, float(_override_ui_settings.get("system_corruption_pool_dps", 16.0)))
+	_override_toxic_pool_max_active = maxi(1, int(_override_ui_settings.get("system_corruption_max_active_pools", 3)))
+	_override_toxic_pool_visual_data = {}
+	_override_toxic_pool_behavior_data = {
+		"affects_enemies": false,
+		"affects_player": true,
+		"apply_poison_to_enemies": false
+	}
+	_override_volatile_trigger_chance = clampf(float(_override_ui_settings.get("volatile_reactors_trigger_chance", 0.3)), 0.0, 1.0)
+	_override_volatile_explosion_mode_chance = 0.5
+	_override_volatile_explosion_radius = maxf(12.0, float(_override_ui_settings.get("volatile_reactors_explosion_radius", 92.0)))
+	_override_volatile_explosion_damage = maxi(1, int(_override_ui_settings.get("volatile_reactors_explosion_damage", 14)))
+	_override_volatile_projectile_speed = maxf(40.0, float(_override_ui_settings.get("volatile_reactors_projectile_speed", 290.0)))
+	_override_volatile_projectile_damage = maxi(1, int(_override_ui_settings.get("volatile_reactors_projectile_damage", 12)))
+	_override_volatile_projectile_count = 3
+	_override_volatile_projectile_spread_rad = 0.35
+	_override_volatile_explosion_asset = ""
+	_override_volatile_explosion_asset_anim = ""
+	_override_volatile_explosion_asset_anim_duration = 0.0
+	_override_volatile_explosion_asset_anim_loop = false
+	_override_volatile_explosion_size_multiplier = 0.45
+	_override_volatile_explosion_lifetime = -1.0
+	_override_volatile_explosion_fade_out_duration = 0.3
+	_override_volatile_explosion_color = Color(1.0, 0.35, 0.1, 0.75)
+	_override_boss_overdrive_fire_rate = maxf(0.0, float(_override_ui_settings.get("boss_overdrive_fire_rate", 0.05)))
+	_override_emp_vignette_strength = clampf(float(_override_ui_settings.get("emp_vignette_strength", 0.72)), 0.0, 1.5)
+	_override_emp_vignette_radius = clampf(float(_override_ui_settings.get("emp_vignette_radius", 0.58)), 0.0, 1.0)
+	_override_emp_vignette_color = Color(0.0, 0.0, 0.0, 1.0)
+
+	var active_count: int = _active_override_protocol_ids.size()
+	_override_reward_multiplier = DataManager.get_override_reward_multiplier(active_count)
+	_override_crystal_multiplier = DataManager.get_override_crystal_multiplier(active_count)
+
+	if _has_override_protocol("overclocked_thrusters"):
+		var thruster_cfg: Dictionary = _get_override_protocol_settings("overclocked_thrusters")
+		_override_enemy_move_multiplier *= maxf(0.01, float(thruster_cfg.get("enemy_move_speed_multiplier", 1.4)))
+	if _has_override_protocol("hyper_ballistics"):
+		var ballistic_cfg: Dictionary = _get_override_protocol_settings("hyper_ballistics")
+		_override_enemy_projectile_speed_multiplier *= maxf(0.01, float(ballistic_cfg.get("projectile_speed_multiplier", 1.5)))
+	if _has_override_protocol("ablative_armor"):
+		var armor_cfg: Dictionary = _get_override_protocol_settings("ablative_armor")
+		_override_enemy_hp_multiplier *= maxf(0.01, float(armor_cfg.get("enemy_hp_multiplier", 1.3)))
+	if _has_override_protocol("critical_malfunction"):
+		var malfunction_cfg: Dictionary = _get_override_protocol_settings("critical_malfunction")
+		_override_player_start_hp = maxi(1, int(malfunction_cfg.get("player_start_hp", 1)))
+		_override_force_one_hp = _override_player_start_hp <= 1
+	if _has_override_protocol("nanite_suppression"):
+		var nanite_cfg: Dictionary = _get_override_protocol_settings("nanite_suppression")
+		_override_player_heal_multiplier = clampf(float(nanite_cfg.get("heal_multiplier", _override_ui_settings.get("nanite_heal_multiplier", 0.5))), 0.0, 1.0)
+		var disable_repairs: bool = bool(nanite_cfg.get("disable_repair_drops", true))
+		if disable_repairs:
+			_loot_drop_rules["max_shield_per_wave"] = 0
+			_loot_drop_rules["shield_weight"] = 0.0
+	if _has_override_protocol("system_corruption"):
+		var corruption_cfg: Dictionary = _get_override_protocol_settings("system_corruption")
+		_override_enable_toxic_pools = true
+		_override_toxic_pool_spawn_interval_sec = maxf(0.1, float(corruption_cfg.get("spawn_interval_sec", _override_toxic_pool_spawn_interval_sec)))
+		_override_toxic_pool_radius = maxf(12.0, float(corruption_cfg.get("pool_radius", _override_toxic_pool_radius)))
+		_override_toxic_pool_duration_sec = maxf(0.1, float(corruption_cfg.get("pool_duration_sec", _override_toxic_pool_duration_sec)))
+		_override_toxic_pool_dps = maxf(0.1, float(corruption_cfg.get("pool_dps", _override_toxic_pool_dps)))
+		_override_toxic_pool_max_active = maxi(1, int(corruption_cfg.get("max_active_pools", _override_toxic_pool_max_active)))
+		var pool_visual_v: Variant = corruption_cfg.get("pool_visual", {})
+		if pool_visual_v is Dictionary:
+			_override_toxic_pool_visual_data = _normalize_override_visual_settings(
+				pool_visual_v as Dictionary,
+				_override_toxic_pool_radius * 2.0
+			)
+		var pool_behavior_v: Variant = corruption_cfg.get("pool_behavior", {})
+		if pool_behavior_v is Dictionary:
+			var pool_behavior := pool_behavior_v as Dictionary
+			_override_toxic_pool_behavior_data["affects_enemies"] = bool(
+				pool_behavior.get("affects_enemies", _override_toxic_pool_behavior_data.get("affects_enemies", false))
+			)
+			_override_toxic_pool_behavior_data["affects_player"] = bool(
+				pool_behavior.get("affects_player", _override_toxic_pool_behavior_data.get("affects_player", true))
+			)
+			_override_toxic_pool_behavior_data["apply_poison_to_enemies"] = bool(
+				pool_behavior.get("apply_poison_to_enemies", _override_toxic_pool_behavior_data.get("apply_poison_to_enemies", false))
+			)
+		_override_toxic_pool_timer = _override_toxic_pool_spawn_interval_sec
+	if _has_override_protocol("volatile_reactors"):
+		_override_enable_volatile_reactors = true
+		var volatile_cfg: Dictionary = _get_override_protocol_settings("volatile_reactors")
+		_override_volatile_trigger_chance = clampf(float(volatile_cfg.get("trigger_chance", _override_volatile_trigger_chance)), 0.0, 1.0)
+		_override_volatile_explosion_mode_chance = clampf(float(volatile_cfg.get("explosion_mode_chance", _override_volatile_explosion_mode_chance)), 0.0, 1.0)
+		_override_volatile_explosion_radius = maxf(12.0, float(volatile_cfg.get("explosion_radius", _override_volatile_explosion_radius)))
+		_override_volatile_explosion_damage = maxi(1, int(volatile_cfg.get("explosion_damage", _override_volatile_explosion_damage)))
+		_override_volatile_projectile_speed = maxf(40.0, float(volatile_cfg.get("projectile_speed", _override_volatile_projectile_speed)))
+		_override_volatile_projectile_damage = maxi(1, int(volatile_cfg.get("projectile_damage", _override_volatile_projectile_damage)))
+		_override_volatile_projectile_count = maxi(1, int(volatile_cfg.get("projectile_count", _override_volatile_projectile_count)))
+		_override_volatile_projectile_spread_rad = maxf(0.0, float(volatile_cfg.get("projectile_spread_rad", _override_volatile_projectile_spread_rad)))
+		var explosion_visual_v: Variant = volatile_cfg.get("explosion_visual", {})
+		if explosion_visual_v is Dictionary:
+			var explosion_visual: Dictionary = _normalize_override_visual_settings(
+				explosion_visual_v as Dictionary,
+				_override_volatile_explosion_radius * 0.45
+			)
+			_override_volatile_explosion_asset = str(explosion_visual.get("asset", ""))
+			_override_volatile_explosion_asset_anim = str(explosion_visual.get("asset_anim", ""))
+			_override_volatile_explosion_asset_anim_duration = maxf(0.0, float(explosion_visual.get("asset_anim_duration", 0.0)))
+			_override_volatile_explosion_asset_anim_loop = bool(explosion_visual.get("asset_anim_loop", false))
+			_override_volatile_explosion_size_multiplier = maxf(0.1, float(explosion_visual.get("size_multiplier", _override_volatile_explosion_size_multiplier)))
+			_override_volatile_explosion_lifetime = float(explosion_visual.get("lifetime", _override_volatile_explosion_lifetime))
+			_override_volatile_explosion_fade_out_duration = maxf(0.05, float(explosion_visual.get("fade_out_duration", _override_volatile_explosion_fade_out_duration)))
+			_override_volatile_explosion_color = Color.from_string(
+				str(explosion_visual.get("color", "#ff5929bf")),
+				_override_volatile_explosion_color
+			)
+	if _has_override_protocol("elite_vanguard"):
+		var elite_cfg: Dictionary = _get_override_protocol_settings("elite_vanguard")
+		var base_elite_chance: float = clampf(
+			float(elite_cfg.get("elite_replacement_base_chance", _override_ui_settings.get("elite_base_replacement_chance", 0.08))),
+			0.0,
+			1.0
+		)
+		var replacement_mult: float = maxf(1.0, float(elite_cfg.get("replacement_multiplier", 3.0)))
+		_override_enemy_elite_replacement_chance = clampf(base_elite_chance * replacement_mult, 0.0, 1.0)
+	if _has_override_protocol("emp_interference"):
+		_override_emp_vignette_enabled = true
+		var emp_cfg: Dictionary = _get_override_protocol_settings("emp_interference")
+		_override_emp_vignette_strength = clampf(float(emp_cfg.get("strength", _override_emp_vignette_strength)), 0.0, 1.5)
+		_override_emp_vignette_radius = clampf(float(emp_cfg.get("radius", _override_emp_vignette_radius)), 0.0, 1.0)
+		_override_emp_vignette_color = Color.from_string(str(emp_cfg.get("color", "#000000ff")), _override_emp_vignette_color)
+	if _has_override_protocol("boss_overdrive"):
+		_override_enable_boss_overdrive = true
+		var overdrive_cfg: Dictionary = _get_override_protocol_settings("boss_overdrive")
+		_override_boss_overdrive_fire_rate = maxf(0.0, float(overdrive_cfg.get("fire_rate", _override_boss_overdrive_fire_rate)))
+
+	print(
+		"[Game] Active override protocols: ",
+		_active_override_protocol_ids,
+		" | xp_x",
+		_override_reward_multiplier,
+		" | crystal_x",
+		_override_crystal_multiplier
+	)
+
+func _has_override_protocol(protocol_id: String) -> bool:
+	return _active_override_protocol_map.has(protocol_id.strip_edges())
+
+func _get_override_protocol_settings(protocol_id: String) -> Dictionary:
+	if _override_protocol_settings_map.has(protocol_id):
+		var settings_v: Variant = _override_protocol_settings_map.get(protocol_id, {})
+		if settings_v is Dictionary:
+			return (settings_v as Dictionary).duplicate(true)
+
+	var settings: Dictionary = DataManager.get_override_protocol_settings(protocol_id)
+	_override_protocol_settings_map[protocol_id] = settings.duplicate(true)
+	return settings
+
+func _resolve_override_resource_path(raw_path: String) -> String:
+	var clean_path: String = raw_path.strip_edges()
+	if clean_path.begins_with("shared:"):
+		var shared_id := clean_path.trim_prefix("shared:")
+		clean_path = DataManager.get_shared_asset_path(shared_id, "")
+	return clean_path
+
+func _normalize_override_visual_settings(raw_visual: Dictionary, default_size: float = 0.0) -> Dictionary:
+	var normalized := raw_visual.duplicate(true)
+	normalized["asset"] = _resolve_override_resource_path(str(raw_visual.get("asset", raw_visual.get("path", ""))))
+	normalized["asset_anim"] = _resolve_override_resource_path(str(raw_visual.get("asset_anim", "")))
+	normalized["asset_anim_duration"] = maxf(0.0, float(raw_visual.get("asset_anim_duration", raw_visual.get("anim_duration", 0.0))))
+	normalized["asset_anim_loop"] = bool(raw_visual.get("asset_anim_loop", raw_visual.get("anim_loop", true)))
+	if default_size > 0.0:
+		normalized["size"] = maxf(1.0, float(raw_visual.get("size", default_size)))
+	return normalized
+
+func _preload_override_visual_resources() -> void:
+	_override_strong_resource_cache.clear()
+	if _active_override_protocol_ids.is_empty():
+		return
+
+	var preload_paths: Dictionary = {}
+	for protocol_id_v in _active_override_protocol_ids:
+		var protocol_id: String = str(protocol_id_v).strip_edges()
+		if protocol_id == "":
+			continue
+		var settings: Dictionary = _get_override_protocol_settings(protocol_id)
+		_collect_resource_paths_recursive(settings, preload_paths)
+
+	for path_variant in preload_paths.keys():
+		_cache_override_resource_path(str(path_variant))
+
+func _cache_override_resource_path(path: String) -> void:
+	var resolved_path: String = _resolve_override_resource_path(path)
+	if resolved_path == "" or not ResourceLoader.exists(resolved_path):
+		return
+	if _override_strong_resource_cache.has(resolved_path):
+		return
+	var resource: Resource = ResourceLoader.load(resolved_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource == null:
+		return
+	if _override_strong_resource_cache.size() >= OVERRIDE_STRONG_RESOURCE_CACHE_MAX:
+		_override_strong_resource_cache.clear()
+	_override_strong_resource_cache[resolved_path] = resource
 
 func _setup_background() -> void:
 	# Nettoyer le placeholder existant
@@ -253,6 +538,7 @@ func _process(delta: float) -> void:
 	# Le background se gère tout seul via ScrollingLayer._process
 	_debug_log_frame_hitch(delta)
 	_update_hud()
+	_update_override_runtime_effects(delta)
 
 # func _update_background(delta: float) -> void: ... DELETED
 
@@ -289,6 +575,80 @@ func _debug_log_frame_hitch(delta: float) -> void:
 		" enemy_projectiles=", enemy_projectiles,
 		" cam_offset=", camera_offset
 	)
+
+func _update_override_runtime_effects(delta: float) -> void:
+	if not _override_enable_toxic_pools:
+		return
+	_cleanup_override_toxic_pools()
+	_override_toxic_pool_timer -= delta
+	if _override_toxic_pool_timer > 0.0:
+		return
+	_override_toxic_pool_timer = _override_toxic_pool_spawn_interval_sec
+	_spawn_override_toxic_pool()
+
+func _cleanup_override_toxic_pools() -> void:
+	for i in range(_override_toxic_pool_nodes.size() - 1, -1, -1):
+		var pool_node_v: Variant = _override_toxic_pool_nodes[i]
+		if pool_node_v == null or not is_instance_valid(pool_node_v):
+			_override_toxic_pool_nodes.remove_at(i)
+
+func _spawn_override_toxic_pool() -> void:
+	if TOXIC_POOL_SCENE == null:
+		return
+	var max_active: int = maxi(1, _override_toxic_pool_max_active)
+	if _override_toxic_pool_nodes.size() >= max_active:
+		return
+
+	var viewport_size := get_viewport_rect().size
+	var margin: float = 80.0
+	var spawn_pos := Vector2(
+		randf_range(margin, maxf(margin, viewport_size.x - margin)),
+		randf_range(margin, maxf(margin, viewport_size.y - margin))
+	)
+
+	var pool := TOXIC_POOL_SCENE.instantiate()
+	if not (pool is Area2D):
+		return
+	game_layer.add_child(pool)
+	(pool as Area2D).global_position = spawn_pos
+	if pool.has_method("setup"):
+		var visual_payload: Dictionary = _override_toxic_pool_visual_data.duplicate(true)
+		if not visual_payload.has("size"):
+			visual_payload["size"] = _override_toxic_pool_radius * 2.0
+		pool.call(
+			"setup",
+			_override_toxic_pool_radius,
+			_override_toxic_pool_duration_sec,
+			_override_toxic_pool_dps,
+			visual_payload,
+			_override_toxic_pool_behavior_data.duplicate(true)
+		)
+	_override_toxic_pool_nodes.append(pool)
+
+func _setup_emp_vignette() -> void:
+	if not _override_emp_vignette_enabled:
+		return
+	var ui_layer := get_node_or_null("UI") as CanvasLayer
+	if ui_layer == null:
+		return
+
+	_override_vignette_rect = ColorRect.new()
+	_override_vignette_rect.name = "OverrideVignette"
+	_override_vignette_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_override_vignette_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_override_vignette_rect.color = Color.WHITE
+	_override_vignette_rect.z_index = 20
+
+	var shader := Shader.new()
+	shader.code = "shader_type canvas_item;\nuniform float strength = 0.72;\nuniform float radius = 0.58;\nuniform vec4 vignette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);\nvoid fragment() {\n\tvec2 uv = UV * 2.0 - vec2(1.0);\n\tfloat dist = length(uv);\n\tfloat vignette = smoothstep(radius, 1.0, dist);\n\tfloat alpha = vignette * strength * vignette_color.a;\n\tCOLOR = vec4(vignette_color.rgb, alpha);\n}\n"
+	var shader_material := ShaderMaterial.new()
+	shader_material.shader = shader
+	shader_material.set_shader_parameter("strength", _override_emp_vignette_strength)
+	shader_material.set_shader_parameter("radius", _override_emp_vignette_radius)
+	shader_material.set_shader_parameter("vignette_color", _override_emp_vignette_color)
+	_override_vignette_rect.material = shader_material
+
+	ui_layer.add_child(_override_vignette_rect)
 
 # =============================================================================
 # CAMERA
@@ -351,9 +711,18 @@ func _spawn_player() -> void:
 	
 	game_layer.add_child(player)
 	print("[Game] Player spawned")
+
+	if player and player.has_method("set_healing_multiplier"):
+		player.call("set_healing_multiplier", _override_player_heal_multiplier)
+	if _override_force_one_hp and player:
+		player.max_hp = 1
+		player.current_hp = 1
+	elif _override_player_start_hp > 0 and player:
+		player.current_hp = clampi(_override_player_start_hp, 1, player.max_hp)
 	
 	if hud:
 		hud.set_player_reference(player)
+		hud.set_player_max_hp(player.max_hp)
 	
 	# Connecter les signaux
 	player.tree_exiting.connect(_on_player_died)
@@ -393,6 +762,8 @@ func _on_player_died() -> void:
 
 func _setup_projectile_manager() -> void:
 	ProjectileManager.set_container(game_layer)
+	if ProjectileManager.has_method("set_enemy_projectile_speed_multiplier"):
+		ProjectileManager.call("set_enemy_projectile_speed_multiplier", _override_enemy_projectile_speed_multiplier)
 
 func _setup_fluid_simulation() -> void:
 	FluidManager.setup(game_layer)
@@ -426,6 +797,8 @@ func _start_enemy_spawner() -> void:
 	_configure_wave_counter(level_id)
 	_reset_wave_powerup_drop_counters()
 	wave_manager.setup(level_id, current_world_id)
+	if wave_manager and wave_manager.has_method("set_override_elite_replacement_chance"):
+		wave_manager.call("set_override_elite_replacement_chance", _override_enemy_elite_replacement_chance)
 
 func _prime_runtime_enemy_spawn_costs(level_id: String) -> void:
 	var t0_usec: int = Time.get_ticks_usec()
@@ -630,6 +1003,7 @@ func _collect_runtime_support_paths(target: Dictionary) -> void:
 	_collect_current_level_wave_assets(target)
 	_collect_resource_paths_recursive(DataManager.get_skills_config(), target)
 	_collect_resource_paths_recursive(DataManager.get_game_config().get("gameplay", {}), target)
+	_collect_resource_paths_recursive(DataManager.get_override_protocols_config(), target)
 	_collect_resource_paths_recursive(DataManager.get_all_obstacles(), target)
 
 	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/super_powers.json"), target)
@@ -671,6 +1045,11 @@ func _collect_resource_paths_recursive(value: Variant, target: Dictionary) -> vo
 		var path: String = str(value).strip_edges()
 		if path.begins_with("res://"):
 			target[path] = true
+		elif path.begins_with("shared:"):
+			var shared_id := path.trim_prefix("shared:")
+			var shared_path: String = DataManager.get_shared_asset_path(shared_id, "")
+			if shared_path.begins_with("res://"):
+				target[shared_path] = true
 
 func _warmup_resource_path(path: String) -> void:
 	if path == "":
@@ -765,6 +1144,8 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	var hp_mult: float = float(_world_multipliers.get("hp", 1.0)) + level_bonus
 	var dmg_mult: float = float(_world_multipliers.get("damage", 1.0)) + level_bonus
 	var spd_mult: float = float(_world_multipliers.get("speed", 1.0))
+	hp_mult *= _override_enemy_hp_multiplier
+	spd_mult *= _override_enemy_move_multiplier
 	
 	game_layer.add_child(enemy)
 	enemy.global_position = spawn_pos
@@ -903,10 +1284,62 @@ func _on_enemy_died(enemy: CharacterBody2D) -> void:
 	
 	# Track XP (Score = XP)
 	session_xp += int(enemy.score)
+
+	if _override_enable_volatile_reactors:
+		_try_trigger_volatile_reactor(enemy)
 	
 	enemies_killed += 1
 	
 	# Note: Le boss spawn est maintenant géré par WaveManager -> _on_level_completed
+
+func _try_trigger_volatile_reactor(enemy: CharacterBody2D) -> void:
+	if not is_instance_valid(enemy):
+		return
+	if randf() > _override_volatile_trigger_chance:
+		return
+
+	var source_pos: Vector2 = enemy.global_position
+	if randf() < _override_volatile_explosion_mode_chance:
+		var explosion_radius: float = _override_volatile_explosion_radius
+		var explosion_damage: int = _override_volatile_explosion_damage
+		if player and is_instance_valid(player):
+			if player.global_position.distance_to(source_pos) <= explosion_radius and player.has_method("take_damage"):
+				player.call("take_damage", explosion_damage)
+		VFXManager.spawn_explosion(
+			source_pos,
+			explosion_radius * _override_volatile_explosion_size_multiplier,
+			_override_volatile_explosion_color,
+			game_layer,
+			_override_volatile_explosion_asset,
+			_override_volatile_explosion_asset_anim,
+			_override_volatile_explosion_lifetime,
+			_override_volatile_explosion_fade_out_duration,
+			_override_volatile_explosion_asset_anim_duration,
+			_override_volatile_explosion_asset_anim_loop
+		)
+		return
+
+	var projectile_speed: float = _override_volatile_projectile_speed
+	var projectile_damage: int = _override_volatile_projectile_damage
+	var base_direction := Vector2.DOWN
+	if player and is_instance_valid(player):
+		base_direction = (player.global_position - source_pos).normalized()
+		if base_direction == Vector2.ZERO:
+			base_direction = Vector2.DOWN
+	var projectile_count: int = maxi(1, _override_volatile_projectile_count)
+	var half_count: float = float(projectile_count - 1) * 0.5
+	for i in range(projectile_count):
+		var angle: float = 0.0
+		if projectile_count > 1:
+			var normalized_index: float = (float(i) - half_count) / maxf(half_count, 1.0)
+			angle = normalized_index * _override_volatile_projectile_spread_rad
+		ProjectileManager.spawn_enemy_projectile(
+			source_pos,
+			base_direction.rotated(angle),
+			projectile_speed,
+			projectile_damage,
+			{}
+		)
 
 func _spawn_boss(boss_id: String) -> void:
 	boss_spawned = true
@@ -951,10 +1384,16 @@ func _spawn_boss(boss_id: String) -> void:
 	boss.setup(boss_data)
 	
 	# Appliquer les multipliers du world au boss
-	var boss_hp_mult: float = float(_world_multipliers.get("hp", 1.0))
+	var boss_hp_mult: float = float(_world_multipliers.get("hp", 1.0)) * _override_enemy_hp_multiplier
 	if boss_hp_mult != 1.0:
 		boss.max_hp = int(boss.max_hp * boss_hp_mult)
 		boss.current_hp = boss.max_hp
+	if _override_enable_boss_overdrive and boss.has_method("set_overdrive_enabled"):
+		boss.call(
+			"set_overdrive_enabled",
+			true,
+			_override_boss_overdrive_fire_rate
+		)
 	
 	active_boss = boss
 	
@@ -1024,13 +1463,24 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 	var xp_before := ProfileManager.get_player_xp()
 	var level_before := ProfileManager.get_player_level()
 	var xp_mult: float = _resolve_session_xp_multiplier()
-	var effective_session_xp: int = int(round(float(session_xp) * xp_mult))
+	var effective_session_xp: int = int(round(float(session_xp) * xp_mult * _override_reward_multiplier))
 	if session_xp > 0:
 		ProfileManager.gain_xp(effective_session_xp)
 	var xp_after := ProfileManager.get_player_xp()
 	var level_after := ProfileManager.get_player_level()
 	var xp_gained := effective_session_xp
 	var _levels_gained := level_after - level_before
+	var crystals_gained: int = _compute_override_crystal_reward(is_victory)
+	if crystals_gained > 0:
+		ProfileManager.add_crystals(crystals_gained)
+		if hud:
+			var reward_pos := player.global_position if is_instance_valid(player) else Vector2(get_viewport_rect().size.x * 0.5, get_viewport_rect().size.y * 0.65)
+			VFXManager.spawn_floating_text(
+				reward_pos,
+				"+%s CR" % str(crystals_gained),
+				Color(0.5, 1.0, 0.95, 1.0),
+				hud_container
+			)
 	
 	# 2. Main Reward (Boss Loot) - Only on Victory
 	var item := {}
@@ -1095,6 +1545,16 @@ func _resolve_session_xp_multiplier() -> float:
 		return maxf(1.0, 1.0 + (bonus_pct / 100.0))
 
 	return 1.0
+
+func _compute_override_crystal_reward(is_victory: bool) -> int:
+	if _override_crystal_reward_per_score <= 0.0:
+		return 0
+	if _override_crystal_reward_victory_only and not is_victory:
+		return 0
+	if session_xp <= 0:
+		return 0
+	var raw_reward: float = float(session_xp) * _override_crystal_reward_per_score * _override_crystal_multiplier
+	return maxi(0, int(round(raw_reward)))
 
 func _apply_victory_progress() -> void:
 	var levels_per_world: int = max(1, App.get_world_level_count(current_world_id))

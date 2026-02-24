@@ -31,6 +31,7 @@ var xp_multiplier_bonus: float = 0.0
 var current_missile_id: String = "missile_default"
 var special_power_id: String = ""
 var unique_power_id: String = ""
+var _healing_multiplier: float = 1.0
 
 # Status
 var is_invincible: bool = false
@@ -1263,9 +1264,14 @@ func die() -> void:
 	queue_free()
 
 func heal(amount: int) -> void:
-	current_hp += amount
+	var effective_amount: int = int(round(float(amount) * _healing_multiplier))
+	effective_amount = maxi(0, effective_amount)
+	current_hp += effective_amount
 	current_hp = mini(current_hp, max_hp)
-	print("[Player] Healed: ", amount, " | HP: ", current_hp, "/", max_hp)
+	print("[Player] Healed: ", effective_amount, " | HP: ", current_hp, "/", max_hp)
+
+func set_healing_multiplier(multiplier: float) -> void:
+	_healing_multiplier = clampf(multiplier, 0.0, 1.0)
 
 # =============================================================================
 # UTILITY (Visual generation)

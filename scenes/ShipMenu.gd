@@ -2229,7 +2229,6 @@ func _show_recycle_confirmation_popup(message_text: String, on_confirm: Callable
 	hbox.add_child(btn_cancel)
 	
 	add_child(popup)
-	popup.layout_mode = 1 # Anchors
 	popup.set_anchors_preset(Control.PRESET_CENTER)
 	popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	popup.grow_vertical = Control.GROW_DIRECTION_BOTH

@@ -396,7 +396,31 @@
 		"background": "res://assets/ui/main_menu_bg.jpg"
 	},
 	"world_select": {
-		"background": "res://assets/backgrounds/menus/world_select_menu.jpg"
+		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+		"arrow_left": "res://assets/ui/arrow_left.png",
+		"arrow_right": "res://assets/ui/arrow_right.png",
+		"image_width_pct": 0.52,
+		"arrows": {
+			"width": 82,
+			"height": 82
+		},
+		"back_button": {
+			"x": 35,
+			"y": 35,
+			"width": 75,
+			"height": 75
+		},
+		"details": {
+			"details_panel_bg": "res://assets/ui/popup_background.png",
+			"title_text_size": 30,
+			"description_text_size": 20,
+			"text_color": "#FFFFFF"
+		},
+		"button_bg": "",
+		"button_font_size": 24,
+		"button_font_color": "#FFFFFF",
+		"locked_asset": "res://assets/ui/buttons/locked.png",
+		"locked_opacity": 0.35
 	},
 	"popups": {
 		"margin": 35,
