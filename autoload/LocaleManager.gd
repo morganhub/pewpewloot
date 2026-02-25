@@ -8,9 +8,9 @@ var _strings: Dictionary = {}
 var _story_strings: Dictionary = {}
 
 func _ready() -> void:
-	# Récupérer la locale sauvegardée dans ProfileManager
-	var saved_locale = ProfileManager.get_setting("locale", _current_locale)
-	load_locale(saved_locale)
+	# Load default locale so translate() works before bootstrap. Bootstrap will call
+	# load_locale(ProfileManager.get_setting("locale", "en")) after ProfileManager.load_from_disk().
+	load_locale("en")
 
 func load_locale(locale: String) -> void:
 	_current_locale = locale

@@ -56,6 +56,7 @@ var _sound_timer: float = 0.0
 var _sound_remaining_repeats: int = 0
 var _overdrive_enabled: bool = false
 var _overdrive_fire_rate_override: float = 0.05
+var _damage_multiplier: float = 1.0
 
 # Visual
 @onready var visual_container: Node2D = $Visual
@@ -297,12 +298,15 @@ func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> Stri
 		path = "rid:" + str(frames.get_rid().get_id())
 	return path + "|" + String(anim_name)
 
+func set_damage_multiplier(multiplier: float) -> void:
+	_damage_multiplier = maxf(0.0, multiplier)
+
 func get_contact_damage() -> int:
 	# Dégâts de contact du boss (assez élevés)
 	var dmg: int = 20
 	if not _missile_pattern_data.is_empty():
 		dmg = int(_missile_pattern_data.get("damage", 20))
-	return dmg
+	return int(float(dmg) * _damage_multiplier)
 
 # =============================================================================
 # LIFECYCLE
@@ -640,7 +644,7 @@ func _fire() -> void:
 	var spread_angle: float = float(_missile_pattern_data.get("spread_angle", 0))
 	var trajectory := str(_missile_pattern_data.get("trajectory", "straight"))
 	var speed: float = float(_missile_pattern_data.get("speed", 200))
-	var damage: int = int(_missile_pattern_data.get("damage", 15))
+	var damage: int = int(float(_missile_pattern_data.get("damage", 15)) * _damage_multiplier)
 	var spawn_strategy: String = str(_missile_pattern_data.get("spawn_strategy", "shooter"))
 	
 	# Injecter les data visuelles du missile

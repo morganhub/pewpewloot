@@ -20,15 +20,38 @@ var _prewarmed_screens: Dictionary = {} # scene_path -> PackedScene
 var _menu_prewarm_started: bool = false
 
 func _ready() -> void:
-	# On démarre en noir puis on fade-out après le 1er écran
 	fade.z_index = 1000
 	fade.color.a = 1.0
 
-	# Déterminer l'écran de démarrage
-	var start_screen := _get_start_screen()
-	goto_screen(start_screen, false)
+	# Show bootstrap LoadingScreen (bar + main_menu background), load data + scenes, then go to ProfileSelect or HomeScreen
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.layer = 100
+	canvas_layer.name = "LoadingLayer"
+	add_child(canvas_layer)
 
-	# Fade out initial
+	var loading_screen = load("res://scenes/ui/LoadingScreen.tscn").instantiate()
+	canvas_layer.add_child(loading_screen)
+	loading_screen.start_bootstrap_loading()
+
+	var target_screen_path: String = await loading_screen.bootstrap_completed
+
+	_prepare_current_screen_for_transition()
+	if current_screen != null:
+		current_screen.queue_free()
+		current_screen = null
+
+	var packed: PackedScene = _get_or_load_menu_scene(target_screen_path)
+	if packed != null:
+		current_screen = packed.instantiate()
+		screen_root.add_child(current_screen)
+		if current_screen is Control:
+			current_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		push_error("[SceneSwitcher] Failed to load bootstrap scene: " + target_screen_path)
+
+	await loading_screen.fade_out()
+	canvas_layer.queue_free()
+
 	await _fade_to(0.0)
 
 func _get_start_screen() -> String:
@@ -149,6 +172,9 @@ func _get_or_load_menu_scene(scene_path: String) -> PackedScene:
 	if cached is PackedScene:
 		return cached as PackedScene
 	return _load_scene_sync(scene_path)
+
+func get_menu_prewarm_resource_paths() -> Array:
+	return _build_menu_prewarm_resource_list()
 
 func _load_scene_sync(scene_path: String) -> PackedScene:
 	if scene_path == "":

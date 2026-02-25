@@ -34,6 +34,7 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 var _game_config: Dictionary = {}
 var _crystal_anim: AnimatedSprite2D = null
+static var _logo_first_visit: bool = true
 
 # =============================================================================
 # LIFECYCLE
@@ -66,13 +67,10 @@ func _ready() -> void:
 			unlock_all_button.pressed.connect(_on_unlock_all_pressed)
 
 func _load_game_config() -> void:
-	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
-	if file:
-		var json := JSON.new()
-		var err := json.parse(file.get_as_text())
-		file.close()
-		if err == OK and json.data is Dictionary:
-			_game_config = json.data
+	if DataManager:
+		_game_config = DataManager.get_game_config()
+	else:
+		_game_config = {}
 
 func _setup_layout() -> void:
 	# Layout is handled by anchors
@@ -313,8 +311,14 @@ func _setup_logo() -> void:
 	if logo_texture: logo_texture.visible = false
 	if logo_anim_container: logo_anim_container.visible = false
 	
-	# Priority 1: Animated Logo
-	if logo_anim_path != "" and ResourceLoader.exists(logo_anim_path):
+	# Au premier passage dans la session : logo animé. Retours au menu : logo statique (main_menu.logo)
+	var was_first_visit: bool = _logo_first_visit
+	if _logo_first_visit:
+		_logo_first_visit = false
+	var use_animated_logo: bool = was_first_visit and (logo_anim_path != "" and ResourceLoader.exists(logo_anim_path))
+	
+	# Logo animé : uniquement au démarrage du jeu
+	if use_animated_logo:
 		var frames: Resource = load(logo_anim_path)
 		if frames is SpriteFrames and logo_anim:
 			VFXManager.play_sprite_frames(
@@ -325,12 +329,10 @@ func _setup_logo() -> void:
 				logo_anim_duration
 			)
 			
-			# Center and scale (contain) animation in container
 			if not logo_anim_container.resized.is_connected(_center_logo_anim):
 				logo_anim_container.resized.connect(_center_logo_anim)
 			_center_logo_anim()
 			
-			# Start animation (scale from 0 to 1, fade in)
 			logo_anim_container.scale = Vector2.ZERO
 			logo_anim_container.modulate.a = 0.0
 			logo_anim_container.pivot_offset = target_size / 2
@@ -343,22 +345,23 @@ func _setup_logo() -> void:
 			title_label.visible = false
 			return
 
-	# Priority 2: Static Logo
+	# Logo statique (retours au menu ou si pas d'anim) : main_menu.logo
 	if logo_path != "" and ResourceLoader.exists(logo_path):
 		var tex = load(logo_path)
 		if tex and logo_texture:
 			logo_texture.texture = tex
 			logo_texture.visible = true
 			title_label.visible = false
-			
-			# Start animation (scale from 0 to 1, fade in)
 			logo_texture.pivot_offset = target_size / 2
-			logo_texture.scale = Vector2.ZERO
-			logo_texture.modulate.a = 0.0
-			
-			var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			tween.tween_property(logo_texture, "scale", Vector2.ONE, 3.0)
-			tween.tween_property(logo_texture, "modulate:a", 1.0, 3.0)
+			if was_first_visit:
+				logo_texture.scale = Vector2.ZERO
+				logo_texture.modulate.a = 0.0
+				var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+				tween.tween_property(logo_texture, "scale", Vector2.ONE, 3.0)
+				tween.tween_property(logo_texture, "modulate:a", 1.0, 3.0)
+			else:
+				logo_texture.scale = Vector2.ONE
+				logo_texture.modulate.a = 1.0
 			return
 
 func _center_logo_anim() -> void:
@@ -521,7 +524,7 @@ func _update_info() -> void:
 	# Player Level
 	var player_level := ProfileManager.get_player_level()
 	if level_label:
-		level_label.text = "Nv." + str(player_level)
+		level_label.text = "Nv." + str(player_level) + "  " + str(ProfileManager.get_levels_cleared_with_max_override()) + "/" + str(ProfileManager.get_max_levels_override())
 	
 	# Ship preview (visual)
 	_update_ship_preview()

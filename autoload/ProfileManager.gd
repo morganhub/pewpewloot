@@ -8,7 +8,9 @@ signal level_up(new_level: int, skill_points_earned: int)
 var active_profile_id: String = ""
 var profiles: Array[Dictionary] = []
 func _ready() -> void:
-	load_from_disk()
+	# load_from_disk() is called by bootstrap (LoadingScreen) after DataManager.load_remaining_data()
+	# so that migration can use DataManager (ships, uniques, skills, etc.)
+	pass
 
 var settings: Dictionary = {
 	"music_volume": 1.0,
@@ -231,6 +233,11 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	# Migration: viewed_stories
 	if not migrated.has("viewed_stories"):
 		migrated["viewed_stories"] = []
+		needs_save = true
+
+	# Migration: levels_cleared_with_max_override
+	if not migrated.has("levels_cleared_with_max_override"):
+		migrated["levels_cleared_with_max_override"] = 0
 		needs_save = true
 	
 	# Keep profile ship references valid if ship IDs changed in ships.json.
@@ -495,7 +502,8 @@ func create_profile(profile_name: String, portrait_id: int) -> String:
 		"skills_unlocked": { "fire_straight": 1 },
 		"active_magic_branch": "",
 		"equipped_fire_pattern": "fire_ship_default",
-		"viewed_stories": []
+		"viewed_stories": [],
+		"levels_cleared_with_max_override": 0
 	}
 
 	profiles.append(profile)
@@ -588,6 +596,25 @@ func get_world_active_override_protocols(world_id: String) -> Array:
 	var world_progress: Dictionary = get_world_progress(world_id)
 	return _sanitize_protocol_id_array(world_progress.get("active_override_protocols", []))
 
+## Number of levels (across all worlds) cleared with max override protocols (10). Display as X/get_max_levels_override().
+func get_levels_cleared_with_max_override() -> int:
+	var profile := get_active_profile()
+	return int(profile.get("levels_cleared_with_max_override", 0))
+
+## Total number of levels in the game (all worlds). Used as cap for override count display (e.g. 54).
+func get_max_levels_override() -> int:
+	if App == null or not App.has_method("get_worlds"):
+		return 54
+	var total: int = 0
+	for world_variant in App.get_worlds():
+		if not (world_variant is Dictionary):
+			continue
+		var world_id: String = str((world_variant as Dictionary).get("id", ""))
+		if world_id == "":
+			continue
+		total += App.get_world_level_count(world_id)
+	return maxi(1, total)
+
 func set_world_active_override_protocols(world_id: String, protocol_ids: Array) -> void:
 	var profile := get_active_profile()
 	if profile.is_empty():
@@ -610,7 +637,7 @@ func set_world_active_override_protocols(world_id: String, protocol_ids: Array) 
 	progress[world_id] = world_progress
 	_apply_progress_to_active_profile(progress)
 
-func complete_level(world_id: String, level_index: int, levels_per_world: int = 6) -> void:
+func complete_level(world_id: String, level_index: int, levels_per_world: int = 6, override_count: int = 0) -> void:
 	var profile := get_active_profile()
 	if profile.is_empty():
 		return
@@ -640,6 +667,13 @@ func complete_level(world_id: String, level_index: int, levels_per_world: int = 
 		world_prog["boss_killed"] = true
 
 	prog[world_id] = world_prog
+
+	# Levels cleared with max override (10 protocols): increment counter, cap at get_max_levels_override()
+	const MAX_PROTOCOLS_FOR_COUNT: int = 10
+	if override_count >= MAX_PROTOCOLS_FOR_COUNT:
+		var current: int = int(profile.get("levels_cleared_with_max_override", 0))
+		var cap: int = get_max_levels_override()
+		_update_active_profile("levels_cleared_with_max_override", mini(cap, current + 1))
 
 	# Ecrit dans le profil dans la liste profiles
 	_apply_progress_to_active_profile(prog)

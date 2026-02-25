@@ -13,14 +13,17 @@ var _visual_asset_anim: String = ""
 var _visual_asset_anim_duration: float = 0.0
 var _visual_asset_anim_loop: bool = true
 var _visual_size: float = 120.0
+var _visual_opacity: float = 0.7
 var _pool_fluid_id: String = ""
 var _fluid_pool_handle: int = -1
 var _affects_enemies: bool = true
 var _affects_player: bool = false
 var _apply_poison_to_enemies: bool = true
+var _fade_tween: Tween = null
 const TICK_INTERVAL: float = 0.5
 const STRONG_RESOURCE_CACHE_MAX: int = 128
 static var _strong_resource_cache: Dictionary = {} # path -> Resource
+static var _visible_size_cache: Dictionary = {} # texture key -> visible max dimension
 
 func setup(radius: float, duration: float, dps: float, visual_data: Dictionary = {}, behavior: Dictionary = {}) -> void:
 	pool_radius = radius
@@ -31,6 +34,7 @@ func setup(radius: float, duration: float, dps: float, visual_data: Dictionary =
 	_visual_asset_anim_duration = maxf(0.0, float(visual_data.get("asset_anim_duration", 0.0)))
 	_visual_asset_anim_loop = bool(visual_data.get("asset_anim_loop", true))
 	_visual_size = maxf(20.0, float(visual_data.get("size", pool_radius * 2.0)))
+	_visual_opacity = clampf(float(visual_data.get("opacity", _visual_opacity)), 0.0, 1.0)
 	_pool_fluid_id = str(visual_data.get("pool_fluid_id", ""))
 	_affects_enemies = bool(behavior.get("affects_enemies", true))
 	_affects_player = bool(behavior.get("affects_player", false))
@@ -41,6 +45,8 @@ func setup(radius: float, duration: float, dps: float, visual_data: Dictionary =
 	# Démarrer le fluid pool si un preset est défini
 	if _pool_fluid_id != "" and FluidManager.is_active():
 		_fluid_pool_handle = FluidManager.start_pool(global_position, _pool_fluid_id, pool_radius, pool_duration)
+	if is_inside_tree():
+		_set_fade_target(_visual_opacity, 0.12)
 
 func _ready() -> void:
 	collision_layer = 0
@@ -55,8 +61,18 @@ func _ready() -> void:
 	_update_visuals()
 
 	modulate.a = 0.0
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.7, 0.2)
+	_set_fade_target(_visual_opacity, 0.12)
+
+func _set_fade_target(target_alpha: float, duration: float) -> void:
+	if _fade_tween != null and is_instance_valid(_fade_tween):
+		_fade_tween.kill()
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(
+		self,
+		"modulate:a",
+		clampf(target_alpha, 0.0, 1.0),
+		maxf(0.01, duration)
+	)
 
 func _update_shape() -> void:
 	for child in get_children():
@@ -85,16 +101,18 @@ func _update_visuals() -> void:
 	visual.z_index = -6
 	add_child(visual)
 
+	# pool_visual.size in JSON is the circle radius; scale sprite to diameter so it fits inside the circle
+	var target_diameter: float = _visual_size * 2.0
 	if _try_add_animated_visual(
 		visual,
 		_visual_asset_anim,
-		_visual_size,
-		Color(0.65, 1.0, 0.65, 0.55),
+		target_diameter,
+		Color(0.65, 1.0, 0.65, 1.0),
 		_visual_asset_anim_duration,
 		_visual_asset_anim_loop
 	):
 		return
-	if _try_add_static_visual(visual, _visual_asset, _visual_size, Color(0.65, 1.0, 0.65, 0.5)):
+	if _try_add_static_visual(visual, _visual_asset, target_diameter, Color(0.65, 1.0, 0.65, 1.0)):
 		return
 
 	var ring := Polygon2D.new()
@@ -104,7 +122,7 @@ func _update_visuals() -> void:
 		var angle := (float(i) / float(segments)) * TAU
 		points.append(Vector2(cos(angle), sin(angle)) * pool_radius)
 	ring.polygon = points
-	ring.color = Color(0.2, 0.9, 0.1, 0.4)
+	ring.color = Color(0.2, 0.9, 0.1, 1.0)
 	visual.add_child(ring)
 
 func _process(delta: float) -> void:
@@ -139,9 +157,11 @@ func _fade_and_die() -> void:
 	if _fluid_pool_handle >= 0:
 		FluidManager.stop_pool(_fluid_pool_handle)
 		_fluid_pool_handle = -1
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(queue_free)
+	if _fade_tween != null and is_instance_valid(_fade_tween):
+		_fade_tween.kill()
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 0.0, 0.15)
+	_fade_tween.tween_callback(queue_free)
 
 func _try_add_animated_visual(
 	parent: Node2D,
@@ -179,9 +199,9 @@ func _try_add_animated_visual(
 
 	var frame_tex: Texture2D = sprite.sprite_frames.get_frame_texture(played_anim, 0)
 	if frame_tex:
-		var frame_size: Vector2 = frame_tex.get_size()
-		if frame_size.x > 0 and frame_size.y > 0:
-			var scale_factor: float = target_size / maxf(frame_size.x, frame_size.y)
+		var reference_size: float = _get_texture_visible_max_dimension(frame_tex)
+		if reference_size > 0.0:
+			var scale_factor: float = target_size / reference_size
 			sprite.scale = Vector2.ONE * scale_factor
 	return true
 
@@ -197,11 +217,55 @@ func _try_add_static_visual(parent: Node2D, asset: String, target_size: float, t
 	sprite.modulate = tint
 	parent.add_child(sprite)
 
-	var tex_size: Vector2 = texture.get_size()
-	if tex_size.x > 0 and tex_size.y > 0:
-		var scale_factor: float = target_size / maxf(tex_size.x, tex_size.y)
+	var reference_size: float = _get_texture_visible_max_dimension(texture)
+	if reference_size > 0.0:
+		var scale_factor: float = target_size / reference_size
 		sprite.scale = Vector2.ONE * scale_factor
 	return true
+
+func _get_texture_visible_max_dimension(texture: Texture2D) -> float:
+	if texture == null:
+		return 0.0
+	var texture_size: Vector2 = texture.get_size()
+	var fallback_max_dim: float = maxf(texture_size.x, texture_size.y)
+	if fallback_max_dim <= 0.0:
+		return 0.0
+
+	var cache_key: String = _get_texture_cache_key(texture)
+	if _visible_size_cache.has(cache_key):
+		return float(_visible_size_cache.get(cache_key, fallback_max_dim))
+
+	var visible_max_dim: float = fallback_max_dim
+	var image: Image = texture.get_image()
+	if image != null and not image.is_empty():
+		var width: int = image.get_width()
+		var height: int = image.get_height()
+		if width > 0 and height > 0:
+			var min_x: int = width
+			var min_y: int = height
+			var max_x: int = -1
+			var max_y: int = -1
+			for y in range(height):
+				for x in range(width):
+					if image.get_pixel(x, y).a <= 0.0:
+						continue
+					min_x = mini(min_x, x)
+					min_y = mini(min_y, y)
+					max_x = maxi(max_x, x)
+					max_y = maxi(max_y, y)
+			if max_x >= 0 and max_y >= 0:
+				var visible_w: int = max_x - min_x + 1
+				var visible_h: int = max_y - min_y + 1
+				visible_max_dim = float(maxi(1, maxi(visible_w, visible_h)))
+
+	_visible_size_cache[cache_key] = visible_max_dim
+	return visible_max_dim
+
+func _get_texture_cache_key(texture: Texture2D) -> String:
+	var path: String = texture.resource_path.strip_edges()
+	if path != "":
+		return path
+	return "instance:%s" % str(texture)
 
 func _load_cached_resource(path: String) -> Resource:
 	if path == "":

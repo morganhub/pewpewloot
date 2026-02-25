@@ -370,6 +370,8 @@ func _load_override_protocol_state() -> void:
 		var overdrive_cfg: Dictionary = _get_override_protocol_settings("boss_overdrive")
 		_override_boss_overdrive_fire_rate = maxf(0.0, float(overdrive_cfg.get("fire_rate", _override_boss_overdrive_fire_rate)))
 
+	_apply_world_damage_multipliers_to_override_protocols()
+
 	print(
 		"[Game] Active override protocols: ",
 		_active_override_protocol_ids,
@@ -391,6 +393,18 @@ func _get_override_protocol_settings(protocol_id: String) -> Dictionary:
 	var settings: Dictionary = DataManager.get_override_protocol_settings(protocol_id)
 	_override_protocol_settings_map[protocol_id] = settings.duplicate(true)
 	return settings
+
+func _get_world_damage_multiplier() -> float:
+	var level_bonus: float = current_level_index * 0.05
+	return float(_world_multipliers.get("damage", 1.0)) + level_bonus
+
+func _apply_world_damage_multipliers_to_override_protocols() -> void:
+	var world_damage_mult: float = _get_world_damage_multiplier()
+	if _override_enable_toxic_pools:
+		_override_toxic_pool_dps = maxf(0.0, _override_toxic_pool_dps * world_damage_mult)
+	if _override_enable_volatile_reactors:
+		_override_volatile_explosion_damage = maxi(1, int(float(_override_volatile_explosion_damage) * world_damage_mult))
+		_override_volatile_projectile_damage = maxi(1, int(float(_override_volatile_projectile_damage) * world_damage_mult))
 
 func _resolve_override_resource_path(raw_path: String) -> String:
 	var clean_path: String = raw_path.strip_edges()
@@ -599,12 +613,17 @@ func _spawn_override_toxic_pool() -> void:
 	if _override_toxic_pool_nodes.size() >= max_active:
 		return
 
-	var viewport_size := get_viewport_rect().size
-	var margin: float = 80.0
-	var spawn_pos := Vector2(
-		randf_range(margin, maxf(margin, viewport_size.x - margin)),
-		randf_range(margin, maxf(margin, viewport_size.y - margin))
-	)
+	var spawn_pos: Vector2
+	if player != null and is_instance_valid(player):
+		# system_corruption : spawn centré sur le joueur pour l'inciter à bouger
+		spawn_pos = player.global_position
+	else:
+		var viewport_size := get_viewport_rect().size
+		var margin: float = 80.0
+		spawn_pos = Vector2(
+			randf_range(margin, maxf(margin, viewport_size.x - margin)),
+			randf_range(margin, maxf(margin, viewport_size.y - margin))
+		)
 
 	var pool := TOXIC_POOL_SCENE.instantiate()
 	if not (pool is Area2D):
@@ -649,6 +668,10 @@ func _setup_emp_vignette() -> void:
 	_override_vignette_rect.material = shader_material
 
 	ui_layer.add_child(_override_vignette_rect)
+	# Fade-in rapide au lieu d'affichage instantané
+	_override_vignette_rect.modulate.a = 0.0
+	var tween := _override_vignette_rect.create_tween()
+	tween.tween_property(_override_vignette_rect, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 # =============================================================================
 # CAMERA
@@ -1142,7 +1165,7 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	# Scaling basé sur les multipliers du world + progression dans le world
 	var level_bonus: float = current_level_index * 0.05
 	var hp_mult: float = float(_world_multipliers.get("hp", 1.0)) + level_bonus
-	var dmg_mult: float = float(_world_multipliers.get("damage", 1.0)) + level_bonus
+	var dmg_mult: float = _get_world_damage_multiplier()
 	var spd_mult: float = float(_world_multipliers.get("speed", 1.0))
 	hp_mult *= _override_enemy_hp_multiplier
 	spd_mult *= _override_enemy_move_multiplier
@@ -1388,6 +1411,8 @@ func _spawn_boss(boss_id: String) -> void:
 	if boss_hp_mult != 1.0:
 		boss.max_hp = int(boss.max_hp * boss_hp_mult)
 		boss.current_hp = boss.max_hp
+	if boss.has_method("set_damage_multiplier"):
+		boss.call("set_damage_multiplier", _get_world_damage_multiplier())
 	if _override_enable_boss_overdrive and boss.has_method("set_overdrive_enabled"):
 		boss.call(
 			"set_overdrive_enabled",
@@ -1558,7 +1583,7 @@ func _compute_override_crystal_reward(is_victory: bool) -> int:
 
 func _apply_victory_progress() -> void:
 	var levels_per_world: int = max(1, App.get_world_level_count(current_world_id))
-	ProfileManager.complete_level(current_world_id, current_level_index, levels_per_world)
+	ProfileManager.complete_level(current_world_id, current_level_index, levels_per_world, _active_override_protocol_ids.size())
 
 	var is_final_level_in_world: bool = current_level_index >= levels_per_world - 1
 	if is_final_level_in_world and _has_next_world(current_world_id):

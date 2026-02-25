@@ -31,17 +31,22 @@ var _story_settings: Dictionary = {} # global_settings from story.json
 
 var _default_unlocked_ships: Array = []
 
-func _ready() -> void:
-	_load_all_data()
+var _full_data_loaded: bool = false
 
-func _load_all_data() -> void:
-	_load_game_config() # Load generic game config first
+func _ready() -> void:
+	_load_game_config()
 	_load_override_protocols()
+	print("[DataManager] Minimal data loaded (game + override_protocols).")
+
+## Call this during bootstrap loading (e.g. from LoadingScreen). Loads all remaining JSON data.
+func load_remaining_data() -> void:
+	if _full_data_loaded:
+		return
 	_load_worlds()
 	_load_ships()
 	_load_patterns()
 	_load_missiles()
-	_load_powers() # New
+	_load_powers()
 	_load_enemies()
 	_load_bosses()
 	_load_loot_data()
@@ -52,6 +57,7 @@ func _load_all_data() -> void:
 	_load_obstacles()
 	_load_fluids()
 	_load_stories()
+	_full_data_loaded = true
 	print("[DataManager] All data loaded.")
 	print("[DataManager] Worlds: ", _worlds.size())
 	print("[DataManager] Ships: ", _ships.size())
@@ -65,6 +71,11 @@ func _load_all_data() -> void:
 	print("[DataManager] Obstacles: ", _obstacles.size())
 	print("[DataManager] Fluids: ", _fluids.size())
 	print("[DataManager] Stories: ", _stories.size())
+
+func _load_all_data() -> void:
+	_load_game_config()
+	_load_override_protocols()
+	load_remaining_data()
 
 
 # =============================================================================
@@ -863,6 +874,7 @@ func _load_json(path: String) -> Dictionary:
 ## Recharge toutes les données (utile pour le debug)
 func reload_all() -> void:
 	print("[DataManager] Reloading all data...")
+	_full_data_loaded = false
 	_load_all_data()
 
 # =============================================================================

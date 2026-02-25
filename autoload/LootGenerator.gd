@@ -43,7 +43,16 @@ const _ITEM_PERCENT_FLOORS := {
 # =============================================================================
 
 func _ready() -> void:
-	_load_loot_table()
+	# Loot table is loaded by bootstrap (LoadingScreen) after DataManager.load_remaining_data()
+	# via ensure_loot_loaded() so that DataManager uniques are available for _refresh_unique_items_cache.
+	pass
+
+## Call from bootstrap after DataManager.load_remaining_data(). Loads loot_table.json and syncs uniques from DataManager.
+func ensure_loot_loaded() -> void:
+	if _loot_config.is_empty():
+		_load_loot_table()
+	else:
+		_refresh_unique_items_cache()
 
 func _load_loot_table() -> void:
 	var path := "res://data/loot_table.json"

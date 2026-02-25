@@ -1,6 +1,7 @@
 extends Control
 
 signal loading_completed(packed_scene: PackedScene)
+signal bootstrap_completed(target_screen_path: String)
 
 const ENEMY_SCENE: PackedScene = preload("res://scenes/Enemy.tscn")
 const DEBUG_LOADING_RESOURCES_LOG := false
@@ -60,10 +61,24 @@ var _loading_screen_config: Dictionary = {}
 var _show_loading_label: bool = false
 var _level_preview: TextureRect = null
 var _displayed_progress_pct: float = 0.0
+var _forced_background_path: String = ""
 
 func _ready() -> void:
 	modulate.a = 0.0 # Start invisible
 	_refresh_loading_screen_look()
+
+## Used for app startup: show loading bar with main_menu background, load data + scenes, then emit bootstrap_completed with ProfileSelect or HomeScreen path.
+func start_bootstrap_loading() -> void:
+	var main_menu: Dictionary = DataManager.get_game_config().get("main_menu", {})
+	_forced_background_path = str(main_menu.get("background", ""))
+	_refresh_loading_screen_look()
+
+	var tw = create_tween()
+	tw.tween_property(self, "modulate:a", 1.0, 0.3)
+	await tw.finished
+	await get_tree().process_frame
+
+	await _perform_bootstrap_loading()
 	
 func start_loading(scene_path: String) -> void:
 	_target_scene_path = scene_path
@@ -199,7 +214,7 @@ func _apply_loading_visual_config() -> void:
 func _apply_level_preview_from_current_level() -> void:
 	if _level_preview == null:
 		return
-	var bg_path: String = _resolve_current_level_background_path()
+	var bg_path: String = _forced_background_path if _forced_background_path != "" else _resolve_current_level_background_path()
 	if bg_path == "":
 		_level_preview.visible = false
 		_level_preview.texture = null
@@ -248,6 +263,88 @@ func _extract_texture_from_resource(resource: Resource) -> Texture2D:
 func _set_loading_label_text(text: String) -> void:
 	if loading_label and _show_loading_label:
 		loading_label.text = text
+
+func _perform_bootstrap_loading() -> void:
+	_set_loading_label_text("LOADING...")
+	_displayed_progress_pct = 0.0
+	if progress_bar:
+		progress_bar.value = _displayed_progress_pct
+
+	const TOTAL_STEPS: int = 7
+	var done_steps: int = 0
+
+	# 1. DataManager remaining data
+	DataManager.load_remaining_data()
+	done_steps += 1
+	_update_progress(done_steps, TOTAL_STEPS, "Data")
+	await get_tree().process_frame
+
+	# 2. ProfileManager
+	ProfileManager.load_from_disk()
+	done_steps += 1
+	_update_progress(done_steps, TOTAL_STEPS, "Profiles")
+	await get_tree().process_frame
+
+	# Apply user volume settings now that save is loaded (music was not started yet)
+	if AudioManager and AudioManager.has_method("sync_volumes"):
+		AudioManager.sync_volumes()
+
+	# 3. LocaleManager sync with saved locale
+	LocaleManager.load_locale(ProfileManager.get_setting("locale", "en"))
+	done_steps += 1
+	_update_progress(done_steps, TOTAL_STEPS, "Locale")
+	await get_tree().process_frame
+
+	# 4. LootGenerator
+	if LootGenerator and LootGenerator.has_method("ensure_loot_loaded"):
+		LootGenerator.ensure_loot_loaded()
+	done_steps += 1
+	_update_progress(done_steps, TOTAL_STEPS, "Loot")
+	await get_tree().process_frame
+
+	# 5. Load menu scenes (HomeScreen, ProfileSelect)
+	const HOME_SCENE := "res://scenes/HomeScreen.tscn"
+	const PROFILE_SCENE := "res://scenes/ProfileSelect.tscn"
+	if ResourceLoader.exists(HOME_SCENE):
+		ResourceLoader.load(HOME_SCENE, "", ResourceLoader.CACHE_MODE_REUSE)
+	if ResourceLoader.exists(PROFILE_SCENE):
+		ResourceLoader.load(PROFILE_SCENE, "", ResourceLoader.CACHE_MODE_REUSE)
+	done_steps += 1
+	_update_progress(done_steps, TOTAL_STEPS, "Scenes")
+	await get_tree().process_frame
+
+	# 6. Prewarm menu resources (from SceneSwitcher if available)
+	var switcher: Node = get_parent().get_parent() if get_parent() else null
+	if switcher != null and switcher.has_method("get_menu_prewarm_resource_paths"):
+		var paths: Array = switcher.get_menu_prewarm_resource_paths()
+		const YIELD_EVERY: int = 6
+		var count: int = 0
+		for path_variant in paths:
+			var path: String = str(path_variant)
+			if path == "" or not ResourceLoader.exists(path):
+				continue
+			ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+			count += 1
+			if count % YIELD_EVERY == 0:
+				await get_tree().process_frame
+	done_steps += 1
+	_update_progress(done_steps, TOTAL_STEPS, "Prewarm")
+	await get_tree().process_frame
+
+	# 7. Determine target screen
+	var target_screen_path: String
+	if ProfileManager.active_profile_id != "":
+		var profile: Dictionary = ProfileManager.get_active_profile()
+		if not profile.is_empty():
+			target_screen_path = "res://scenes/HomeScreen.tscn"
+		else:
+			target_screen_path = "res://scenes/ProfileSelect.tscn"
+	else:
+		target_screen_path = "res://scenes/ProfileSelect.tscn"
+
+	_update_progress(TOTAL_STEPS, TOTAL_STEPS, "Done")
+	await get_tree().process_frame
+	bootstrap_completed.emit(target_screen_path)
 
 func _perform_loading() -> void:
 	_set_loading_label_text("LOADING...")

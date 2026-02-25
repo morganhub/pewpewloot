@@ -75,11 +75,12 @@
           "apply_poison_to_enemies": false
         },
         "pool_visual": {
-          "asset": "res://assets/missiles/missile_poison.png",
-          "asset_anim": "res://assets/missiles/missile_poison.tres",
-          "asset_anim_duration": 1.1,
+          "asset": "",
+          "asset_anim": "res://assets/protocols/corruption.tres",
+          "asset_anim_duration": 2.0,
           "asset_anim_loop": true,
           "size": 164.0,
+          "opacity": 1.0,
           "pool_fluid_id": ""
         }
       }

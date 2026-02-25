@@ -14,6 +14,9 @@ extends Control
 
 const GRID_COLUMNS := 4
 const GRID_GAP := 12
+const SHIP_TRACK_DRAG_THRESHOLD := 12.0
+const SHIP_TRACK_SNAP_DURATION := 0.24
+const SHIP_TRACK_GAP := 12
 const ItemCardScene = preload("res://scenes/components/ItemCard.tscn")
 const ItemDetailsPopupScene = preload("res://scenes/components/ItemDetailsPopup.tscn")
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
@@ -110,15 +113,24 @@ var _item_details_popup: Control = null
 var _recycle_confirm_popup: PanelContainer = null
 
 
-# Ship scroll state for infinite cycling (replaced by pagination)
+# Ship scroll state — carousel with drag/snap and infinite wrap
 var current_ship_page: int = 0
 var _ship_visible_count: int = 4
-# _all_ships_data removed (unused)
-var _drag_start_pos: Vector2 = Vector2.ZERO
-var _min_drag_distance: float = 50.0
-var _is_dragging: bool = false
+var _current_ship_index: int = 0
+var _ship_track: Control = null
+var _ship_items: Array[Dictionary] = []
+var _ship_track_offset: float = 0.0
+var _ship_track_tween: Tween = null
+var _ship_pointer_down: bool = false
+var _ship_pointer_id: int = -1
+var _ship_dragging: bool = false
+var _ship_drag_start_x: float = 0.0
+var _ship_drag_start_offset: float = 0.0
 var _previous_selected_ship_id: String = ""
 var _is_initial_load: bool = true
+var _snap_was_selection_change: bool = false
+const _CENTER_RETRY_MAX := 20
+var _center_retry_count := 0
 
 
 # =============================================================================
@@ -145,6 +157,8 @@ func _ready() -> void:
 	
 	# Shop Button
 	if ship_container: ship_container.gui_input.connect(_on_ship_scroll_gui_input)
+	
+	# Ship carousel uses _input for drag/snap (like WorldSelect); gui_input kept for fallback
 	
 	generate_item_button.pressed.connect(_on_generate_item_pressed)
 	back_button.pressed.connect(_on_back_pressed)
@@ -284,6 +298,81 @@ func _ready() -> void:
 			sp_info.alignment = BoxContainer.ALIGNMENT_CENTER
 			sp_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
+func _input(event: InputEvent) -> void:
+	if _ship_track == null or _ship_items.is_empty():
+		return
+	if event is InputEventScreenTouch:
+		var e := event as InputEventScreenTouch
+		if e.pressed:
+			_on_ship_carousel_pointer_down(e.index, e.position)
+		else:
+			_on_ship_carousel_pointer_up(e.index, e.position)
+		return
+	if event is InputEventScreenDrag:
+		var e := event as InputEventScreenDrag
+		_on_ship_carousel_pointer_drag(e.index, e.position)
+		return
+	if event is InputEventMouseButton:
+		var e := event as InputEventMouseButton
+		if e.button_index != MOUSE_BUTTON_LEFT:
+			return
+		var global_pos: Vector2 = get_global_mouse_position()
+		if e.pressed:
+			_on_ship_carousel_pointer_down(-999, global_pos)
+		else:
+			_on_ship_carousel_pointer_up(-999, global_pos)
+		return
+	if event is InputEventMouseMotion:
+		if _ship_pointer_down and _ship_pointer_id == -999:
+			_on_ship_carousel_pointer_drag(-999, get_global_mouse_position())
+
+func _on_ship_carousel_pointer_down(id: int, global_pos: Vector2) -> void:
+	if not _is_inside_ship_carousel(global_pos):
+		return
+	_ship_pointer_down = true
+	_ship_pointer_id = id
+	_ship_dragging = false
+	_ship_drag_start_x = global_pos.x
+	_ship_drag_start_offset = _ship_track_offset
+	_kill_ship_track_tween()
+	get_viewport().set_input_as_handled()
+
+func _on_ship_carousel_pointer_drag(id: int, global_pos: Vector2) -> void:
+	if not _ship_pointer_down or id != _ship_pointer_id:
+		return
+	var delta_x: float = global_pos.x - _ship_drag_start_x
+	if not _ship_dragging and absf(delta_x) >= SHIP_TRACK_DRAG_THRESHOLD:
+		_ship_dragging = true
+	if not _ship_dragging:
+		return
+	_ship_track_offset = _ship_drag_start_offset + delta_x
+	_apply_ship_track_offset()
+	get_viewport().set_input_as_handled()
+
+func _on_ship_carousel_pointer_up(id: int, global_pos: Vector2) -> void:
+	if not _ship_pointer_down or id != _ship_pointer_id:
+		return
+	_ship_pointer_down = false
+	_ship_pointer_id = -1
+	if _ship_dragging:
+		_ship_dragging = false
+		var nearest: int = _nearest_ship_index_for_offset(_ship_track_offset)
+		_snap_to_ship_index(nearest, true)
+	else:
+		# Tap (pas de drag) : animer vers la carte puis mettre à jour la sélection
+		var idx: int = _find_ship_index_at_global_pos(global_pos)
+		if idx >= 0 and idx < _ship_items.size():
+			var ship_id: String = _ship_items[idx]["ship_id"]
+			var unlocked_ids := ProfileManager.get_unlocked_ships()
+			if not unlocked_ids.has(ship_id):
+				_on_ship_card_pressed(ship_id)
+			else:
+				selected_ship_id = ship_id
+				_current_ship_index = idx
+				ProfileManager.set_active_ship(ship_id)
+				_snap_to_ship_index(idx, true, true)
+	get_viewport().set_input_as_handled()
+
 func _initial_layout() -> void:
 	_calculate_layout_metrics()
 	_setup_visuals()
@@ -292,6 +381,8 @@ func _initial_layout() -> void:
 	_update_inventory_grid()
 
 func _on_resized() -> void:
+	if _ship_track != null and not _ship_items.is_empty():
+		_apply_ship_track_offset()
 	_calculate_layout_metrics()
 	_load_ships()
 	_update_inventory_grid()
@@ -681,6 +772,40 @@ func _calculate_layout_metrics() -> void:
 	
 	_ship_card_size = Vector2(maxf(1.0, s_width), maxf(1.0, s_height))
 	
+	# Arrow buttons size from config (ship_selection.arrow_width / arrow_height)
+	var arrow_w: float = maxf(24.0, float(ship_sel_cfg.get("arrow_width", 48)))
+	var arrow_h: float = maxf(24.0, float(ship_sel_cfg.get("arrow_height", 48)))
+	if ship_prev_btn:
+		ship_prev_btn.custom_minimum_size = Vector2(arrow_w, arrow_h)
+		ship_prev_btn.size = Vector2(arrow_w, arrow_h)
+		ship_prev_btn.expand_icon = true
+		ship_prev_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ship_prev_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if ship_next_btn:
+		ship_next_btn.custom_minimum_size = Vector2(arrow_w, arrow_h)
+		ship_next_btn.size = Vector2(arrow_w, arrow_h)
+		ship_next_btn.expand_icon = true
+		ship_next_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ship_next_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	
+	# Flèches pagination inventaire (prev/next) : même taille que shared_assets.lock (64x64)
+	var shared_assets: Dictionary = _game_config.get("shared_assets", {}) if _game_config.get("shared_assets") is Dictionary else {}
+	var lock_cfg: Dictionary = shared_assets.get("lock", {}) if shared_assets.get("lock") is Dictionary else {}
+	var pagination_arrow_w: float = maxf(24.0, float(lock_cfg.get("width", 64)))
+	var pagination_arrow_h: float = maxf(24.0, float(lock_cfg.get("height", 64)))
+	if prev_page_btn:
+		prev_page_btn.custom_minimum_size = Vector2(pagination_arrow_w, pagination_arrow_h)
+		prev_page_btn.size = Vector2(pagination_arrow_w, pagination_arrow_h)
+		prev_page_btn.expand_icon = true
+		prev_page_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		prev_page_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if next_page_btn:
+		next_page_btn.custom_minimum_size = Vector2(pagination_arrow_w, pagination_arrow_h)
+		next_page_btn.size = Vector2(pagination_arrow_w, pagination_arrow_h)
+		next_page_btn.expand_icon = true
+		next_page_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		next_page_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	
 	var v_gap = 40
 	
 	# Apply to grids
@@ -764,20 +889,37 @@ func _apply_translations() -> void:
 
 # =============================================================================
 
-func _load_ships() -> void:
-	# Clear existing
-	for child in ship_cards_container.get_children():
-		child.queue_free()
-	
+func _load_ships(update_center_from_selection: bool = true) -> void:
+	# Ensure carousel track exists (single track, drag/snap, infinite wrap)
+	if ship_container and _ship_track == null:
+		_ship_track = Control.new()
+		_ship_track.name = "ShipTrack"
+		_ship_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ship_track.clip_contents = false
+		ship_container.add_child(_ship_track)
+		ship_container.move_child(_ship_track, 0)
+		if ship_cards_container:
+			ship_cards_container.visible = false
+
+	# Ship container must have enough height for the cards
+	if ship_container:
+		ship_container.custom_minimum_size = Vector2(ship_container.custom_minimum_size.x, _ship_card_size.y)
+
+	# Clear track
+	if _ship_track:
+		for child in _ship_track.get_children():
+			child.queue_free()
+	_ship_items.clear()
+
 	var all_ships := DataManager.get_ships()
 	if all_ships.size() == 0:
 		DataManager.reload_all()
 		all_ships = DataManager.get_ships()
-		
+
 	var total_ships := all_ships.size()
 	var active_id: String = ProfileManager.get_active_ship_id()
 	var unlocked_ids := ProfileManager.get_unlocked_ships()
-	
+
 	if selected_ship_id == "":
 		selected_ship_id = active_id
 	if DataManager.get_ship(selected_ship_id).is_empty():
@@ -786,57 +928,177 @@ func _load_ships() -> void:
 		var first_ship: Variant = all_ships[0]
 		if first_ship is Dictionary:
 			selected_ship_id = str((first_ship as Dictionary).get("id", ""))
-	
-	# Validate page index
-	var total_pages: int = ceil(total_ships / float(_ship_visible_count))
-	if total_pages == 0: total_pages = 1
-	if current_ship_page < 0: current_ship_page = total_pages - 1
-	if current_ship_page >= total_pages: current_ship_page = 0
-	
-	# Update Counter Label
+
+	# Centre affiché : au chargement initial on centre sur le vaisseau sélectionné ; après un snap (drag/flèche) on garde la position
+	if update_center_from_selection:
+		var current_index := 0
+		for i in range(total_ships):
+			var s: Variant = all_ships[i]
+			if s is Dictionary and str((s as Dictionary).get("id", "")) == selected_ship_id:
+				current_index = i
+				break
+		_current_ship_index = current_index
+
+	# Counter label
 	if ship_count_label:
 		var count_str := str(unlocked_ids.size()) + " / " + str(total_ships)
-		# Use translation key if available, else fallback
 		var translated := LocaleManager.translate("ship_menu_unlocked_count", {"unlocked": str(unlocked_ids.size()), "total": str(total_ships)})
 		if translated != "ship_menu_unlocked_count":
 			ship_count_label.text = translated
 		else:
 			ship_count_label.text = count_str
-	
-	# Pagination slicing
-	var start_idx: int = current_ship_page * _ship_visible_count
-	var end_idx: int = int(min(start_idx + _ship_visible_count, total_ships))
-	
-	for i in range(start_idx, end_idx):
+
+	# Build all ship cards in track
+	for i in range(total_ships):
 		var ship = all_ships[i]
-		if ship is Dictionary:
-			var ship_dict := ship as Dictionary
-			var s_id := str(ship_dict.get("id", ""))
-			var s_name_key := "ship." + s_id + ".name"
-			var s_name := LocaleManager.translate(s_name_key)
-			if s_name == s_name_key: s_name = str(ship_dict.get("name", s_id))
-			
-			var is_unlocked := unlocked_ids.has(s_id)
-			var is_selected := (s_id == active_id) # Active ship is marked
-			if selected_ship_id == s_id:
-				is_selected = true # Or visually distinct?
-				# Actually, the checkmark is for active ship usually.
-				# Let's keep logic: checkmark if active. But highlight if selected?
-				# The create_ship_card logic handles "is_selected" as visual selection.
-				# Let's pass (s_id == selected_ship_id)
-				is_selected = (s_id == selected_ship_id)
-			
-			_create_ship_card(s_id, s_name, is_unlocked, is_selected, ship_dict)
-	
-	
-	# Update Previous ID for next time
+		if not (ship is Dictionary):
+			continue
+		var ship_dict := ship as Dictionary
+		var s_id := str(ship_dict.get("id", ""))
+		var s_name_key := "ship." + s_id + ".name"
+		var s_name := LocaleManager.translate(s_name_key)
+		if s_name == s_name_key:
+			s_name = str(ship_dict.get("name", s_id))
+		var is_unlocked := unlocked_ids.has(s_id)
+		var is_selected := (s_id == selected_ship_id)
+		_create_ship_card(s_id, s_name, is_unlocked, is_selected, ship_dict)
+		var card: Control = _ship_track.get_child(_ship_track.get_child_count() - 1) as Control
+		card.position = Vector2(i * (_ship_card_size.x + SHIP_TRACK_GAP), 0.0)
+		card.size = _ship_card_size
+		_ship_items.append({"node": card, "ship_id": s_id, "data": ship_dict})
+
+	# Track size and offset
+	if _ship_track and total_ships > 0:
+		var total_w: float = total_ships * _ship_card_size.x + (total_ships - 1) * SHIP_TRACK_GAP
+		_ship_track.size = Vector2(total_w, _ship_card_size.y)
+		_ship_track_offset = _offset_for_ship_index(_current_ship_index)
+		_apply_ship_track_offset()
+		if update_center_from_selection:
+			# Laisser le layout du ScrollContainer s'appliquer puis recentrer (comme au clic sur un vaisseau)
+			var t := get_tree().create_timer(0.15)
+			t.timeout.connect(_center_ship_track_on_selection)
+
 	_previous_selected_ship_id = selected_ship_id
 	_is_initial_load = false
-	
+
 	_update_ship_info(selected_ship_id)
 	_update_scroll_buttons()
 	_update_slot_buttons()
 	_update_inventory_grid()
+
+func _offset_for_ship_index(index: int) -> float:
+	if not ship_container or _ship_items.is_empty():
+		return 0.0
+	var center_x: float = ship_container.size.x * 0.5
+	if center_x <= 0.0:
+		center_x = (get_viewport_rect().size.x - 40.0) * 0.5
+	return center_x - (float(index) * (_ship_card_size.x + SHIP_TRACK_GAP) + _ship_card_size.x * 0.5)
+
+func _center_ship_track_on_selection() -> void:
+	if _ship_track == null or _ship_items.is_empty() or ship_container == null:
+		_center_retry_count = 0
+		return
+	# Utiliser la largeur du viewport en fallback si le conteneur n'est pas encore dimensionné
+	var container_w: float = ship_container.size.x
+	if container_w <= 0.0:
+		container_w = get_viewport_rect().size.x - 40.0
+		if container_w <= 0.0:
+			_center_retry_count += 1
+			if _center_retry_count < _CENTER_RETRY_MAX:
+				call_deferred("_center_ship_track_on_selection")
+			else:
+				_center_retry_count = 0
+			return
+	_center_retry_count = 0
+	var center_x: float = container_w * 0.5
+	_ship_track_offset = center_x - (float(_current_ship_index) * (_ship_card_size.x + SHIP_TRACK_GAP) + _ship_card_size.x * 0.5)
+	_apply_ship_track_offset()
+
+func _nearest_ship_index_for_offset(offset: float) -> int:
+	var n: int = _ship_items.size()
+	if n == 0:
+		return 0
+	if not ship_container:
+		return 0
+	var center_x: float = ship_container.size.x * 0.5
+	var step: float = _ship_card_size.x + SHIP_TRACK_GAP
+	var raw: float = (center_x - offset) / step
+	var idx: int = int(round(raw)) % n
+	if idx < 0:
+		idx += n
+	return clampi(idx, 0, n - 1)
+
+func _apply_ship_track_offset() -> void:
+	if _ship_track == null:
+		return
+	var y: float = 0.0
+	if ship_container:
+		y = (ship_container.size.y - _ship_card_size.y) * 0.5
+	_ship_track.position = Vector2(_ship_track_offset, y)
+
+func _kill_ship_track_tween() -> void:
+	if _ship_track_tween and _ship_track_tween.is_valid():
+		_ship_track_tween.kill()
+	_ship_track_tween = null
+
+func _snap_to_ship_index(index: int, animated: bool, update_selection: bool = false) -> void:
+	var n: int = _ship_items.size()
+	if n == 0:
+		return
+	index = clampi(index, 0, n - 1)
+	_current_ship_index = index
+	_snap_was_selection_change = update_selection
+	if update_selection:
+		selected_ship_id = _ship_items[index]["ship_id"]
+	var target_offset: float = _offset_for_ship_index(index)
+	if not animated:
+		_ship_track_offset = target_offset
+		_apply_ship_track_offset()
+		_on_ship_snap_finished()
+		return
+	_kill_ship_track_tween()
+	_ship_track_tween = create_tween()
+	_ship_track_tween.set_ease(Tween.EASE_IN_OUT)
+	_ship_track_tween.set_trans(Tween.TRANS_SINE)
+	_ship_track_tween.tween_method(_set_ship_track_offset, _ship_track_offset, target_offset, SHIP_TRACK_SNAP_DURATION)
+	_ship_track_tween.finished.connect(_on_ship_snap_tween_finished)
+
+func _set_ship_track_offset(value: float) -> void:
+	_ship_track_offset = value
+	_apply_ship_track_offset()
+
+func _on_ship_snap_tween_finished() -> void:
+	_ship_track_tween = null
+	_on_ship_snap_finished()
+
+func _on_ship_snap_finished() -> void:
+	# Reconstruire les cartes (et l'animation de sélection) seulement quand la sélection a changé (tap), pas après un simple déplacement
+	if _snap_was_selection_change:
+		_load_ships(false)
+		_snap_was_selection_change = false
+	_update_ship_info(selected_ship_id)
+	_update_slot_buttons()
+	_update_inventory_grid()
+	_update_locking_ui(selected_ship_id)
+	_update_scroll_buttons()
+
+func _is_inside_ship_carousel(global_pos: Vector2) -> bool:
+	if ship_container == null:
+		return false
+	var rect := Rect2(ship_container.global_position, ship_container.size)
+	return rect.has_point(global_pos)
+
+func _find_ship_index_at_global_pos(global_pos: Vector2) -> int:
+	for i in range(_ship_items.size()):
+		var item: Dictionary = _ship_items[i]
+		var node_v: Variant = item.get("node", null)
+		if not (node_v is Control):
+			continue
+		var card: Control = node_v as Control
+		var card_rect := Rect2(card.global_position, card.size)
+		if card_rect.has_point(global_pos):
+			return i
+	return -1
 
 func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, is_selected: bool, ship_data: Dictionary) -> void:
 	# 1. Le Conteneur Principal
@@ -987,10 +1249,104 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 			# animated=false: fallback to first frame when no static texture is provided
 			icon_rect.texture = first_frame_tex
 		
-	# 5. État Initial (Pre-set)
+	# 5. Lock overlay for non-unlocked ships
 	if not is_unlocked:
 		icon_wrapper.modulate = Color(0.2, 0.2, 0.2, 1)
-	
+
+		# Read lock config from shared_assets
+		var shared: Dictionary = {}
+		var shared_v: Variant = _game_config.get("shared_assets", {})
+		if shared_v is Dictionary:
+			shared = shared_v as Dictionary
+		var lock_cfg: Dictionary = {}
+		var lock_v: Variant = shared.get("lock", {})
+		if lock_v is Dictionary:
+			lock_cfg = lock_v as Dictionary
+
+		var lock_overlay := Control.new()
+		lock_overlay.name = "LockOverlay"
+		lock_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+		lock_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+		# Dark tint
+		var tint := ColorRect.new()
+		tint.color = Color(0, 0, 0, 0.55)
+		tint.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_overlay.add_child(tint)
+
+		# Lock icon
+		var lock_w: float = maxf(16.0, float(lock_cfg.get("width", 64)))
+		var lock_h: float = maxf(16.0, float(lock_cfg.get("height", 64)))
+		var lock_asset: String = str(lock_cfg.get("asset", "res://assets/ui/buttons/locked.png"))
+		var lock_tex_rect := TextureRect.new()
+		lock_tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock_tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		lock_tex_rect.custom_minimum_size = Vector2(lock_w, lock_h)
+		lock_tex_rect.size = Vector2(lock_w, lock_h)
+		# Center it
+		lock_tex_rect.set_anchors_preset(Control.PRESET_CENTER)
+		lock_tex_rect.position = Vector2(-lock_w * 0.5, -lock_h * 0.5)
+		lock_tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if ResourceLoader.exists(lock_asset):
+			lock_tex_rect.texture = ResourceLoader.load(lock_asset, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+		lock_overlay.add_child(lock_tex_rect)
+
+		# Price row: crystal icon + number (same height as text)
+		var ship_price: int = int(ship_data.get("crystal_price", 0))
+		if ship_price > 0:
+			var txt_color: Color = Color(lock_cfg.get("text_color", "#FFFFFF"))
+			var txt_size: int = int(lock_cfg.get("text_size", 16))
+			var icon_h: float = float(txt_size) + 6.0
+
+			var row := HBoxContainer.new()
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_theme_constant_override("separation", 4)
+			row.set_anchors_preset(Control.PRESET_CENTER)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			# Position row below lock icon
+			row.position = Vector2(-70.0, lock_h * 0.5 + 4.0)
+			row.size = Vector2(140.0, icon_h + 4.0)
+
+			# Crystal icon (shared_assets > crystal_icon)
+			var crystal_cfg: Dictionary = {}
+			var crystal_v: Variant = shared.get("crystal_icon", {})
+			if crystal_v is Dictionary:
+				crystal_cfg = crystal_v as Dictionary
+			var crystal_asset: String = str(crystal_cfg.get("asset", ""))
+			var crystal_tex: Texture2D = null
+			if crystal_asset != "" and ResourceLoader.exists(crystal_asset):
+				var res: Resource = ResourceLoader.load(crystal_asset, "", ResourceLoader.CACHE_MODE_REUSE)
+				if res is Texture2D:
+					crystal_tex = res as Texture2D
+				elif res is SpriteFrames:
+					var frames: SpriteFrames = res as SpriteFrames
+					var anim_name: StringName = &"default"
+					if frames.get_animation_names().size() > 0:
+						anim_name = frames.get_animation_names()[0]
+					if frames.get_frame_count(anim_name) > 0:
+						crystal_tex = frames.get_frame_texture(anim_name, 0)
+			if crystal_tex:
+				var crystal_icon_rect := TextureRect.new()
+				crystal_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				crystal_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				crystal_icon_rect.custom_minimum_size = Vector2(icon_h, icon_h)
+				crystal_icon_rect.texture = crystal_tex
+				crystal_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				row.add_child(crystal_icon_rect)
+
+			var price_lbl := Label.new()
+			price_lbl.text = str(ship_price)
+			price_lbl.add_theme_font_size_override("font_size", txt_size)
+			price_lbl.add_theme_color_override("font_color", txt_color)
+			price_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			price_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(price_lbl)
+
+			lock_overlay.add_child(row)
+
+		card.add_child(lock_overlay)
+
 	# 6. LOGIQUE D'ANIMATION (réservé pour futur usage)
 	
 	# 7. Bouton Invisible pour l'interaction
@@ -1012,8 +1368,8 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 		btn.disabled = true
 		btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
-		btn.pressed.connect(func(): 
-			if not _is_dragging:
+		btn.pressed.connect(func():
+			if not _ship_dragging:
 				_on_ship_card_pressed(ship_id)
 		)
 	
@@ -1022,7 +1378,8 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	# Metadata & Finalisation
 	card.set_meta("ship_id", ship_id)
 	card.set_meta("price", int(ship_data.get("crystal_price", 0)))
-	ship_cards_container.add_child(card)
+	var parent_node: Control = _ship_track if _ship_track != null else ship_cards_container
+	parent_node.add_child(card)
 
 func _get_first_spriteframes_animation(frames: SpriteFrames) -> StringName:
 	if frames == null:
@@ -1054,9 +1411,9 @@ func _on_ship_card_pressed(ship_id: String) -> void:
 	
 	var unlocked_ids := ProfileManager.get_unlocked_ships()
 	
-	# Si verrouillé, afficher l'overlay d'achat
+	# Si verrouillé, ouvrir le popup de déverrouillage
 	if not unlocked_ids.has(ship_id):
-		_show_purchase_overlay(ship_id)
+		_on_ship_unlock_pressed()
 		return
 	
 	# Vaisseau débloqué : on le sélectionne activement
@@ -1079,7 +1436,10 @@ func _show_purchase_overlay(ship_id: String) -> void:
 	var price := int(ship_data.get("crystal_price", 0))
 	
 	# Trouver la carte du vaisseau
-	for card in ship_cards_container.get_children():
+	var cards_parent: Node = ship_cards_container
+	if _ship_track != null:
+		cards_parent = _ship_track
+	for card in cards_parent.get_children():
 		if card.has_meta("ship_id") and card.get_meta("ship_id") == ship_id:
 			# Vérifier si un overlay existe déjà
 			var existing_overlay: Node = card.get_node_or_null("PurchaseOverlay")
@@ -1240,26 +1600,21 @@ func _update_ship_info(ship_id: String) -> void:
 	_update_locking_ui(ship_id)
 	if ship_stats_container: _fix_mobile_scroll_recursive(ship_stats_container)
 	
-func _update_locking_ui(ship_id: String) -> void:
-	if not ship_unlock_btn: return
-	
-	var unlocked_ids := ProfileManager.get_unlocked_ships()
-	if unlocked_ids.has(ship_id):
+func _update_locking_ui(_ship_id: String) -> void:
+	# Bouton "Acheter (X cristaux)" sous le slide retiré : le déblocage se fait via le lock overlay sur la carte
+	if ship_unlock_btn:
 		ship_unlock_btn.visible = false
-	else:
-		ship_unlock_btn.visible = true
-		var ship := DataManager.get_ship(ship_id)
-		var price := int(ship.get("crystal_price", 0))
-		ship_unlock_btn.text = "Acheter (" + str(price) + " cristaux)"
-		
-		var can_afford := (ProfileManager.get_crystals() >= price)
-		ship_unlock_btn.disabled = not can_afford
 
 func _on_ship_unlock_pressed() -> void:
 	if selected_ship_id == "": return
 	var ship := DataManager.get_ship(selected_ship_id)
 	var price := int(ship.get("crystal_price", 0))
-	
+
+	# Hide the static title from the .tscn to avoid duplication
+	var popup_title: Label = unlock_popup.get_node_or_null("MarginContainer/VBox/Title")
+	if popup_title:
+		popup_title.visible = false
+
 	unlock_popup.visible = true
 	unlock_message.text = "Débloquer ce vaisseau pour " + str(price) + " cristaux ?"
 
@@ -1278,42 +1633,31 @@ func _on_confirm_unlock_pressed() -> void:
 		pass# Not enough crystals!
 
 func _on_ship_scroll_left() -> void:
-	current_ship_page -= 1
-	_load_ships() # Should handle wrapping in _load_ships logic or before calling
-	
+	var n: int = _ship_items.size()
+	if n == 0:
+		return
+	var idx: int = (_current_ship_index - 1 + n) % n
+	_snap_to_ship_index(idx, true)
+
 func _on_ship_scroll_right() -> void:
-	current_ship_page += 1
-	_load_ships()
+	var n: int = _ship_items.size()
+	if n == 0:
+		return
+	var idx: int = (_current_ship_index + 1) % n
+	_snap_to_ship_index(idx, true)
 
 func _update_scroll_buttons() -> void:
-	if not ship_prev_btn or not ship_next_btn or not ship_cards_container:
+	if not ship_prev_btn or not ship_next_btn:
 		return
-	
-	var all_ships := DataManager.get_ships()
-	var show_arrows = all_ships.size() > _ship_visible_count
-	
+	var n: int = _ship_items.size()
+	ship_prev_btn.visible = n > 1 and _current_ship_index > 0
+	ship_next_btn.visible = n > 1 and _current_ship_index < n - 1
 	var nav_container = ship_prev_btn.get_parent()
 	if nav_container:
-		nav_container.visible = show_arrows
+		nav_container.visible = n > 1
 
-func _on_ship_scroll_gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			_drag_start_pos = event.position
-			_is_dragging = false
-			
-	elif event is InputEventScreenDrag:
-		if _drag_start_pos == Vector2.ZERO:
-			return
-			
-		var drag_distance = event.position.x - _drag_start_pos.x
-		if abs(drag_distance) > _min_drag_distance:
-			_is_dragging = true
-			if drag_distance > 0:
-				_on_ship_scroll_left()
-			else:
-				_on_ship_scroll_right()
-			_drag_start_pos = Vector2.ZERO # Consume drag
+func _on_ship_scroll_gui_input(_event: InputEvent) -> void:
+	pass
 
 
 func _on_shop_button_pressed() -> void:
@@ -3001,7 +3345,8 @@ func _play_ship_stat_icon(
 	VFXManager.play_sprite_frames(anim, source_frames, anim_name, play_loop, play_duration)
 	if repeat_seconds <= 0.0:
 		return
-	
+	if not anim.is_inside_tree():
+		return
 	_repeat_ship_stat_icon(anim, anim_name, repeat_seconds, play_duration, play_loop)
 
 func _repeat_ship_stat_icon(
@@ -3012,11 +3357,15 @@ func _repeat_ship_stat_icon(
 	play_loop: bool
 ) -> void:
 	while is_instance_valid(anim):
+		if not anim.is_inside_tree():
+			return
 		var tree := anim.get_tree()
 		if tree == null:
 			return
 		await tree.create_timer(repeat_seconds).timeout
 		if not is_instance_valid(anim):
+			return
+		if not anim.is_inside_tree():
 			return
 		var source_frames: SpriteFrames = anim.sprite_frames
 		if source_frames == null:

@@ -33,9 +33,9 @@ func setup(data: Dictionary) -> void:
 		item_card.setup_item(_data, slot_id, config)
 
 func _ready() -> void:
-	modulate.a = 1.0
+	modulate.a = 0.0
 
-	# Slide in from right offscreen.
+	# Slide in from right offscreen + fade-in
 	var final_left: float = 0.0
 	var final_right: float = 0.0
 	if mover:
@@ -47,13 +47,14 @@ func _ready() -> void:
 		mover.offset_right = final_right + slide_distance
 
 	var tween = create_tween()
+	tween.set_parallel(true)
 	if mover:
-		tween.set_parallel(true)
 		tween.tween_property(mover, "offset_left", final_left, SLIDE_IN_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tween.tween_property(mover, "offset_right", final_right, SLIDE_IN_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-		tween.set_parallel(false)
+	tween.tween_property(self, "modulate:a", 1.0, SLIDE_IN_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.set_parallel(false)
 
-	# Keep visible for 3 seconds, then disappear.
+	# Keep visible for 3 seconds, then fade-out and remove
 	tween.tween_interval(VISIBLE_DURATION)
 	tween.tween_property(self, "modulate:a", 0.0, FADE_OUT_DURATION)
 	tween.tween_callback(queue_free)

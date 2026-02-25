@@ -8,18 +8,25 @@
 			"animation_repeat_seconds": 6,
 			"animation_type": "loop",
 			"animation_duration": 2
+		},
+		"lock": {
+			"asset": "res://assets/ui/icons/locked.png",
+			"width": 64,
+			"height": 64,
+			"text_color": "#FFFFFF",
+			"text_size": 16
 		}
 	},
 	"main_menu": {
 		"background": "res://assets/ui/main_menu_bg.jpg",
 		"background_anim": "",
 		"music": "res://assets/music/neon.ogg",
-		"logo": "",
-		"logo_anim": "res://assets/logo/pewpewloot.tres",
+		"logo": "res://assets/logo/pewpewloot_final.png",
+		"logo_anim": "",
 		"logo_anim_duration": 2.0,
 		"logo_anim_loop": false,
-		"logo_width_pct": 0.7,
-		"logo_height_pct": 0.4
+		"logo_width_pct": 0.4,
+		"logo_height_pct": 0.3
 	},
 	"reward_screen": {
 		"background": "res://assets/ui/reward_bg.png",
@@ -59,7 +66,9 @@
 		"ship_selection": {
 			"width": 165,
 			"height": 165,
-			"animated": false
+			"animated": false,
+			"arrow_width": 48,
+			"arrow_height": 48
 		},
 		"sections": {
 			"ship_selection": {

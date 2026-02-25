@@ -22,7 +22,6 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=466598836]
 layout_mode = 1
 anchors_preset = 15
@@ -50,7 +49,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BackButtonMargin" type="MarginContainer" parent="MarginContainer/ScrollContainer/Content/Header"]
+[node name="BackButtonMargin" type="MarginContainer" parent="MarginContainer/ScrollContainer/Content/Header" unique_id=2019157063]
 layout_mode = 2
 theme_override_constants/margin_left = 25
 theme_override_constants/margin_top = 25

@@ -56,13 +56,10 @@ func _ready() -> void:
 	_refresh_list()
 
 func _load_game_config() -> void:
-	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
-	if file:
-		var json := JSON.new()
-		var err := json.parse(file.get_as_text())
-		file.close()
-		if err == OK and json.data is Dictionary:
-			_game_config = json.data
+	if DataManager:
+		_game_config = DataManager.get_game_config()
+	else:
+		_game_config = {}
 
 func _setup_background() -> void:
 	var menu_config: Dictionary = _game_config.get("main_menu", {})

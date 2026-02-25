@@ -28,7 +28,7 @@ var _enemy_projectile_speed_multiplier: float = 1.0
 # =============================================================================
 
 func _ready() -> void:
-	_init_pools()
+	call_deferred("_init_pools")
 
 func set_container(container: Node2D) -> void:
 	_projectile_container = container

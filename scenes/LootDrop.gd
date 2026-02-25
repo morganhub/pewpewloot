@@ -130,6 +130,11 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	
 	# Drift lent dans une direction aléatoire (lecture config game.json)
 	_setup_drift()
+	
+	# Fade-in rapide à l'apparition (au lieu d'affichage instantané)
+	modulate.a = 0.0
+	var tween_in := create_tween()
+	tween_in.tween_property(self, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _get_or_create_sprite() -> Sprite2D:
 	if _sprite_node and is_instance_valid(_sprite_node):
@@ -296,14 +301,14 @@ func _collect() -> void:
 		# Only show toast notification for items, not powerups
 		get_tree().call_group("game_hud", "show_loot_notification", item_data)
 	
-	# VFX de collection
+	# VFX de collection : fade-out rapide puis suppression
 	var visual_node := _get_active_visual_node()
 	if visual_node:
 		var base_scale := visual_node.scale
 		var tween := create_tween()
 		tween.set_parallel(true)
-		tween.tween_property(visual_node, "scale", base_scale * 2.0, 0.2)
-		tween.tween_property(visual_node, "modulate:a", 0.0, 0.2)
+		tween.tween_property(visual_node, "scale", base_scale * 2.0, 0.12)
+		tween.tween_property(visual_node, "modulate:a", 0.0, 0.12)
 		tween.chain().tween_callback(queue_free)
 	else:
 		queue_free()

@@ -63,16 +63,10 @@ func sync_volumes() -> void:
 	set_sfx_volume(vol_sfx)
 
 func _init_music() -> void:
-	if not DataManager:
-		push_error("[AudioManager] DataManager not found!")
-		return
-		
-	var config: Dictionary = DataManager.get_game_config()
-	if config.has("main_menu"):
-		var menu_config: Dictionary = config["main_menu"]
-		var music_path: String = str(menu_config.get("music", ""))
-		if music_path != "":
-			play_music(music_path, 2.0) # Fade in plus doux au démarrage (2s)
+	# Do not auto-start menu music here: ProfileManager has not loaded from disk yet (done in bootstrap).
+	# HomeScreen and ProfileSelect call App.play_menu_music() when they appear, after bootstrap has
+	# run and sync_volumes() has been called with the user's saved settings.
+	pass
 
 ## Joue une musique avec Fade In/Out
 func play_music(path: String, fade_duration: float = DEFAULT_FADE_DURATION) -> void:
