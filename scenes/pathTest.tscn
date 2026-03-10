@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://qf3wq0t5ptk7"]
 
-[ext_resource type="Curve2D" uid="uid://bnsqlv5xoxags" path="res://data/patterns/paths/tear_drop_attack.tres" id="1_acs4t"]
+[ext_resource type="Curve2D" path="res://data/patterns/paths/boomerang_bottom.tres" id="1_acs4t"]
 
 [node name="PathTest" type="Node2D" unique_id=382349124]
 

@@ -15,6 +15,7 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var confirm_buy_btn: Button = %ConfirmBuyBtn
 @onready var cancel_btn: Button = %CancelBtn
 @onready var background: TextureRect = $Background
+@onready var margin_container: MarginContainer = $MarginContainer
 
 # =============================================================================
 # ÉTAT
@@ -30,6 +31,10 @@ var _selected_pack: Dictionary = {}
 func _ready() -> void:
 	# Load config
 	_game_config = DataManager.get_game_config()
+	_apply_menu_header_offset()
+	var mh: Control = get_node_or_null("MenuHeader")
+	if mh and mh.has_signal("crystals_pressed") and not mh.crystals_pressed.is_connected(_on_header_crystals_pressed):
+		mh.crystals_pressed.connect(_on_header_crystals_pressed)
 	
 	# Connexions
 	if back_button: back_button.pressed.connect(_on_back_pressed)
@@ -40,6 +45,15 @@ func _ready() -> void:
 	
 	_setup_visuals()
 	_populate_packs()
+
+func _apply_menu_header_offset() -> void:
+	if margin_container == null:
+		return
+	var h: Variant = _game_config.get("menu_header", {})
+	if h is Dictionary:
+		var height_px: int = int((h as Dictionary).get("height_px", 72))
+		var margin_t: int = int((h as Dictionary).get("margin_top", 8))
+		margin_container.add_theme_constant_override("margin_top", height_px + margin_t + 45)
 
 # =============================================================================
 # VISUALS
@@ -63,12 +77,18 @@ func _setup_visuals() -> void:
 	var style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, margin)
 	if style:
 		confirm_popup.add_theme_stylebox_override("panel", style)
+
+	if confirm_buy_btn:
+		UIStyle.apply_default_button_style(confirm_buy_btn, "medium")
+	if cancel_btn:
+		UIStyle.apply_default_button_style(cancel_btn, "medium")
 	
-	# Back Button
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var back_icon_path: String = str(ui_icons.get("back_button", ""))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.texture_normal = load(back_icon_path)
+	# Footer : clique sur le bouton retour du bas
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+	if back_button:
+		back_button.visible = false
 
 # =============================================================================
 # PACKS
@@ -130,6 +150,7 @@ func _populate_packs() -> void:
 		
 		btn.pressed.connect(func(): _on_pack_pressed(p))
 		packs_grid.add_child(btn)
+		UIStyle.apply_button_shadow(btn, "medium")
 
 func _get_shared_crystal_icon_cfg() -> Dictionary:
 	if DataManager and DataManager.has_method("get_shared_crystal_icon_config"):
@@ -278,9 +299,21 @@ func _on_confirm_buy_pressed() -> void:
 	# For now, just print to console
 
 func _on_back_pressed() -> void:
-	# Return to ShipMenu via Switcher
-	var switcher := get_tree().current_scene
-	if switcher.has_method("goto_screen"):
-		switcher.goto_screen("res://scenes/ShipMenu.tscn")
+	var switcher = get_tree().current_scene
+	if switcher == null:
+		return
+	var prev_path: String = ""
+	if switcher.has_method("get_screen_before_shop"):
+		prev_path = switcher.get_screen_before_shop()
+	if prev_path != "":
+		if switcher.has_method("goto_screen"):
+			switcher.goto_screen(prev_path)
 	else:
-		get_tree().change_scene_to_file("res://scenes/ShipMenu.tscn")
+		if switcher.has_method("goto_screen"):
+			switcher.goto_screen("res://scenes/HomeScreen.tscn")
+		else:
+			get_tree().change_scene_to_file("res://scenes/HomeScreen.tscn")
+
+func _on_header_crystals_pressed() -> void:
+	# Already on shop; no-op or could refresh
+	pass

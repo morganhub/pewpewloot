@@ -7,6 +7,7 @@ var active_duration: float = 2.5
 var damage_per_second: float = 20.0
 var tick_interval: float = 0.2
 var follow_source: bool = false
+var damage_target_group: String = "player"
 var source: Node2D = null
 var source_offset: Vector2 = Vector2.ZERO
 
@@ -28,6 +29,7 @@ func setup(caster: Node2D, hazard_data: Dictionary, default_duration: float = 2.
 	damage_per_second = maxf(1.0, float(hazard_data.get("damage_per_second", 20.0)))
 	tick_interval = maxf(0.05, float(hazard_data.get("tick_interval", 0.2)))
 	follow_source = bool(hazard_data.get("follow_source", false))
+	damage_target_group = str(hazard_data.get("damage_target_group", "enemies" if source and source.is_in_group("player") else "player"))
 	var raw_offset: Variant = hazard_data.get("offset", [0.0, 0.0])
 	if raw_offset is Array and (raw_offset as Array).size() >= 2:
 		var arr := raw_offset as Array
@@ -42,6 +44,7 @@ func setup(caster: Node2D, hazard_data: Dictionary, default_duration: float = 2.
 	_update_visual(false)
 
 func _ready() -> void:
+	add_to_group("runtime_hazards")
 	monitoring = true
 	monitorable = false
 	collision_layer = 0
@@ -85,7 +88,7 @@ func _process(delta: float) -> void:
 func _set_active_state(active: bool) -> void:
 	_is_active = active
 	_tick_timer = 0.0
-	collision_mask = 2 if active else 0
+	collision_mask = _get_collision_mask_for_target_group() if active else 0
 	_update_visual(active)
 	modulate.a = 1.0
 
@@ -93,7 +96,7 @@ func _apply_damage_tick() -> void:
 	var damage_tick: int = maxi(1, int(round(damage_per_second * tick_interval)))
 	var bodies := get_overlapping_bodies()
 	for body in bodies:
-		if body and body.is_in_group("player") and body.has_method("take_damage"):
+		if body and body.is_in_group(damage_target_group) and body.has_method("take_damage"):
 			body.take_damage(damage_tick)
 
 func _update_position_from_source() -> void:
@@ -118,6 +121,13 @@ func _update_visual(active: bool) -> void:
 		var c := _active_color if active else _telegraph_color
 		c.a = clampf(c.a + 0.2, 0.1, 1.0)
 		_ring_visual.color = c
+
+func _get_collision_mask_for_target_group() -> int:
+	match damage_target_group:
+		"enemies":
+			return 4
+		_:
+			return 2
 
 func _create_circle_polygon(r: float, segments: int) -> PackedVector2Array:
 	var points: PackedVector2Array = []

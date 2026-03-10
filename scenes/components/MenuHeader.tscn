@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://d3c6qfy0re521"]
+
+[ext_resource type="Script" path="res://scenes/components/MenuHeader.gd" id="1_script"]
+
+[node name="MenuHeader" type="Control"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+script = ExtResource("1_script")

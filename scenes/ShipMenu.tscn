@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://tdlm3oh0rn8v"]
 
 [ext_resource type="Script" uid="uid://crak88emxmj0x" path="res://scenes/ShipMenu.gd" id="1_ship"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuHeader.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuFooter.tscn" id="3_footer"]
 
 [node name="ShipMenu" type="Control" unique_id=828520365]
 layout_mode = 3
@@ -21,6 +23,9 @@ grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
+
+[node name="MenuHeader" parent="." unique_id=786390434 instance=ExtResource("2_header")]
+layout_mode = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=466598836]
 layout_mode = 1
@@ -60,9 +65,6 @@ custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 ignore_texture_size = true
 stretch_mode = 5
-
-[node name="HSeparator1" type="HSeparator" parent="MarginContainer/ScrollContainer/Content" unique_id=1789503953]
-layout_mode = 2
 
 [node name="ShipSection" type="VBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=524351199]
 clip_contents = true
@@ -318,6 +320,9 @@ custom_minimum_size = Vector2(80, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Fermer"
+
+[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+layout_mode = 1
 
 [node name="UniqueSelectionPopup" type="PanelContainer" parent="." unique_id=958983873]
 unique_name_in_owner = true

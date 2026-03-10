@@ -1,10 +1,12 @@
 extends CanvasLayer
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## GameHUD — Interface de jeu avec barre de vie, score, pouvoirs et pause.
 
 signal pause_requested
 signal special_requested
 signal unique_requested
+signal next_boss_requested
 
 # References UI - TopLeft
 @onready var profile_label: Label = $TopLeft/ProfileLabel
@@ -51,6 +53,8 @@ var _inventory_warning_timer: float = 0.0
 var _inventory_warning_was_full: bool = false
 var _inventory_warning_tween: Tween = null
 var _game_config: Dictionary = {}
+var _boss_debug_label: Label = null
+var _next_boss_button: Button = null
 const INVENTORY_WARNING_INTERVAL: float = 10.0
 const MAX_SIMULTANEOUS_NOTIFICATIONS: int = 4
 const NOTIFICATION_SLOT_Y: float = 146.0
@@ -105,6 +109,7 @@ func _ready() -> void:
 	_setup_notification_area()
 	_setup_inventory_full_warning_ui()
 	_setup_xp_display()
+	_setup_boss_debug_ui()
 	_refresh_health_bar_value_visibility()
 	
 	add_to_group("game_hud")
@@ -192,6 +197,57 @@ func _load_assets() -> void:
 	var up_path = str(ui_icons.get("unique_power_placeholder", ""))
 	if up_path != "" and ResourceLoader.exists(up_path) and up_icon:
 		up_icon.texture = load(up_path)
+
+func _setup_boss_debug_ui() -> void:
+	_boss_debug_label = Label.new()
+	_boss_debug_label.name = "BossDebugLabel"
+	_boss_debug_label.visible = false
+	_boss_debug_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_debug_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boss_debug_label.add_theme_font_size_override("font_size", 14)
+	_boss_debug_label.add_theme_color_override("font_color", Color(0.92, 0.95, 1.0, 1.0))
+	_boss_debug_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_boss_debug_label.add_theme_constant_override("outline_size", 3)
+	if boss_container:
+		boss_container.add_child(_boss_debug_label)
+
+	_next_boss_button = Button.new()
+	_next_boss_button.name = "NextBossButton"
+	_next_boss_button.visible = false
+	_next_boss_button.text = "Next Boss"
+	_next_boss_button.custom_minimum_size = Vector2(140, 44)
+	UIStyle.apply_default_button_style(_next_boss_button, "small")
+	UIStyle.apply_button_shadow(_next_boss_button, "small")
+	_next_boss_button.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	_next_boss_button.offset_left = -160.0
+	_next_boss_button.offset_top = -22.0
+	_next_boss_button.offset_right = -20.0
+	_next_boss_button.offset_bottom = 22.0
+	if not _next_boss_button.pressed.is_connected(_on_next_boss_pressed):
+		_next_boss_button.pressed.connect(_on_next_boss_pressed)
+	add_child(_next_boss_button)
+
+func _on_next_boss_pressed() -> void:
+	next_boss_requested.emit()
+
+func set_boss_debug_visible(visible: bool) -> void:
+	if _boss_debug_label:
+		_boss_debug_label.visible = visible
+		if not visible:
+			_boss_debug_label.text = ""
+	if _next_boss_button:
+		_next_boss_button.visible = visible
+
+func update_boss_debug_info(boss_name: String, boss_id: String, power_id: String, missile_id: String) -> void:
+	if not _boss_debug_label:
+		return
+	_boss_debug_label.visible = true
+	_boss_debug_label.text = "Name: %s\nID: %s\nPower: %s\nMissile: %s" % [
+		boss_name,
+		boss_id,
+		power_id if power_id != "" else "-",
+		missile_id if missile_id != "" else "-"
+	]
 
 func _on_burger_pressed() -> void:
 	pause_requested.emit()
@@ -873,8 +929,9 @@ func _refresh_wave_label() -> void:
 		return
 	
 	var clamped_current: int = clampi(_wave_current, 0, _wave_total)
+	var display_current: int = maxi(1, clamped_current)
 	wave_label.visible = true
-	wave_label.text = "%d / %d" % [clamped_current, _wave_total]
+	wave_label.text = "%d / %d" % [display_current, _wave_total]
 
 func _on_shield_changed(current: float, max_val: float) -> void:
 	if not shield_bar: return

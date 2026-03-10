@@ -129,10 +129,14 @@ func setup(
 	name_label.add_theme_color_override("font_color", Color.html(r_col_hex))
 	
 	rarity_label.text = rarity.capitalize() + " - Lvl " + str(level)
+	var ship_menu_cfg = game_cfg.get("ship_menu", {})
+	var default_fs = int(ship_menu_cfg.get("default_font_size", 16))
+	rarity_label.add_theme_font_size_override("font_size", default_fs)
 	rarity_label.modulate = Color(1, 1, 1, 0.7)
 	
-	# Apply Button Styles (Generic from popups if specific not found)
 	var generic_btn_cfg = popup_cfg.get("button", {})
+	if generic_btn_cfg.is_empty():
+		generic_btn_cfg = UIStyle.get_default_button_style()
 	_apply_btn_style(upgrade_btn, details_cfg.get("upgrade", {}), generic_btn_cfg)
 	_apply_btn_style(recycle_btn, details_cfg.get("recycle", {}), generic_btn_cfg)
 	_apply_btn_style(close_btn, details_cfg.get("close", {}), generic_btn_cfg)
@@ -155,26 +159,27 @@ func setup(
 		equip_btn.text = LocaleManager.translate("item_popup_equip")
 		equip_btn.visible = true
 	
-	# Recyclable?
 	var r_val = ProfileManager.calculate_recycle_value(item)
 	recycle_btn.text = "+%d" % r_val
 	
 	close_btn.text = LocaleManager.translate("item_popup_close")
 	
-	# Upgrade cost
 	var upgrade_data = DataManager.get_level_upgrade_data(level)
 	var next_data = upgrade_data.get("upgrade_to_next", {})
 	var cost = int(next_data.get("cost", 999999))
 	
-	if level >= 10: # Max level
+	if level >= 10:
 		upgrade_btn.text = "MAX"
 		upgrade_btn.disabled = true
 	else:
 		upgrade_btn.text = str(cost)
 		upgrade_btn.disabled = false
-		# Check crystals
 		if ProfileManager.get_crystals() < cost:
-			upgrade_btn.disabled = true # or visual indicator
+			upgrade_btn.disabled = true
+
+	for btn in [equip_btn, recycle_btn, close_btn, upgrade_btn]:
+		if btn and not btn.text.is_empty():
+			UIStyle.apply_button_shadow(btn, "medium")
 
 	if _show_upgrade_recycle:
 		_action_profile = "full"
@@ -245,7 +250,7 @@ func _apply_action_profile() -> void:
 		if recycle_btn: recycle_btn.visible = false
 		if equip_btn:
 			equip_btn.visible = true
-			equip_btn.text = LocaleManager.translate("item_popup_equip")
+			UIStyle.set_button_shadow_text(equip_btn, LocaleManager.translate("item_popup_equip"))
 		if close_btn: close_btn.visible = true
 		if actions_grid:
 			actions_grid.columns = 2
@@ -294,7 +299,8 @@ func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) 
 		# Remove any flat style if using texture
 		btn.flat = false
 	
-	var f_sz = int(merged_cfg.get("font_size", 18))
+	var font_preset := UIStyle.get_button_font_preset("medium")
+	var f_sz = int(merged_cfg.get("font_size", font_preset.get("font_size", 18)))
 	var col = Color.html(str(merged_cfg.get("text_color", "#FFFFFF")))
 	btn.add_theme_font_size_override("font_size", f_sz)
 	btn.add_theme_color_override("font_color", col)
@@ -302,9 +308,13 @@ func _apply_btn_style(btn: Button, btn_cfg: Dictionary, global_cfg: Dictionary) 
 	btn.add_theme_color_override("font_hover_color", col)
 	btn.add_theme_color_override("font_focus_color", col)
 	btn.add_theme_color_override("font_disabled_color", col)
+	if not btn.text.is_empty():
+		UIStyle.apply_button_shadow(btn, "medium")
 
 
 func _add_stat_row(stat_name: String, value: float) -> void:
+	var game_cfg = DataManager.get_game_config()
+	var default_fs = int(game_cfg.get("ship_menu", {}).get("default_font_size", 16))
 	var hbox = HBoxContainer.new()
 	var name_lbl = Label.new()
 	var stat_key = "stat." + stat_name
@@ -314,8 +324,10 @@ func _add_stat_row(stat_name: String, value: float) -> void:
 	else:
 		name_lbl.text = trans
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.add_theme_font_size_override("font_size", default_fs)
 	
 	var val_lbl = Label.new()
+	val_lbl.add_theme_font_size_override("font_size", default_fs)
 	
 	# Percent stats: values are stored in 1-100 format, display directly as X%
 	var percent_stats: Array[String] = [

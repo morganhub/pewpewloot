@@ -1,4 +1,95 @@
 {
+	"buttons": {
+		"pressed_offset_y": 5,
+		"default_style": {
+			"asset": "res://assets/ui/button_regular.png",
+			"text_color": "#FFFFFF",
+			"min_width": 220,
+			"min_height": 56,
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 12,
+				"right": 12,
+				"top": 8,
+				"bottom": 8
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
+		},
+		"font_presets": {
+			"small": { "font_size": 18, "letter_spacing": 0 },
+			"medium": { "font_size": 26, "letter_spacing": 0 },
+			"large": { "font_size": 30, "letter_spacing": 1 }
+		},
+		"shadow": {
+			"small": {
+				"shadow_color": "#000000",
+				"shadow_offset_x": 1,
+				"shadow_offset_y": 1,
+				"shadow_outline_size": 0
+			},
+			"medium": {
+				"shadow_color": "#000000",
+				"shadow_offset_x": 2,
+				"shadow_offset_y": 2,
+				"shadow_outline_size": 0
+			},
+			"large": {
+				"shadow_color": "#000000",
+				"shadow_offset_x": 3,
+				"shadow_offset_y": 3,
+				"shadow_outline_size": 0
+			}
+		},
+		"validation": {
+			"text_color": "#ffffff",
+			"letter_spacing": 0,
+			"asset": "res://assets/ui/button_validation.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch",
+			"draw_center": true
+		},
+		"cancellation": {
+			"text_color": "#ffffff",
+			"letter_spacing": 0,
+			"asset": "res://assets/ui/button_cancellation.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch",
+			"draw_center": true
+		}
+	},
+	"game_balance": {
+		"fire_rate_from_items_factor": 0.3
+	},
 	"default_explosion": {
 		"fluid_id": ""
 	},
@@ -15,6 +106,76 @@
 			"height": 64,
 			"text_color": "#FFFFFF",
 			"text_size": 16
+		}
+	},
+	"menu_header": {
+		"height_px": 100,
+		"margin_left": 20,
+		"margin_right": 20,
+		"margin_top": 38,
+		"margin_bottom": 0,
+		"rectangle": {
+			"height": 40,
+			"border_radius": 16,
+			"background_color": "#1a1a2e",
+			"background_opacity": 0.50,
+			"border_color": "#000000",
+			"border_width": 0,
+			"content_margin_left": 12,
+			"content_margin_right": 12,
+			"content_margin_top": 0,
+			"content_margin_bottom": 0,
+			"content_align_h": "center",
+			"content_align_v": "center",
+			"icon_overlap_px": -2
+		},
+		"level": {
+			"asset": "res://assets/ui/icons/trophy.png",
+			"icon_size": 70,
+			"text_color": "#ffffff",
+			"font_size": 30
+		},
+		"xp_bar": {
+			"bar_min_width": 120,
+			"fill_color": "#6b4c9a",
+			"track_color": "#2d2d44",
+			"border_color": "#000000",
+			"border_width": 2,
+			"text_color": "#ffffff",
+			"text_margin_left": 8,
+			"text_margin_right": 8,
+			"font_size": 25
+		},
+		"protocols": {
+			"asset": "res://assets/ui/icons/trophy.png",
+			"icon_size": 38,
+			"text_color": "#ffffff",
+			"font_size": 28,
+			"format": "{count}/{max}"
+		},
+		"crystals": {
+			"icon_asset": "shared:crystal_icon",
+			"icon_size": 38,
+			"text_color": "#ffffff",
+			"font_size": 28,
+			"panel_padding": 8
+		},
+		"spacing_between_blocks": 16
+	},
+	"menu_footer": {
+		"height_px": 90,
+		"margin_left": 10,
+		"margin_right": 20,
+		"margin_bottom": -5,
+		"background_asset": "res://assets/backgrounds/menus/footer_background.png",
+		"background_opacity": 1,
+		"border_top_height": 5,
+		"border_top_color": "#4a17a0",
+		"back_button": {
+			"asset": "res://assets/ui/button_back.png",
+			"width": 72,
+			"height": 72,
+			"icon_size": 36
 		}
 	},
 	"main_menu": {
@@ -61,8 +222,10 @@
 	},
 	"ship_menu": {
 		"background": "res://assets/backgrounds/menus/ship_background.jpg",
+		"background_scroll": false,
+		"default_font_size": 20,
 		"recycle_all": "res://assets/ui/icons/crystal.png",
-		"back_button": "res://assets/ui/back_arrow.png",
+		"sections_background_opacity": 0.95,
 		"ship_selection": {
 			"width": 165,
 			"height": 165,
@@ -72,20 +235,28 @@
 		},
 		"sections": {
 			"ship_selection": {
-				"background": "res://assets/backgrounds/menus/equipment.jpg"
+				"background": "res://assets/backgrounds/menus/shipmenu_ships.png",
+				"nine_slice": { "left": 15, "right": 15, "top": 15, "bottom": 15 },
+				"content_margin": { "left": 15, "right": 15, "top": 15, "bottom": 15 }
 			},
 			"equipment": {
-				"background": "res://assets/backgrounds/menus/equipment.jpg"
+				"background": "res://assets/backgrounds/menus/shipmenu_equipment.png",
+				"nine_slice": { "left": 15, "right": 15, "top": 15, "bottom": 15 },
+				"content_margin": { "left": 15, "right": 15, "top": 15, "bottom": 15 }
 			},
 			"inventory": {
-				"background": "res://assets/backgrounds/menus/equipment.jpg"
+				"background": "res://assets/backgrounds/menus/shipmenu_inventory.png",
+				"nine_slice": { "left": 15, "right": 15, "top": 15, "bottom": 15 },
+				"content_margin": { "left": 15, "right": 15, "top": 15, "bottom": 15 }
 			},
 			"powers": {
-				"background": "res://assets/backgrounds/menus/equipment.jpg"
+				"background": "res://assets/backgrounds/menus/shipmenu_powers.png",
+				"nine_slice": { "left": 15, "right": 15, "top": 15, "bottom": 15 },
+				"content_margin": { "left": 0, "right": 0, "top": 15, "bottom": 15 }
 			}
 		},
 		"title": {
-			"font_size": 24,
+			"font_size": 40,
 			"letter_spacing": 2,
 			"text_color": "#FFFFFF"
 		},
@@ -184,8 +355,8 @@
 		"ship_stats": {
 			"power": {
 				"icon_asset": "res://assets/ui/icons/power.png",
-				"icon_height": 30,
-				"icon_width": 30,
+				"icon_height": 24,
+				"icon_width": 24,
 				"font_size": 22,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
@@ -223,7 +394,7 @@
 				"icon_asset": "res://assets/ui/icons/hp.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -232,7 +403,7 @@
 				"icon_asset": "res://assets/ui/icons/hp.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -241,7 +412,7 @@
 				"icon_asset": "res://assets/ui/icons/speed.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -250,7 +421,7 @@
 				"icon_asset": "res://assets/ui/icons/speed.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -259,7 +430,7 @@
 				"icon_asset": "res://assets/ui/icons/missile.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -268,7 +439,7 @@
 				"icon_asset": "res://assets/ui/icons/crit.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -277,7 +448,7 @@
 				"icon_asset": "res://assets/ui/icons/crit.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -286,7 +457,7 @@
 				"icon_asset": "res://assets/ui/icons/dodge.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -295,7 +466,7 @@
 				"icon_asset": "res://assets/ui/icons/missile.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -304,7 +475,7 @@
 				"icon_asset": "res://assets/ui/icons/missile.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -313,16 +484,16 @@
 				"icon_asset": "res://assets/ui/icons/missile.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
 			},
 			"damage_reduction": {
-				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_asset": "res://assets/ui/icons/special.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -331,7 +502,7 @@
 				"icon_asset": "res://assets/ui/icons/special.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -340,7 +511,7 @@
 				"icon_asset": "res://assets/ui/icons/special.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -349,7 +520,7 @@
 				"icon_asset": "res://assets/ui/icons/shield.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -358,7 +529,7 @@
 				"icon_asset": "res://assets/ui/icons/shield.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -367,7 +538,7 @@
 				"icon_asset": "res://assets/ui/icons/all.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -376,7 +547,7 @@
 				"icon_asset": "res://assets/ui/icons/crit.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -385,7 +556,7 @@
 				"icon_asset": "res://assets/ui/icons/trophy.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -394,7 +565,7 @@
 				"icon_asset": "res://assets/ui/icons/special.png",
 				"icon_height": 24,
 				"icon_width": 24,
-				"font_size": 13,
+				"font_size": 20,
 				"font_color": "#FFFFFF",
 				"letter_spacing": 0,
 				"animation_repeat_seconds": 0
@@ -406,6 +577,23 @@
 	},
 	"world_select": {
 		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+		"sphere": {
+			"rotation_speed": 0.09,
+			"radius": 4.5,
+			"light_energy": 1.3,
+			"uv_scale": 6.0,
+			"uv_overlap": 1,
+			"uv_offset_u": 0,
+			"uv_offset_v": 0,
+			"texture_rotation": 0,
+			"texture_border_width": 0.02,
+			"texture_border_color": "#d4af37",
+			"camera_distance": 5.2,
+			"camera_fov": 105,
+			"camera_offset_x": 0,
+			"camera_offset_y": 0,
+			"square_scale": 2.5
+		},
 		"arrow_left": "res://assets/ui/arrow_left.png",
 		"arrow_right": "res://assets/ui/arrow_right.png",
 		"image_width_pct": 0.52,
@@ -431,6 +619,28 @@
 		"locked_asset": "res://assets/ui/buttons/locked.png",
 		"locked_opacity": 0.35
 	},
+	"protocol_settings": {
+		"text_size": 20,
+		"title_size": 24,
+		"summary_size": 18,
+		"popup_background": {
+			"asset": "res://assets/ui/button_regular.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 10,
+				"right": 10,
+				"top": 16,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
+		}
+	},
 	"popups": {
 		"margin": 35,
 		"background": {
@@ -454,10 +664,8 @@
 			"stretch_vertical": "stretch"
 		},
 		"button": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"text_color": "#FFFFFF",
-			"letter_spacing": 0,
-			"font_size": 18,
 			"nine_slice": {
 				"left": 18,
 				"right": 18,
@@ -490,31 +698,31 @@
 			"static_width": 165,
 			"static_height": 165,
 			"text_color": "#000000",
-			"font_size": 18,
+			"font_size": 24,
 			"letter_spacing": 2
 		},
 		"power_button": {
 			"asset": "res://assets/ui/super_power_button.png",
 			"text_color": "#ffffff",
-			"font_size": 24,
+			"font_size": 30,
 			"letter_spacing": 2
 		},
 		"unique_power_button": {
 			"asset": "res://assets/ui/unique_power_button.png",
 			"text_color": "#ffffff",
-			"font_size": 24,
+			"font_size": 30,
 			"letter_spacing": 2
 		},
 		"equipment_button": {
 			"asset": "res://assets/ui/frame_empty.png",
 			"text_color": "#ffffff",
-			"font_size": 20,
+			"font_size": 30,
 			"letter_spacing": 2
 		},
 		"inventory_button": {
 			"asset": "res://assets/ui/frame_empty.png",
 			"text_color": "#000000",
-			"font_size": 20,
+			"font_size": 30,
 			"letter_spacing": 2
 		},
 		"slot_icons": {
@@ -544,11 +752,11 @@
 			"6-8": "res://assets/ui/frame_level_gold.png",
 			"9": "res://assets/ui/frame_level_diamond.png",
 			"text_color": "#FFFFFF",
-			"font_size": 18,
+			"font_size": 26,
 			"width": 40,
 			"height": 40
 		},
-		"stats_number_font_size": 16
+		"stats_number_font_size": 22
 	},
 	"ui_dropdown": {
 		"item_bg_asset": "res://assets/ui/popup_background.png",
@@ -583,7 +791,7 @@
 	"shop_menu": {
 		"background": "res://assets/ui/main_menu_bg.jpg",
 		"button": {
-			"asset": "res://assets/ui/button.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"text_color": "#FFFFFF",
 			"font_size": 18,
 			"letter_spacing": 0,
@@ -623,7 +831,8 @@
 			}
 		]
 	},
-	"buttons": {
+	"home_buttons": {
+		"default_text_size": 24,
 		"default_nine_slice": {
 			"left": 18,
 			"right": 18,
@@ -639,45 +848,51 @@
 		"default_stretch_horizontal": "stretch",
 		"default_stretch_vertical": "stretch",
 		"play": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 12
+			"text_size": 24,
+			"letter_spacing": 1
 		},
 		"ship": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 12
+			"text_size": 24,
+			"letter_spacing": 1
 		},
 		"options": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 12
+			"text_size": 24,
+			"letter_spacing": 1
 		},
 		"quit": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 12
+			"text_size": 24,
+			"letter_spacing": 1
 		},
 		"skills": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
-			"letter_spacing": 10
+			"text_size": 24,
+			"letter_spacing": 1
 		},
 		"change_profile": {
-			"asset": "res://assets/ui/popup_background.png",
+			"asset": "res://assets/ui/button_regular.png",
 			"asset_anim": "",
 			"show_text": true,
 			"text_color": "#FFFFFF",
+			"text_size": 24,
 			"letter_spacing": 2
 		}
 	},
@@ -722,6 +937,7 @@
 		"asset_clip_contents": true
 	},
 	"loading_screen": {
+		"background": "res://assets/ui/main_menu_bg.jpg",
 		"show_label": false,
 		"show_spinner": false,
 		"overlay_color": "#000000",
@@ -745,6 +961,15 @@
 	"gameplay": {
 		"end_session": {
 			"post_battle_delay_seconds": 1.5
+		},
+		"background_scroll": {
+			"far_speed": 20.0,
+			"mid_speed": 50.0,
+			"near_speed": 125.0,
+			"overlay": {
+				"color": "#000000",
+				"opacity": 0.7
+			}
 		},
 		"bars": {
 			"height": 60,
@@ -862,6 +1087,8 @@
 	},
 	"SkillsMenu": {
 		"background": "#0B1020",
+		"default_font_size": 20,
+		"default_title_font_size": 28,
 		"title": {
 			"font_size": 44,
 			"text_color": "#FFFFFF"

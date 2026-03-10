@@ -4,17 +4,41 @@
 	"description": "Un plan dimensionnel éthéré où la magie pure façonne la réalité et défie les lois de la physique.",
 	"order": 9,
 	"skin_overrides": {
-		"enemies": {},
-		"bosses": {},
-		"obstacles": {}
+		"enemies": {
+			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+			"fighter": "res://assets/enemies/atlantis/fighter.tres",
+			"tank": "res://assets/enemies/atlantis/tank.tres",
+			"artillery": "res://assets/enemies/atlantis/artillery.tres",
+			"elite": "res://assets/enemies/atlantis/elite.tres"
+		},
+		"bosses": {
+			"boss_atlantis_1": "res://assets/bosses/atlantis/atlantis_boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/atlantis/atlantis_boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/atlantis/atlantis_boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/atlantis/atlantis_boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/atlantis/atlantis_boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/atlantis/atlantis_boss_final.tres"
+		},
+		"obstacles": {
+			"explosives": [
+				"res://assets/obstacles/magical/obstacle_explosive_1.png",
+				"res://assets/obstacles/magical/obstacle_explosive_2.png",
+				"res://assets/obstacles/magical/obstacle_explosive_3.png",
+				"res://assets/obstacles/magical/obstacle_explosive_4.png",
+				"res://assets/obstacles/magical/obstacle_explosive_5.png",
+				"res://assets/obstacles/magical/obstacle_explosive_6.png",
+				"res://assets/obstacles/magical/obstacle_explosive_7.png"
+			]
+		}
 	},
 	"multipliers": {
 		"hp": 20.0,
 		"damage": 14.0,
-		"speed": 2.0
+		"speed": 1.2
 	},
 	"theme": {
 		"background": "",
+		"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_world.jpg",
 		"music": "res://assets/music/starlight.ogg",
 		"color_palette": "#7b2d8e"
 	},
@@ -27,15 +51,8 @@
 			"duration_sec": 60,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_0.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/magical/layer_2_feathers_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -109,15 +126,8 @@
 			"duration_sec": 80,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_1.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/magical/layer_2_magical.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -221,15 +231,8 @@
 			"duration_sec": 100,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_2.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/magical/layer_2_feathers_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -294,7 +297,7 @@
 				{
 					"time": 53.6,
 					"type": "obstacle",
-					"obstacle_id": "planet_medium",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 90,
@@ -325,7 +328,7 @@
 				{
 					"time": 82.5,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -351,15 +354,8 @@
 			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_3.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/magical/layer_2_magical.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -387,7 +383,7 @@
 				{
 					"time": 25.8,
 					"type": "obstacle",
-					"obstacle_id": "planet_medium",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 90,
@@ -501,15 +497,8 @@
 			"duration_sec": 140,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_4.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/magical/layer_2_feathers_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -537,7 +526,7 @@
 				{
 					"time": 25.3,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -568,7 +557,7 @@
 				{
 					"time": 55.1,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -605,7 +594,7 @@
 				{
 					"time": 84.9,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -636,7 +625,7 @@
 				{
 					"time": 114.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -675,15 +664,8 @@
 			"duration_sec": 160,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_5.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/magical/layer_2_magical.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -859,7 +841,7 @@
 				{
 					"time": 142.3,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -882,6 +864,77 @@
 			],
 			"events": [],
 			"boss_id": "boss_magic_final"
+		},
+		{
+			"index": 6,
+			"id": "world_9_lvl_6",
+			"name": "Boss Debug Arena",
+			"type": "boss_debug",
+			"duration_sec": 999,
+			"backgrounds": {
+				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/magical/tile_magical_5.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+				"near_layer": []
+			},
+			"waves": [],
+			"events": [],
+			"boss_sequence": [
+				"boss_forest_1",
+				"boss_forest_2",
+				"boss_forest_3",
+				"boss_forest_4",
+				"boss_forest_5",
+				"boss_forest_final",
+				"boss_atlantis_1",
+				"boss_atlantis_2",
+				"boss_atlantis_3",
+				"boss_atlantis_4",
+				"boss_atlantis_5",
+				"boss_atlantis_final",
+				"boss_industrial_1",
+				"boss_industrial_2",
+				"boss_industrial_3",
+				"boss_industrial_4",
+				"boss_industrial_5",
+				"boss_industrial_final",
+				"boss_lava_1",
+				"boss_lava_2",
+				"boss_lava_3",
+				"boss_lava_4",
+				"boss_lava_5",
+				"boss_lava_final",
+				"boss_mine_1",
+				"boss_mine_2",
+				"boss_mine_3",
+				"boss_mine_4",
+				"boss_mine_5",
+				"boss_mine_final",
+				"boss_necro_1",
+				"boss_necro_2",
+				"boss_necro_3",
+				"boss_necro_4",
+				"boss_necro_5",
+				"boss_necro_final",
+				"boss_titan_1",
+				"boss_titan_2",
+				"boss_titan_3",
+				"boss_titan_4",
+				"boss_titan_5",
+				"boss_titan_final",
+				"boss_alien_1",
+				"boss_alien_2",
+				"boss_alien_3",
+				"boss_alien_4",
+				"boss_alien_5",
+				"boss_alien_final",
+				"boss_magic_1",
+				"boss_magic_2",
+				"boss_magic_3",
+				"boss_magic_4",
+				"boss_magic_5",
+				"boss_magic_final"
+			]
 		}
 	],
 	"unlock_condition": {

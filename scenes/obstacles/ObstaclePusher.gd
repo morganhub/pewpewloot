@@ -26,13 +26,16 @@ var _viewport_height: float = 0.0
 var _viewport_width: float = 0.0
 var _shape_type: String = "rectangle"
 var _drift_velocity: Vector2 = Vector2.ZERO
+var _lifetime: float = 0.0
 
 # Fluid trail
 var _fluid_id: String = ""
 
-const OFFSCREEN_MARGIN: float = 100.0
+const OFFSCREEN_MARGIN: float = 100.0  # Marge gauche/droite
+const OFFSCREEN_MARGIN_BOTTOM: float = 500.0  # Trajectoire finit bien sous l'écran
+const LIFETIME_TIMEOUT: float = 30.0  # Despawn de sécurité après 30 s
 const STRONG_RESOURCE_CACHE_MAX: int = 256
-const OBSTACLE_BLEND_MODE := CanvasItemMaterial.BLEND_MODE_ADD
+const OBSTACLE_BLEND_MODE := CanvasItemMaterial.BLEND_MODE_MIX
 static var _strong_resource_cache: Dictionary = {}  # path -> Resource
 static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
 
@@ -112,6 +115,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	if sprite_path == "":
 		_visual_node = sprite
 		_ensure_obstacle_blend_mode(sprite)
+		sprite.modulate = Color(1, 1, 1, 1)
 		if _anim_sprite:
 			_anim_sprite.visible = false
 		if sprite.texture:
@@ -124,6 +128,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	if res == null:
 		_visual_node = sprite
 		_ensure_obstacle_blend_mode(sprite)
+		sprite.modulate = Color(1, 1, 1, 1)
 		if _anim_sprite:
 			_anim_sprite.visible = false
 		return
@@ -136,6 +141,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 			_anim_sprite.name = "AnimatedSprite2D"
 			add_child(_anim_sprite)
 		_ensure_obstacle_blend_mode(_anim_sprite)
+		_anim_sprite.modulate = Color(1, 1, 1, 1)
 		_visual_node = _anim_sprite
 		_anim_sprite.visible = true
 		
@@ -176,6 +182,7 @@ func _apply_visual(target_w: float, target_h: float, data: Dictionary) -> void:
 	
 	_visual_node = sprite
 	_ensure_obstacle_blend_mode(sprite)
+	sprite.modulate = Color(1, 1, 1, 1)
 	sprite.texture = tex
 	sprite.visible = true
 	if _anim_sprite:
@@ -252,6 +259,10 @@ func _ready() -> void:
 	detection_area.body_entered.connect(_on_detection_body_entered)
 
 func _physics_process(delta: float) -> void:
+	_lifetime += delta
+	if _lifetime >= LIFETIME_TIMEOUT:
+		queue_free()
+		return
 	# Défilement vertical — la physique native pousse le joueur
 	global_position.y += speed * delta
 	global_position += _drift_velocity * delta
@@ -259,7 +270,7 @@ func _physics_process(delta: float) -> void:
 		FluidManager.emit_fluid(global_position, _fluid_id, _drift_velocity)
 	
 	# Nettoyage hors écran (bas, gauche, droite)
-	if global_position.y > _viewport_height + OFFSCREEN_MARGIN:
+	if global_position.y > _viewport_height + OFFSCREEN_MARGIN_BOTTOM:
 		queue_free()
 	elif global_position.x < -OFFSCREEN_MARGIN or global_position.x > _viewport_width + OFFSCREEN_MARGIN:
 		queue_free()

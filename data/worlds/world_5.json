@@ -4,17 +4,41 @@
 	"description": "Des galeries abandonnées creusées dans la roche, parsemées de cristaux luminescents et de veines minérales.",
 	"order": 5,
 	"skin_overrides": {
-		"enemies": {},
-		"bosses": {},
-		"obstacles": {}
+		"enemies": {
+			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+			"fighter": "res://assets/enemies/atlantis/fighter.tres",
+			"tank": "res://assets/enemies/atlantis/tank.tres",
+			"artillery": "res://assets/enemies/atlantis/artillery.tres",
+			"elite": "res://assets/enemies/atlantis/elite.tres"
+		},
+		"bosses": {
+			"boss_atlantis_1": "res://assets/bosses/atlantis/atlantis_boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/atlantis/atlantis_boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/atlantis/atlantis_boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/atlantis/atlantis_boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/atlantis/atlantis_boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/atlantis/atlantis_boss_final.tres"
+		},
+		"obstacles": {
+			"explosives": [
+				"res://assets/obstacles/mine/obstacle_explosive_1.png",
+				"res://assets/obstacles/mine/obstacle_explosive_2.png",
+				"res://assets/obstacles/mine/obstacle_explosive_3.png",
+				"res://assets/obstacles/mine/obstacle_explosive_4.png",
+				"res://assets/obstacles/mine/obstacle_explosive_5.png",
+				"res://assets/obstacles/mine/obstacle_explosive_6.png",
+				"res://assets/obstacles/mine/obstacle_explosive_7.png"
+			]
+		}
 	},
 	"multipliers": {
 		"hp": 6.0,
 		"damage": 4.0,
-		"speed": 1.4
+		"speed": 1.1
 	},
 	"theme": {
 		"background": "",
+		"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_world.jpg",
 		"music": "res://assets/music/neon.ogg",
 		"color_palette": "#4a3728"
 	},
@@ -27,15 +51,8 @@
 			"duration_sec": 60,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/mine/world_mine_0.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_0.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_0.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/mine/layer_2_mine_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -109,15 +126,8 @@
 			"duration_sec": 80,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/mine/world_mine_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_1.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/mine/layer_2_mine_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -221,15 +231,8 @@
 			"duration_sec": 100,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/mine/world_mine_2.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_2.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_2.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/mine/layer_2_mine_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -257,7 +260,7 @@
 				{
 					"time": 24.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_medium",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 90,
@@ -288,7 +291,7 @@
 				{
 					"time": 53.6,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 150,
@@ -351,15 +354,8 @@
 			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/mine/world_mine_3.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_3.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_3.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/mine/layer_2_mine_4.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -424,7 +420,7 @@
 				{
 					"time": 56.2,
 					"type": "obstacle",
-					"obstacle_id": "planet_medium",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 90,
@@ -501,15 +497,8 @@
 			"duration_sec": 140,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/mine/world_mine_4.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_4.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_4.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/mine/layer_2_crystals.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -611,7 +600,7 @@
 				{
 					"time": 84.9,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -681,15 +670,8 @@
 			"duration_sec": 160,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/mine/world_mine_5.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/mine/tile_mine_5.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_5.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/mine/layer_2_mine_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -754,7 +736,7 @@
 				{
 					"time": 54.3,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -822,7 +804,7 @@
 				{
 					"time": 113.0,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,

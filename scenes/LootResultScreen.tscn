@@ -106,7 +106,7 @@ alignment = 1
 
 [node name="EquipButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer" unique_id=408543210]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 60)
+custom_minimum_size = Vector2(160, 84)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Équiper"
@@ -114,7 +114,7 @@ icon_alignment = 1
 
 [node name="DisassembleButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer" unique_id=920970897]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 60)
+custom_minimum_size = Vector2(160, 84)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Recycler"
@@ -162,29 +162,32 @@ text = ">"
 [node name="HSeparator3" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=971115424]
 layout_mode = 2
 
-[node name="NavigationButtons" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1287896151]
+[node name="NavigationButtons" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1287896151]
 layout_mode = 2
-theme_override_constants/separation = 30
+theme_override_constants/separation = 12
 alignment = 1
 
 [node name="RestartButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons" unique_id=8533450]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 60)
+custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 text = "Recommencer"
 
 [node name="ExitButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons" unique_id=316260172]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 60)
+custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 text = "Sélection niveau"
 
 [node name="MenuButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons" unique_id=2051874009]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 60)
+custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 text = "Menu"
 

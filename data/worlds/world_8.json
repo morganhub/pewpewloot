@@ -4,17 +4,40 @@
 	"description": "Un organisme vivant géant dont les parois pulsent d'une énergie biologique extraterrestre.",
 	"order": 8,
 	"skin_overrides": {
-		"enemies": {},
-		"bosses": {},
-		"obstacles": {}
+		"enemies": {
+			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+			"fighter": "res://assets/enemies/atlantis/fighter.tres",
+			"tank": "res://assets/enemies/atlantis/tank.tres",
+			"artillery": "res://assets/enemies/atlantis/artillery.tres",
+			"elite": "res://assets/enemies/atlantis/elite.tres"
+		},
+		"bosses": {
+			"boss_atlantis_1": "res://assets/bosses/atlantis/atlantis_boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/atlantis/atlantis_boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/atlantis/atlantis_boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/atlantis/atlantis_boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/atlantis/atlantis_boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/atlantis/atlantis_boss_final.tres"
+		},
+		"obstacles": {
+			"explosives": [
+				"res://assets/obstacles/alien/obstacle_explosive_1.png",
+				"res://assets/obstacles/alien/obstacle_explosive_2.png",
+				"res://assets/obstacles/alien/obstacle_explosive_3.png",
+				"res://assets/obstacles/alien/obstacle_explosive_4.png",
+				"res://assets/obstacles/alien/obstacle_explosive_5.png",
+				"res://assets/obstacles/alien/obstacle_explosive_6.png"
+			]
+		}
 	},
 	"multipliers": {
 		"hp": 15.0,
 		"damage": 10.0,
-		"speed": 1.8
+		"speed": 1.1
 	},
 	"theme": {
 		"background": "",
+		"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_world.jpg",
 		"music": "res://assets/music/neon.ogg",
 		"color_palette": "#1a4d1a"
 	},
@@ -27,15 +50,8 @@
 			"duration_sec": 60,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/alien/world_bio_0.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_0.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_0.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -109,15 +125,8 @@
 			"duration_sec": 80,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/alien/world_bio_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_1.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -221,15 +230,8 @@
 			"duration_sec": 100,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/alien/world_bio_2.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_2.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_2.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -294,7 +296,7 @@
 				{
 					"time": 53.6,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -325,7 +327,7 @@
 				{
 					"time": 82.5,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -357,15 +359,8 @@
 			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/alien/world_bio_3.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_3.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_3.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_4.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -430,7 +425,7 @@
 				{
 					"time": 56.2,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -461,7 +456,7 @@
 				{
 					"time": 86.6,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -501,15 +496,8 @@
 			"duration_sec": 140,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/alien/world_bio_4.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_4.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_4.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -537,7 +525,7 @@
 				{
 					"time": 25.3,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -568,7 +556,7 @@
 				{
 					"time": 55.1,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 150,
@@ -675,15 +663,8 @@
 			"duration_sec": 160,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/alien/world_bio_5.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/alien/tile_alien_5.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_5.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -711,7 +692,7 @@
 				{
 					"time": 25.0,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -779,7 +760,7 @@
 				{
 					"time": 83.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,

@@ -3,7 +3,7 @@
 		{
 			"id": "swarmer",
 			"name": "Essaimeur",
-			"hp": 230,
+			"hp": 630,
 			"size": {
 				"width": 64,
 				"height": 64
@@ -13,21 +13,21 @@
 				"shape": "circle",
 				"asset": "",
 				"asset_anim": "res://assets/enemies/forest/forest_swarmer.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "rush_player",
 			"base_speed": 4.0,
 			"missile_pattern_id": "single_straight",
 			"missile_id": "missile_default",
-			"fire_rate": 3.0,
+			"fire_rate": 20.0,
 			"score": 10,
 			"loot_chance": 0.1
 		},
 		{
 			"id": "fighter",
 			"name": "Combattant",
-			"hp": 380,
+			"hp": 780,
 			"size": {
 				"width": 70,
 				"height": 70
@@ -37,21 +37,21 @@
 				"shape": "triangle",
 				"asset": "",
 				"asset_anim": "res://assets/enemies/forest/forest_fighter.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "figure_eight",
 			"base_speed": 2.5,
 			"missile_pattern_id": "aimed_player",
 			"missile_id": "missile_default",
-			"fire_rate": 2.0,
+			"fire_rate": 10,
 			"score": 25,
 			"loot_chance": 0.15
 		},
 		{
 			"id": "tank",
 			"name": "Blindé",
-			"hp": 700,
+			"hp": 1700,
 			"size": {
 				"width": 90,
 				"height": 90
@@ -61,21 +61,21 @@
 				"shape": "square",
 				"asset": "",
 				"asset_anim": "res://assets/enemies/forest/forest_tank.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "straight_down",
 			"base_speed": 1.0,
 			"missile_pattern_id": "aimed_player",
 			"missile_id": "missile_default",
-			"fire_rate": 1.5,
+			"fire_rate": 10,
 			"score": 50,
 			"loot_chance": 0.25
 		},
 		{
 			"id": "artillery",
 			"name": "Artillerie",
-			"hp": 300,
+			"hp": 1300,
 			"size": {
 				"width": 70,
 				"height": 70
@@ -85,21 +85,21 @@
 				"shape": "hexagon",
 				"asset": "",
 				"asset_anim": "res://assets/enemies/forest/forest_artillery.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "stationary",
 			"base_speed": 0.0,
 			"missile_pattern_id": "spiral_continuous",
 			"missile_id": "missile_default",
-			"fire_rate": 1.0,
+			"fire_rate": 10,
 			"score": 40,
 			"loot_chance": 0.2
 		},
 		{
 			"id": "elite",
 			"name": "Élite",
-			"hp": 1000,
+			"hp": 3000,
 			"size": {
 				"width": 100,
 				"height": 100
@@ -109,14 +109,14 @@
 				"shape": "diamond",
 				"asset": "",
 				"asset_anim": "res://assets/enemies/forest/forest_elite.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "random_strafe",
 			"base_speed": 1.2,
 			"missile_pattern_id": "homing_barrage",
-			"missile_id": "missile_homing",
-			"fire_rate": 1,
+			"missile_id": "missile_elite",
+			"fire_rate": 10,
 			"score": 100,
 			"loot_chance": 0.4
 		}

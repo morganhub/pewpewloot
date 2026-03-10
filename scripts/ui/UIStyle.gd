@@ -126,3 +126,370 @@ static func _get_nested(source: Dictionary, path: Array, fallback: Variant) -> V
 			return fallback
 		current = dict[str(part)]
 	return current
+
+## Builds a 9-slice StyleBoxTexture from an existing Texture2D (e.g. from a SpriteFrames frame).
+static func build_stylebox_from_texture(tex: Texture2D, cfg: Dictionary, fallback_content_margin: int = -1) -> StyleBoxTexture:
+	if tex == null:
+		return null
+	var style := StyleBoxTexture.new()
+	style.texture = tex
+	_apply_nine_slice(style, cfg)
+	_apply_content_margins(style, cfg, fallback_content_margin)
+	_apply_axis_stretch(style, cfg)
+	style.draw_center = bool(_get_nested(cfg, ["draw_center"], true))
+	return style
+
+## Duplicates a StyleBoxTexture and shifts content by offset_y (e.g. +5 for "pressed" state).
+static func _stylebox_with_content_offset(style: StyleBoxTexture, offset_y: float) -> StyleBoxTexture:
+	if style == null or offset_y == 0.0:
+		return style
+	var copy := StyleBoxTexture.new()
+	copy.texture = style.texture
+	copy.texture_margin_left = style.texture_margin_left
+	copy.texture_margin_right = style.texture_margin_right
+	copy.texture_margin_top = style.texture_margin_top
+	copy.texture_margin_bottom = style.texture_margin_bottom
+	copy.content_margin_left = style.content_margin_left
+	copy.content_margin_right = style.content_margin_right
+	copy.content_margin_top = style.content_margin_top + offset_y
+	copy.content_margin_bottom = maxf(0.0, style.content_margin_bottom - offset_y)
+	copy.axis_stretch_horizontal = style.axis_stretch_horizontal
+	copy.axis_stretch_vertical = style.axis_stretch_vertical
+	copy.draw_center = style.draw_center
+	return copy
+
+static func _get_pressed_offset_y() -> float:
+	var buttons := _get_buttons_section()
+	return _to_float_or(buttons.get("pressed_offset_y", null), 5.0)
+
+## Retourne une copie du StyleBoxTexture avec le décalage Y hover/pressed (game.json buttons.pressed_offset_y).
+## À utiliser pour les boutons qui ont leur propre style : passer le style normal, utiliser le retour pour hover/pressed/focus.
+static func get_stylebox_with_hover_offset(style: StyleBox) -> StyleBox:
+	if style is StyleBoxTexture:
+		return _stylebox_with_content_offset(style as StyleBoxTexture, _get_pressed_offset_y())
+	return style
+
+const HOVER_TRANSLATE_DURATION := 0.15
+
+## Translate Y au survol: utilise game.json buttons.pressed_offset_y, animation ease-in-out.
+static func apply_button_hover_translate(btn: Control) -> void:
+	if btn == null:
+		return
+	var offset_y: float = _get_pressed_offset_y()
+	if offset_y == 0.0:
+		return
+	if btn.get_meta("hover_translate_applied", false):
+		return
+	btn.set_meta("hover_translate_applied", true)
+	btn.mouse_entered.connect(_on_button_hover_entered.bind(btn, offset_y))
+	btn.mouse_exited.connect(_on_button_hover_exited.bind(btn, offset_y))
+
+static func _on_button_hover_entered(btn: Control, offset_y: float) -> void:
+	_stop_button_hover_tween(btn)
+	var base_y: float = btn.get_meta("hover_base_y", btn.position.y)
+	btn.set_meta("hover_base_y", base_y)
+	var tw := btn.create_tween()
+	tw.set_ease(Tween.EASE_IN_OUT)
+	tw.set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(btn, "position:y", base_y + offset_y, HOVER_TRANSLATE_DURATION)
+	btn.set_meta("hover_tween", tw)
+
+static func _on_button_hover_exited(btn: Control, offset_y: float) -> void:
+	_stop_button_hover_tween(btn)
+	var base_y: float = btn.get_meta("hover_base_y", btn.position.y - offset_y)
+	var tw := btn.create_tween()
+	tw.set_ease(Tween.EASE_IN_OUT)
+	tw.set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(btn, "position:y", base_y, HOVER_TRANSLATE_DURATION)
+	tw.finished.connect(func(): btn.set_meta("hover_base_y", btn.position.y))
+	btn.set_meta("hover_tween", tw)
+
+static func _stop_button_hover_tween(btn: Control) -> void:
+	if not btn.has_meta("hover_tween"):
+		return
+	var tw: Variant = btn.get_meta("hover_tween")
+	if tw is Tween and is_instance_valid(tw as Tween):
+		(tw as Tween).kill()
+	btn.remove_meta("hover_tween")
+
+## Builds normal and hover styleboxes for the validation button.
+## Supports .png (single texture; hover = same style with content offset) or .tres SpriteFrames (frame 0 for both, hover with offset).
+## Returns { "normal": StyleBoxTexture, "hover": StyleBoxTexture } or empty if asset invalid.
+static func build_validation_styleboxes(asset_path: String, cfg: Dictionary) -> Dictionary:
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return {}
+	var offset_y: float = _get_pressed_offset_y()
+	var ext: String = asset_path.get_extension().to_lower()
+	if ext in ["png", "jpg", "webp"]:
+		var fallback_margin: int = 14
+		var cm: Variant = cfg.get("content_margin", {})
+		if cm is Dictionary and (cm as Dictionary).get("left", -1) >= 0:
+			fallback_margin = -1
+		var style_normal: StyleBoxTexture = build_texture_stylebox(asset_path, cfg, fallback_margin)
+		if style_normal == null:
+			return {}
+		var style_hover: StyleBoxTexture = _stylebox_with_content_offset(style_normal, offset_y)
+		return { "normal": style_normal, "hover": style_hover }
+	var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res == null or not (res is SpriteFrames):
+		return {}
+	var frames: SpriteFrames = res as SpriteFrames
+	var anim_names: Array = frames.get_animation_names()
+	var anim_name: StringName = &"default"
+	if anim_names.size() > 0:
+		anim_name = anim_names[0]
+	var frame_count: int = frames.get_frame_count(anim_name)
+	if frame_count <= 0:
+		return {}
+	var tex_normal: Texture2D = frames.get_frame_texture(anim_name, 0)
+	var fallback_margin: int = 14
+	var cm: Variant = cfg.get("content_margin", {})
+	if cm is Dictionary and (cm as Dictionary).get("left", -1) >= 0:
+		fallback_margin = -1
+	var style_normal := build_stylebox_from_texture(tex_normal, cfg, fallback_margin)
+	if style_normal == null:
+		return {}
+	var style_hover := _stylebox_with_content_offset(style_normal, offset_y)
+	return { "normal": style_normal, "hover": style_hover }
+
+## Applies a text shadow to a Button by overlaying a Label child.
+## Godot 4 Button does not support font_shadow natively; this workaround
+## hides the native text and adds a Label with shadow on top.
+## `shadow_size` must be one of "small", "medium", "large" (reads from game.json button_shadow).
+## If the button text is empty, does nothing.
+## Safe to call multiple times: updates existing ShadowLabel if present.
+static func apply_button_shadow(button: Button, shadow_size: String = "medium") -> void:
+	if button == null:
+		return
+	var cfg := _get_shadow_config(shadow_size)
+	var shadow_color: Color = Color.from_string(str(cfg.get("shadow_color", "#000000")), Color.BLACK)
+	var offset_x: int = int(cfg.get("shadow_offset_x", 2))
+	var offset_y: int = int(cfg.get("shadow_offset_y", 2))
+	var outline_size: int = int(cfg.get("shadow_outline_size", 0))
+
+	var existing: Label = button.get_node_or_null("ShadowLabel")
+	if existing != null:
+		_sync_shadow_label(button, existing, shadow_color, offset_x, offset_y, outline_size)
+		return
+
+	if button.text.is_empty():
+		return
+
+	var font_val: Font = button.get_theme_font("font")
+	var font_size_val: int = button.get_theme_font_size("font_size")
+	var font_color: Color = Color.WHITE
+	if button.has_theme_color_override("font_color"):
+		font_color = button.get_theme_color("font_color")
+	var btn_text := button.text
+
+	button.text = ""
+	button.add_theme_color_override("font_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
+	button.add_theme_color_override("font_focus_color", Color(0, 0, 0, 0))
+
+	var lbl := Label.new()
+	lbl.name = "ShadowLabel"
+	lbl.text = btn_text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if font_val:
+		lbl.add_theme_font_override("font", font_val)
+	if font_size_val > 0:
+		lbl.add_theme_font_size_override("font_size", font_size_val)
+	lbl.add_theme_color_override("font_color", font_color)
+	lbl.add_theme_color_override("font_shadow_color", shadow_color)
+	lbl.add_theme_constant_override("shadow_offset_x", offset_x)
+	lbl.add_theme_constant_override("shadow_offset_y", offset_y)
+	lbl.add_theme_constant_override("shadow_outline_size", outline_size)
+	button.add_child(lbl)
+
+## Updates the text of a ShadowLabel-equipped Button. Use this instead of `button.text = ...`.
+static func set_button_shadow_text(button: Button, new_text: String) -> void:
+	if button == null:
+		return
+	var lbl: Label = button.get_node_or_null("ShadowLabel")
+	if lbl != null:
+		lbl.text = new_text
+	else:
+		button.text = new_text
+
+## Updates the font color of a ShadowLabel-equipped Button.
+static func set_button_shadow_color(button: Button, color: Color) -> void:
+	if button == null:
+		return
+	var lbl: Label = button.get_node_or_null("ShadowLabel")
+	if lbl != null:
+		lbl.add_theme_color_override("font_color", color)
+
+static func _sync_shadow_label(button: Button, lbl: Label, shadow_color: Color, ox: int, oy: int, outline: int) -> void:
+	if not button.text.is_empty():
+		lbl.text = button.text
+		button.text = ""
+	lbl.add_theme_color_override("font_shadow_color", shadow_color)
+	lbl.add_theme_constant_override("shadow_offset_x", ox)
+	lbl.add_theme_constant_override("shadow_offset_y", oy)
+	lbl.add_theme_constant_override("shadow_outline_size", outline)
+
+static func _apply_letter_spacing_via_font(control: Control, spacing: int) -> void:
+	if spacing == 0:
+		return
+	var base_font: Font = control.get_theme_font("font")
+	var fv := FontVariation.new()
+	if base_font:
+		fv.base_font = base_font
+	fv.spacing_glyph = spacing
+	control.add_theme_font_override("font", fv)
+
+static func _get_game_config() -> Dictionary:
+	var dm: Node = Engine.get_main_loop().root.get_node_or_null("/root/DataManager") if Engine.get_main_loop() else null
+	if dm != null and dm.has_method("get_game_config"):
+		return dm.get_game_config()
+	# Fallback si DataManager pas encore prêt (ex. éditeur ou chargement initial)
+	if FileAccess.file_exists("res://data/game.json"):
+		var f := FileAccess.open("res://data/game.json", FileAccess.READ)
+		if f:
+			var json := JSON.new()
+			if json.parse(f.get_as_text()) == OK and json.data is Dictionary:
+				f.close()
+				return json.data
+			f.close()
+	return {}
+
+static func _get_buttons_section() -> Dictionary:
+	var game_cfg := _get_game_config()
+	var section: Variant = game_cfg.get("buttons", {})
+	return section if section is Dictionary else {}
+
+static func _get_shadow_config(size_key: String) -> Dictionary:
+	var fallback := {"shadow_color": "#000000", "shadow_offset_x": 2, "shadow_offset_y": 2, "shadow_outline_size": 0}
+	var buttons := _get_buttons_section()
+	var shadow_section: Variant = buttons.get("shadow", {})
+	if not (shadow_section is Dictionary):
+		return fallback
+	var preset: Variant = (shadow_section as Dictionary).get(size_key, {})
+	if not (preset is Dictionary) or (preset as Dictionary).is_empty():
+		return fallback
+	return preset as Dictionary
+
+## Returns the font preset dict for a given size ("small", "medium", "large").
+static func get_button_font_preset(size_key: String) -> Dictionary:
+	var fallback_map := {
+		"small": {"font_size": 14, "letter_spacing": 0},
+		"medium": {"font_size": 18, "letter_spacing": 0},
+		"large": {"font_size": 24, "letter_spacing": 1},
+	}
+	var buttons := _get_buttons_section()
+	var presets: Variant = buttons.get("font_presets", {})
+	if presets is Dictionary and (presets as Dictionary).has(size_key):
+		var p: Variant = (presets as Dictionary).get(size_key, {})
+		if p is Dictionary and not (p as Dictionary).is_empty():
+			return p as Dictionary
+	return fallback_map.get(size_key, fallback_map["medium"])
+
+## Returns the default button style config (asset, nine_slice, text_color, etc.).
+static func get_default_button_style() -> Dictionary:
+	var buttons := _get_buttons_section()
+	var style: Variant = buttons.get("default_style", {})
+	return style if style is Dictionary else {}
+
+## Returns the default button minimum size (min_width, min_height) for in-game popups.
+static func get_default_button_min_size() -> Vector2:
+	var style := get_default_button_style()
+	var w: int = int(style.get("min_width", 220))
+	var h: int = int(style.get("min_height", 56))
+	return Vector2(w, h)
+
+## Returns the validation button config.
+static func get_validation_config() -> Dictionary:
+	var buttons := _get_buttons_section()
+	var v: Variant = buttons.get("validation", {})
+	return v if v is Dictionary else {}
+
+## Returns the cancellation button config (same structure as validation, different asset).
+static func get_cancellation_config() -> Dictionary:
+	var buttons := _get_buttons_section()
+	var c: Variant = buttons.get("cancellation", {})
+	return c if c is Dictionary else {}
+
+## Applies the default button style (asset 9-slice + text_color) and font preset to a Button.
+static func apply_default_button_style(btn: Button, font_size_key: String = "medium") -> void:
+	if btn == null:
+		return
+	var style_cfg := get_default_button_style()
+	var asset_path := str(style_cfg.get("asset", ""))
+	var stylebox := build_texture_stylebox(asset_path, style_cfg, 15)
+	if stylebox:
+		var style_pressed: StyleBoxTexture = _stylebox_with_content_offset(stylebox, _get_pressed_offset_y())
+		btn.add_theme_stylebox_override("normal", stylebox)
+		btn.add_theme_stylebox_override("hover", style_pressed)
+		btn.add_theme_stylebox_override("pressed", style_pressed)
+		btn.add_theme_stylebox_override("focus", style_pressed)
+		btn.add_theme_stylebox_override("disabled", stylebox)
+
+	var col_hex := str(style_cfg.get("text_color", "#FFFFFF"))
+	var col := Color.html(col_hex)
+	btn.add_theme_color_override("font_color", col)
+	btn.add_theme_color_override("font_hover_color", col)
+	btn.add_theme_color_override("font_pressed_color", col)
+	btn.add_theme_color_override("font_focus_color", col)
+	btn.add_theme_color_override("font_disabled_color", Color(col.r, col.g, col.b, 0.5))
+
+	var font_cfg := get_button_font_preset(font_size_key)
+	btn.add_theme_font_size_override("font_size", int(font_cfg.get("font_size", 18)))
+	_apply_letter_spacing_via_font(btn, int(font_cfg.get("letter_spacing", 0)))
+	apply_button_hover_translate(btn)
+
+## Applies the validation 9-slice button style to a Button (normal + hover/pressed/focus with content offset).
+## Pass font_size_key to also set the centralized font preset; pass "" to skip font override.
+static func apply_validation_to_button(btn: Button, validation_cfg: Dictionary = {}, font_size_key: String = "") -> void:
+	if btn == null:
+		return
+	var cfg := validation_cfg if not validation_cfg.is_empty() else get_validation_config()
+	if cfg.is_empty():
+		return
+	var asset_path: String = str(cfg.get("asset", ""))
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+	var styles: Dictionary = build_validation_styleboxes(asset_path, cfg)
+	if styles.is_empty():
+		return
+	var style_normal: StyleBoxTexture = styles.get("normal", null)
+	var style_hover: StyleBoxTexture = styles.get("hover", null)
+	if style_normal == null:
+		return
+	if style_hover == null:
+		style_hover = style_normal
+	btn.add_theme_stylebox_override("normal", style_normal)
+	btn.add_theme_stylebox_override("hover", style_hover)
+	btn.add_theme_stylebox_override("pressed", style_hover)
+	btn.add_theme_stylebox_override("focus", style_hover)
+	btn.add_theme_stylebox_override("disabled", style_normal)
+	var text_color_hex: String = str(cfg.get("text_color", "#ffffff"))
+	var col := Color(text_color_hex)
+	btn.add_theme_color_override("font_color", col)
+	btn.add_theme_color_override("font_hover_color", col)
+	btn.add_theme_color_override("font_pressed_color", col)
+	btn.add_theme_color_override("font_focus_color", col)
+	btn.add_theme_color_override("font_disabled_color", Color(col.r, col.g, col.b, 0.5))
+
+	if font_size_key != "":
+		var font_cfg := get_button_font_preset(font_size_key)
+		var size_override: Variant = cfg.get("text_size", cfg.get("font_size", null))
+		if size_override != null:
+			btn.add_theme_font_size_override("font_size", int(size_override))
+		else:
+			btn.add_theme_font_size_override("font_size", int(cfg.get("font_size", font_cfg.get("font_size", 18))))
+		var ls: int = int(cfg.get("letter_spacing", font_cfg.get("letter_spacing", 0)))
+		_apply_letter_spacing_via_font(btn, ls)
+	else:
+		var ls: int = int(cfg.get("letter_spacing", 0))
+		_apply_letter_spacing_via_font(btn, ls)
+	apply_button_hover_translate(btn)
+
+## Applies the cancellation 9-slice button style (same as validation but from buttons.cancellation).
+static func apply_cancellation_to_button(btn: Button, cancellation_cfg: Dictionary = {}, font_size_key: String = "medium") -> void:
+	var cfg := cancellation_cfg if not cancellation_cfg.is_empty() else get_cancellation_config()
+	apply_validation_to_button(btn, cfg, font_size_key)

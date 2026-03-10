@@ -1,5 +1,6 @@
 extends Control
 
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 const H_MARGIN := 36.0
 const BOTTOM_MARGIN := 24.0
 const TITLE_TO_CAROUSEL_GAP := 14.0
@@ -8,7 +9,7 @@ const DETAILS_GAP := 16.0
 const WARNING_GAP := 8.0
 const ACTION_BUTTON_HEIGHT := 72.0
 const ITEM_HEIGHT_RATIO := 0.9
-const ITEM_SPACING := 64.0
+const ITEM_SPACING := 48.0
 const DRAG_THRESHOLD := 12.0
 const SNAP_DURATION := 0.24
 const MAX_CAROUSEL_HEIGHT := 520.0
@@ -77,6 +78,13 @@ var _override_checkbox_map: Dictionary = {}
 var _override_hint_nonce: int = 0
 var _override_button_active_bg: String = ""
 var _override_button_inactive_bg: String = ""
+var _protocol_settings: Dictionary = {}
+
+func _get_menu_header_offset() -> float:
+	var h: Variant = _game_config.get("menu_header", {})
+	if h is Dictionary:
+		return float(int((h as Dictionary).get("height_px", 72)) + int((h as Dictionary).get("margin_top", 8)))
+	return 0.0
 
 func _ready() -> void:
 	_load_config()
@@ -91,7 +99,16 @@ func _ready() -> void:
 	_update_inventory_warning_ui()
 	_apply_layout()
 	_snap_to_index(_current_index, false)
-	_check_story_triggers()
+	var mh: Control = get_node_or_null("MenuHeader")
+	if mh and mh.has_signal("crystals_pressed") and not mh.crystals_pressed.is_connected(_on_header_crystals_pressed):
+		mh.crystals_pressed.connect(_on_header_crystals_pressed)
+
+	# Footer : clic sur le bouton retour du bas
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+	if back_button:
+		back_button.visible = false
 
 func prepare_for_transition() -> void:
 	_kill_track_tween()
@@ -136,6 +153,7 @@ func _input(event: InputEvent) -> void:
 
 func _load_config() -> void:
 	_game_config = DataManager.get_game_config()
+	_protocol_settings = _game_config.get("protocol_settings", {})
 	_world_select_cfg = _game_config.get("world_select", {})
 	_default_card_colors = _game_config.get(
 		"default_card_colors",
@@ -158,18 +176,9 @@ func _load_config() -> void:
 	var arrow_h := float(arrows_cfg.get("height", 82.0))
 	_arrow_size = Vector2(maxf(24.0, arrow_w), maxf(24.0, arrow_h))
 
-	var back_cfg: Dictionary = {}
-	var back_cfg_v: Variant = _world_select_cfg.get("back_button", {})
-	if back_cfg_v is Dictionary:
-		back_cfg = back_cfg_v as Dictionary
-	_back_button_pos = Vector2(
-		float(back_cfg.get("x", 35.0)),
-		float(back_cfg.get("y", 35.0))
-	)
-	_back_button_size = Vector2(
-		maxf(24.0, float(back_cfg.get("width", 75.0))),
-		maxf(24.0, float(back_cfg.get("height", 75.0)))
-	)
+	# Back button top-left is now visual-only (hidden) and kept for layout math
+	_back_button_pos = Vector2(35.0, 35.0)
+	_back_button_size = Vector2(75.0, 75.0)
 
 	_locked_asset_path = _resolve_asset_path(
 		str(_world_select_cfg.get("locked_asset", "res://assets/ui/buttons/locked.png"))
@@ -213,24 +222,24 @@ func _load_config() -> void:
 	details_description.add_theme_color_override("font_color", details_color)
 
 	var button_bg_path := _resolve_asset_path(str(_world_select_cfg.get("button_bg", "")))
-	if button_bg_path != "":
-		_apply_button_style(action_button, button_bg_path)
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+	if not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
+		var v := validation_cfg.duplicate(true)
+		v["asset"] = _resolve_asset_path(str(v.get("asset", "")))
+		if str(v.get("asset", "")) != "":
+			UIStyle.apply_validation_to_button(action_button, v, "large")
+	else:
+		if button_bg_path != "":
+			_apply_button_style(action_button, button_bg_path)
 	action_button.add_theme_font_size_override(
 		"font_size",
 		int(_world_select_cfg.get("button_font_size", 24))
 	)
-	action_button.add_theme_color_override(
-		"font_color",
-		_parse_color(_world_select_cfg.get("button_font_color", "#FFFFFF"), Color.WHITE)
-	)
-
-	var back_icon_path := _resolve_asset_path(str(ui_icons.get("back_button", "")))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path):
-		back_button.texture_normal = ResourceLoader.load(
-			back_icon_path,
-			"",
-			ResourceLoader.CACHE_MODE_REUSE
-		) as Texture2D
+	if validation_cfg.is_empty():
+		action_button.add_theme_color_override(
+			"font_color",
+			_parse_color(_world_select_cfg.get("button_font_color", "#FFFFFF"), Color.WHITE)
+		)
 
 	var left_path := _resolve_asset_path(str(_world_select_cfg.get("arrow_left", ui_icons.get("arrow_left", ""))))
 	var right_path := _resolve_asset_path(str(_world_select_cfg.get("arrow_right", ui_icons.get("arrow_right", ""))))
@@ -254,6 +263,7 @@ func _setup_static_ui() -> void:
 
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	action_button.text = LocaleManager.translate("level_select_play")
+	UIStyle.apply_button_shadow(action_button, "large")
 
 	details_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inventory_warning_label.visible = false
@@ -270,6 +280,8 @@ func _setup_override_controls() -> void:
 			int(_override_ui_settings.get("item_title_size", 20))
 		)
 		add_child(_override_button)
+		UIStyle.apply_default_button_style(_override_button, "medium")
+		UIStyle.apply_button_shadow(_override_button, "medium")
 
 	if _override_hint_label == null:
 		_override_hint_label = Label.new()
@@ -295,6 +307,7 @@ func _setup_override_controls() -> void:
 	add_child(_override_popup_overlay)
 
 	var dim := ColorRect.new()
+	dim.name = "Dim"
 	dim.color = Color(0.0, 0.0, 0.0, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -306,62 +319,71 @@ func _setup_override_controls() -> void:
 	_override_popup_overlay.add_child(_override_popup_panel)
 	_apply_override_popup_background()
 
-	var content := VBoxContainer.new()
-	content.name = "Content"
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 10)
-	_override_popup_panel.add_child(content)
+	# Contenu : marges fixes
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_override_popup_panel.add_child(margin)
 
+	var main := VBoxContainer.new()
+	main.name = "Main"
+	main.add_theme_constant_override("separation", 12)
+	margin.add_child(main)
+
+	# Titre du popup
 	var title := Label.new()
 	title.name = "Title"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.text = LocaleManager.translate("level_select_override_popup_title")
-	title.add_theme_font_size_override("font_size", int(_override_ui_settings.get("header_font_size", 30)))
-	title.add_theme_color_override(
-		"font_color",
-		_parse_color(_override_ui_settings.get("header_text_color", "#ff3333"), Color(1.0, 0.2, 0.2, 1.0))
-	)
-	content.add_child(title)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", int(_protocol_settings.get("title_size", _override_ui_settings.get("header_font_size", 28))))
+	title.add_theme_color_override("font_color", _parse_color(_override_ui_settings.get("header_text_color", "#ffffff"), Color.WHITE))
+	main.add_child(title)
 
+	# Résumé (XP / cristaux)
 	_override_popup_summary = Label.new()
 	_override_popup_summary.name = "Summary"
 	_override_popup_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_override_popup_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_override_popup_summary.add_theme_font_size_override(
-		"font_size",
-		maxi(18, int(_override_ui_settings.get("header_font_size", 32)) - 6)
-	)
-	_override_popup_summary.add_theme_color_override(
-		"font_color",
-		_parse_color(_override_ui_settings.get("item_title_color", "#ffffff"), Color.WHITE)
-	)
-	content.add_child(_override_popup_summary)
+	_override_popup_summary.add_theme_font_size_override("font_size", int(_protocol_settings.get("summary_size", _override_ui_settings.get("summary_font_size", 20))))
+	_override_popup_summary.add_theme_color_override("font_color", _parse_color(_override_ui_settings.get("item_title_color", "#C2C9E8"), Color(0.76, 0.79, 0.91)))
+	main.add_child(_override_popup_summary)
 
+	# Zone scrollable : liste de boutons protocoles
 	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(scroll)
+	scroll.name = "Scroll"
+	scroll.custom_minimum_size = Vector2(280, 200)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	main.add_child(scroll)
 
 	_override_popup_list = VBoxContainer.new()
 	_override_popup_list.name = "ProtocolList"
-	_override_popup_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_override_popup_list.add_theme_constant_override("separation", 8)
 	scroll.add_child(_override_popup_list)
 
+	# Footer : Reset + Close (9-slice + shadow 3px comme partout)
 	var footer := HBoxContainer.new()
-	footer.alignment = BoxContainer.ALIGNMENT_CENTER
-	footer.add_theme_constant_override("separation", 16)
-	content.add_child(footer)
+	footer.name = "Footer"
+	footer.add_theme_constant_override("separation", 12)
+	main.add_child(footer)
 
-	var reset_button := Button.new()
-	reset_button.text = LocaleManager.translate("level_select_override_reset")
-	reset_button.pressed.connect(_on_override_reset_pressed)
-	footer.add_child(reset_button)
+	var reset_btn := Button.new()
+	reset_btn.name = "ResetButton"
+	reset_btn.text = LocaleManager.translate("level_select_override_reset")
+	reset_btn.pressed.connect(_on_override_reset_pressed)
+	UIStyle.apply_default_button_style(reset_btn, "medium")
+	UIStyle.apply_button_shadow(reset_btn, "large")
+	footer.add_child(reset_btn)
 
-	var close_button := Button.new()
-	close_button.text = LocaleManager.translate("level_select_override_close")
-	close_button.pressed.connect(_close_override_popup)
-	footer.add_child(close_button)
+	var close_btn := Button.new()
+	close_btn.name = "CloseButton"
+	close_btn.text = LocaleManager.translate("level_select_override_close")
+	close_btn.pressed.connect(_close_override_popup)
+	UIStyle.apply_validation_to_button(close_btn, UIStyle.get_validation_config(), "medium")
+	UIStyle.apply_button_shadow(close_btn, "large")
+	footer.add_child(close_btn)
 
 	dim.gui_input.connect(_on_override_overlay_gui_input)
 
@@ -381,8 +403,11 @@ func _resolve_world_context() -> void:
 	App.set_active_override_protocols(_active_override_protocol_ids)
 
 func _refresh_header_and_background() -> void:
-	var world_name := str(_world_data.get("name", world_id))
-	title_label.text = LocaleManager.translate("level_select_title", {"name": world_name})
+	var world_name_key: String = "worlds.%s.name" % world_id
+	var world_name: String = LocaleManager.translate(world_name_key)
+	if world_name == world_name_key or world_name.is_empty():
+		world_name = str(_world_data.get("name", world_id))
+	title_label.text = world_name
 
 	var world_theme: Variant = _world_data.get("theme", {})
 	var bg_path := ""
@@ -424,14 +449,14 @@ func _load_level_items() -> void:
 			"description": _build_level_description(level, i),
 			"asset_path": _resolve_level_asset_path(level),
 			"fallback_color": fallback_color,
-			"unlocked": i <= max_unlocked
+			"unlocked": i <= max_unlocked or _is_debug_force_unlocked_level(i)
 		}
 		var node := _create_level_card(entry)
 		carousel_track.add_child(node)
 		entry["node"] = node
 		_items.append(entry)
 
-	_reference_aspect_ratio = _estimate_reference_aspect_ratio()
+	_reference_aspect_ratio = 1.0
 
 func _estimate_reference_aspect_ratio() -> float:
 	var fallback_ratio := 0.58
@@ -468,19 +493,23 @@ func _get_asset_aspect_ratio(asset_path: String) -> float:
 	return 0.0
 
 func _resolve_level_asset_path(level: Dictionary) -> String:
-	var explicit_path := _resolve_asset_path(str(level.get("image", level.get("preview_asset", ""))))
-	if explicit_path != "":
-		return explicit_path
-
 	var backgrounds: Variant = level.get("backgrounds", {})
 	if backgrounds is Dictionary:
-		var card := _resolve_asset_path(str((backgrounds as Dictionary).get("card", "")))
-		if card != "":
-			return card
-		var far := _resolve_asset_path(str((backgrounds as Dictionary).get("far_layer", "")))
-		if far != "":
-			return far
+		var bg_dict: Dictionary = backgrounds as Dictionary
+		return _resolve_asset_path(str(bg_dict.get("sphere_texture", "")))
 	return ""
+
+func _get_level_sphere_texture_path_by_index(level_index: int) -> String:
+	var levels_v: Variant = _world_data.get("levels", [])
+	if not (levels_v is Array):
+		return ""
+	var levels: Array = levels_v as Array
+	if level_index < 0 or level_index >= levels.size():
+		return ""
+	var lv: Variant = levels[level_index]
+	if not (lv is Dictionary):
+		return ""
+	return _resolve_level_asset_path(lv as Dictionary)
 
 func _build_level_description(level: Dictionary, index: int) -> String:
 	var lore := str(level.get("description", level.get("lore", ""))).strip_edges()
@@ -504,8 +533,6 @@ func _build_level_description(level: Dictionary, index: int) -> String:
 func _create_level_card(entry: Dictionary) -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.clip_contents = true
-
 	var visual := Control.new()
 	visual.name = "Visual"
 	visual.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -536,31 +563,47 @@ func _create_level_card(entry: Dictionary) -> Control:
 	return root
 
 func _add_level_visual(parent: Control, entry: Dictionary) -> void:
-	var asset_path := _resolve_asset_path(str(entry.get("asset_path", "")))
-	if asset_path != "" and ResourceLoader.exists(asset_path):
-		var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
-		if res is Texture2D:
-			var tex_rect := TextureRect.new()
-			tex_rect.name = "Texture"
-			tex_rect.texture = res as Texture2D
-			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tex_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-			tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			parent.add_child(tex_rect)
+	var level_index: int = int(entry.get("level_index", 0))
+	var sphere_texture_path: String = _get_level_sphere_texture_path_by_index(level_index)
+	if sphere_texture_path == "" or not ResourceLoader.exists(sphere_texture_path):
+		_add_fallback_level_visual(parent, entry)
+		return
+	var res: Resource = ResourceLoader.load(sphere_texture_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res is Texture2D:
+		var sphere_script: GDScript = load("res://scenes/components/SphereView.gd") as GDScript
+		if sphere_script != null:
+			var sphere_view: Control = sphere_script.new()
+			sphere_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+			sphere_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			parent.add_child(sphere_view)
+			var path_for_sphere: String = _get_level_sphere_texture_path_by_index(level_index)
+			push_warning("[LevelSelect] sphere level_index=%s path=%s" % [level_index, path_for_sphere])
+			sphere_view.set_texture_path(path_for_sphere)
 			return
-		if res is SpriteFrames:
-			var anim := AnimatedSprite2D.new()
-			anim.name = "Anim"
-			anim.centered = true
-			anim.sprite_frames = res as SpriteFrames
-			var anim_name := _get_first_animation_name(anim.sprite_frames)
-			if anim_name != &"":
-				anim.play(anim_name)
-				anim.animation = anim_name
-			parent.add_child(anim)
-			return
+		var tex_rect := TextureRect.new()
+		tex_rect.name = "Texture"
+		tex_rect.texture = res as Texture2D
+		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		parent.add_child(tex_rect)
+		return
+	if res is SpriteFrames:
+		var anim := AnimatedSprite2D.new()
+		anim.name = "Anim"
+		anim.centered = true
+		anim.sprite_frames = res as SpriteFrames
+		var anim_name := _get_first_animation_name(anim.sprite_frames)
+		if anim_name != &"":
+			anim.play(anim_name)
+			anim.animation = anim_name
+		parent.add_child(anim)
+		return
+	_add_fallback_level_visual(parent, entry)
 
+
+func _add_fallback_level_visual(parent: Control, entry: Dictionary) -> void:
 	var fallback := ColorRect.new()
 	fallback.color = _parse_color(entry.get("fallback_color", "#3a4f6f"), Color(0.2, 0.25, 0.4, 1.0))
 	fallback.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -569,13 +612,14 @@ func _add_level_visual(parent: Control, entry: Dictionary) -> void:
 func _apply_layout() -> void:
 	var viewport_size := size
 	var content_width := maxf(300.0, viewport_size.x - H_MARGIN * 2.0)
+	var header_offset := _get_menu_header_offset()
 
-	back_button.position = _back_button_pos
+	back_button.position = _back_button_pos + Vector2(0.0, header_offset)
 	back_button.size = _back_button_size
 	back_button.custom_minimum_size = _back_button_size
 
 	var title_height := clampf(viewport_size.y * 0.07, 42.0, 66.0)
-	var title_top := _back_button_pos.y + _back_button_size.y + 8.0
+	var title_top := _back_button_pos.y + _back_button_size.y + 8.0 + header_offset
 	title_label.position = Vector2(H_MARGIN, title_top)
 	title_label.size = Vector2(content_width, title_height)
 
@@ -615,8 +659,8 @@ func _apply_layout() -> void:
 	var available_for_carousel := maxf(0.0, space_for_block - non_carousel_space)
 	var carousel_height := minf(MAX_CAROUSEL_HEIGHT, available_for_carousel)
 
-	carousel_area.position = Vector2(H_MARGIN, carousel_top)
-	carousel_area.size = Vector2(content_width, carousel_height)
+	carousel_area.position = Vector2(0.0, carousel_top)
+	carousel_area.size = Vector2(viewport_size.x, carousel_height)
 	carousel_viewport.position = Vector2.ZERO
 
 	left_arrow.custom_minimum_size = _arrow_size
@@ -723,6 +767,11 @@ func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/WorldSelect.tscn")
+
+func _on_header_crystals_pressed() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/ShopMenu.tscn")
 
 func _on_left_arrow_pressed() -> void:
 	_snap_to_index(_current_index - 1, true)
@@ -920,7 +969,7 @@ func _refresh_selection_ui() -> void:
 
 	var unlocked := bool(selected.get("unlocked", false))
 	action_button.disabled = not unlocked
-	action_button.text = LocaleManager.translate("level_select_play") if unlocked else _get_locked_label()
+	UIStyle.set_button_shadow_text(action_button, LocaleManager.translate("level_select_play") if unlocked else _get_locked_label())
 	_refresh_override_ui()
 
 	left_arrow.visible = _current_index > 0
@@ -933,13 +982,13 @@ func _refresh_override_ui() -> void:
 	var unlocked: bool = _is_current_world_override_unlocked()
 	var selected_count: int = _active_override_protocol_ids.size()
 	if unlocked:
-		_override_button.text = LocaleManager.translate(
+		UIStyle.set_button_shadow_text(_override_button, LocaleManager.translate(
 			"level_select_override_button",
 			{"count": str(selected_count)}
-		)
+		))
 		_apply_override_button_style(true)
 	else:
-		_override_button.text = LocaleManager.translate("level_select_override_pending")
+		UIStyle.set_button_shadow_text(_override_button, LocaleManager.translate("level_select_override_pending"))
 		_apply_override_button_style(false)
 
 func _refresh_override_popup() -> void:
@@ -947,6 +996,9 @@ func _refresh_override_popup() -> void:
 		return
 
 	_rebuild_override_popup_items()
+	if _override_popup_panel != null and _override_popup_list != null:
+		var content_w := maxf(260.0, _override_popup_panel.size.x - 32.0)
+		_override_popup_list.custom_minimum_size.x = content_w
 	if _override_popup_summary == null:
 		return
 
@@ -972,6 +1024,10 @@ func _rebuild_override_popup_items() -> void:
 
 	_active_override_protocol_ids = _sanitize_protocol_selection(_active_override_protocol_ids)
 
+	var default_cfg: Dictionary = _game_config.get("buttons", {}).get("default_style", {})
+	var btn_min_w := int(default_cfg.get("min_width", 220))
+	var btn_min_h := int(default_cfg.get("min_height", 56))
+
 	for protocol_variant in _override_protocols:
 		if not (protocol_variant is Dictionary):
 			continue
@@ -980,18 +1036,41 @@ func _rebuild_override_popup_items() -> void:
 		if protocol_id == "":
 			continue
 
-		var title: String = LocaleManager.translate(str(protocol_data.get("title_key", protocol_id)))
-		var description: String = LocaleManager.translate(str(protocol_data.get("description_key", "")))
+		var title_text: String = LocaleManager.translate(str(protocol_data.get("title_key", protocol_id)))
+		var description_text: String = LocaleManager.translate(str(protocol_data.get("description_key", "")))
+		var is_selected: bool = _active_override_protocol_ids.has(protocol_id)
 
-		var check := CheckBox.new()
-		check.name = "Protocol_" + protocol_id
-		check.set_pressed_no_signal(_active_override_protocol_ids.has(protocol_id))
-		check.text = title + ("\n" + description if description != "" else "")
-		check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		check.toggled.connect(_on_override_protocol_toggled.bind(protocol_id))
-		_override_popup_list.add_child(check)
-		_override_checkbox_map[protocol_id] = check
+		var btn := Button.new()
+		btn.name = "Protocol_" + protocol_id
+		btn.flat = true
+		var display_text: String = title_text
+		if description_text != "":
+			display_text += "\n" + description_text
+		btn.text = display_text
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.custom_minimum_size = Vector2(btn_min_w, maxi(btn_min_h, 52))
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+		if is_selected:
+			UIStyle.apply_validation_to_button(btn, UIStyle.get_validation_config(), "")
+		else:
+			UIStyle.apply_default_button_style(btn, "medium")
+
+		UIStyle.apply_button_shadow(btn, "large")
+		var shadow_lbl: Label = btn.get_node_or_null("ShadowLabel")
+		if shadow_lbl != null:
+			shadow_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			shadow_lbl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+			shadow_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+		btn.pressed.connect(_on_override_protocol_row_pressed.bind(protocol_id))
+		_override_popup_list.add_child(btn)
+		_override_checkbox_map[protocol_id] = btn
+
+func _on_override_protocol_row_pressed(protocol_id: String) -> void:
+	var currently_enabled: bool = _active_override_protocol_ids.has(protocol_id)
+	_on_override_protocol_toggled(not currently_enabled, protocol_id)
 
 func _on_override_protocol_toggled(enabled: bool, protocol_id: String) -> void:
 	if enabled:
@@ -1044,38 +1123,83 @@ func _apply_override_button_style(active: bool) -> void:
 func _apply_override_popup_background() -> void:
 	if _override_popup_panel == null:
 		return
+	var bg_cfg: Variant = _protocol_settings.get("popup_background", {})
+	if bg_cfg is Dictionary:
+		var cfg: Dictionary = bg_cfg as Dictionary
+		var asset: String = _resolve_asset_path(str(cfg.get("asset", "")))
+		if asset != "" and ResourceLoader.exists(asset):
+			var style: StyleBoxTexture = UIStyle.build_texture_stylebox(asset, cfg, 10)
+			if style != null:
+				_override_popup_panel.add_theme_stylebox_override("panel", style)
+				return
 	var popup_bg_path: String = _resolve_asset_path(str(_override_ui_settings.get("popup_bg", "")))
-	if popup_bg_path == "" or not ResourceLoader.exists(popup_bg_path):
-		return
-	var texture := ResourceLoader.load(popup_bg_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
-	if texture == null:
-		return
-	var style := StyleBoxTexture.new()
-	style.texture = texture
-	style.texture_margin_left = 24
-	style.texture_margin_top = 24
-	style.texture_margin_right = 24
-	style.texture_margin_bottom = 24
+	if popup_bg_path != "" and ResourceLoader.exists(popup_bg_path):
+		var texture := ResourceLoader.load(popup_bg_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+		if texture != null:
+			var style := StyleBoxTexture.new()
+			style.texture = texture
+			style.texture_margin_left = 24
+			style.texture_margin_top = 24
+			style.texture_margin_right = 24
+			style.texture_margin_bottom = 24
+			_override_popup_panel.add_theme_stylebox_override("panel", style)
+			return
+	var style := _make_override_flat_style(
+		_parse_color(str(_override_ui_settings.get("popup_bg_color", "#1a1a2e")), Color(0.1, 0.1, 0.18)),
+		16,
+		0
+	)
 	_override_popup_panel.add_theme_stylebox_override("panel", style)
+
+func _make_override_flat_style(bg_color: Color, radius: int, content_margin: int) -> StyleBoxFlat:
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = bg_color
+	flat.set_corner_radius_all(radius)
+	if content_margin > 0:
+		flat.content_margin_left = content_margin
+		flat.content_margin_right = content_margin
+		flat.content_margin_top = content_margin
+		flat.content_margin_bottom = content_margin
+	return flat
+
+func _apply_override_popup_button_style(button: Button, bg_hex: String, text_color: Color) -> void:
+	var style := _make_override_flat_style(Color.from_string(bg_hex, Color(0.2, 0.2, 0.3)), 8, 0)
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_stylebox_override("hover", style)
+	button.add_theme_stylebox_override("pressed", style)
+	button.add_theme_stylebox_override("focus", style)
+	button.add_theme_stylebox_override("disabled", style)
+	button.add_theme_color_override("font_color", text_color)
+	button.add_theme_color_override("font_pressed_color", text_color)
+	button.add_theme_color_override("font_hover_color", text_color)
+	button.add_theme_font_size_override("font_size", 20)
 
 func _layout_override_popup(viewport_size: Vector2) -> void:
 	if _override_popup_overlay == null:
 		return
-	_override_popup_overlay.size = viewport_size
 	if _override_popup_panel == null:
 		return
 	var popup_width := viewport_size.x * OVERRIDE_POPUP_WIDTH_RATIO
 	var popup_height := viewport_size.y * OVERRIDE_POPUP_HEIGHT_RATIO
 	_override_popup_panel.size = Vector2(
-		clampf(popup_width, 300.0, viewport_size.x - H_MARGIN * 2.0),
-		clampf(popup_height, 240.0, viewport_size.y - BOTTOM_MARGIN * 2.0)
+		clampf(popup_width, 320.0, viewport_size.x - H_MARGIN * 2.0),
+		clampf(popup_height, 320.0, viewport_size.y - BOTTOM_MARGIN * 2.0)
 	)
 	_override_popup_panel.position = (viewport_size - _override_popup_panel.size) * 0.5
+	var content_w := _override_popup_panel.size.x - 32.0
+	var scroll_h := maxf(180.0, _override_popup_panel.size.y - 180.0)
+	var scroll: ScrollContainer = _override_popup_panel.get_node_or_null("Margin/Main/Scroll")
+	if scroll != null:
+		scroll.custom_minimum_size = Vector2(content_w, scroll_h)
+	if _override_popup_list != null:
+		_override_popup_list.custom_minimum_size.x = content_w
 
 func _find_last_unlocked_level_index() -> int:
 	if _items.is_empty():
 		return 0
 	var max_unlocked := _get_max_unlocked_level()
+	if _is_debug_force_unlocked_level(_items.size() - 1):
+		max_unlocked = maxi(max_unlocked, _items.size() - 1)
 	return clampi(max_unlocked, 0, _items.size() - 1)
 
 func _get_max_unlocked_level() -> int:
@@ -1084,6 +1208,9 @@ func _get_max_unlocked_level() -> int:
 	if world_progress_v is Dictionary:
 		return int((world_progress_v as Dictionary).get("max_unlocked_level", 0))
 	return 0
+
+func _is_debug_force_unlocked_level(level_index: int) -> bool:
+	return ProfileManager.is_debug_mode_enabled() and world_id == "world_9" and level_index == 6
 
 func _update_inventory_warning_ui() -> void:
 	var current_size := ProfileManager.get_unequipped_inventory_count()
@@ -1161,32 +1288,3 @@ func _kill_track_tween() -> void:
 	if _track_tween != null and is_instance_valid(_track_tween):
 		_track_tween.kill()
 	_track_tween = null
-
-func _check_story_triggers() -> void:
-	var world_story_id := str(_world_data.get("story_id", ""))
-	if world_story_id != "" and not ProfileManager.has_viewed_story(world_story_id):
-		process_mode = Node.PROCESS_MODE_DISABLED
-		await StoryManager.play_story(world_story_id)
-		ProfileManager.mark_story_viewed(world_story_id)
-		process_mode = Node.PROCESS_MODE_INHERIT
-		return
-
-	var levels_v: Variant = _world_data.get("levels", [])
-	if not (levels_v is Array):
-		return
-	var max_unlocked := _get_max_unlocked_level()
-	var levels := levels_v as Array
-	for i in range(levels.size()):
-		if i > max_unlocked:
-			break
-		var lv: Variant = levels[i]
-		if not (lv is Dictionary):
-			continue
-		var story_id := str((lv as Dictionary).get("story_id", ""))
-		if story_id == "" or ProfileManager.has_viewed_story(story_id):
-			continue
-		process_mode = Node.PROCESS_MODE_DISABLED
-		await StoryManager.play_story(story_id)
-		ProfileManager.mark_story_viewed(story_id)
-		process_mode = Node.PROCESS_MODE_INHERIT
-		return

@@ -64,13 +64,19 @@ var _displayed_progress_pct: float = 0.0
 var _forced_background_path: String = ""
 
 func _ready() -> void:
+	z_index = 1000
 	modulate.a = 0.0 # Start invisible
 	_refresh_loading_screen_look()
 
 ## Used for app startup: show loading bar with main_menu background, load data + scenes, then emit bootstrap_completed with ProfileSelect or HomeScreen path.
 func start_bootstrap_loading() -> void:
-	var main_menu: Dictionary = DataManager.get_game_config().get("main_menu", {})
-	_forced_background_path = str(main_menu.get("background", ""))
+	var game_cfg: Dictionary = DataManager.get_game_config()
+	var loading_cfg: Dictionary = game_cfg.get("loading_screen", {})
+	var main_menu: Dictionary = game_cfg.get("main_menu", {})
+	var bg_path: String = str(loading_cfg.get("background", "")).strip_edges()
+	if bg_path.is_empty():
+		bg_path = str(main_menu.get("background", "")).strip_edges()
+	_forced_background_path = bg_path
 	_refresh_loading_screen_look()
 
 	var tw = create_tween()
@@ -150,7 +156,8 @@ func _apply_loading_visual_config() -> void:
 	if loading_label:
 		loading_label.visible = _show_loading_label
 	if spinner:
-		spinner.visible = bool(_loading_screen_config.get("show_spinner", false))
+		# Only show spinner when a texture is set; otherwise Godot draws the default placeholder (engine icon)
+		spinner.visible = bool(_loading_screen_config.get("show_spinner", false)) and spinner.texture != null
 
 	if progress_bar == null:
 		return
@@ -214,10 +221,12 @@ func _apply_loading_visual_config() -> void:
 func _apply_level_preview_from_current_level() -> void:
 	if _level_preview == null:
 		return
+	# Hide first so we never show placeholder for one frame if load fails or path is empty
+	_level_preview.visible = false
+	_level_preview.texture = null
+
 	var bg_path: String = _forced_background_path if _forced_background_path != "" else _resolve_current_level_background_path()
 	if bg_path == "":
-		_level_preview.visible = false
-		_level_preview.texture = null
 		return
 
 	var loaded: Resource = ResourceLoader.load(bg_path, "", ResourceLoader.CACHE_MODE_REUSE)
@@ -788,7 +797,7 @@ func _warmup_enemy_instances(payloads: Array, done_steps_start: int, total_steps
 		return done_steps_start
 
 	var host := Node2D.new()
-	host.visible = true
+	host.visible = false
 	add_child(host)
 
 	var done_steps: int = done_steps_start
@@ -853,7 +862,7 @@ func _warmup_runtime_nodes(
 		return done_steps_start
 
 	var host := Node2D.new()
-	host.visible = true
+	host.visible = false
 	add_child(host)
 
 	var done_steps: int = done_steps_start

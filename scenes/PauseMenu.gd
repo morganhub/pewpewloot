@@ -13,6 +13,7 @@ signal quit_requested
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_apply_popup_style()
+	_apply_button_styles()
 	hide()
 
 func _apply_popup_style() -> void:
@@ -33,6 +34,34 @@ func _apply_popup_style() -> void:
 	var style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, margin)
 	if style:
 		panel.add_theme_stylebox_override("panel", style)
+	
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+	var resume_btn := panel.get_node_or_null("Margin/VBox/ResumeButton") as Button
+	if resume_btn and not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
+		UIStyle.apply_validation_to_button(resume_btn, validation_cfg, "large")
+
+func _apply_button_styles() -> void:
+	var resume_btn := panel.get_node_or_null("Margin/VBox/ResumeButton") as Button
+	if resume_btn:
+		pass  # already applied in _apply_popup_style
+	var restart_btn := panel.get_node_or_null("Margin/VBox/RestartButton") as Button
+	if restart_btn:
+		UIStyle.apply_default_button_style(restart_btn, "medium")
+	var level_btn := panel.get_node_or_null("Margin/VBox/LevelSelectButton") as Button
+	if level_btn:
+		UIStyle.apply_default_button_style(level_btn, "medium")
+	var quit_btn := panel.get_node_or_null("Margin/VBox/QuitButton") as Button
+	if quit_btn:
+		var cancel_cfg: Dictionary = UIStyle.get_cancellation_config()
+		if not cancel_cfg.is_empty() and str(cancel_cfg.get("asset", "")) != "":
+			UIStyle.apply_cancellation_to_button(quit_btn, cancel_cfg, "medium")
+		else:
+			UIStyle.apply_default_button_style(quit_btn, "medium")
+	var btn_size: Vector2 = UIStyle.get_default_button_min_size()
+	for name in ["ResumeButton", "RestartButton", "LevelSelectButton", "QuitButton"]:
+		var btn: Button = panel.get_node_or_null("Margin/VBox/" + name) as Button
+		if btn:
+			btn.custom_minimum_size = btn_size
 
 func show_menu() -> void:
 	_translate()
@@ -44,16 +73,24 @@ func _translate() -> void:
 	if title: title.text = LocaleManager.translate("pause_title")
 	
 	var resume_btn = panel.get_node_or_null("Margin/VBox/ResumeButton")
-	if resume_btn: resume_btn.text = LocaleManager.translate("pause_resume")
+	if resume_btn:
+		resume_btn.text = LocaleManager.translate("pause_resume")
+		UIStyle.apply_button_shadow(resume_btn, "large")
 	
 	var restart_btn = panel.get_node_or_null("Margin/VBox/RestartButton")
-	if restart_btn: restart_btn.text = LocaleManager.translate("pause_restart")
+	if restart_btn:
+		restart_btn.text = LocaleManager.translate("pause_restart")
+		UIStyle.apply_button_shadow(restart_btn, "medium")
 	
 	var level_btn = panel.get_node_or_null("Margin/VBox/LevelSelectButton")
-	if level_btn: level_btn.text = LocaleManager.translate("pause_level_select")
+	if level_btn:
+		level_btn.text = LocaleManager.translate("pause_level_select")
+		UIStyle.apply_button_shadow(level_btn, "medium")
 	
 	var quit_btn = panel.get_node_or_null("Margin/VBox/QuitButton")
-	if quit_btn: quit_btn.text = LocaleManager.translate("pause_quit")
+	if quit_btn:
+		quit_btn.text = LocaleManager.translate("pause_quit")
+		UIStyle.apply_button_shadow(quit_btn, "medium")
 
 func set_continue_enabled(enabled: bool) -> void:
 	var resume_btn := panel.get_node_or_null("Margin/VBox/ResumeButton") as Button

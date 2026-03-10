@@ -74,6 +74,7 @@ assets/
   "multipliers": { "hp": 1.0, "damage": 1.0, "speed": 1.0 },
   "theme": {
     "background": "",
+    "sphere_texture": "res://assets/backgrounds/worlds/forest/level_0.jpg",
     "music": "res://assets/music/forest/forest_music.ogg",
     "color_palette": "#2d5a27"
   },
@@ -123,18 +124,20 @@ Le bloc `skin_overrides.bosses` mappe chaque `boss_id` vers son asset visuel.
 
 ### Obstacles
 
-Le bloc `skin_overrides.obstacles` mappe les **shapes** (`circle`, `rectangle`) vers des arrays de sprites. Un sprite est choisi aléatoirement par obstacle.
+Le bloc `skin_overrides.obstacles` mappe des clés vers des arrays de sprites. Un sprite est choisi aléatoirement par obstacle.
+
+- **Obstacles explosifs** (`type: "explosive"` dans `obstacles.json`) : utilisent la clé **`explosives`** si elle est définie. Sinon, fallback sur le `sprite_path` par défaut de l'obstacle.
+- **Autres obstacles** (ex. pusher) : utilisent la **shape** (`circle`, `rectangle`) comme clé. Si le monde n'a pas d'override pour cette shape, le `sprite_path` par défaut de `obstacles.json` est utilisé.
 
 ```json
 "skin_overrides": {
   "obstacles": {
     "circle": ["res://assets/obstacles/forest/forest_obstacle_circle_1.png", "..."],
-    "rectangle": ["res://assets/obstacles/forest/forest_obstacle_rectangle_1.png"]
+    "rectangle": ["res://assets/obstacles/forest/forest_obstacle_rectangle_1.png"],
+    "explosives": ["res://assets/obstacles/forest/forest_obstacle_explosive_1.png", "..."]
   }
 }
 ```
-
-- Si le monde n'a pas d'override pour une shape, le `sprite_path` par défaut de `obstacles.json` est utilisé.
 
 ---
 
@@ -163,6 +166,7 @@ Définis dans `data/enemies.json`. Chaque ennemi a un ID unique réutilisé dans
   "duration_sec": 60,
   "backgrounds": {
     "card": "res://...",
+    "sphere_texture": "res://...",
     "far_layer": "res://...",
     "mid_layer": [ [{ "asset": "res://...", "opacity": 1.0 }] ],
     "near_layer": []
@@ -175,6 +179,43 @@ Définis dans `data/enemies.json`. Chaque ennemi a un ID unique réutilisé dans
 
 - Chaque niveau a un `boss_id` non vide (ex: `"boss_forest_1"` ou `"boss_forest_final"`).
 - `type` : `"normal"` ou `"boss"`.
+- **`sphere_texture`** : texture affichée sur la sphère 3D en sélection de niveau (sinon fallback sur `card`).
+
+---
+
+## Sphère 3D (World Select / Level Select)
+
+L’élément central des écrans **Sélection du monde** et **Sélection du niveau** est une **sphère 3D** qui tourne lentement sur l’axe pôle nord / pôle sud.
+
+- **Monde** : la texture de la sphère vient de `theme.sphere_texture` (ou `theme.background` en fallback).
+- **Niveau** : la texture vient de `backgrounds.sphere_texture` (ou `backgrounds.card` en fallback).
+
+Format de texture recommandé : **équirectangulaire** (latitude/longitude), ratio 2:1 (largeur = 2 × hauteur), pour un habillage correct sur la sphère.
+
+### Bonne texture sphère avec Midjourney
+
+Pour obtenir une texture qui s’enroule bien autour de la sphère :
+
+1. **Demander une projection équirectangulaire**  
+   Par exemple : *“equirectangular panorama of [ton sujet], 360 degree, seamless, 2:1 ratio”* ou *“planet texture, seamless tileable, equirectangular projection”*.
+
+2. **Sujets adaptés**  
+   Paysages, planètes, atmosphères, cartes, motifs répétables. Éviter un cadrage “photo” centré (ça déforme mal sur la sphère).
+
+3. **Seamless / tileable**  
+   Les bords gauche et droite de l’image doivent se raccorder (mot-clé *seamless* ou *tileable*).
+
+4. **Ratio 2:1**  
+   Indiquer *“2:1 aspect ratio”* ou exporter en 4096×2048 (ou 2048×1024) pour un bon compromis qualité/performance.
+
+5. **Variantes utiles**  
+   - *“stylized planet surface, equirectangular, seamless”*  
+   - *“fantasy forest canopy view from above, 360 panorama, 2:1”*  
+   - *“underwater coral reef, panoramic, seamless texture”*
+
+Tu peux ensuite utiliser l’image telle quelle comme `sphere_texture` (ou `card`) dans les JSON.
+
+**Réglages globaux** (`game.json` → `world_select.sphere`) : `rotation_speed`, `radius`, `light_energy`, `uv_scale`, `uv_overlap`, `uv_offset_u`/`uv_offset_v`. **Caméra** : `camera_distance` (z, sinon auto), `camera_fov` (degrés, défaut 75), `camera_offset_x`, `camera_offset_y`.
 
 ---
 
@@ -216,7 +257,7 @@ Définis dans `data/enemies.json`. Chaque ennemi a un ID unique réutilisé dans
 ```
 
 - `obstacle_id` : référence un obstacle dans `obstacles.json`.
-- Le sprite est résolu via `skin_overrides.obstacles[shape]` ou le `sprite_path` de `obstacles.json`.
+- Le sprite est résolu via `skin_overrides.obstacles` : **explosives** pour les obstacles de type explosif, **circle** / **rectangle** pour les autres, puis `sprite_path` de `obstacles.json` en fallback.
 - `pattern` : disposition des obstacles (`"slalom"`, etc.).
 
 ---
@@ -236,7 +277,7 @@ Chaque boss a :
 1. **Créer les assets** dans les dossiers correspondants :
    - `assets/enemies/{WORLD_NAME}/` — 5 sprites (swarmer, fighter, tank, artillery, elite)
    - `assets/bosses/{WORLD_NAME}/` — sprites pour chaque boss
-   - `assets/obstacles/{WORLD_NAME}/` — sprites circle + rectangle
+   - `assets/obstacles/{WORLD_NAME}/` — sprites circle, rectangle et explosives (obstacles explosifs)
    - `assets/music/{WORLD_NAME}/` — musique(s)
    - `assets/backgrounds/worlds/{WORLD_NAME}/` — far/mid/near layers
 

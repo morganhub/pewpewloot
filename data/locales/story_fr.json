@@ -1,12 +1,394 @@
 {
-    "locale": "fr",
-    "strings": {
-        "story_w1_intro_1": "Pilote, nous avons détecté une activité hostile dans la ceinture d'astéroïdes.",
-        "story_w1_intro_2": "Procédez avec prudence. Des pirates et des drones autonomes ont été repérés.",
-        "story_w1_intro_3": "Bien reçu, Commandant. Armement activé, j'avance.",
-        "story_w1_intro_4": "Bonne chance, pilote.",
-        "story_w1_intro_5": "Nous comptons sur vous pour sécuriser ce secteur.",
-        "story_w1_lvl2_1": "Attention : cette zone est lourdement minée.",
-        "story_w1_lvl2_2": "Faites attention, pilote. Un faux pas et c'est terminé."
-    }
+  "locale": "fr",
+  "strings": {
+  "story_w1_intro_1": "Pilote, mission de reconnaissance. La zone forestière E-17 est devenue muette.",
+  "story_w1_intro_2": "Plus aucun signal humain, plus de balises locales. Quelque chose brouille tout.",
+  "story_w1_intro_3": "Tu descends, tu identifies la source, tu ressors. Pas d'héroïsme inutile.",
+  "story_w1_intro_4": "Reçu. J'entre dans l'atmosphère. Mes capteurs sont déjà instables.",
+  "story_w1_intro_5": "Attends-toi à des formes organiques hostiles. Si ça bouge, tu neutralises.",
+  "story_w1_intro_6": "Et si ça pense... tu ne négocies pas. Tu rapportes des données.",
+
+  "story_w1_lvl1_1": "Altitude basse. La canopée te masquera, mais elle masquera aussi tes menaces.",
+  "story_w1_lvl1_2": "Priorité : cartographier les perturbations. Ne poursuis pas les leurres.",
+  "story_w1_lvl1_3": "Je vois des nuages de spores. Ça se colle aux tuyères... ça cherche la chaleur.",
+
+  "story_w1_lvl2_1": "Confirmation : les spores réagissent à ta signature moteur. Elles s'adaptent.",
+  "story_w1_lvl2_2": "On dirait une contamination intelligente. Garde tes distances et varie ta trajectoire.",
+  "story_w1_lvl2_3": "Mes tirs déclenchent des réponses coordonnées. Ce n'est pas une faune normale.",
+
+  "story_w1_lvl2_w4_1": "Ici Dr Lierre... si quelqu'un reçoit, répondez. Je suis en vie, mais piégée.",
+  "story_w1_lvl2_w4_2": "Sous la canopée : une structure qui pulse. Une balise... pas humaine. Ne la laissez pas s'activer.",
+  "story_w1_lvl2_w4_3": "Pilote, verrouille sa position. On suit son signal. Lierre, tenez bon.",
+
+  "story_w1_lvl3_1": "Le signal de Lierre est stable. Il vient d'un réseau de racines... trop régulier.",
+  "story_w1_lvl3_2": "Je vois des filaments comme des câbles. La forêt est câblée, Commandant.",
+  "story_w1_lvl3_3": "C'est une Balise d'Ancrage. Si elle termine sa synchronisation, d'autres zones vont répondre.",
+
+  "story_w1_lvl4_1": "On l'aperçoit. Une colonne organo-tech, au cœur d'un sanctuaire végétal.",
+  "story_w1_lvl4_2": "Ton objectif : ouvrir son noyau et extraire ce qu'elle protège. Un fragment... ou un cœur d'énergie.",
+  "story_w1_lvl4_3": "J'approche. La forêt se referme autour de moi... comme une cage.",
+
+  "story_w1_lvl5_1": "La balise monte en puissance. Chaque seconde, ça attire plus de gardiens.",
+  "story_w1_lvl5_2": "Bien. Ça confirme qu'elle contrôle le biome. Tiens jusqu'à la chambre centrale.",
+  "story_w1_lvl5_3": "Si un super-organisme existe, il sera là. Prépare-toi au pire.",
+
+  "story_w1_lvl6_1": "Chambre centrale droit devant. Les lectures sont anormales... comme un cerveau géant.",
+  "story_w1_lvl6_2": "Pilote : cible prioritaire, le gardien. Sans lui, la balise est vulnérable.",
+  "story_w1_lvl6_3": "VOUS BRÛLEZ. VOUS ÉCLAIREZ. JE VOUS TROUVE.",
+  "story_w1_lvl6_4": "OK... donc ça parle. Je le coupe, et je prends le fragment.",
+
+  "story_w1_lvl6_end_1": "Fragment d'Ancrage sécurisé. La balise s'effondre, les spores perdent leur cohérence.",
+  "story_w1_lvl6_end_2": "Je reçois déjà une coordonnée de transit. Prochaine destination : un point sous-marin.",
+  "story_w1_lvl6_end_3": "Vous l'avez fait... merci. Coupez ce réseau avant qu'il ne relie d'autres mondes.",
+  "story_w1_lvl6_end_4": "Reçu. Je remonte en orbite. Et si ça ne fait que commencer... alors on continue.",
+
+  "story_w2_intro_1": "Le Fragment d'Ancrage ouvre une route. Atlantis. Fenêtre de transit courte.",
+  "story_w2_intro_2": "Tu descends vite, tu frappes vite, tu ressors avant la fermeture de la faille.",
+  "story_w2_intro_3": "Une ville sous l'eau... après une forêt vivante. On suit la logique du cauchemar.",
+  "story_w2_intro_4": "Reste lucide. Les lectures seront déformées par la pression et les interférences.",
+  "story_w2_intro_5": "Objectif : trouver la source du signal de commande. Même signature que la forêt.",
+
+  "story_w2_lvl1_1": "Contact avec l'eau. Je perds des fréquences, mais le guidage inertiel tient.",
+  "story_w2_lvl1_2": "Cherche une entrée vers des structures. Si Atlantis existe, elle émettra.",
+  "story_w2_lvl1_3": "Je vois des ruines et des arches. Ça brille comme un circuit, pas comme de la pierre.",
+
+  "story_w2_lvl2_1": "Saturation de drones luminescents. Ils patrouillent en essaim : comportement non humain.",
+  "story_w2_lvl2_2": "Évite les faisceaux. Ils marquent des cibles, puis les vagues arrivent.",
+  "story_w2_lvl2_3": "J'entends un message dans le bruit. Comme un SOS... mais il tourne en boucle.",
+
+  "story_w2_lvl2_w3_1": "SOS, SOS... canal libre... si vous entendez ceci, ne suivez pas les lumières.",
+  "story_w2_lvl2_w3_2": "Ils ont réveillé la ville. Je répète : ils ont réveillé la ville.",
+  "story_w2_lvl2_w3_3": "Émission pirate. Je tente de trianguler. Pilote, cap sur la source audio.",
+  "story_w2_lvl2_w3_4": "Reçu. J'y vais. Et si c'est un piège... je le saurai vite.",
+
+  "story_w2_lvl3_1": "Ici Capitaine Nérée. Récupératrice indépendante. J'ai accroché votre signal à la faille.",
+  "story_w2_lvl3_2": "Je confirme : la cité était endormie. Quelqu'un l'a remise sous tension.",
+  "story_w2_lvl3_3": "Nérée, je suis le pilote. Donnez-moi un point d'entrée vers le cœur de la ville.",
+  "story_w2_lvl3_4": "Capitaine Nérée, identifiez l'intrus. Toute info sur la balise locale est prioritaire.",
+
+  "story_w2_lvl4_1": "Je capte des impulsions depuis des temples. Ce ne sont pas des ruines : ce sont des relais.",
+  "story_w2_lvl4_2": "Les motifs sont identiques à la forêt. Même cadence. Même signature de commande.",
+  "story_w2_lvl4_3": "Je vous l'ai dit : la ville obéit. Les temples répartissent les ordres, comme des antennes.",
+
+  "story_w2_lvl4_w2_1": "Corrélation confirmée. Atlantis répond à un signal extérieur, pas à une IA locale.",
+  "story_w2_lvl4_w2_2": "Donc quelqu'un pilote plusieurs biomes. On n'est pas sur un incident isolé.",
+  "story_w2_lvl4_w2_3": "Alors on coupe le relais principal. Je cherche la salle de synchronisation.",
+
+  "story_w2_lvl5_1": "Je vois le schéma : balise, relais, gardien. Même architecture que dans la forêt.",
+  "story_w2_lvl5_2": "Quelqu'un connecte des biomes via des Balises pour monter un réseau de guerre.",
+  "story_w2_lvl5_3": "Le gardien ici s'appelle l'Hydrocéphale. Il protège le noyau. Et il apprend vite.",
+  "story_w2_lvl5_4": "Parfait. Je vais lui donner des leçons qu'il n'oubliera pas.",
+
+  "story_w2_lvl6_1": "Tu es proche du noyau. Si tu prends le Fragment #2, la route suivante se révélera.",
+  "story_w2_lvl6_2": "Ne laisse pas l'Hydrocéphale t'enfermer. Il contrôle le terrain et les flux.",
+  "story_w2_lvl6_3": "VOUS DRAINER. VOUS ÉTIQUETER. VOUS RENDRE AU RÉSEAU.",
+  "story_w2_lvl6_4": "Essaie. Je vise le cœur, pas les tentacules.",
+
+  "story_w2_lvl6_end_1": "Fragment d'Ancrage #2 sécurisé. Les drones luminescents se désynchronisent.",
+  "story_w2_lvl6_end_2": "Nouvelle info : le signal porte une empreinte industrielle. Ça pointe vers un complexe de production.",
+  "story_w2_lvl6_end_3": "Si vous allez là-bas, coupez leurs lignes. Sinon Atlantis se rallumera encore.",
+  "story_w2_lvl6_end_4": "Reçu. Je remonte vers la faille. Prochaine escale : le métal, la fumée... et la source.",
+
+  "story_w3_intro_1": "La signature industrielle d'Atlantis est confirmée. Cap sur un complexe de production.",
+  "story_w3_intro_2": "Le Fragment #2 stabilise une route directe. Fenêtre courte, comme d'habitude.",
+  "story_w3_intro_3": "Je sens l'odeur du métal à travers les filtres. OK, on y va.",
+  "story_w3_intro_4": "Ici, rien d'organique. Si ça bouge, c'est fabriqué. Et ça peut être pire.",
+  "story_w3_intro_5": "Objectif : identifier le centre de commande et localiser le Fragment d'Ancrage #3.",
+
+  "story_w3_lvl1_1": "Entrée dans le complexe. Chaînes d'assemblage actives. Aucun humain en vue.",
+  "story_w3_lvl1_2": "Production autonome hostile. Les lignes fabriquent des drones en temps réel.",
+  "story_w3_lvl1_3": "Je vois des convoyeurs saturés. Ça sort des coques comme des munitions.",
+
+  "story_w3_lvl2_1": "Unités lourdes repérées. Marquage : SIGMA FORGE. Consortium dissous, mais pas mort.",
+  "story_w3_lvl2_2": "Alors quelqu'un a réutilisé leurs usines... ou leurs plans.",
+  "story_w3_lvl2_w4_1": "Attention : les lourds se synchronisent. Ils partagent une cible commune.",
+  "story_w3_lvl2_w4_2": "Si tu vois le logo SIGMA FORGE sur un châssis, considère-le comme prioritaire.",
+  "story_w3_lvl2_w4_3": "Reçu. Je casse la ligne avant qu'elle ne me sorte un char par seconde.",
+
+  "story_w3_lvl3_1": "Ici Ingénieur Volt. Connexion distante. Je capte vos fréquences dans le bruit de l'usine.",
+  "story_w3_lvl3_2": "Je peux ouvrir des sas et couper des lignes, mais vous devez détruire un nœud de contrôle.",
+  "story_w3_lvl3_3": "Volt, identifiez-vous. Comment avez-vous accès à ce réseau ?",
+  "story_w3_lvl3_4": "Donnez-moi les coordonnées du nœud. Je fais le ménage, vous appuyez sur les boutons.",
+
+  "story_w3_lvl4_1": "Volt a raison. Je vois une architecture de Balise intégrée aux machines.",
+  "story_w3_lvl4_2": "Les Balises ont été reprogrammées : elles forment une toile de transit entre mondes.",
+  "story_w3_lvl4_3": "Oui. Les portails ne sont plus des incidents : c'est une infrastructure.",
+  "story_w3_lvl4_4": "Donc on ne subit pas le réseau... on le démonte pièce par pièce.",
+
+  "story_w3_lvl5_1": "Nœud de contrôle proche. Je détecte un code de pilotage... propre, élégant.",
+  "story_w3_lvl5_2": "Mais il vient d'un endroit impossible. Comme forgé au-delà de la chaleur.",
+  "story_w3_lvl5_3": "Au-delà de la chaleur... volcan ? fournaise ? Ça colle avec nos traces précédentes.",
+  "story_w3_lvl5_4": "Parfait. Je détruis le nœud, et vous me dites où est caché le Fragment.",
+
+  "story_w3_lvl6_1": "Tu es dans le cœur de l'usine. Le Contremaître Omega pilote la production et la sécurité.",
+  "story_w3_lvl6_2": "Si tu le tombes, la ligne s'arrête. Et le Fragment #3 devient accessible.",
+  "story_w3_lvl6_3": "ANOMALIE : PILOTE. CORRECTION : ÉLIMINATION. REPRISE DE PRODUCTION.",
+  "story_w3_lvl6_4": "Je suis l'anomalie qui va te mettre hors service. Approche.",
+
+  "story_w3_lvl6_end_1": "Fragment d'Ancrage #3 extrait. Bien. Les sas se ferment, les convoyeurs meurent.",
+  "story_w3_lvl6_end_2": "Le code pointe vers une zone thermique extrême. Un site de fournaise volcanique.",
+  "story_w3_lvl6_end_3": "Commandant, ce n'est pas juste une piste. C'est une route tracée au fer rouge.",
+  "story_w3_lvl6_end_4": "Reçu. On saute dès que la faille s'ouvre. Prochaine étape : le feu.",
+
+  "story_w4_intro_1": "La route thermique est stable. Destination : Fournaise. Zone volcanique active.",
+  "story_w4_intro_2": "Incursion autorisée, mais risquée. Ce site alimente probablement le réseau en énergie brute.",
+  "story_w4_intro_3": "Donc on plonge dans un brasier pour couper une prise. Classique.",
+  "story_w4_intro_4": "Ne sous-estime pas l'environnement : cendres, turbulences, surcharge thermique.",
+  "story_w4_intro_5": "Objectif : localiser la station énergétique et extraire le Fragment d'Ancrage #4.",
+
+  "story_w4_lvl1_1": "Entrée dans le panache. Visibilité quasi nulle. Tes senseurs vont mentir.",
+  "story_w4_lvl1_2": "Utilise les repères thermiques. Les ennemis aussi se cachent dans la chaleur.",
+  "story_w4_lvl1_3": "Je vois des silhouettes dans les cendres. Pas des rochers... des drones en fusion.",
+
+  "story_w4_lvl2_1": "Je détecte des batteries géantes sous la cendre. Elles respirent... comme des poumons.",
+  "story_w4_lvl2_2": "Centrale vivante. Quelqu'un a fait un hybride entre le volcan et une infrastructure de stockage.",
+  "story_w4_lvl2_3": "Si on coupe l'alimentation ici, on affame la toile de transit.",
+  "story_w4_lvl2_w3_1": "Les vents changent. La cendre se met à tourner autour de moi, comme guidée.",
+  "story_w4_lvl2_w3_2": "Ça confirme : le site réagit. Le feu n'est pas juste un décor, c'est un système.",
+
+  "story_w4_lvl3_1": "Halte, appareil étranger. Ici Forgeron Kael. Je marche sur les scories depuis des années.",
+  "story_w4_lvl3_2": "Le feu n'est plus naturel... il obéit. Il ouvre des chemins et il ferme des tombes.",
+  "story_w4_lvl3_3": "Kael, je suis en mission. Dis-moi où est le cœur de cette centrale.",
+  "story_w4_lvl3_4": "Kael, si tu as des données, transmets. Toute info sur les conduits et portails est prioritaire.",
+
+  "story_w4_lvl4_1": "Je capte des conduits sous les cratères. Ils ne drainent pas la lave... ils drainent l'énergie.",
+  "story_w4_lvl4_2": "Oui. Ils relient les bouches à des portails. Quelqu'un raffine la chaleur et l'envoie ailleurs.",
+  "story_w4_lvl4_3": "Donc c'est une station. Une raffinerie de puissance pour le réseau.",
+  "story_w4_lvl4_w4_1": "Je vois des anneaux de transit au bord du cratère. Ils pulsent au rythme des Balises.",
+  "story_w4_lvl4_w4_2": "Coupe le flux principal et la synchronisation tombera. Cherche un noyau, comme toujours.",
+  "story_w4_lvl4_w4_3": "Et prépare-toi : un gardien doit être là. Quelqu'un protège cette fournaise.",
+
+  "story_w4_lvl5_1": "Je recoupe le schéma : chaque biome est une station. Forêt, Atlantis, usine, maintenant fournaise.",
+  "story_w4_lvl5_2": "La logique suivante serait l'inverse thermique : sous terre, froid, pression... des mines.",
+  "story_w4_lvl5_3": "Reçu. Je finis ici, puis on va gratter sous la pierre.",
+
+  "story_w4_lvl6_1": "Tu approches du noyau. Lecture massive. Quelque chose de titanesque bouge dans la scorie.",
+  "story_w4_lvl6_2": "C'est le gardien : Titan de Scorie. Abats-le, prends le Fragment #4, et sors avant l'effondrement.",
+  "story_w4_lvl6_3": "CHALEUR... ORDRES... FORGE... SERVIR.",
+  "story_w4_lvl6_4": "OK, gros. Je te décroche du réseau.",
+
+  "story_w4_lvl6_end_1": "Le Titan est tombé. La fournaise faiblit. Le feu redevient... imprévisible. Naturel.",
+  "story_w4_lvl6_end_2": "Fragment d'Ancrage #4 sécurisé. Je vois un plan d'accès : Mines oubliées. Profondeur critique.",
+  "story_w4_lvl6_end_3": "On suit la route. Si les mines contiennent les pierres d'ancrage, c'est une pièce maîtresse.",
+  "story_w4_lvl6_end_4": "Reçu. Je quitte le panache. Prochaine étape : le noir et le froid.",
+
+  "story_w5_intro_1": "Le plan d'accès est valide. Destination : Mines oubliées. Profondeur critique, pas de réseau externe.",
+  "story_w5_intro_2": "Site effacé des cartes. Si quelqu'un l'a caché, c'est qu'il y avait une raison.",
+  "story_w5_intro_3": "Je passe du feu au noir. Super. Mes capteurs vont adorer.",
+  "story_w5_intro_4": "Attends-toi à des signaux fantômes. Des échos de combats anciens ont été enregistrés ici.",
+  "story_w5_intro_5": "Objectif : trouver le Fragment #5. Si ces mines ont servi aux Balises, on est au cœur du problème.",
+
+  "story_w5_lvl1_1": "Entrée dans les galeries. Je reçois des pings... puis rien. Comme des appels morts.",
+  "story_w5_lvl1_2": "Ce sont des traces. Un champ d'échos. Reste sur trajectoire et ne poursuis pas les ombres.",
+  "story_w5_lvl1_3": "Je vois des impacts sur les parois. Ici, ça s'est déjà battu. Et ça a perdu.",
+
+  "story_w5_lvl2_1": "Des foreuses automatiques. Elles creusent vers... le vide. Elles ne trouvent rien et continuent.",
+  "story_w5_lvl2_2": "Comme si elles cherchaient une porte. Une chambre précise, un point d'ouverture.",
+  "story_w5_lvl2_3": "Quelqu'un a lancé ces machines et les a laissées tourner jusqu'à percer le monde.",
+  "story_w5_lvl2_w4_1": "Attention : elles recalculent. Elles t'utilisent comme référence de position.",
+  "story_w5_lvl2_w4_2": "Je coupe leur guidage. Si elles veulent une porte, elles peuvent mâcher du métal.",
+
+  "story_w5_lvl3_1": "Ici Archiviste Sable. Je surveille ces mines depuis les archives interdites.",
+  "story_w5_lvl3_2": "Elles servaient à extraire des pierres d'ancrage. La matière première des Balises.",
+  "story_w5_lvl3_3": "Archiviste, transmettez votre carte. Marquez les anciens puits et les chambres scellées.",
+  "story_w5_lvl3_4": "Envoyez. Plus vite on trouve la pierre, plus vite on sort de ce tombeau.",
+
+  "story_w5_lvl4_1": "Je vois des inscriptions. Gravées à la main. Ce n'est pas du marquage industriel.",
+  "story_w5_lvl4_2": "Lisez. Ces lieux portent des avertissements. Ils savaient ce qu'ils faisaient.",
+  "story_w5_lvl4_3": "Transmets le contenu exact. Chaque mot compte ici.",
+  "story_w5_lvl4_end_1": "Avertissement confirmé : ne reliez jamais les mondes. Ils l'ont fait quand même.",
+  "story_w5_lvl4_end_2": "Donc on marche dans une erreur vieille de plusieurs générations.",
+
+  "story_w5_lvl5_1": "Les fragments qu'on collecte... ce n'est pas un hasard. C'est une reconstruction.",
+  "story_w5_lvl5_2": "L'ennemi reconstitue une ancienne machine, fragment par fragment. Et nous servons de main-d'œuvre.",
+  "story_w5_lvl5_3": "Ces mines étaient la fondation. Après la fondation vient le mausolée : la Nécropole.",
+  "story_w5_lvl5_4": "Parfait. On finit ici, et on va voir ce que la mort garde comme secrets.",
+
+  "story_w5_lvl6_1": "Lecture de masse au fond du puits. Gardien détecté : Broyeur Cryptique.",
+  "story_w5_lvl6_2": "Il protégera le Fragment #5 comme une serrure vivante. Ne te fais pas aspirer dans sa chambre.",
+  "story_w5_lvl6_3": "BROYER... GRAVER... SCELLER... AUCUN PASSAGE.",
+  "story_w5_lvl6_4": "Je ne demande pas le passage. Je le prends.",
+
+  "story_w5_lvl6_end_1": "Fragment #5 confirmé. La roche se calme. Les foreuses s'arrêtent, comme privées d'ordre.",
+  "story_w5_lvl6_end_2": "Une route s'ouvre. Destination suivante : Nécropole. Signature froide, mémétique.",
+  "story_w5_lvl6_end_3": "On y va. Si la machine a des reliques, c'est là qu'elles dorment.",
+  "story_w5_lvl6_end_4": "Reçu. Je remonte. Et je garde mes armes chaudes.",
+
+  "story_w6_intro_1": "Destination : Nécropole. Lecture anormale : brouillard-mémoire, interférence cognitive.",
+  "story_w6_intro_2": "Nouveau protocole : ne suivez aucun appel. Aucun. Même si la voix vous ressemble.",
+  "story_w6_intro_3": "Super. Maintenant le biome essaie de me parler dans la tête.",
+  "story_w6_intro_4": "Reste ancré à mes ordres et à tes instruments. Si tu doutes, tu tires et tu recules.",
+  "story_w6_intro_5": "Objectif : Fragment d'Ancrage #6. Et comprendre ce que ce lieu stocke.",
+
+  "story_w6_lvl1_1": "Le brouillard est là. Il accroche tes capteurs et il accroche tes souvenirs.",
+  "story_w6_lvl1_2": "Ignore les silhouettes. Ce sont des impressions, pas des cibles... jusqu'à preuve du contraire.",
+  "story_w6_lvl1_3": "Je vois des traces de vaisseaux... comme si le ciel était enterré ici.",
+
+  "story_w6_lvl2_1": "Des sentinelles. Elles me scannent... sans tirer. Comme si elles me connaissaient.",
+  "story_w6_lvl2_2": "Elles recherchent une signature. Si elles te classent, elles t'enregistrent. Ne laisse rien s'écrire.",
+  "story_w6_lvl2_3": "Brouille ton profil. Change de rythme de tir. Reste imprenable.",
+  "story_w6_lvl2_w2_1": "ENREGISTREMENT : PILOTE. STATUT : DÉJÀ INSCRIT. PROCÉDURE : RAPPEL.",
+  "story_w6_lvl2_w2_2": "Déjà inscrit ? Je n'ai jamais mis les pieds ici.",
+  "story_w6_lvl2_w2_3": "Ce lieu ne mesure pas ta présence. Il mesure ton motif. Ne lui donne pas de motif stable.",
+
+  "story_w6_lvl3_1": "Ici Prêtresse Morn. Vous traversez un cimetière de formes, pas seulement de corps.",
+  "story_w6_lvl3_2": "Les Balises capturent des âmes... ou des patterns. Elles gardent ce qui peut être recopié.",
+  "story_w6_lvl3_3": "Morn, je veux le Fragment et je sors. Dis-moi ce que je dois éviter.",
+  "story_w6_lvl3_4": "Prêtresse, guidez le pilote. Nous payons en silence, pas en sang.",
+
+  "story_w6_lvl4_1": "Si elle dit vrai, alors le réseau transporte plus que de l'énergie.",
+  "story_w6_lvl4_2": "Oui. Il transporte de l'information vivante : des routines de pensée, des réflexes, des identités.",
+  "story_w6_lvl4_3": "Donc chaque station n'alimente pas juste la toile... elle l'entraîne.",
+
+  "story_w6_lvl4_end_1": "Je viens de voir mon propre vecteur d'attaque... exécuté par un drone funéraire.",
+  "story_w6_lvl4_end_2": "Ils t'ont lu. Ne panique pas. Change tes patterns. Maintenant.",
+
+  "story_w6_lvl5_1": "Je détecte une piste gravitationnelle. Quelque chose d'immense a assemblé ces pièces.",
+  "story_w6_lvl5_2": "Une main colossale. Pas une métaphore : une signature d'échelle titanique.",
+  "story_w6_lvl5_3": "Alors allez au Domaine des Titans. Mais sachez : les géants ne pardonnent pas les profanateurs.",
+  "story_w6_lvl5_4": "On ira. D'abord, je coupe le régent de ce mausolée.",
+
+  "story_w6_lvl6_1": "Tu es devant la crypte centrale. Gardien : Nécro-Régent. Il contrôle le brouillard et les sentinelles.",
+  "story_w6_lvl6_2": "Abats-le vite. Plus le combat dure, plus il t'enregistre.",
+  "story_w6_lvl6_3": "REMISE EN TOMBE. RETOUR AU PATTERN. DÉPOSSEDEZ-VOUS DE VOUS.",
+  "story_w6_lvl6_4": "Non. Je garde mon nom. Et je prends ton fragment.",
+
+  "story_w6_lvl6_end_1": "Fragment d'Ancrage #6 sécurisé. Le brouillard recule, comme un souffle coupé.",
+  "story_w6_lvl6_end_2": "Coordonnées récupérées : gravées en géant. Destination : Domaine des Titans.",
+  "story_w6_lvl6_end_3": "Quand vous verrez leurs portes, baissez les armes... ou mourez vite.",
+  "story_w6_lvl6_end_4": "Reçu. Je garde la tête froide. Et je vise grand.",
+
+  "story_w7_intro_1": "Coordonnées géantes validées. Destination : Domaine des Titans.",
+  "story_w7_intro_2": "Ici, tout est à l'échelle d'un dieu. Tu avances lentement, tu observes, tu survis.",
+  "story_w7_intro_3": "Je vois déjà des structures plus grandes que des montagnes. OK. Je reste petit et rapide.",
+  "story_w7_intro_4": "Ne tire pas sur tout. Un ricochet ici peut devenir une catastrophe.",
+  "story_w7_intro_5": "Objectif : Fragment d'Ancrage #7. Et identifier qui a assemblé le réseau.",
+
+  "story_w7_lvl1_1": "Terrain cyclopéen. Les murs ont des marques comme des serrures... mais version géant.",
+  "story_w7_lvl1_2": "Reste en bordure. Si une chose bouge, considère que c'est un mécanisme, pas une créature.",
+  "story_w7_lvl1_3": "Je suis dans une vallée qui ressemble à un engrenage. Je n'aime pas ça.",
+
+  "story_w7_lvl2_1": "Je capte des vibrations. Comme si le sol comptait mes passages.",
+  "story_w7_lvl2_2": "Ne déclenche rien. Si c'est une horloge, elle peut te broyer sans même te voir.",
+  "story_w7_lvl2_w2_1": "Mouvement massif détecté. Des mécanismes immenses se mettent en marche.",
+  "story_w7_lvl2_w2_2": "Tu as lancé une séquence. Garde ta vitesse, change d'axe, ne reste pas sur les rails.",
+  "story_w7_lvl2_w2_3": "Compris. Je vole entre des dents d'engrenage. Je vais faire discret.",
+
+  "story_w7_lvl3_1": "Vous traversez nos seuils avec une clé brisée. Votre réseau réveille nos chaînes.",
+  "story_w7_lvl3_2": "Coupez le réseau... ou payez.",
+  "story_w7_lvl3_3": "Identification : Émissaire Talos. Pilote, pas d'hostilité. On cherche à stopper le réseau.",
+  "story_w7_lvl3_4": "Talos, on a déjà coupé des stations. Dites-nous comment finir le travail.",
+
+  "story_w7_lvl4_1": "Un intrus a volé la Clé des Routes. Il l'a divisée en fragments.",
+  "story_w7_lvl4_2": "Vous les ramassez. Vous assemblez ce que nous avions scellé.",
+  "story_w7_lvl4_3": "Les fragments... donc ce qu'on collecte depuis le début, c'est la clé.",
+  "story_w7_lvl4_4": "Et quelqu'un nous a mis sur les rails. Ce n'est plus une chasse, c'est un montage.",
+
+  "story_w7_lvl4_end_1": "Si on reconstitue la clé, on ouvre le dernier passage.",
+  "story_w7_lvl4_end_2": "Mais on risque aussi de libérer l'architecte qui a construit ce réseau.",
+  "story_w7_lvl4_end_3": "Alors on marche dans un piège... mais c'est peut-être la seule sortie.",
+
+  "story_w7_lvl5_1": "Talos, où est le gardien du fragment ?",
+  "story_w7_lvl5_2": "Donnez-nous un chemin qui évite vos chaînes. On ne vient pas profaner, on vient couper.",
+  "story_w7_lvl5_3": "Le fragment est gardé par un Colosse. Et l'intrus n'est pas humain. Il vient d'ailleurs.",
+  "story_w7_lvl5_4": "D'ailleurs... comme hors-monde. OK. D'abord le colosse, ensuite la piste.",
+
+  "story_w7_lvl6_1": "Tu es devant la porte du Colosse. Il n'a pas de visage, juste une fonction : protéger.",
+  "story_w7_lvl6_2": "Abats-le, prends le Fragment #7, et dégage avant que l'horloge ne se referme.",
+  "story_w7_lvl6_3": "ACCÈS REFUSÉ. FRAGMENT SOUS GARDE. RETOUR AU SILENCE.",
+  "story_w7_lvl6_4": "Je ne reviens pas au silence. Je coupe ta garde.",
+
+  "story_w7_lvl6_end_1": "Fragment #7 acquis. La clé se rapproche. Et l'intrus attend au-delà des mondes.",
+  "story_w7_lvl6_end_2": "Talos confirme : origine non humaine. Destination suivante : Ruche alien. Hors-monde.",
+  "story_w7_lvl6_end_3": "Reste sur tes gardes. Si une ruche pilote le réseau, elle apprendra en te regardant.",
+  "story_w7_lvl6_end_4": "Reçu. Je pars avant que ce domaine ne décide de me compter parmi ses pièces.",
+
+  "story_w8_intro_1": "Saut hors-monde confirmé. Ruche alien. Biologie partout, aucune norme connue.",
+  "story_w8_intro_2": "Ordre clair : ne te pose pas. Tu frappes et tu sors. Pas d'exploration, pas de curiosité.",
+  "story_w8_intro_3": "Reçu. Je garde les gaz. Si je m'arrête, je deviens un échantillon.",
+  "story_w8_intro_4": "Ici, l'ennemi apprend. Varie tes tirs, varie tes trajectoires, casse tes habitudes.",
+  "story_w8_intro_5": "Objectif : Fragment d'Ancrage #8. Et trouver le cœur du routeur vivant.",
+
+  "story_w8_lvl1_1": "Signaux biologiques sur toutes les bandes. Ça respire, ça écoute, ça répond.",
+  "story_w8_lvl1_2": "Ne communique pas. Ne laisse pas de trace. Chaque émission est une graine.",
+  "story_w8_lvl1_3": "J'ai des contacts rapides. Ils s'adaptent déjà à mes salves.",
+
+  "story_w8_lvl2_1": "C'est confirmé : à chaque tir, ils changent de formation. Comme s'ils mémorisaient.",
+  "story_w8_lvl2_2": "La Ruche réagit en temps réel. Elle apprend ton style. Casse le rythme.",
+  "story_w8_lvl2_3": "Si tu sens que tu répètes un schéma, tu es déjà en retard.",
+  "story_w8_lvl2_w3_1": "Ne garde aucune routine. Même ta fuite doit rester imprévisible.",
+  "story_w8_lvl2_w3_2": "Compris. Je passe en improvisation totale. Ça va être sale.",
+
+  "story_w8_lvl3_1": "Ici xéno-biologiste Ixa. J'étudie la Ruche depuis un relais clandestin.",
+  "story_w8_lvl3_2": "Ce n'est pas une base. C'est un incubateur de calcul : un cerveau distribué en chair.",
+  "story_w8_lvl3_3": "Donc je me bats contre un ordinateur vivant. Super. Des points faibles ?",
+  "story_w8_lvl3_4": "Ixa, donnez-nous une méthode. On ne tiendra pas si elle copie le pilote.",
+
+  "story_w8_lvl4_1": "Je vois des nœuds organiques connectés aux Balises. Ça pulse comme une synchronisation.",
+  "story_w8_lvl4_2": "Oui. Le réseau des Balises se synchronise ici. La Ruche est le routeur vivant du système.",
+  "story_w8_lvl4_3": "Donc si on coupe la Reine, on coupe l'aiguillage. Et on ouvre l'accès à la source.",
+  "story_w8_lvl4_w4_1": "Attention : les nœuds tentent de vous prédire. Ils construisent un modèle de vos réflexes.",
+  "story_w8_lvl4_w4_2": "Alors je vais changer de réflexes. Maintenant.",
+
+  "story_w8_lvl5_1": "Décision tactique : on reconstitue la Clé. C'est la seule manière d'atteindre l'architecte.",
+  "story_w8_lvl5_2": "Si on ne coupe pas à la source, le réseau se répliquera. Ici, il apprend trop vite.",
+  "story_w8_lvl5_3": "Reçu. Je vais droit au trône. Et je ferme ce routeur au marteau.",
+
+  "story_w8_lvl6_1": "Tu es au cœur. Gardien final : Reine-Relais. Elle orchestre, elle apprend, elle transmet.",
+  "story_w8_lvl6_2": "Prends le Fragment #8 et sors. Quand elle tombe, le nid entier va convulser.",
+  "story_w8_lvl6_3": "NOUS SOMMES LA ROUTE. NOUS SOMMES LE PASSAGE. NOUS VOUS APPRENONS.",
+  "story_w8_lvl6_4": "Moi aussi, j'apprends. À te détruire.",
+
+  "story_w8_lvl6_end_1": "Fragment #8 confirmé. La Ruche perd sa cohérence. Les essaims s'effondrent sans ordre.",
+  "story_w8_lvl6_end_2": "Un dernier portail vient de s'ouvrir. Lectures impossibles. Destination : Magic World.",
+  "story_w8_lvl6_end_3": "C'est le passage final. La Clé est presque complète. Reste lucide, quoi qu'il arrive.",
+  "story_w8_lvl6_end_4": "Reçu. J'entre dans l'impossible. Et je n'en ressors qu'avec la fin du réseau.",
+
+  "story_w9_intro_1": "Le portail est stable... mais les lectures sont impossibles. Destination : Magic World.",
+  "story_w9_intro_2": "Avertissement : la physique se tord. Tes instruments vont mentir sans vergogne.",
+  "story_w9_intro_3": "Alors je pilote à l'instinct. Tant mieux : j'ai déjà arrêté de faire confiance à la réalité.",
+  "story_w9_intro_4": "Garde une règle : ce que tu vois n'est pas forcément là. Ce qui te tire dessus, si.",
+  "story_w9_intro_5": "Objectif final : assembler la Clé et atteindre l'architecte. Coupe le réseau à la source.",
+
+  "story_w9_lvl1_1": "Tu es dedans. Gravité variable. Repères visuels instables. Ne corrige pas trop.",
+  "story_w9_lvl1_2": "Si ton HUD te dit « gauche », vérifie deux fois. Ici, le monde triche.",
+  "story_w9_lvl1_3": "Je vois des îlots flottants, des angles qui n'existent pas... et des tirs qui les suivent.",
+
+  "story_w9_lvl2_1": "Quelqu'un marche dans mes fréquences. Une présence, pas un signal.",
+  "story_w9_lvl2_2": "Ce n'est pas de la magie. C'est une couche de réalité... compilée.",
+  "story_w9_lvl2_3": "Appelez-moi Mage Arka, si ça vous rassure. Mais ici, les mots sont des outils.",
+  "story_w9_lvl2_4": "Arka, vous êtes un allié ou un leurre ? Répondez clairement.",
+
+  "story_w9_lvl3_1": "L'architecte a écrit une surcouche. Chaque biome est un module, chargé et déchargé à la demande.",
+  "story_w9_lvl3_2": "La Clé des Routes est un compilateur de portails. Vous ramassez ses fonctions, fragment par fragment.",
+  "story_w9_lvl3_3": "Donc l'architecte ne pilote pas seulement des machines. Il pilote les règles du terrain.",
+  "story_w9_lvl3_4": "Parfait. Alors je vais lui casser son compilateur... après l'avoir utilisé une dernière fois.",
+
+  "story_w9_lvl4_1": "Je reçois des échos des mondes précédents. Forêt, Atlantis, usine... comme des replays.",
+  "story_w9_lvl4_2": "C'est une simulation de patterns. Il anticipe tes choix en rejouant tes réflexes.",
+  "story_w9_lvl4_3": "Je me bats contre une copie de moi-même, recomposée avec des morceaux de guerre.",
+  "story_w9_lvl4_w3_1": "Ne suis pas tes habitudes. Ici, l'ennemi n'a pas besoin de viser : il te prédit.",
+  "story_w9_lvl4_w3_2": "Alors je vais devenir imprenable. Même pour moi.",
+
+  "story_w9_lvl5_1": "On arrive au point de non-retour. Si tu assembles la Clé maintenant, tu ouvres l'accès final.",
+  "story_w9_lvl5_2": "Mais si l'architecte est derrière, tu risques de lui ouvrir la cage. Si tu refuses, tu peux rester bloqué ici.",
+  "story_w9_lvl5_3": "Je choisis la sortie. Je préfère un ennemi face à moi qu'une prison autour de moi.",
+  "story_w9_lvl5_4": "Alors assemblez. Et n'hésitez pas au milieu : la surcouche punit l'indécision.",
+
+  "story_w9_lvl6_1": "C'est le cœur. Assemble la Clé. Une seule fois. Un seul geste propre.",
+  "story_w9_lvl6_2": "Dès que le passage s'ouvre, tu frappes l'architecte. Pas de discours. Pas de pitié.",
+  "story_w9_lvl6_3": "VOUS AVEZ PARCOURU MES MODULES. VOUS AVEZ APPRIS MES RÈGLES. JE SUIS L'ARCHONTE DU RÉSEAU.",
+  "story_w9_lvl6_4": "Et moi, je suis la variable qui fait planter ton système.",
+
+  "story_w9_lvl6_end_1": "Lectures en chute libre. Le réseau s'effondre. Les portails se ferment un à un.",
+  "story_w9_lvl6_end_2": "Bon travail, Pilote. Tu as coupé la source.",
+  "story_w9_lvl6_end_3": "La surcouche se décompile. Les modules se détachent. La réalité reprend ses droits.",
+  "story_w9_lvl6_end_4": "Mais souvenez-vous : une chose compilée peut être écrite ailleurs.",
+  "story_w9_lvl6_end_5": "Je vois les sorties se fermer derrière moi. Je trace. Je ne regarde pas en arrière.",
+  "story_w9_lvl6_end_6": "Attends... je capte une dernière trame, faible. Un résidu du réseau.",
+  "story_w9_lvl6_end_7": "Message : Clé détruite... mais une copie a été écrite quelque part.",
+  "story_w9_lvl6_end_8": "On rentre. Mission accomplie. Et on se prépare : ce n'était qu'une version.",
+  "story_w9_lvl6_end_9": "Reçu. Je reviens vivant. Et si une copie existe... on la trouvera."
+
+  }
 }

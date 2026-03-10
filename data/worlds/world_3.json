@@ -4,17 +4,41 @@
 	"description": "Une gigantesque station industrielle aux mécanismes encore actifs et aux corridors labyrinthiques.",
 	"order": 3,
 	"skin_overrides": {
-		"enemies": {},
-		"bosses": {},
-		"obstacles": {}
+		"enemies": {
+			"swarmer": "res://assets/enemies/industrial/swarmer.tres",
+			"fighter": "res://assets/enemies/industrial/fighter.tres",
+			"tank": "res://assets/enemies/industrial/tank.tres",
+			"artillery": "res://assets/enemies/industrial/artillery.tres",
+			"elite": "res://assets/enemies/industrial/elite.tres"
+		},
+		"bosses": {
+			"boss_atlantis_1": "res://assets/bosses/atlantis/boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/atlantis/boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/atlantis/boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/atlantis/boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/atlantis/boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/atlantis/boss_final.tres"
+		},
+		"obstacles": {
+			"explosives": [
+				"res://assets/obstacles/industrial/obstacle_explosive_1.png",
+				"res://assets/obstacles/industrial/obstacle_explosive_2.png",
+				"res://assets/obstacles/industrial/obstacle_explosive_3.png",
+				"res://assets/obstacles/industrial/obstacle_explosive_4.png",
+				"res://assets/obstacles/industrial/obstacle_explosive_5.png",
+				"res://assets/obstacles/industrial/obstacle_explosive_6.png",
+				"res://assets/obstacles/industrial/obstacle_explosive_7.png"
+			]
+		}
 	},
 	"multipliers": {
 		"hp": 2.5,
 		"damage": 2.0,
-		"speed": 1.2
+		"speed": 1.1
 	},
 	"theme": {
 		"background": "",
+		"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_world.jpg",
 		"music": "res://assets/music/starlight.ogg",
 		"color_palette": "#5d5d5d"
 	},
@@ -27,35 +51,28 @@
 			"duration_sec": 60,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_0.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_0.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_0.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/industrial/layer_2_industrial_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
 				{
 					"time": 3.0,
-					"enemy_id": "artillery",
+					"enemy_id": "swarmer",
 					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 10.7,
-					"enemy_id": "elite",
+					"enemy_id": "fighter",
 					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 18.4,
-					"enemy_id": "artillery",
+					"enemy_id": "tank",
 					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
@@ -63,7 +80,7 @@
 				{
 					"time": 26.1,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -78,8 +95,8 @@
 				},
 				{
 					"time": 33.9,
-					"enemy_id": "fighter",
-					"count": 14,
+					"enemy_id": "swarmer",
+					"count": 34,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -109,15 +126,8 @@
 			"duration_sec": 80,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_1.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/industrial/layer_2_industrial_4.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -145,7 +155,7 @@
 				{
 					"time": 25.2,
 					"type": "obstacle",
-					"obstacle_id": "planet_medium",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 90,
@@ -176,7 +186,7 @@
 				{
 					"time": 54.8,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -209,15 +219,8 @@
 			"duration_sec": 100,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_2.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_2.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_2.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/industrial/layer_2_industrial_5.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -245,7 +248,7 @@
 				{
 					"time": 24.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -282,7 +285,7 @@
 				{
 					"time": 53.6,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 150,
@@ -313,7 +316,7 @@
 				{
 					"time": 82.5,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -339,15 +342,8 @@
 			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_3.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_3.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_3.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/industrial/layer_2_industrial_6.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -375,7 +371,7 @@
 				{
 					"time": 25.8,
 					"type": "obstacle",
-					"obstacle_id": "planet_medium",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 90,
@@ -489,15 +485,8 @@
 			"duration_sec": 140,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_4.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_4.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_4.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/industrial/layer_2_techno_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -525,7 +514,7 @@
 				{
 					"time": 25.3,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -562,7 +551,7 @@
 				{
 					"time": 55.1,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -593,7 +582,7 @@
 				{
 					"time": 84.9,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -663,15 +652,8 @@
 			"duration_sec": 160,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_5.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/industrial/tile_industrial_5.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_5.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/industrial/layer_2_industrial_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -699,7 +681,7 @@
 				{
 					"time": 25.0,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -767,7 +749,7 @@
 				{
 					"time": 83.7,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 150,
@@ -798,7 +780,7 @@
 				{
 					"time": 113.0,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,

@@ -55,6 +55,15 @@ func _ready() -> void:
 	create_popup.visible = false
 	_refresh_list()
 
+	UIStyle.apply_default_button_style(create_button, "medium")
+	UIStyle.apply_default_button_style(delete_button, "medium")
+	UIStyle.apply_default_button_style(popup_validate, "medium")
+	UIStyle.apply_default_button_style(popup_cancel, "medium")
+	UIStyle.apply_button_shadow(create_button, "medium")
+	UIStyle.apply_button_shadow(delete_button, "medium")
+	UIStyle.apply_button_shadow(popup_validate, "medium")
+	UIStyle.apply_button_shadow(popup_cancel, "medium")
+
 func _load_game_config() -> void:
 	if DataManager:
 		_game_config = DataManager.get_game_config()
@@ -87,11 +96,12 @@ func _apply_popup_style() -> void:
 	if style:
 		create_popup.add_theme_stylebox_override("panel", style)
 	
-	# Back button styling
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var back_icon_path: String = str(ui_icons.get("back_button", ""))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.texture_normal = load(back_icon_path)
+	# Footer : bouton retour en bas
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+	if back_button:
+		back_button.visible = false
 
 func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 	if not opt_btn:

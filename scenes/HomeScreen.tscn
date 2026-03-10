@@ -1,8 +1,9 @@
 [gd_scene format=3 uid="uid://clpqi47b3lhxa"]
 
 [ext_resource type="Script" uid="uid://s10rr2lkydv2" path="res://scenes/HomeScreen.gd" id="1_home"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuHeader.tscn" id="2_header"]
 
-[node name="HomeScreen" type="Control"]
+[node name="HomeScreen" type="Control" unique_id=254198743]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_home")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=764229804]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,9 +21,10 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="MenuHeader" parent="." unique_id=1433371777 instance=ExtResource("2_header")]
+layout_mode = 1
 
-
-[node name="TopSection" type="VBoxContainer" parent="."]
+[node name="TopSection" type="VBoxContainer" parent="." unique_id=1119385528]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -30,97 +32,40 @@ anchor_bottom = 0.4
 offset_left = 20.0
 offset_top = 30.0
 offset_right = -20.0
-offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="LogoTexture" type="TextureRect" parent="TopSection"]
+[node name="LogoTexture" type="TextureRect" parent="TopSection" unique_id=662625098]
 visible = false
-layout_mode = 2
 custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="LogoAnimContainer" type="Control" parent="TopSection"]
+[node name="LogoAnimContainer" type="Control" parent="TopSection" unique_id=1802800229]
 visible = false
-layout_mode = 2
 custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
 
-[node name="LogoAnim" type="AnimatedSprite2D" parent="TopSection/LogoAnimContainer"]
+[node name="LogoAnim" type="AnimatedSprite2D" parent="TopSection/LogoAnimContainer" unique_id=1385245586]
 position = Vector2(340, 60)
 
-[node name="TitleLabel" type="Label" parent="TopSection"]
+[node name="TitleLabel" type="Label" parent="TopSection" unique_id=980060883]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "PEWPEWLOOT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ProfileInfoPanel" type="PanelContainer" parent="TopSection"]
-layout_mode = 2
-size_flags_horizontal = 4
-custom_minimum_size = Vector2(540, 70)
-
-[node name="Margin" type="MarginContainer" parent="TopSection/ProfileInfoPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 10
-
-[node name="ProfileInfo" type="HBoxContainer" parent="TopSection/ProfileInfoPanel/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="CrystalIcon" type="TextureRect" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
-layout_mode = 2
-custom_minimum_size = Vector2(28, 28)
-expand_mode = 1
-stretch_mode = 5
-
-[node name="CrystalLabel" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-text = "0"
-vertical_alignment = 1
-
-[node name="SeparatorOne" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-text = "|"
-vertical_alignment = 1
-
-[node name="LevelLabel" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-text = "Nv.1"
-vertical_alignment = 1
-
-[node name="SeparatorTwo" type="Label" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-text = "|"
-vertical_alignment = 1
-
-[node name="ShipPreview" type="HBoxContainer" parent="TopSection/ProfileInfoPanel/Margin/ProfileInfo"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="BottomSection" type="VBoxContainer" parent="."]
+[node name="BottomSection" type="VBoxContainer" parent="." unique_id=614820865]
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.4
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = 0.0
 offset_right = -20.0
 offset_bottom = -30.0
 grow_horizontal = 2
@@ -128,57 +73,72 @@ grow_vertical = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="PlayButton" type="Button" parent="BottomSection"]
+[node name="PlayButton" type="Button" parent="BottomSection" unique_id=1129733038]
+custom_minimum_size = Vector2(540, 70)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
 text = "🎮 Jouer"
 
-[node name="ShipButton" type="Button" parent="BottomSection"]
+[node name="ShipButton" type="Button" parent="BottomSection" unique_id=1244242481]
+custom_minimum_size = Vector2(540, 70)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
 text = "🚀 Vaisseau"
 
-[node name="SkillsButton" type="Button" parent="BottomSection"]
+[node name="SkillsButton" type="Button" parent="BottomSection" unique_id=1114384102]
+custom_minimum_size = Vector2(540, 70)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
 text = "🌟 Compétences"
 
-[node name="OptionsButton" type="Button" parent="BottomSection"]
+[node name="OptionsButton" type="Button" parent="BottomSection" unique_id=917256004]
+custom_minimum_size = Vector2(540, 70)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
-disabled = false
 text = "⚙️ Options"
 
-[node name="QuitButton" type="Button" parent="BottomSection"]
+[node name="QuitButton" type="Button" parent="BottomSection" unique_id=1353790564]
+custom_minimum_size = Vector2(540, 70)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(540, 70)
 theme_override_font_sizes/font_size = 24
 text = "🚪 Quitter"
 
-[node name="Spacer" type="Control" parent="BottomSection"]
+[node name="Spacer" type="Control" parent="BottomSection" unique_id=1223419239]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="ChangeProfileButton" type="Button" parent="BottomSection"]
+[node name="ChangeProfileButton" type="Button" parent="BottomSection" unique_id=648758801]
+custom_minimum_size = Vector2(300, 50)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(300, 50)
 theme_override_font_sizes/font_size = 18
 text = "Changer de profil"
 
-[node name="UnlockAllButton" type="Button" parent="BottomSection"]
+[node name="UnlockAllButton" type="Button" parent="BottomSection" unique_id=1799792182]
 visible = false
+custom_minimum_size = Vector2(300, 46)
 layout_mode = 2
 size_flags_horizontal = 4
-custom_minimum_size = Vector2(300, 46)
 theme_override_font_sizes/font_size = 16
 text = "Unlock All Worlds"
+
+[node name="ResetViewedStoriesButton" type="Button" parent="BottomSection" unique_id=1865790490]
+visible = false
+custom_minimum_size = Vector2(300, 46)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 16
+text = "Reset viewed stories"
+
+[node name="StartStoryButton" type="Button" parent="BottomSection" unique_id=1220046273]
+visible = false
+custom_minimum_size = Vector2(300, 46)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 16
+text = "Start story"

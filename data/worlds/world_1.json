@@ -6,26 +6,26 @@
 	"story_id": "story_world_1_intro",
 	"skin_overrides": {
 		"enemies": {
-			"swarmer": "res://assets/enemies/forest/forest_swarmer.tres",
-			"fighter": "res://assets/enemies/forest/forest_fighter.tres",
-			"tank": "res://assets/enemies/forest/forest_tank.tres",
-			"artillery": "res://assets/enemies/forest/forest_artillery.tres",
-			"elite": "res://assets/enemies/forest/forest_elite.tres"
+			"swarmer": "res://assets/enemies/forest/swarmer.tres",
+			"fighter": "res://assets/enemies/forest/fighter.tres",
+			"tank": "res://assets/enemies/forest/tank.tres",
+			"artillery": "res://assets/enemies/forest/artillery.tres",
+			"elite": "res://assets/enemies/forest/elite.tres"
 		},
 		"bosses": {
-			"boss_forest_final": "res://assets/bosses/forest/forest_boss_final.tres"
+			"boss_atlantis_1": "res://assets/bosses/forest/forest_boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/forest/forest_boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/forest/forest_boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/forest/forest_boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/forest/forest_boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/forest/forest_boss_final.tres"
 		},
 		"obstacles": {
-			"circle": [
-				"res://assets/obstacles/forest/forest_obstacle_circle_1.png",
-				"res://assets/obstacles/forest/forest_obstacle_circle_2.png",
-				"res://assets/obstacles/forest/forest_obstacle_circle_3.png",
-				"res://assets/obstacles/forest/forest_obstacle_circle_4.png"
-			],
-			"rectangle": [
-				"res://assets/obstacles/forest/forest_obstacle_rectangle_1.png",
-				"res://assets/obstacles/forest/forest_obstacle_rectangle_2.png",
-				"res://assets/obstacles/forest/forest_obstacle_rectangle_3.png"
+			"explosives": [
+				"res://assets/obstacles/forest/obstacle_explosive_1.png",
+				"res://assets/obstacles/forest/obstacle_explosive_2.png",
+				"res://assets/obstacles/forest/obstacle_explosive_3.png",
+				"res://assets/obstacles/forest/obstacle_explosive_4.png"
 			]
 		}
 	},
@@ -35,7 +35,8 @@
 		"speed": 1.0
 	},
 	"theme": {
-		"background": "",
+		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+		"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_world.jpg",
 		"music": "res://assets/music/forest/forest_music.ogg",
 		"color_palette": "#2d5a27"
 	},
@@ -47,29 +48,31 @@
 			"type": "normal",
 			"duration_sec": 60,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/forest/world_forest_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_0.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_0.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/forest/level_0.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_0.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/forest/level_0.jpg",
 				"near_layer": []
 			},
 			"waves": [
-				{
-					"time": 3.0,
-					"enemy_id": "swarmer",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+				{ 
+					"time": 1.1,
+					"type": "obstacle",
+					"obstacle_id": "asteroid_medium",
+					"pattern": "slalom",
+					"duration": 25.0,
+					"speed": 170,
+					"gap_width": 190,
+					"row_interval": 1.2,
+					"drift_speed": 10,
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
 				},
 				{
-					"time": 10.7,
-					"enemy_id": "swarmer",
+					"time": 12.7,
+					"enemy_id": "fighter",
 					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
@@ -77,14 +80,14 @@
 				{
 					"time": 18.4,
 					"enemy_id": "swarmer",
-					"count": 11,
+					"count": 20,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
 					"time": 26.1,
 					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 170,
@@ -129,16 +132,9 @@
 			"type": "normal",
 			"duration_sec": 80,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/forest/world_forest_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/forest/level_1.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_1.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/forest/level_1.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -203,7 +199,7 @@
 				{
 					"time": 54.8,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -242,16 +238,9 @@
 			"story_id": "story_world_1_lvl_2",
 			"duration_sec": 150,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/forest/world_forest_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_2.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/forest/level_2.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_2.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/forest/level_2.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -279,7 +268,7 @@
 				{
 					"time": 24.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -384,16 +373,9 @@
 			"type": "normal",
 			"duration_sec": 120,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/forest/world_forest_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_3.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/forest/level_3.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_3.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/forest/level_3.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -421,7 +403,7 @@
 				{
 					"time": 25.8,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -540,16 +522,9 @@
 			"type": "normal",
 			"duration_sec": 140,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/forest/world_forest_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_4.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_4.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/forest/level_4.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_4.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/forest/level_4.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -651,7 +626,7 @@
 				{
 					"time": 84.9,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 150,
@@ -682,7 +657,7 @@
 				{
 					"time": 114.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -720,16 +695,9 @@
 			"type": "boss",
 			"duration_sec": 160,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/forest/world_forest_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/forest/world_forest_5.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/forest/layer_2_clouds_5.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/forest/level_5.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_5.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/forest/level_5.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -757,7 +725,7 @@
 				{
 					"time": 25.0,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,

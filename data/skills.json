@@ -106,14 +106,14 @@
 			  "max_rank": 1,
 			  "prerequisite": "poison_1",
 			  "params": {
-				"pool_damage_per_sec": 8,
+				"pool_damage_per_sec": 6,
 				"pool_duration": 3.0,
-				"pool_radius": 50,
+				"pool_radius": 80,
 				"pool_fluid_id": "",
-				"pool_asset_anim": "",
-				"pool_asset_anim_duration": 10.0,
+				"pool_asset_anim": "res://assets/skills/frost_aura.tres",
+				"pool_asset_anim_duration": 2.0,
 				"pool_asset_anim_loop": true,
-				"pool_asset_size": 160
+				"pool_asset_size": 80
 			  }
 			},
 			{

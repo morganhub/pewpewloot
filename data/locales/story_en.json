@@ -1,12 +1,393 @@
 {
     "locale": "en",
     "strings": {
-        "story_w1_intro_1": "Pilot, we've detected hostile activity in the asteroid belt.",
-        "story_w1_intro_2": "Proceed with caution. Pirates and rogue drones have been spotted.",
-        "story_w1_intro_3": "Copy that, Commander. Weapons hot, moving in.",
-        "story_w1_intro_4": "Good luck out there.",
-        "story_w1_intro_5": "We're counting on you to clear this sector.",
-        "story_w1_lvl2_1": "Warning: this zone is heavily mined.",
-        "story_w1_lvl2_2": "Watch your step, pilot. One wrong move and it's over."
-    }
+        "story_w1_intro_1": "Pilot, reconnaissance mission. Forest Zone E-17 has gone silent.",
+        "story_w1_intro_2": "No human signals, no local beacons. Something is jamming everything.",
+        "story_w1_intro_3": "You go in, you identify the source, you get out. No unnecessary heroics.",
+        "story_w1_intro_4": "Copy. Entering atmosphere. My sensors are already unstable.",
+        "story_w1_intro_5": "Expect hostile organic forms. If it moves, you neutralize it.",
+        "story_w1_intro_6": "And if it thinks... you do not negotiate. You bring back data.",
+      
+        "story_w1_lvl1_1": "Low altitude. The canopy will hide you, but it will also hide your threats.",
+        "story_w1_lvl1_2": "Priority: map the disturbances. Do not chase decoys.",
+        "story_w1_lvl1_3": "I see spore clouds. They cling to the thrusters... they seek heat.",
+      
+        "story_w1_lvl2_1": "Confirmed: the spores react to your engine signature. They adapt.",
+        "story_w1_lvl2_2": "This looks like intelligent contamination. Keep your distance and vary your trajectory.",
+        "story_w1_lvl2_3": "My shots trigger coordinated responses. This is not normal wildlife.",
+      
+        "story_w1_lvl2_w4_1": "This is Dr Lierre... if anyone receives, respond. I'm alive, but trapped.",
+        "story_w1_lvl2_w4_2": "Under the canopy: a pulsing structure. A beacon... not human. Do not let it activate.",
+        "story_w1_lvl2_w4_3": "Pilot, lock its position. We're tracking her signal. Lierre, hold on.",
+      
+        "story_w1_lvl3_1": "Lierre's signal is stable. It's coming from a root network... too regular.",
+        "story_w1_lvl3_2": "I see filaments like cables. The forest is wired, Commander.",
+        "story_w1_lvl3_3": "It's an Anchor Beacon. If it completes synchronization, other zones will respond.",
+      
+        "story_w1_lvl4_1": "Visual. An organo-tech column, at the heart of a vegetative sanctuary.",
+        "story_w1_lvl4_2": "Your objective: open its core and extract what it is protecting. A fragment... or an energy heart.",
+        "story_w1_lvl4_3": "I'm closing in. The forest is folding around me... like a cage.",
+      
+        "story_w1_lvl5_1": "The beacon is ramping up. Every second, it draws more guardians.",
+        "story_w1_lvl5_2": "Good. That confirms it controls the biome. Hold until the central chamber.",
+        "story_w1_lvl5_3": "If a super-organism exists, it will be there. Prepare for the worst.",
+      
+        "story_w1_lvl6_1": "Central chamber straight ahead. Readings are abnormal... like a giant brain.",
+        "story_w1_lvl6_2": "Pilot: priority target, the guardian. Without it, the beacon is vulnerable.",
+        "story_w1_lvl6_3": "YOU BURN. YOU SHINE. I FIND YOU.",
+        "story_w1_lvl6_4": "Okay... so it talks. I cut it down, and I take the fragment.",
+      
+        "story_w1_lvl6_end_1": "Anchor Fragment secured. The beacon collapses, the spores lose coherence.",
+        "story_w1_lvl6_end_2": "I'm already receiving a transit coordinate. Next destination: an underwater point.",
+        "story_w1_lvl6_end_3": "You did it... thank you. Cut this network before it links other worlds.",
+        "story_w1_lvl6_end_4": "Copy. Ascending to orbit. And if this is only the beginning... then we keep going.",
+      
+        "story_w2_intro_1": "The Anchor Fragment opens a route. Atlantis. Short transit window.",
+        "story_w2_intro_2": "You go down fast, you hit fast, you get out before the rift closes.",
+        "story_w2_intro_3": "An underwater city... after a living forest. Nightmare logic checks out.",
+        "story_w2_intro_4": "Stay sharp. Readings will be warped by pressure and interference.",
+        "story_w2_intro_5": "Objective: find the source of the command signal. Same signature as the forest.",
+      
+        "story_w2_lvl1_1": "Water contact. I'm losing bands, but inertial guidance holds.",
+        "story_w2_lvl1_2": "Find an entry into the structures. If Atlantis exists, it will be broadcasting.",
+        "story_w2_lvl1_3": "I see ruins and arches. They glow like circuitry, not stone.",
+      
+        "story_w2_lvl2_1": "Saturation of luminous drones. They patrol as a swarm: non-human behavior.",
+        "story_w2_lvl2_2": "Avoid the beams. They tag targets, then the waves arrive.",
+        "story_w2_lvl2_3": "I hear a message in the noise. Like an SOS... but it loops.",
+      
+        "story_w2_lvl2_w3_1": "SOS, SOS... open channel... if you can hear this, do not follow the lights.",
+        "story_w2_lvl2_w3_2": "They woke the city. Repeat: they woke the city.",
+        "story_w2_lvl2_w3_3": "Pirate transmission. Attempting triangulation. Pilot, set course to the audio source.",
+        "story_w2_lvl2_w3_4": "Copy. I'm moving. And if it's a trap... I'll know fast.",
+      
+        "story_w2_lvl3_1": "This is Captain Neree. Independent salvager. I latched onto your signal at the rift.",
+        "story_w2_lvl3_2": "I confirm: the city was dormant. Someone powered it back up.",
+        "story_w2_lvl3_3": "Neree, I'm the pilot. Give me an entry point to the city's core.",
+        "story_w2_lvl3_4": "Captain Neree, identify the intruder. Any intel on the local beacon is priority.",
+      
+        "story_w2_lvl4_1": "I'm picking up pulses from the temples. These are not ruins: they're relays.",
+        "story_w2_lvl4_2": "The patterns match the forest. Same cadence. Same command signature.",
+        "story_w2_lvl4_3": "I told you: the city obeys. The temples distribute orders like antennae.",
+      
+        "story_w2_lvl4_w2_1": "Correlation confirmed. Atlantis is responding to an external signal, not a local AI.",
+        "story_w2_lvl4_w2_2": "So someone is steering multiple biomes. This is not an isolated incident.",
+        "story_w2_lvl4_w2_3": "Then we cut the primary relay. I'm searching for the synchronization hall.",
+      
+        "story_w2_lvl5_1": "I see the layout: beacon, relays, guardian. Same architecture as the forest.",
+        "story_w2_lvl5_2": "Someone is linking biomes through Beacons to build a war network.",
+        "story_w2_lvl5_3": "The guardian here is called the Hydrocephalus. It protects the core. And it learns fast.",
+        "story_w2_lvl5_4": "Perfect. I'm going to teach it lessons it won't forget.",
+      
+        "story_w2_lvl6_1": "You're close to the core. If you take Anchor Fragment #2, the next route will reveal itself.",
+        "story_w2_lvl6_2": "Do not let the Hydrocephalus box you in. It controls terrain and currents.",
+        "story_w2_lvl6_3": "DRAIN YOU. TAG YOU. RETURN YOU TO THE NETWORK.",
+        "story_w2_lvl6_4": "Try. I'm aiming for the heart, not the tentacles.",
+      
+        "story_w2_lvl6_end_1": "Anchor Fragment #2 secured. The luminous drones desynchronize.",
+        "story_w2_lvl6_end_2": "New intel: the signal carries an industrial fingerprint. It points to a production complex.",
+        "story_w2_lvl6_end_3": "If you go there, cut their lines. Otherwise Atlantis will light up again.",
+        "story_w2_lvl6_end_4": "Copy. Returning to the rift. Next stop: metal, smoke... and the source.",
+      
+        "story_w3_intro_1": "Atlantis' industrial signature is confirmed. Set course for a production complex.",
+        "story_w3_intro_2": "Fragment #2 stabilizes a direct route. Short window, as usual.",
+        "story_w3_intro_3": "I can smell the metal through the filters. Okay, let's go.",
+        "story_w3_intro_4": "Here, nothing is organic. If it moves, it's manufactured. And that can be worse.",
+        "story_w3_intro_5": "Objective: identify the command center and locate Anchor Fragment #3.",
+      
+        "story_w3_lvl1_1": "Entering the complex. Assembly lines active. No humans in sight.",
+        "story_w3_lvl1_2": "Hostile autonomous production. The lines are building drones in real time.",
+        "story_w3_lvl1_3": "Conveyors are packed. Hulls come out like ammunition.",
+      
+        "story_w3_lvl2_1": "Heavy units spotted. Marking: SIGMA FORGE. Consortium dissolved, but not dead.",
+        "story_w3_lvl2_2": "So someone reused their factories... or their designs.",
+        "story_w3_lvl2_w4_1": "Warning: heavies are synchronizing. They share a common target.",
+        "story_w3_lvl2_w4_2": "If you see the SIGMA FORGE logo on a chassis, treat it as priority.",
+        "story_w3_lvl2_w4_3": "Copy. I'm breaking the line before it outputs a tank per second.",
+      
+        "story_w3_lvl3_1": "This is Engineer Volt. Remote link. I'm catching your bands in the factory noise.",
+        "story_w3_lvl3_2": "I can open bulkheads and cut lines, but you must destroy a control node.",
+        "story_w3_lvl3_3": "Volt, identify yourself. How do you have access to this network?",
+        "story_w3_lvl3_4": "Give me the node coordinates. I'll do the cleanup, you press the buttons.",
+      
+        "story_w3_lvl4_1": "Volt is right. I'm seeing Beacon architecture embedded in the machines.",
+        "story_w3_lvl4_2": "The Beacons have been reprogrammed: they form a transit web between worlds.",
+        "story_w3_lvl4_3": "Right. The portals are no longer accidents: it's infrastructure.",
+        "story_w3_lvl4_4": "So we don't endure the network... we dismantle it piece by piece.",
+      
+        "story_w3_lvl5_1": "Control node nearby. I'm detecting steering code... clean, elegant.",
+        "story_w3_lvl5_2": "But it comes from an impossible place. Like it was forged beyond heat.",
+        "story_w3_lvl5_3": "Beyond heat... volcano? furnace? That matches our previous traces.",
+        "story_w3_lvl5_4": "Perfect. I destroy the node, and you tell me where the Fragment is hidden.",
+      
+        "story_w3_lvl6_1": "You're in the heart of the factory. Foreman Omega runs production and security.",
+        "story_w3_lvl6_2": "Drop it, and the line stops. Anchor Fragment #3 becomes accessible.",
+        "story_w3_lvl6_3": "ANOMALY: PILOT. CORRECTION: ELIMINATION. RESUME PRODUCTION.",
+        "story_w3_lvl6_4": "I'm the anomaly that's taking you offline. Come closer.",
+      
+        "story_w3_lvl6_end_1": "Anchor Fragment #3 extracted. Good. Bulkheads seal, conveyors die.",
+        "story_w3_lvl6_end_2": "The code points to an extreme thermal zone. A volcanic furnace site.",
+        "story_w3_lvl6_end_3": "Commander, this isn't just a lead. It's a route branded in red-hot iron.",
+        "story_w3_lvl6_end_4": "Copy. We jump as soon as the rift opens. Next stop: fire.",
+      
+        "story_w4_intro_1": "The thermal route is stable. Destination: Furnace. Active volcanic zone.",
+        "story_w4_intro_2": "Incursion authorized, but high-risk. This site likely feeds the network raw power.",
+        "story_w4_intro_3": "So we dive into a blaze to cut a plug. Classic.",
+        "story_w4_intro_4": "Do not underestimate the environment: ash, turbulence, thermal overload.",
+        "story_w4_intro_5": "Objective: locate the power station and extract Anchor Fragment #4.",
+      
+        "story_w4_lvl1_1": "Entering the plume. Visibility near zero. Your sensors will lie.",
+        "story_w4_lvl1_2": "Use thermal landmarks. Enemies hide in the heat too.",
+        "story_w4_lvl1_3": "I see shapes in the ash. Not rocks... molten drones.",
+      
+        "story_w4_lvl2_1": "I'm detecting massive batteries under the ash. They breathe... like lungs.",
+        "story_w4_lvl2_2": "Living power plant. Someone built a hybrid of volcano and storage infrastructure.",
+        "story_w4_lvl2_3": "If we cut power here, we starve the transit web.",
+        "story_w4_lvl2_w3_1": "Winds shifting. The ash starts to spiral around me, like it's guided.",
+        "story_w4_lvl2_w3_2": "That confirms it: the site reacts. Fire isn't just scenery, it's a system.",
+      
+        "story_w4_lvl3_1": "Halt, foreign craft. This is Forger Kael. I've walked these slag fields for years.",
+        "story_w4_lvl3_2": "The fire is no longer natural... it obeys. It opens paths and seals graves.",
+        "story_w4_lvl3_3": "Kael, I'm on mission. Tell me where the heart of this plant is.",
+        "story_w4_lvl3_4": "Kael, if you have data, transmit it. Any intel on conduits and portals is priority.",
+      
+        "story_w4_lvl4_1": "I'm picking up conduits under the craters. They don't drain lava... they drain energy.",
+        "story_w4_lvl4_2": "Yes. They link vents to portals. Someone refines the heat and sends it elsewhere.",
+        "story_w4_lvl4_3": "So it's a station. A power refinery for the network.",
+        "story_w4_lvl4_w4_1": "I see transit rings on the crater rim. They pulse in step with the Beacons.",
+        "story_w4_lvl4_w4_2": "Cut the main flow and synchronization collapses. Find a core, like always.",
+        "story_w4_lvl4_w4_3": "And get ready: a guardian will be here. Someone is protecting this furnace.",
+      
+        "story_w4_lvl5_1": "Pattern check: each biome is a station. Forest, Atlantis, factory, now furnace.",
+        "story_w4_lvl5_2": "Next logical step is thermal inversion: underground, cold, pressure... mines.",
+        "story_w4_lvl5_3": "Copy. I finish here, then we start digging under the stone.",
+      
+        "story_w4_lvl6_1": "You're approaching the core. Massive readings. Something titanic is moving in the slag.",
+        "story_w4_lvl6_2": "That's the guardian: Slag Titan. Drop it, take Fragment #4, and get out before collapse.",
+        "story_w4_lvl6_3": "HEAT... ORDERS... FORGE... SERVE.",
+        "story_w4_lvl6_4": "Okay, big one. I'm disconnecting you from the network.",
+      
+        "story_w4_lvl6_end_1": "The Titan is down. The furnace weakens. The fire becomes... unpredictable. Natural.",
+        "story_w4_lvl6_end_2": "Anchor Fragment #4 secured. I'm seeing an access plan: Forgotten Mines. Critical depth.",
+        "story_w4_lvl6_end_3": "We follow the route. If those mines hold anchor stones, that's a keystone.",
+        "story_w4_lvl6_end_4": "Copy. Leaving the plume. Next stop: darkness and cold.",
+      
+        "story_w5_intro_1": "Access plan validated. Destination: Forgotten Mines. Critical depth, no external network.",
+        "story_w5_intro_2": "Site erased from maps. If someone hid it, there was a reason.",
+        "story_w5_intro_3": "From fire to black. Great. My sensors are going to love this.",
+        "story_w5_intro_4": "Expect phantom signals. Echoes of old battles were recorded here.",
+        "story_w5_intro_5": "Objective: find Fragment #5. If these mines fed the Beacons, we're at the heart of the problem.",
+      
+        "story_w5_lvl1_1": "Entering the galleries. I'm getting pings... then nothing. Like dead calls.",
+        "story_w5_lvl1_2": "Those are traces. An echo field. Hold your line and do not chase shadows.",
+        "story_w5_lvl1_3": "Impact marks on the walls. There was a fight here before. And it lost.",
+      
+        "story_w5_lvl2_1": "Autonomous drills. They bore toward... emptiness. They find nothing and keep going.",
+        "story_w5_lvl2_2": "Like they're hunting a door. A precise chamber, a specific breach point.",
+        "story_w5_lvl2_3": "Someone started these machines and left them running until they pierced the world.",
+        "story_w5_lvl2_w4_1": "Warning: they're recalculating. They're using you as a positional reference.",
+        "story_w5_lvl2_w4_2": "I'm cutting their guidance. If they want a door, they can chew on metal.",
+      
+        "story_w5_lvl3_1": "This is Archivist Sable. I've watched these mines through forbidden archives.",
+        "story_w5_lvl3_2": "They were used to extract anchor stones. The raw material for the Beacons.",
+        "story_w5_lvl3_3": "Archivist, transmit your map. Mark the old shafts and sealed chambers.",
+        "story_w5_lvl3_4": "Send it. The faster we find the stone, the faster we leave this tomb.",
+      
+        "story_w5_lvl4_1": "I see inscriptions. Hand-carved. This is not industrial marking.",
+        "story_w5_lvl4_2": "Read them. These places carry warnings. They knew what they were doing.",
+        "story_w5_lvl4_3": "Transmit the exact wording. Every word matters here.",
+        "story_w5_lvl4_end_1": "Warning confirmed: never link worlds. They did it anyway.",
+        "story_w5_lvl4_end_2": "So we're walking through a mistake that is generations old.",
+      
+        "story_w5_lvl5_1": "The fragments we're collecting... this isn't random. It's reconstruction.",
+        "story_w5_lvl5_2": "The enemy is rebuilding an ancient machine, fragment by fragment. And we're doing the hauling.",
+        "story_w5_lvl5_3": "These mines were the foundation. After the foundation comes the mausoleum: the Necropolis.",
+        "story_w5_lvl5_4": "Perfect. We finish here, then we see what death keeps as secrets.",
+      
+        "story_w5_lvl6_1": "Mass reading at the bottom of the shaft. Guardian detected: Cryptic Grinder.",
+        "story_w5_lvl6_2": "It will protect Fragment #5 like a living lock. Do not get pulled into its chamber.",
+        "story_w5_lvl6_3": "GRIND... ENGRAVE... SEAL... NO PASSAGE.",
+        "story_w5_lvl6_4": "I'm not asking for passage. I'm taking it.",
+      
+        "story_w5_lvl6_end_1": "Fragment #5 confirmed. The rock calms. The drills stop, like their orders were cut.",
+        "story_w5_lvl6_end_2": "A route opens. Next destination: Necropolis. Cold, memetic signature.",
+        "story_w5_lvl6_end_3": "We go. If the machine has relics, that's where they sleep.",
+        "story_w5_lvl6_end_4": "Copy. Ascending. And I'm keeping my weapons warm.",
+      
+        "story_w6_intro_1": "Destination: Necropolis. Abnormal readings: memory fog, cognitive interference.",
+        "story_w6_intro_2": "New protocol: follow no calls. None. Even if the voice sounds like you.",
+        "story_w6_intro_3": "Great. Now the biome is trying to talk inside my head.",
+        "story_w6_intro_4": "Stay anchored to my orders and your instruments. If you doubt, you fire and you back off.",
+        "story_w6_intro_5": "Objective: Anchor Fragment #6. And understand what this place stores.",
+      
+        "story_w6_lvl1_1": "The fog is here. It clings to your sensors, and it clings to your memories.",
+        "story_w6_lvl1_2": "Ignore the silhouettes. They're impressions, not targets... until proven otherwise.",
+        "story_w6_lvl1_3": "I see ship traces... like the sky was buried here.",
+      
+        "story_w6_lvl2_1": "Sentinels. They're scanning me... not firing. Like they recognize me.",
+        "story_w6_lvl2_2": "They're searching for a signature. If they classify you, they record you. Do not let anything get written.",
+        "story_w6_lvl2_3": "Jam your profile. Change your firing rhythm. Stay ungraspable.",
+        "story_w6_lvl2_w2_1": "RECORD: PILOT. STATUS: ALREADY INSCRIBED. PROCEDURE: RECALL.",
+        "story_w6_lvl2_w2_2": "Already inscribed? I've never set foot here.",
+        "story_w6_lvl2_w2_3": "This place doesn't measure your presence. It measures your pattern. Do not give it a stable pattern.",
+      
+        "story_w6_lvl3_1": "This is Priestess Morn. You are crossing a graveyard of forms, not only bodies.",
+        "story_w6_lvl3_2": "The Beacons capture souls... or patterns. They preserve what can be copied.",
+        "story_w6_lvl3_3": "Morn, I want the Fragment and I'm out. Tell me what to avoid.",
+        "story_w6_lvl3_4": "Priestess, guide the pilot. We pay in silence, not in blood.",
+      
+        "story_w6_lvl4_1": "If she's telling the truth, the network moves more than energy.",
+        "story_w6_lvl4_2": "Yes. It carries living information: thought routines, reflexes, identities.",
+        "story_w6_lvl4_3": "So each station doesn't just feed the web... it trains it.",
+      
+        "story_w6_lvl4_end_1": "I just saw my own attack vector... executed by a funerary drone.",
+        "story_w6_lvl4_end_2": "They read you. Do not panic. Change your patterns. Now.",
+      
+        "story_w6_lvl5_1": "I'm detecting a gravitational track. Something immense assembled these pieces.",
+        "story_w6_lvl5_2": "A colossal hand. Not a metaphor: a titanic-scale signature.",
+        "story_w6_lvl5_3": "Then go to the Domain of Titans. But know this: giants do not forgive desecrators.",
+        "story_w6_lvl5_4": "We will. First, I cut the regent of this mausoleum.",
+      
+        "story_w6_lvl6_1": "You're at the central crypt. Guardian: Necro Regent. It controls the fog and the sentinels.",
+        "story_w6_lvl6_2": "Kill it fast. The longer the fight, the more it records you.",
+        "story_w6_lvl6_3": "RETURN TO TOMB. BACK TO THE PATTERN. STRIP YOURSELF OF YOURSELF.",
+        "story_w6_lvl6_4": "No. I keep my name. And I take your fragment.",
+      
+        "story_w6_lvl6_end_1": "Anchor Fragment #6 secured. The fog pulls back, like a breath cut short.",
+        "story_w6_lvl6_end_2": "Coordinates recovered: carved in giant script. Destination: Domain of Titans.",
+        "story_w6_lvl6_end_3": "When you see their gates, lower your weapons... or die quickly.",
+        "story_w6_lvl6_end_4": "Copy. I keep my head cold. And I aim big.",
+      
+        "story_w7_intro_1": "Giant coordinates validated. Destination: Domain of Titans.",
+        "story_w7_intro_2": "Here, everything is on a god's scale. Move slowly, observe, survive.",
+        "story_w7_intro_3": "I already see structures bigger than mountains. Okay. I stay small and fast.",
+        "story_w7_intro_4": "Do not shoot everything. A ricochet here can become a catastrophe.",
+        "story_w7_intro_5": "Objective: Anchor Fragment #7. And identify who assembled the network.",
+      
+        "story_w7_lvl1_1": "Cyclopean terrain. The walls have marks like door locks... but giant-sized.",
+        "story_w7_lvl1_2": "Stay along the edges. If something moves, assume it's a mechanism, not a creature.",
+        "story_w7_lvl1_3": "I'm in a valley that looks like a gear. I don't like this.",
+      
+        "story_w7_lvl2_1": "I'm picking up vibrations. Like the ground is counting my passes.",
+        "story_w7_lvl2_2": "Trigger nothing. If it's a clockwork, it can crush you without seeing you.",
+        "story_w7_lvl2_w2_1": "Massive movement detected. Enormous mechanisms are starting up.",
+        "story_w7_lvl2_w2_2": "You started a sequence. Keep speed, change axis, do not stay on the rails.",
+        "story_w7_lvl2_w2_3": "Understood. I'm flying between gear teeth. I'll stay discreet.",
+      
+        "story_w7_lvl3_1": "You cross our thresholds with a broken key. Your network awakens our chains.",
+        "story_w7_lvl3_2": "Cut the network... or pay.",
+        "story_w7_lvl3_3": "Identification: Emissary Talos. Pilot, no hostility. We are trying to stop the network.",
+        "story_w7_lvl3_4": "Talos, we've already cut stations. Tell us how to finish the job.",
+      
+        "story_w7_lvl4_1": "An intruder stole the Route Key. They split it into fragments.",
+        "story_w7_lvl4_2": "You pick them up. You rebuild what we sealed.",
+        "story_w7_lvl4_3": "The fragments... so what we've been collecting since the start is the key.",
+        "story_w7_lvl4_4": "And someone put us on the rails. This isn't a hunt anymore, it's an assembly.",
+      
+        "story_w7_lvl4_end_1": "If we reconstitute the key, we open the final passage.",
+        "story_w7_lvl4_end_2": "But we may also free the architect who built this network.",
+        "story_w7_lvl4_end_3": "So we're walking into a trap... but it may be the only way out.",
+      
+        "story_w7_lvl5_1": "Talos, where is the fragment's guardian?",
+        "story_w7_lvl5_2": "Give us a path that avoids your chains. We are not here to profane, we are here to cut.",
+        "story_w7_lvl5_3": "The fragment is guarded by a Colossus. And the intruder is not human. It comes from elsewhere.",
+        "story_w7_lvl5_4": "Elsewhere... offworld. Okay. First the colossus, then the trail.",
+      
+        "story_w7_lvl6_1": "You're at the Colossus gate. It has no face, only a function: protect.",
+        "story_w7_lvl6_2": "Bring it down, take Fragment #7, and clear out before the clock closes again.",
+        "story_w7_lvl6_3": "ACCESS DENIED. FRAGMENT UNDER GUARD. RETURN TO SILENCE.",
+        "story_w7_lvl6_4": "I'm not returning to silence. I'm cutting your guard.",
+      
+        "story_w7_lvl6_end_1": "Fragment #7 acquired. The key is close. And the intruder waits beyond the worlds.",
+        "story_w7_lvl6_end_2": "Talos confirms: non-human origin. Next destination: Alien Hive. Offworld.",
+        "story_w7_lvl6_end_3": "Stay on guard. If a hive is driving the network, it will learn by watching you.",
+        "story_w7_lvl6_end_4": "Copy. I'm leaving before this domain decides to count me among its parts.",
+      
+        "story_w8_intro_1": "Offworld jump confirmed. Alien Hive. Biology everywhere, no known standard.",
+        "story_w8_intro_2": "Clear order: do not land. You strike and you exit. No exploration, no curiosity.",
+        "story_w8_intro_3": "Copy. Keeping the throttle. If I stop, I become a specimen.",
+        "story_w8_intro_4": "Here, the enemy learns. Vary your fire, vary your routes, break your habits.",
+        "story_w8_intro_5": "Objective: Anchor Fragment #8. And find the heart of the living router.",
+      
+        "story_w8_lvl1_1": "Biological signals on every band. It breathes, it listens, it responds.",
+        "story_w8_lvl1_2": "Do not communicate. Leave no trace. Every emission is a seed.",
+        "story_w8_lvl1_3": "Fast contacts. They're already adapting to my volleys.",
+      
+        "story_w8_lvl2_1": "Confirmed: with every shot, they change formation. As if they memorize.",
+        "story_w8_lvl2_2": "The Hive reacts in real time. It learns your style. Break the rhythm.",
+        "story_w8_lvl2_3": "If you feel you're repeating a pattern, you're already late.",
+        "story_w8_lvl2_w3_1": "Keep no routine. Even your escape must stay unpredictable.",
+        "story_w8_lvl2_w3_2": "Understood. Full improvisation. This will get messy.",
+      
+        "story_w8_lvl3_1": "This is xenobiologist Ixa. I've been studying the Hive from a clandestine relay.",
+        "story_w8_lvl3_2": "It's not a base. It's an incubation engine for computation: a distributed brain in flesh.",
+        "story_w8_lvl3_3": "So I'm fighting a living computer. Great. Weak points?",
+        "story_w8_lvl3_4": "Ixa, give us a method. We won't hold if it copies the pilot.",
+      
+        "story_w8_lvl4_1": "I see organic nodes connected to the Beacons. They pulse like synchronization.",
+        "story_w8_lvl4_2": "Yes. The Beacon network syncs here. The Hive is the living router of the system.",
+        "story_w8_lvl4_3": "So if we cut the Queen, we cut the switchboard. And we open access to the source.",
+        "story_w8_lvl4_w4_1": "Warning: the nodes are trying to predict you. They're building a model of your reflexes.",
+        "story_w8_lvl4_w4_2": "Then I'm changing my reflexes. Now.",
+      
+        "story_w8_lvl5_1": "Tactical decision: we reassemble the Key. It's the only way to reach the architect.",
+        "story_w8_lvl5_2": "If we don't cut at the source, the network will replicate. Here, it learns too fast.",
+        "story_w8_lvl5_3": "Copy. I'm going straight to the throne. And I'm smashing this router with a hammer.",
+      
+        "story_w8_lvl6_1": "You're at the core. Final guardian: Relay Queen. She orchestrates, she learns, she transmits.",
+        "story_w8_lvl6_2": "Take Fragment #8 and get out. When she falls, the entire nest will convulse.",
+        "story_w8_lvl6_3": "WE ARE THE ROUTE. WE ARE THE PASSAGE. WE TEACH YOU.",
+        "story_w8_lvl6_4": "I learn too. How to destroy you.",
+      
+        "story_w8_lvl6_end_1": "Fragment #8 confirmed. The Hive loses coherence. Swarms collapse without orders.",
+        "story_w8_lvl6_end_2": "A final portal just opened. Readings impossible. Destination: Magic World.",
+        "story_w8_lvl6_end_3": "That's the last passage. The Key is almost complete. Stay lucid, whatever happens.",
+        "story_w8_lvl6_end_4": "Copy. Entering the impossible. And I'm not leaving without the network's end.",
+      
+        "story_w9_intro_1": "The portal is stable... but readings are impossible. Destination: Magic World.",
+        "story_w9_intro_2": "Warning: physics bends. Your instruments will lie shamelessly.",
+        "story_w9_intro_3": "Then I fly on instinct. Good. I already stopped trusting reality.",
+        "story_w9_intro_4": "Keep one rule: what you see isn't necessarily there. What shoots you, is.",
+        "story_w9_intro_5": "Final objective: assemble the Key and reach the architect. Cut the network at the source.",
+      
+        "story_w9_lvl1_1": "You're in. Variable gravity. Unstable visual references. Do not overcorrect.",
+        "story_w9_lvl1_2": "If your HUD says left, verify twice. Here, the world cheats.",
+        "story_w9_lvl1_3": "I see floating islets, angles that shouldn't exist... and shots that curve to follow them.",
+      
+        "story_w9_lvl2_1": "Something is walking through my frequencies. A presence, not a signal.",
+        "story_w9_lvl2_2": "This isn't magic. It's a layer of reality... compiled.",
+        "story_w9_lvl2_3": "Call me Mage Arka, if that comforts you. But here, words are tools.",
+        "story_w9_lvl2_4": "Arka, are you an ally or a decoy? Answer clearly.",
+      
+        "story_w9_lvl3_1": "The architect wrote an overlay. Each biome is a module, loaded and unloaded on demand.",
+        "story_w9_lvl3_2": "The Route Key is a portal compiler. You collect its functions, fragment by fragment.",
+        "story_w9_lvl3_3": "So the architect doesn't just run machines. It runs the rules of the battlefield.",
+        "story_w9_lvl3_4": "Perfect. Then I'll break its compiler... after using it one last time.",
+      
+        "story_w9_lvl4_1": "I'm receiving echoes of previous worlds. Forest, Atlantis, factory... like replays.",
+        "story_w9_lvl4_2": "It's a pattern simulation. It anticipates your choices by replaying your reflexes.",
+        "story_w9_lvl4_3": "I'm fighting a copy of myself, reconstructed from scraps of war.",
+        "story_w9_lvl4_w3_1": "Do not follow your habits. Here, the enemy doesn't need to aim: it predicts you.",
+        "story_w9_lvl4_w3_2": "Then I'll become untouchable. Even to myself.",
+      
+        "story_w9_lvl5_1": "We're at the point of no return. If you assemble the Key now, you open the final access.",
+        "story_w9_lvl5_2": "But if the architect is behind it, you may open its cage. If you refuse, you may be trapped here.",
+        "story_w9_lvl5_3": "I choose the exit. I'd rather face an enemy than live inside a prison.",
+        "story_w9_lvl5_4": "Then assemble it. And do not hesitate midway: the overlay punishes indecision.",
+      
+        "story_w9_lvl6_1": "This is the core. Assemble the Key. Once. One clean move.",
+        "story_w9_lvl6_2": "The moment the passage opens, you strike the architect. No speeches. No mercy.",
+        "story_w9_lvl6_3": "YOU TRAVERSED MY MODULES. YOU LEARNED MY RULES. I AM THE ARCHON OF THE NETWORK.",
+        "story_w9_lvl6_4": "And I'm the variable that crashes your system.",
+      
+        "story_w9_lvl6_end_1": "Readings in free fall. The network collapses. Portals close one by one.",
+        "story_w9_lvl6_end_2": "Good work, Pilot. You cut the source.",
+        "story_w9_lvl6_end_3": "The overlay decompiles. Modules detach. Reality reasserts itself.",
+        "story_w9_lvl6_end_4": "But remember: anything compiled can be written elsewhere.",
+        "story_w9_lvl6_end_5": "I watch the exits seal behind me. I run. I don't look back.",
+        "story_w9_lvl6_end_6": "Wait... I'm catching one last thread, faint. A residue of the network.",
+        "story_w9_lvl6_end_7": "Message: Key destroyed... but a copy was written somewhere.",
+        "story_w9_lvl6_end_8": "We go home. Mission accomplished. And we prepare: that was only one version.",
+        "story_w9_lvl6_end_9": "Copy. I'm coming back alive. And if a copy exists... we'll find it."
+      }
 }

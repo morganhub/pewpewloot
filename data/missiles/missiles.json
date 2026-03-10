@@ -24,8 +24,8 @@
 				"pulsating": true,
 				"pulsating_size": 1.15,
 				"pulsating_frequency": 1.6,
-				"asset": "",
-				"asset_anim": "res://assets/missiles/blue_energy.tres",
+		"asset": "",
+		"asset_anim": "res://assets/missiles/blue_energy_burst.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -50,7 +50,7 @@
 				"pulsating_size": 1.15,
 				"pulsating_frequency": 1.6,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/energy_burst.tres",
+				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -76,7 +76,7 @@
 				"pulsating_size": 1.0,
 				"pulsating_frequency": 1.0,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/energy_ball.tres",
+				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -104,7 +104,7 @@
 				"pulsating_size": 1.0,
 				"pulsating_frequency": 1.0,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/sacred_missile.tres",
+				"asset_anim": "res://assets/missiles/gradient_energy_burst.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
@@ -128,7 +128,7 @@
 				"pulsating_size": 1.2,
 				"pulsating_frequency": 2.0,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/missile_ice.tres",
+				"asset_anim": "res://assets/missiles/blue_energy_burst.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
@@ -155,7 +155,7 @@
 				"pulsating_size": 1.01,
 				"pulsating_frequency": 1.4,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/missile_poison.tres",
+				"asset_anim": "res://assets/missiles/green_energy_burst.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
@@ -182,7 +182,7 @@
 				"pulsating_size": 1.25,
 				"pulsating_frequency": 2.5,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/missile_void.tres",
+				"asset_anim": "res://assets/missiles/black_energy_burst.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
@@ -191,6 +191,54 @@
 				"size": 22,
 				"color": "#7722CC"
 			},
+			"fluid_id": ""
+		},
+		{
+			"id": "missile_boss_heavy",
+			"name": "Boss Heavy",
+			"type": "basic",
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#CC2222",
+				"shape": "circle",
+				"size": 14,
+				"width_pct": 0.025,
+				"height_pct": 0.025,
+				"pulsating": true,
+				"pulsating_size": 1.12,
+				"pulsating_frequency": 1.8,
+				"asset": "",
+				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
+				"asset_anim_duration": 2.0,
+				"asset_anim_loop": true
+			},
+			"sound": "",
+			"explosion": {},
+			"fluid_id": ""
+		},
+		{
+			"id": "missile_elite",
+			"name": "Elite (red)",
+			"type": "basic",
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#FF0000",
+				"shape": "triangle",
+				"size": 10,
+				"width_pct": 0.02,
+				"height_pct": 0.03,
+				"pulsating": false,
+				"pulsating_size": 1.0,
+				"pulsating_frequency": 1.0,
+				"asset": "",
+				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
+				"asset_anim_duration": 2.0,
+				"asset_anim_loop": true
+			},
+			"sound": "",
+			"explosion": {},
 			"fluid_id": ""
 		}
 	]

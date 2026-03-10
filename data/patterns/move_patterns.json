@@ -10,39 +10,7 @@
 	  "fit_to_viewport": true,
 	  "path_anchor": "viewport",
 	  "description": "Ligne diagonale rapide"
-	},
-	{
-	  "id": "sine_wave_vertical",
-	  "type": "proc",
-	  "proc_func": "sine_wave_vertical",
-	  "speed": 130,
-	  "loop": true,
-	  "amplitude": 120,
-	  "frequency": 2.2,
-	  "path_anchor": "spawn",
-	  "description": "Sinusoide verticale infinie",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "u_turn_retreat",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/u_turn_retreat.tres",
-	  "speed": 120,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "staircase_descent",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/staircase_descent.tres",
-	  "speed": 110,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
+	}   ,
 	{
 	  "id": "loop_de_loop_center",
 	  "type": "resource",
@@ -54,26 +22,6 @@
 	  "rotate_to_path": true
 	},
 	{
-	  "id": "double_loop_horizontal",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/double_loop_horizontal.tres",
-	  "speed": 125,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "figure_eight_vertical",
-	  "type": "proc",
-	  "proc_func": "figure_eight_vertical",
-	  "speed": 120,
-	  "loop": true,
-	  "radius": 90,
-	  "path_anchor": "spawn",
-	  "rotate_to_path": true
-	},
-	{
 	  "id": "tear_drop_attack",
 	  "type": "resource",
 	  "path": "res://data/patterns/paths/tear_drop_attack.tres",
@@ -82,29 +30,8 @@
 	  "fit_to_viewport": true,
 	  "path_anchor": "viewport",
 	  "rotate_to_path": true
-	},
-	{
-	  "id": "impatient_circle",
-	  "type": "proc",
-	  "proc_func": "impatient_circle",
-	  "speed": 135,
-	  "loop": false,
-	  "radius": 70,
-	  "orbit_turns": 1.6,
-	  "charge_distance": 900,
-	  "path_anchor": "spawn",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "boomerang_bottom",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/boomerang_bottom.tres",
-	  "speed": 130,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
+	} ,
+	
 	{
 	  "id": "screen_hugger_left",
 	  "type": "resource",
@@ -126,26 +53,6 @@
 	  "rotate_to_path": true
 	},
 	{
-	  "id": "stop_and_go_zigzag",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/stop_and_go_zigzag.tres",
-	  "speed": 105,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "heart_shape",
-	  "type": "proc",
-	  "proc_func": "heart_shape",
-	  "speed": 110,
-	  "loop": true,
-	  "scale": 8.5,
-	  "path_anchor": "spawn",
-	  "rotate_to_path": true
-	},
-	{
 	  "id": "dna_helix",
 	  "type": "proc",
 	  "proc_func": "dna_helix",
@@ -155,39 +62,7 @@
 	  "tightness": 5.5,
 	  "path_anchor": "spawn",
 	  "rotate_to_path": true
-	},
-	{
-	  "id": "butterfly_wings",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/butterfly_wings.tres",
-	  "speed": 120,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "square_patrol",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/square_patrol.tres",
-	  "speed": 100,
-	  "loop": true,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	},
-	{
-	  "id": "spirograph_flower",
-	  "type": "proc",
-	  "proc_func": "spirograph_flower",
-	  "speed": 110,
-	  "loop": true,
-	  "spiro_R": 90,
-	  "spiro_r": 30,
-	  "spiro_d": 55,
-	  "path_anchor": "spawn",
-	  "rotate_to_path": true
-	},
+	}, 
 	{
 	  "id": "cobra_strike",
 	  "type": "resource",
@@ -197,16 +72,6 @@
 	  "fit_to_viewport": true,
 	  "path_anchor": "viewport",
 	  "rotate_to_path": true
-	},
-	{
-	  "id": "bouncing_dvd",
-	  "type": "resource",
-	  "path": "res://data/patterns/paths/bouncing_dvd.tres",
-	  "speed": 145,
-	  "loop": false,
-	  "fit_to_viewport": true,
-	  "path_anchor": "viewport",
-	  "rotate_to_path": true
-	}
+	} 
   ]
 }

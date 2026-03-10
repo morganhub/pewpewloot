@@ -13,7 +13,8 @@
                 "size": 60,
                 "waves": 5,
                 "wave_delay": 0.5,
-                "color": "#FF5500"
+                "color": "#FF5500",
+                "asset_anim": "res://assets/missiles/orange_energy_burst.tres"
             }
         },
         {
@@ -23,13 +24,26 @@
             "duration": 2.0,
             "invincibility": true,
             "ship_movement": null,
-            "projectile": {
-                "count": 1,
-                "trajectory": "beam",
-                "size": 100,
-                "waves": 1,
-                "wave_delay": 0.0,
-                "color": "#00FFFF"
+            "hazard": {
+                "type": "laser_line",
+                "length": 980,
+                "width": 110,
+                "telegraph_duration": 0.35,
+                "active_duration": 1.2,
+                "damage_per_second": 90,
+                "tick_interval": 0.1,
+                "follow_source": true,
+                "track_player_on_activate": true,
+                "aim_player_on_spawn": true,
+                "asset_anim": "res://assets/missiles/blue_energy_burst.tres",
+                "asset_anim_loop": true,
+                "telegraph_color": "#7FE7FF",
+                "active_color": "#00D8FF",
+                "targeting": {
+                    "mode": "single_target",
+                    "prioritize_boss": true,
+                    "require_on_screen": true
+                }
             }
         },
         {
@@ -46,6 +60,7 @@
                 "waves": 3,
                 "wave_delay": 0.25,
                 "color": "#7BC96F",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres",
                 "safe_zones": {
                     "count": 1,
                     "width_degrees": 30
@@ -65,7 +80,8 @@
                 "size": 42,
                 "waves": 2,
                 "wave_delay": 0.3,
-                "color": "#A17444"
+                "color": "#A17444",
+                "asset_anim": "res://assets/missiles/orange_energy_burst.tres"
             }
         },
         {
@@ -81,7 +97,8 @@
                 "size": 30,
                 "waves": 4,
                 "wave_delay": 0.22,
-                "color": "#9BE75A"
+                "color": "#9BE75A",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
             }
         },
         {
@@ -97,7 +114,8 @@
                 "size": 44,
                 "waves": 3,
                 "wave_delay": 0.3,
-                "color": "#4DBA87"
+                "color": "#4DBA87",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
             }
         },
         {
@@ -113,7 +131,8 @@
                 "size": 34,
                 "waves": 4,
                 "wave_delay": 0.35,
-                "color": "#7ED957"
+                "color": "#7ED957",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
             }
         },
         {
@@ -129,7 +148,8 @@
                 "size": 40,
                 "waves": 3,
                 "wave_delay": 0.28,
-                "color": "#B8E986"
+                "color": "#B8E986",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
             }
         },
         {
@@ -145,7 +165,8 @@
                 "size": 56,
                 "waves": 3,
                 "wave_delay": 0.35,
-                "color": "#8B5A2B"
+                "color": "#8B5A2B",
+                "asset_anim": "res://assets/missiles/orange_energy_burst.tres"
             }
         },
         {
@@ -161,7 +182,8 @@
                 "size": 36,
                 "waves": 3,
                 "wave_delay": 0.24,
-                "color": "#D4A017"
+                "color": "#D4A017",
+                "asset_anim": "res://assets/missiles/gradient_energy_burst.tres"
             }
         },
         {
@@ -177,7 +199,8 @@
                 "size": 38,
                 "waves": 3,
                 "wave_delay": 0.27,
-                "color": "#9DCE4A"
+                "color": "#9DCE4A",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
             }
         },
         {
@@ -193,7 +216,8 @@
                 "size": 40,
                 "waves": 4,
                 "wave_delay": 0.33,
-                "color": "#9B59B6"
+                "color": "#9B59B6",
+                "asset_anim": "res://assets/missiles/black_energy_burst.tres"
             }
         },
         {
@@ -209,7 +233,8 @@
                 "size": 44,
                 "waves": 4,
                 "wave_delay": 0.2,
-                "color": "#3BC9DB"
+                "color": "#3BC9DB",
+                "asset_anim": "res://assets/missiles/blue_energy_burst.tres"
             }
         },
         {
@@ -225,7 +250,8 @@
                 "size": 42,
                 "waves": 4,
                 "wave_delay": 0.24,
-                "color": "#5EEAD4"
+                "color": "#5EEAD4",
+                "asset_anim": "res://assets/missiles/gradient_energy_burst.tres"
             }
         },
         {
@@ -241,7 +267,8 @@
                 "size": 62,
                 "waves": 5,
                 "wave_delay": 0.3,
-                "color": "#1FAF6C"
+                "color": "#1FAF6C",
+                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
             }
         }
     ]

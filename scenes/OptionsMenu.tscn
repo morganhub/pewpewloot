@@ -1,7 +1,8 @@
-[gd_scene format=3 uid="uid://dryi2lffa523i"]
+[gd_scene load_steps=4 format=3 uid="uid://dryi2lffa523i"]
 
 [ext_resource type="Script" uid="uid://bu1ywck4kx5ny" path="res://scenes/OptionsMenu.gd" id="1_options"]
 [ext_resource type="Texture2D" path="res://assets/ui/slider_grabber_30.tres" id="2_grabber"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuFooter.tscn" id="3_footer"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
 content_margin_left = 4.0
@@ -211,6 +212,65 @@ toggle_mode = true
 button_pressed = true
 text = "ON"
 
+[node name="HSeparator3" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="DebugLabel" type="Label" parent="MarginContainer/VBoxContainer/DebugSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Debug"
+horizontal_alignment = 1
+
+[node name="DebugModeBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/DebugSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/DebugSection/DebugModeBox"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Manual Debug"
+horizontal_alignment = 2
+
+[node name="DebugModeCheckbox" type="Button" parent="MarginContainer/VBoxContainer/DebugSection/DebugModeBox"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+toggle_mode = true
+button_pressed = false
+text = "OFF"
+
+[node name="HSeparator4" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StorySection" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="StoryLabel" type="Label" parent="MarginContainer/VBoxContainer/StorySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Histoire"
+horizontal_alignment = 1
+
+[node name="ResetStoriesBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/StorySection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ResetStoriesButton" type="Button" parent="MarginContainer/VBoxContainer/StorySection/ResetStoriesBox"]
+custom_minimum_size = Vector2(350, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Recommencer l'histoire"
+
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1608799950]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+layout_mode = 1

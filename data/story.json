@@ -1,54 +1,1912 @@
 {
   "global_settings": {
-    "bubble_left_asset": "res://assets/ui/bubble_left.png",
-    "bubble_right_asset": "res://assets/ui/bubble_right.png",
-    "character_size": { "x": 200, "y": 300 },
-    "anim_speed": 0.6,
-    "anim_ease_type": "ease_in_out",
-    "exit_anim_type": "slide",
-    "text_interval": 2.5
+	"bubble_asset": "res://assets/ui/popup_background.png",
+	"bubble_arrow_left_asset": "res://assets/ui/bubble_arrow_left.png",
+	"bubble_arrow_right_asset": "res://assets/ui/bubble_arrow_right.png",
+	"bubble_arrow_offset_left": { "x": 30, "y": -30 },
+	"bubble_arrow_offset_right": { "x": -30, "y": -30 },
+	"character_size": { "x": 350, "y": 500 },
+	"speaker_size": { "x": 350, "y": 550 },
+	"portrait_offset_left": { "x": -30, "y": 30 },
+	"portrait_offset_right": { "x": 30, "y": 30 },
+	"portrait_cutout_cutoff": 0.06,
+	"portrait_cutout_softness": 0.04,
+	"anim_speed": 0.6,
+	"anim_ease_type": "ease_in_out",
+	"enable_bounce_enter": true,
+	"exit_anim_type": "slide",
+	"fadeOutOpacity": 0.3,
+	"text_interval": 2.5,
+	"bubble_patch_margin": { "left": 40, "top": 40, "right": 40, "bottom": 40 },
+	"bubble_content_margin": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+	"bubble_offset_left": { "x": -245, "y": -180 },
+	"bubble_offset_right": { "x": 245, "y": -180 },
+	"bubble_text_color": "#FFFFFF"
   },
   "sequences": [
-    {
-      "id": "story_world_1_intro",
-      "dialogues": [
-        {
-          "speaker_asset": "res://assets/characters/commander.png",
-          "side": "left",
-          "text_keys": [
-            "story_w1_intro_1",
-            "story_w1_intro_2"
-          ]
-        },
-        {
-          "speaker_asset": "res://assets/characters/pilot.png",
-          "side": "right",
-          "text_keys": [
-            "story_w1_intro_3"
-          ]
-        },
-        {
-          "speaker_asset": "res://assets/characters/commander.png",
-          "side": "left",
-          "text_keys": [
-            "story_w1_intro_4",
-            "story_w1_intro_5"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "story_world_1_lvl_2",
-      "dialogues": [
-        {
-          "speaker_asset": "res://assets/characters/commander.png",
-          "side": "left",
-          "text_keys": [
-            "story_w1_lvl2_1",
-            "story_w1_lvl2_2"
-          ]
-        }
-      ]
-    }
+	{
+		"id": "w1_intro",
+		"world": "world_1",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_intro_1", "story_w1_intro_2", "story_w1_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_intro_4"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_intro_5", "story_w1_intro_6"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w1_l1",
+		"world": "world_1",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl1_1", "story_w1_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w1_l2",
+		"world": "world_1",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl2_1", "story_w1_lvl2_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl2_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w1_l2_w4",
+		"world": "world_1",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/drlierre.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl2_w4_1", "story_w1_lvl2_w4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl2_w4_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w1_l3",
+		"world": "world_1",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl3_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/drlierre.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl3_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w1_l4",
+		"world": "world_1",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl4_1", "story_w1_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl4_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w1_l5",
+		"world": "world_1",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl5_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl5_2", "story_w1_lvl5_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w1_l6",
+		"world": "world_1",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl6_1", "story_w1_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/myceliarque.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w1_l6_end",
+		"world": "world_1",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl6_end_1", "story_w1_lvl6_end_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/drlierre.jpg",
+			"side": "right",
+			"text_keys": ["story_w1_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w1_lvl6_end_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w2_intro",
+		"world": "world_2",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_intro_1", "story_w2_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_intro_4", "story_w2_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w2_l1",
+		"world": "world_2",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl1_1", "story_w2_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w2_l2",
+		"world": "world_2",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl2_1", "story_w2_lvl2_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl2_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w2_l2_w3",
+		"world": "world_2",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/piratevoice.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl2_w3_1", "story_w2_lvl2_w3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl2_w3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl2_w3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w2_l3",
+		"world": "world_2",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/capitaineneree.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl3_1", "story_w2_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w2_l4",
+		"world": "world_2",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/capitaineneree.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl4_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w2_l4_w2",
+		"world": "world_2",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl4_w2_1", "story_w2_lvl4_w2_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl4_w2_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w2_l5",
+		"world": "world_2",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl5_1", "story_w2_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/capitaineneree.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl5_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl5_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w2_l6",
+		"world": "world_2",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl6_1", "story_w2_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/hydrocephale.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w2_l6_end",
+		"world": "world_2",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w2_lvl6_end_1", "story_w2_lvl6_end_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/capitaineneree.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w2_lvl6_end_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w3_intro",
+		"world": "world_3",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_intro_1", "story_w3_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_intro_4", "story_w3_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w3_l1",
+		"world": "world_3",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl1_1", "story_w3_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w3_l2",
+		"world": "world_3",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl2_2"]
+		  }
+		]
+	  },
+	  {
+		"id": "w3_l2_w4",
+		"world": "world_3",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl2_w4_1", "story_w3_lvl2_w4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl2_w4_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w3_l3",
+		"world": "world_3",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/engineervolt.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl3_1", "story_w3_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w3_l4",
+		"world": "world_3",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl4_1", "story_w3_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/engineervolt.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl4_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl4_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w3_l5",
+		"world": "world_3",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/engineervolt.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl5_1", "story_w3_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl5_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl5_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w3_l6",
+		"world": "world_3",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl6_1", "story_w3_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/contremaitreomega.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w3_l6_end",
+		"world": "world_3",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/engineervolt.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl6_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w3_lvl6_end_2", "story_w3_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w3_lvl6_end_4"]
+		  }
+		]
+	  },
+
+	  {
+		"id": "w4_intro",
+		"world": "world_4",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_intro_1", "story_w4_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_intro_4", "story_w4_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w4_l1",
+		"world": "world_4",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl1_1", "story_w4_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w4_l2",
+		"world": "world_4",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl2_2", "story_w4_lvl2_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w4_l2_w3",
+		"world": "world_4",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl2_w3_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl2_w3_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w4_l3",
+		"world": "world_4",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/forgeronkael.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl3_1", "story_w4_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w4_l4",
+		"world": "world_4",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/forgeronkael.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl4_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w4_l4_w4",
+		"world": "world_4",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl4_w4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl4_w4_2", "story_w4_lvl4_w4_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w4_l5",
+		"world": "world_4",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl5_1", "story_w4_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl5_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w4_l6",
+		"world": "world_4",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl6_1", "story_w4_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/titandescorie.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w4_l6_end",
+		"world": "world_4",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/forgeronkael.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl6_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w4_lvl6_end_2", "story_w4_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w4_lvl6_end_4"]
+		  }
+		]
+	  },
+
+	  {
+		"id": "w5_intro",
+		"world": "world_5",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_intro_1", "story_w5_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_intro_4", "story_w5_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w5_l1",
+		"world": "world_5",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl1_1", "story_w5_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w5_l2",
+		"world": "world_5",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl2_2", "story_w5_lvl2_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w5_l2_w4",
+		"world": "world_5",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl2_w4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl2_w4_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w5_l3",
+		"world": "world_5",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/archivistesable.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl3_1", "story_w5_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w5_l4",
+		"world": "world_5",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/archivistesable.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl4_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w5_l4_end",
+		"world": "world_5",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl4_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl4_end_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w5_l5",
+		"world": "world_5",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl5_1", "story_w5_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/archivistesable.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl5_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl5_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w5_l6",
+		"world": "world_5",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl6_1", "story_w5_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/broyeurcryptique.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w5_l6_end",
+		"world": "world_5",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/archivistesable.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl6_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w5_lvl6_end_2", "story_w5_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w5_lvl6_end_4"]
+		  }
+		]
+	  },
+
+	  {
+		"id": "w6_intro",
+		"world": "world_6",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_intro_1", "story_w6_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_intro_4", "story_w6_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w6_l1",
+		"world": "world_6",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl1_1", "story_w6_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w6_l2",
+		"world": "world_6",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl2_2", "story_w6_lvl2_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w6_l2_w2",
+		"world": "world_6",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/sentinellefuneraire.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl2_w2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl2_w2_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl2_w2_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w6_l3",
+		"world": "world_6",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pretressemorn.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl3_1", "story_w6_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w6_l4",
+		"world": "world_6",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pretressemorn.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl4_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w6_l4_end",
+		"world": "world_6",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl4_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl4_end_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w6_l5",
+		"world": "world_6",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl5_1", "story_w6_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pretressemorn.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl5_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl5_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w6_l6",
+		"world": "world_6",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl6_1", "story_w6_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/necroregent.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w6_l6_end",
+		"world": "world_6",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w6_lvl6_end_1", "story_w6_lvl6_end_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pretressemorn.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w6_lvl6_end_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w7_intro",
+		"world": "world_7",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_intro_1", "story_w7_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_intro_4", "story_w7_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w7_l1",
+		"world": "world_7",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl1_1", "story_w7_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w7_l2",
+		"world": "world_7",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl2_2"]
+		  }
+		]
+	  },
+	  {
+		"id": "w7_l2_w2",
+		"world": "world_7",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl2_w2_1", "story_w7_lvl2_w2_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl2_w2_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w7_l3",
+		"world": "world_7",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/emissairetalos.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl3_1", "story_w7_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w7_l4",
+		"world": "world_7",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/emissairetalos.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl4_1", "story_w7_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl4_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl4_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w7_l4_end",
+		"world": "world_7",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl4_end_1", "story_w7_lvl4_end_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl4_end_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w7_l5",
+		"world": "world_7",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl5_1", "story_w7_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/emissairetalos.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl5_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl5_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w7_l6",
+		"world": "world_7",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl6_1", "story_w7_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/gardiencolosse.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w7_l6_end",
+		"world": "world_7",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/emissairetalos.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl6_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w7_lvl6_end_2", "story_w7_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w7_lvl6_end_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w8_intro",
+		"world": "world_8",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_intro_1", "story_w8_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_intro_4", "story_w8_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w8_l1",
+		"world": "world_8",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl1_1", "story_w8_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w8_l2",
+		"world": "world_8",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl2_2", "story_w8_lvl2_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w8_l2_w3",
+		"world": "world_8",
+		"level": 2,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl2_w3_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl2_w3_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w8_l3",
+		"world": "world_8",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/xenobiologisteixa.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl3_1", "story_w8_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w8_l4",
+		"world": "world_8",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/xenobiologisteixa.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl4_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w8_l4_w4",
+		"world": "world_8",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/xenobiologisteixa.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl4_w4_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl4_w4_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w8_l5",
+		"world": "world_8",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl5_1", "story_w8_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl5_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w8_l6",
+		"world": "world_8",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl6_1", "story_w8_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/reinerelais.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w8_l6_end",
+		"world": "world_8",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/xenobiologisteixa.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl6_end_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w8_lvl6_end_2", "story_w8_lvl6_end_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w8_lvl6_end_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w9_intro",
+		"world": "world_9",
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_intro_1", "story_w9_intro_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_intro_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_intro_4", "story_w9_intro_5"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w9_l1",
+		"world": "world_9",
+		"level": 1,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl1_1", "story_w9_lvl1_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl1_3"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w9_l2",
+		"world": "world_9",
+		"level": 2,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl2_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/magearka.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl2_2", "story_w9_lvl2_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl2_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w9_l3",
+		"world": "world_9",
+		"level": 3,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/magearka.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl3_1", "story_w9_lvl3_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl3_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl3_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w9_l4",
+		"world": "world_9",
+		"level": 4,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl4_1", "story_w9_lvl4_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl4_3"]
+		  }
+		]
+	  },
+	  {
+		"id": "w9_l4_w3",
+		"world": "world_9",
+		"level": 4,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/magearka.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl4_w3_1"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl4_w3_2"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w9_l5",
+		"world": "world_9",
+		"level": 5,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl5_1", "story_w9_lvl5_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl5_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/magearka.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl5_4"]
+		  }
+		]
+	  },
+  
+	  {
+		"id": "w9_l6",
+		"world": "world_9",
+		"level": 6,
+		"wave": "start",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl6_1", "story_w9_lvl6_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/archontedureseau.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl6_3"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl6_4"]
+		  }
+		]
+	  },
+	  {
+		"id": "w9_l6_end",
+		"world": "world_9",
+		"level": 6,
+		"wave": "end",
+		"dialogues": [
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl6_end_1", "story_w9_lvl6_end_2"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/magearka.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl6_end_3", "story_w9_lvl6_end_4"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl6_end_5"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/commander.jpg",
+			"side": "right",
+			"text_keys": ["story_w9_lvl6_end_6", "story_w9_lvl6_end_7", "story_w9_lvl6_end_8"]
+		  },
+		  {
+			"speaker_asset": "res://assets/characters/pilot.jpg",
+			"side": "left",
+			"text_keys": ["story_w9_lvl6_end_9"]
+		  }
+		]
+	  }
   ]
 }

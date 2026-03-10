@@ -1,6 +1,8 @@
-[gd_scene format=3 uid="uid://bnfjmwq614evp"]
+[gd_scene load_steps=4 format=3 uid="uid://bnfjmwq614evp"]
 
 [ext_resource type="Script" uid="uid://dy8kuq456d4rq" path="res://scenes/WorldSelect.gd" id="1_3bfae"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuHeader.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuFooter.tscn" id="3_footer"]
 
 [node name="WorldSelect" type="Control"]
 layout_mode = 3
@@ -22,6 +24,8 @@ grow_vertical = 2
 expand_mode = 1
 stretch_mode = 6
 mouse_filter = 2
+
+[node name="MenuHeader" parent="." instance=ExtResource("2_header")]
 
 [node name="BackButton" type="TextureButton" parent="."]
 layout_mode = 0
@@ -82,6 +86,9 @@ offset_right = 1008.0
 offset_bottom = 238.0
 ignore_texture_size = true
 stretch_mode = 5
+
+[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+layout_mode = 1
 
 [node name="DetailsPanel" type="Control" parent="."]
 layout_mode = 0

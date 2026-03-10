@@ -8,6 +8,13 @@ extends Node
 # MAIN CALCULATION
 # =============================================================================
 
+func _get_game_balance(key: String, default_value: Variant) -> Variant:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var balance: Variant = game_cfg.get("game_balance", {})
+	if balance is Dictionary:
+		return (balance as Dictionary).get(key, default_value)
+	return default_value
+
 ## Calculate final stats for a ship including all equipped items.
 ## @param ship_id: The ship ID to calculate stats for.
 ## @return: Dictionary with all stat keys and their final values.
@@ -64,10 +71,13 @@ func calculate_ship_stats(ship_id: String) -> Dictionary:
 		if upgrade_level > 0:
 			var upgrade_mult: float = 1.0 + (float(upgrade_level) * 0.05)
 			# Only apply to stats that came from this item
+			var fire_rate_factor: float = float(_get_game_balance("fire_rate_from_items_factor", 0.3))
 			if item_stats is Dictionary:
 				for stat_key in (item_stats as Dictionary).keys():
 					var item_bonus: Variant = (item_stats as Dictionary)[stat_key]
 					var additional_bonus: float = float(item_bonus) * (upgrade_mult - 1.0)
+					if stat_key == "fire_rate":
+						additional_bonus *= fire_rate_factor
 					final_stats[stat_key] = float(final_stats.get(stat_key, 0)) + additional_bonus
 	
 	# Ensure proper types
@@ -95,11 +105,14 @@ func calculate_ship_stats(ship_id: String) -> Dictionary:
 	return final_stats
 
 ## Apply item stats to the final stats dictionary (additive).
+## fire_rate from items is scaled by game_balance.fire_rate_from_items_factor (default 0.3 = 30%).
 func _apply_item_stats(final_stats: Dictionary, item_stats: Dictionary) -> void:
+	var fire_rate_factor: float = float(_get_game_balance("fire_rate_from_items_factor", 0.3))
 	for stat_key in item_stats.keys():
 		var value: Variant = item_stats[stat_key]
 		var val_float = float(value)
-		
+		if stat_key == "fire_rate":
+			val_float *= fire_rate_factor
 		# Direct match (LootGenerator format)
 		if final_stats.has(stat_key):
 			final_stats[stat_key] = float(final_stats[stat_key]) + val_float

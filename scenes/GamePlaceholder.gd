@@ -1,4 +1,5 @@
 extends Control
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 @onready var info_label: Label = $CenterContainer/Box/InfoLabel
 @onready var complete_button: Button = $CenterContainer/Box/CompleteButton
@@ -13,14 +14,10 @@ func _ready() -> void:
 	complete_button.pressed.connect(_on_complete_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	
-	# Back Button Icon
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var back_icon_path: String = str(ui_icons.get("back_button", ""))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.icon = load(back_icon_path)
-		back_button.text = ""
+	# Back Button is now styled via shared configs; keep any default text as-is
 		
 	_refresh_info()
+	UIStyle.apply_button_shadow(complete_button, "medium")
 
 func _refresh_info() -> void:
 	var world_id := App.current_world_id

@@ -1,5 +1,6 @@
 extends Control
 
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 const H_MARGIN := 36.0
 const BOTTOM_MARGIN := 24.0
 const TITLE_TO_CAROUSEL_GAP := 14.0
@@ -7,7 +8,7 @@ const DETAILS_OVERLAP := 24.0
 const DETAILS_GAP := 16.0
 const ACTION_BUTTON_HEIGHT := 72.0
 const ITEM_HEIGHT_RATIO := 0.9
-const ITEM_SPACING := 64.0
+const ITEM_SPACING := 48.0
 const DRAG_THRESHOLD := 12.0
 const SNAP_DURATION := 0.24
 const MAX_CAROUSEL_HEIGHT := 520.0
@@ -55,6 +56,12 @@ var _reference_aspect_ratio := 0.58
 var _back_button_pos := Vector2(35.0, 35.0)
 var _back_button_size := Vector2(75.0, 75.0)
 
+func _get_menu_header_offset() -> float:
+	var h: Variant = _game_config.get("menu_header", {})
+	if h is Dictionary:
+		return float(int((h as Dictionary).get("height_px", 72)) + int((h as Dictionary).get("margin_top", 8)))
+	return 0.0
+
 func _ready() -> void:
 	_load_config()
 	App.play_menu_music()
@@ -63,7 +70,16 @@ func _ready() -> void:
 	_apply_layout()
 	_current_index = _find_last_unlocked_world_index()
 	_snap_to_index(_current_index, false)
-	_check_story_triggers()
+	var mh: Control = get_node_or_null("MenuHeader")
+	if mh and mh.has_signal("crystals_pressed") and not mh.crystals_pressed.is_connected(_on_header_crystals_pressed):
+		mh.crystals_pressed.connect(_on_header_crystals_pressed)
+
+	# Footer : clic sur le bouton retour du bas
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+	if back_button:
+		back_button.visible = false
 
 func prepare_for_transition() -> void:
 	_kill_track_tween()
@@ -130,18 +146,9 @@ func _load_config() -> void:
 	var arrow_h := float(arrows_cfg.get("height", 82.0))
 	_arrow_size = Vector2(maxf(24.0, arrow_w), maxf(24.0, arrow_h))
 
-	var back_cfg: Dictionary = {}
-	var back_cfg_v: Variant = _world_select_cfg.get("back_button", {})
-	if back_cfg_v is Dictionary:
-		back_cfg = back_cfg_v as Dictionary
-	_back_button_pos = Vector2(
-		float(back_cfg.get("x", 35.0)),
-		float(back_cfg.get("y", 35.0))
-	)
-	_back_button_size = Vector2(
-		maxf(24.0, float(back_cfg.get("width", 75.0))),
-		maxf(24.0, float(back_cfg.get("height", 75.0)))
-	)
+	# Back button top-left is now visual-only (hidden) and kept for layout math
+	_back_button_pos = Vector2(35.0, 35.0)
+	_back_button_size = Vector2(75.0, 75.0)
 
 	_locked_asset_path = _resolve_asset_path(
 		str(_world_select_cfg.get("locked_asset", "res://assets/ui/buttons/locked.png"))
@@ -177,24 +184,24 @@ func _load_config() -> void:
 	details_description.add_theme_color_override("font_color", details_color)
 
 	var button_bg_path := _resolve_asset_path(str(_world_select_cfg.get("button_bg", "")))
-	if button_bg_path != "":
-		_apply_button_style(action_button, button_bg_path)
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+	if not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
+		var v := validation_cfg.duplicate(true)
+		v["asset"] = _resolve_asset_path(str(v.get("asset", "")))
+		if str(v.get("asset", "")) != "":
+			UIStyle.apply_validation_to_button(action_button, v, "large")
+	else:
+		if button_bg_path != "":
+			_apply_button_style(action_button, button_bg_path)
 	action_button.add_theme_font_size_override(
 		"font_size",
 		int(_world_select_cfg.get("button_font_size", 24))
 	)
-	action_button.add_theme_color_override(
-		"font_color",
-		_parse_color(_world_select_cfg.get("button_font_color", "#FFFFFF"), Color.WHITE)
-	)
-
-	var back_icon_path := _resolve_asset_path(str(ui_icons.get("back_button", "")))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path):
-		back_button.texture_normal = ResourceLoader.load(
-			back_icon_path,
-			"",
-			ResourceLoader.CACHE_MODE_REUSE
-		) as Texture2D
+	if validation_cfg.is_empty():
+		action_button.add_theme_color_override(
+			"font_color",
+			_parse_color(_world_select_cfg.get("button_font_color", "#FFFFFF"), Color.WHITE)
+		)
 
 	var left_path := _resolve_asset_path(str(_world_select_cfg.get("arrow_left", ui_icons.get("arrow_left", ""))))
 	var right_path := _resolve_asset_path(str(_world_select_cfg.get("arrow_right", ui_icons.get("arrow_right", ""))))
@@ -219,6 +226,7 @@ func _setup_static_ui() -> void:
 	title_label.text = LocaleManager.translate("world_select_title")
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	action_button.text = LocaleManager.translate("world_select_next")
+	UIStyle.apply_button_shadow(action_button, "large")
 
 	details_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -241,9 +249,12 @@ func _load_world_items() -> void:
 		var unlocked := (world_id == "world_1")
 		if wprog is Dictionary:
 			unlocked = bool((wprog as Dictionary).get("unlocked", unlocked))
+		if ProfileManager.is_debug_mode_enabled() and world_id == "world_9":
+			unlocked = true
 
 		var fallback_color := str(_default_card_colors[i % color_count])
 		var entry := {
+			"world_index": i,
 			"id": world_id,
 			"name": str(world.get("name", world_id)),
 			"description": str(world.get("description", "")),
@@ -257,7 +268,7 @@ func _load_world_items() -> void:
 		entry["node"] = node
 		_items.append(entry)
 
-	_reference_aspect_ratio = _estimate_reference_aspect_ratio()
+	_reference_aspect_ratio = 1.0
 
 func _estimate_reference_aspect_ratio() -> float:
 	var fallback_ratio := 0.58
@@ -294,33 +305,51 @@ func _get_asset_aspect_ratio(asset_path: String) -> float:
 	return 0.0
 
 func _resolve_world_asset_path(world: Dictionary) -> String:
-	var explicit_path := _resolve_asset_path(str(world.get("image", world.get("preview_asset", ""))))
-	if explicit_path != "":
-		return explicit_path
-
-	var levels_v: Variant = world.get("levels", [])
-	if levels_v is Array and (levels_v as Array).size() > 0:
-		var first_level_v: Variant = (levels_v as Array)[0]
-		if first_level_v is Dictionary:
-			var backgrounds: Variant = (first_level_v as Dictionary).get("backgrounds", {})
-			if backgrounds is Dictionary:
-				var card_path := _resolve_asset_path(str((backgrounds as Dictionary).get("card", "")))
-				if card_path != "":
-					return card_path
-				var far_path := _resolve_asset_path(str((backgrounds as Dictionary).get("far_layer", "")))
-				if far_path != "":
-					return far_path
-
 	var world_theme: Variant = world.get("theme", {})
 	if world_theme is Dictionary:
-		return _resolve_asset_path(str((world_theme as Dictionary).get("background", "")))
+		var theme_dict: Dictionary = world_theme as Dictionary
+		return _resolve_asset_path(str(theme_dict.get("sphere_texture", "")))
 	return ""
+
+func _get_world_sphere_texture_path_by_index(world_index: int) -> String:
+	var worlds: Array = App.get_worlds()
+	if world_index < 0 or world_index >= worlds.size():
+		return ""
+	var wv: Variant = worlds[world_index]
+	if not (wv is Dictionary):
+		return ""
+	return _resolve_world_asset_path(wv as Dictionary)
+
+## Retourne les 6 chemins sphere_texture des levels 0..5 du world (pour shader 6 secteurs).
+func _get_world_six_level_sphere_texture_paths(world_index: int) -> Array:
+	var paths: Array = []
+	var worlds: Array = App.get_worlds()
+	if world_index < 0 or world_index >= worlds.size():
+		return paths
+	var wv: Variant = worlds[world_index]
+	if not (wv is Dictionary):
+		return paths
+	var world: Dictionary = wv as Dictionary
+	var fallback: String = _resolve_world_asset_path(world)
+	var levels_raw: Variant = world.get("levels", [])
+	var levels: Array = levels_raw if levels_raw is Array else []
+	for i in 6:
+		var path: String = ""
+		if i < levels.size():
+			var lv: Variant = levels[i]
+			if lv is Dictionary:
+				var bg: Variant = (lv as Dictionary).get("backgrounds", {})
+				if bg is Dictionary:
+					path = _resolve_asset_path(str((bg as Dictionary).get("sphere_texture", "")))
+		if path.is_empty() and fallback != "":
+			path = fallback
+		paths.append(path)
+	return paths
+
 
 func _create_world_card(entry: Dictionary) -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.clip_contents = true
-
 	var visual := Control.new()
 	visual.name = "Visual"
 	visual.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -351,10 +380,33 @@ func _create_world_card(entry: Dictionary) -> Control:
 	return root
 
 func _add_world_visual(parent: Control, entry: Dictionary) -> void:
-	var asset_path := _resolve_asset_path(str(entry.get("asset_path", "")))
-	if asset_path != "" and ResourceLoader.exists(asset_path):
-		var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	var world_index: int = int(entry.get("world_index", 0))
+	var six_paths: Array = _get_world_six_level_sphere_texture_paths(world_index)
+	var use_six_sectors: bool = six_paths.size() >= 6
+	if use_six_sectors:
+		var all_valid: bool = true
+		for i in 6:
+			var p: String = str(six_paths[i]).strip_edges()
+			if p.is_empty() or not ResourceLoader.exists(p):
+				all_valid = false
+				break
+		if not all_valid:
+			use_six_sectors = false
+	if not use_six_sectors:
+		var sphere_texture_path: String = _get_world_sphere_texture_path_by_index(world_index)
+		if sphere_texture_path == "" or not ResourceLoader.exists(sphere_texture_path):
+			_add_fallback_visual(parent, entry)
+			return
+		var res: Resource = ResourceLoader.load(sphere_texture_path, "", ResourceLoader.CACHE_MODE_REUSE)
 		if res is Texture2D:
+			var sphere_script: GDScript = load("res://scenes/components/SphereView.gd") as GDScript
+			if sphere_script != null:
+				var sphere_view: Control = sphere_script.new()
+				sphere_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+				sphere_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				parent.add_child(sphere_view)
+				sphere_view.set_texture_path(sphere_texture_path)
+				return
 			var tex_rect := TextureRect.new()
 			tex_rect.name = "Texture"
 			tex_rect.texture = res as Texture2D
@@ -375,7 +427,20 @@ func _add_world_visual(parent: Control, entry: Dictionary) -> void:
 				anim.animation = anim_name
 			parent.add_child(anim)
 			return
+		_add_fallback_visual(parent, entry)
+		return
+	var sphere_script: GDScript = load("res://scenes/components/SphereView.gd") as GDScript
+	if sphere_script != null:
+		var sphere_view: Control = sphere_script.new()
+		sphere_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sphere_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		parent.add_child(sphere_view)
+		sphere_view.set_texture_paths(six_paths)
+		return
+	_add_fallback_visual(parent, entry)
 
+
+func _add_fallback_visual(parent: Control, entry: Dictionary) -> void:
 	var fallback := ColorRect.new()
 	fallback.color = _parse_color(entry.get("fallback_color", "#3a4f6f"), Color(0.2, 0.25, 0.4, 1.0))
 	fallback.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -384,13 +449,14 @@ func _add_world_visual(parent: Control, entry: Dictionary) -> void:
 func _apply_layout() -> void:
 	var viewport_size := size
 	var content_width := maxf(300.0, viewport_size.x - H_MARGIN * 2.0)
+	var header_offset := _get_menu_header_offset()
 
-	back_button.position = _back_button_pos
+	back_button.position = _back_button_pos + Vector2(0.0, header_offset)
 	back_button.size = _back_button_size
 	back_button.custom_minimum_size = _back_button_size
 
 	var title_height := clampf(viewport_size.y * 0.07, 42.0, 66.0)
-	var title_top := _back_button_pos.y + _back_button_size.y + 8.0
+	var title_top := _back_button_pos.y + _back_button_size.y + 8.0 + header_offset
 	title_label.position = Vector2(H_MARGIN, title_top)
 	title_label.size = Vector2(content_width, title_height)
 
@@ -428,8 +494,8 @@ func _apply_layout() -> void:
 	var available_for_carousel := maxf(0.0, space_for_block - non_carousel_space)
 	var carousel_height := minf(MAX_CAROUSEL_HEIGHT, available_for_carousel)
 
-	carousel_area.position = Vector2(H_MARGIN, carousel_top)
-	carousel_area.size = Vector2(content_width, carousel_height)
+	carousel_area.position = Vector2(0.0, carousel_top)
+	carousel_area.size = Vector2(viewport_size.x, carousel_height)
 	carousel_viewport.position = Vector2.ZERO
 
 	left_arrow.custom_minimum_size = _arrow_size
@@ -518,6 +584,11 @@ func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+func _on_header_crystals_pressed() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/ShopMenu.tscn")
 
 func _on_left_arrow_pressed() -> void:
 	_snap_to_index(_current_index - 1, true)
@@ -662,7 +733,7 @@ func _refresh_selection_ui() -> void:
 
 	var unlocked := bool(selected.get("unlocked", false))
 	action_button.disabled = not unlocked
-	action_button.text = LocaleManager.translate("world_select_next") if unlocked else _get_locked_label()
+	UIStyle.set_button_shadow_text(action_button, LocaleManager.translate("world_select_next") if unlocked else _get_locked_label())
 
 	left_arrow.visible = _current_index > 0
 	right_arrow.visible = _current_index < _items.size() - 1
@@ -737,17 +808,3 @@ func _kill_track_tween() -> void:
 	if _track_tween != null and is_instance_valid(_track_tween):
 		_track_tween.kill()
 	_track_tween = null
-
-func _check_story_triggers() -> void:
-	for world_variant in App.get_worlds():
-		if not (world_variant is Dictionary):
-			continue
-		var story_id := str((world_variant as Dictionary).get("story_id", ""))
-		if story_id == "" or ProfileManager.has_viewed_story(story_id):
-			continue
-
-		process_mode = Node.PROCESS_MODE_DISABLED
-		await StoryManager.play_story(story_id)
-		ProfileManager.mark_story_viewed(story_id)
-		process_mode = Node.PROCESS_MODE_INHERIT
-		break

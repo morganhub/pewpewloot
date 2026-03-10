@@ -12,24 +12,22 @@
 			"elite": "res://assets/enemies/atlantis/elite.tres"
 		},
 		"bosses": {
-			"boss_atlantis_1": "res://assets/bosses/atlantis/boss_1.tres",
-			"boss_atlantis_2": "res://assets/bosses/atlantis/boss_2.tres",
-			"boss_atlantis_3": "res://assets/bosses/atlantis/boss_3.tres",
-			"boss_atlantis_4": "res://assets/bosses/atlantis/boss_4.tres",
-			"boss_atlantis_5": "res://assets/bosses/atlantis/boss_5.tres",
-			"boss_atlantis_final": "res://assets/bosses/atlantis/boss_final.tres"
+			"boss_atlantis_1": "res://assets/bosses/atlantis/atlantis_boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/atlantis/atlantis_boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/atlantis/atlantis_boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/atlantis/atlantis_boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/atlantis/atlantis_boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/atlantis/atlantis_boss_final.tres"
 		},
 		"obstacles": {
-			"circle": [
-				"res://assets/obstacles/atlantis/atlantis_obstacle_circle_1.png",
-				"res://assets/obstacles/atlantis/atlantis_obstacle_circle_2.png",
-				"res://assets/obstacles/atlantis/atlantis_obstacle_circle_3.png",
-				"res://assets/obstacles/atlantis/atlantis_obstacle_circle_4.png"
-			],
-			"rectangle": [
-				"res://assets/obstacles/atlantis/atlantis_obstacle_rectangle_1.png",
-				"res://assets/obstacles/atlantis/atlantis_obstacle_rectangle_2.png",
-				"res://assets/obstacles/atlantis/atlantis_obstacle_rectangle_3.png"
+			"explosives": [
+				"res://assets/obstacles/atlantis/obstacle_explosive_1.png",
+				"res://assets/obstacles/atlantis/obstacle_explosive_2.png",
+				"res://assets/obstacles/atlantis/obstacle_explosive_3.png",
+				"res://assets/obstacles/atlantis/obstacle_explosive_4.png",
+				"res://assets/obstacles/atlantis/obstacle_explosive_5.png",
+				"res://assets/obstacles/atlantis/obstacle_explosive_6.png",
+				"res://assets/obstacles/atlantis/obstacle_explosive_7.png"
 			]
 		}
 	},
@@ -40,6 +38,7 @@
 	},
 	"theme": {
 		"background": "",
+		"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_world.jpg",
 		"music": "res://assets/music/neon.ogg",
 		"color_palette": "#1a5276"
 	},
@@ -51,16 +50,9 @@
 			"type": "normal",
 			"duration_sec": 60,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/atlantis/world_water_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_0.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/atlantis/level_0.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_0.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/level_0.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -133,16 +125,9 @@
 			"type": "normal",
 			"duration_sec": 80,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/atlantis/world_water_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/atlantis/level_1.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_1.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/level_1.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -170,7 +155,7 @@
 				{
 					"time": 25.2,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -207,7 +192,7 @@
 				{
 					"time": 54.8,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -245,16 +230,9 @@
 			"type": "normal",
 			"duration_sec": 100,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/atlantis/world_water_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_2.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/atlantis/level_2.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_2.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/level_2.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -282,7 +260,7 @@
 				{
 					"time": 24.7,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -387,16 +365,9 @@
 			"type": "normal",
 			"duration_sec": 120,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/atlantis/world_water_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_3.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_4.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/atlantis/level_3.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_3.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/level_3.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -461,7 +432,7 @@
 				{
 					"time": 56.2,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,
@@ -543,16 +514,9 @@
 			"type": "normal",
 			"duration_sec": 140,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/atlantis/world_water_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_4.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/atlantis/level_4.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_4.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/level_4.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -729,16 +693,9 @@
 			"type": "boss",
 			"duration_sec": 160,
 			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/atlantis/world_water_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/atlantis/world_water_5.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/atlantis/layer_2_water_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
+				"card": "res://assets/backgrounds/worlds/atlantis/level_5.jpg",
+				"sphere_texture": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_5.jpg",
+				"far_layer": "res://assets/backgrounds/worlds/atlantis/level_5.jpg",
 				"near_layer": []
 			},
 			"waves": [
@@ -877,7 +834,7 @@
 				{
 					"time": 113.0,
 					"type": "obstacle",
-					"obstacle_id": "planet_small",
+					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 110,

@@ -10,6 +10,7 @@ const DEFAULT_PLAYER_POWER_PROJECTILE_SPEED: float = 400.0
 const DEFAULT_BOSS_POWER_PROJECTILE_SPEED: float = 400.0
 const DEFAULT_PLAYER_POWER_PROJECTILE_DAMAGE: int = 50
 const DEFAULT_BOSS_POWER_PROJECTILE_DAMAGE: int = 20
+const TARGETING_VIEW_MARGIN: float = 96.0
 static var _strong_resource_cache: Dictionary = {} # path -> Resource
 
 func _ready() -> void:
@@ -69,11 +70,62 @@ func execute_power(power_id: String, source: Node2D) -> void:
 			if entry is Dictionary:
 				_handle_hazard(source, entry as Dictionary, duration)
 
+func _extract_targeting_data(data: Dictionary) -> Dictionary:
+	var targeting_variant: Variant = data.get("targeting", {})
+	if targeting_variant is Dictionary:
+		return (targeting_variant as Dictionary).duplicate(true)
+	return {}
+
+func _resolve_power_target(source: Node2D, targeting_data: Dictionary = {}) -> Node2D:
+	if not is_instance_valid(source):
+		return null
+	if not source.is_in_group("player"):
+		var player_node := source.get_tree().get_first_node_in_group("player")
+		return player_node as Node2D if player_node is Node2D else null
+
+	var require_on_screen: bool = bool(targeting_data.get("require_on_screen", true))
+	var prioritize_boss: bool = bool(targeting_data.get("prioritize_boss", true))
+	var viewport_rect := Rect2(Vector2.ZERO, source.get_viewport_rect().size).grow(TARGETING_VIEW_MARGIN)
+	var best_target: Node2D = null
+	var best_distance: float = INF
+
+	for candidate_variant in source.get_tree().get_nodes_in_group("enemies"):
+		if not (candidate_variant is Node2D):
+			continue
+		var candidate := candidate_variant as Node2D
+		if not is_instance_valid(candidate):
+			continue
+		if require_on_screen and not viewport_rect.has_point(candidate.global_position):
+			continue
+		if prioritize_boss and candidate.is_in_group("boss"):
+			return candidate
+		var distance_to_source: float = source.global_position.distance_to(candidate.global_position)
+		if distance_to_source < best_distance:
+			best_distance = distance_to_source
+			best_target = candidate
+
+	return best_target
+
+func _get_target_direction(from_position: Vector2, target_node: Node2D, fallback: Vector2) -> Vector2:
+	if target_node and is_instance_valid(target_node):
+		var to_target: Vector2 = (target_node.global_position - from_position).normalized()
+		if to_target != Vector2.ZERO:
+			return to_target
+	return fallback
+
 func _handle_hazard(source: Node2D, hazard_data: Dictionary, default_duration: float) -> void:
 	if not is_instance_valid(source):
 		return
 
-	var hazard_type: String = str(hazard_data.get("type", ""))
+	var resolved_hazard_data: Dictionary = hazard_data.duplicate(true)
+	var targeting_data: Dictionary = _extract_targeting_data(resolved_hazard_data)
+	var resolved_target: Node2D = _resolve_power_target(source, targeting_data)
+	if resolved_target:
+		resolved_hazard_data["target_node"] = resolved_target
+	if not resolved_hazard_data.has("damage_target_group"):
+		resolved_hazard_data["damage_target_group"] = "enemies" if source.is_in_group("player") else "player"
+
+	var hazard_type: String = str(resolved_hazard_data.get("type", ""))
 	if hazard_type == "":
 		return
 
@@ -89,10 +141,10 @@ func _handle_hazard(source: Node2D, hazard_data: Dictionary, default_duration: f
 				container.add_child(zone)
 				zone.global_position = source.global_position
 				if zone.has_method("setup"):
-					zone.call("setup", source, hazard_data, default_duration)
+					zone.call("setup", source, resolved_hazard_data, default_duration)
 
 		"laser_line", "laser_cone":
-			var laser_data := hazard_data.duplicate(true)
+			var laser_data := resolved_hazard_data.duplicate(true)
 			if hazard_type == "laser_line":
 				laser_data["mode"] = "line"
 			else:
@@ -171,6 +223,12 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 	var default_damage: int = DEFAULT_PLAYER_POWER_PROJECTILE_DAMAGE if is_player_source else DEFAULT_BOSS_POWER_PROJECTILE_DAMAGE
 	var projectile_speed: float = maxf(1.0, float(proj_data.get("speed", default_speed)))
 	var projectile_damage: int = maxi(1, int(round(float(proj_data.get("damage", default_damage)))))
+	var targeting_data: Dictionary = _extract_targeting_data(proj_data)
+	if targeting_data.is_empty() and bool(proj_data.get("aim_target", false)):
+		targeting_data = {"mode": "single_target", "prioritize_boss": true, "require_on_screen": true} if is_player_source else {"mode": "player"}
+	elif targeting_data.is_empty() and is_player_source and count == 1:
+		targeting_data = {"mode": "single_target", "prioritize_boss": true, "require_on_screen": true}
+	var resolved_target: Node2D = _resolve_power_target(source, targeting_data)
 	var visual_data: Dictionary = _build_power_projectile_visual_data(proj_data)
 	var explosion_data: Dictionary = _build_power_projectile_explosion_data(proj_data)
 	if trajectory == "homing" and homing_duration < 0.0 and not is_player_source:
@@ -193,7 +251,7 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 			pattern["homing_duration"] = homing_duration
 	
 	for i in range(waves):
-		call_deferred("_spawn_wave", source, count, pattern, trajectory, projectile_speed, projectile_damage, safe_zones)
+		call_deferred("_spawn_wave", source, count, pattern, trajectory, projectile_speed, projectile_damage, safe_zones, resolved_target)
 		await source.get_tree().create_timer(wave_delay).timeout
 		if not is_instance_valid(source): return
 
@@ -204,12 +262,15 @@ func _spawn_wave(
 	trajectory: String,
 	projectile_speed: float,
 	projectile_damage: int,
-	safe_zones: Variant = null
+	safe_zones: Variant = null,
+	target_node: Node2D = null
 ) -> void:
 	if not is_instance_valid(source): return
 	
 	var center := source.global_position
 	var is_player := source.is_in_group("player")
+	var fallback_direction: Vector2 = Vector2.UP if is_player else Vector2.DOWN
+	var target_direction: Vector2 = _get_target_direction(center, target_node, fallback_direction)
 	
 	if trajectory == "radial":
 		# Safe Zones Calculation
@@ -245,7 +306,7 @@ func _spawn_wave(
 			
 			if skip: continue
 
-			var dir := Vector2(cos(angle), sin(angle))
+			var dir := target_direction.rotated(angle)
 			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 			
 	elif trajectory == "rain_down":
@@ -259,13 +320,13 @@ func _spawn_wave(
 	elif trajectory == "spiral":
 		for j in range(count):
 			var angle := (j / float(count)) * TAU
-			var dir := Vector2(cos(angle), sin(angle))
+			var dir := target_direction.rotated(angle)
 			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 			
 	else:
 		# Default burst
 		for j in range(count):
-			var dir := Vector2.DOWN.rotated(randf_range(-0.5, 0.5))
+			var dir := target_direction if target_node and is_instance_valid(target_node) else fallback_direction.rotated(randf_range(-0.5, 0.5))
 			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 
 func _spawn(

@@ -4,6 +4,7 @@ extends Control
 ## 3 onglets: Magic (exclusif), Utility (passif), Pew Pew (Paragon).
 ## Scrollable, avec popup de details.
 
+const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 signal back_requested
 
 # =============================================================================
@@ -48,9 +49,17 @@ func _ready() -> void:
 	_load_ui_config()
 	_build_ui()
 	_refresh_display()
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+		# Mettre le footer au-dessus du contenu pour qu'il reçoive les clics
+		if footer.get_index() < get_child_count() - 1:
+			move_child(footer, get_child_count() - 1)
 
 func _load_ui_config() -> void:
-	var game_cfg: Dictionary = DataManager.get_game_config()
+	var game_cfg: Dictionary = {}
+	if DataManager:
+		game_cfg = DataManager.get_game_config()
 	if game_cfg.is_empty():
 		var file := FileAccess.open("res://data/game.json", FileAccess.READ)
 		if file:
@@ -64,6 +73,12 @@ func _load_ui_config() -> void:
 	else:
 		_skills_menu_cfg = {}
 
+func _default_font_size() -> int:
+	return int(_skills_menu_cfg.get("default_font_size", 20))
+
+func _default_title_font_size() -> int:
+	return int(_skills_menu_cfg.get("default_title_font_size", 28))
+
 func _build_ui() -> void:
 	# Root layout
 	anchor_right = 1.0
@@ -71,9 +86,22 @@ func _build_ui() -> void:
 
 	_add_page_background()
 
+	var menu_header_cfg: Dictionary = {}
+	if DataManager:
+		menu_header_cfg = DataManager.get_game_config().get("menu_header", {})
+	var header_height: float = float(int(menu_header_cfg.get("height_px", 72)) + int(menu_header_cfg.get("margin_top", 8)))
+	if menu_header_cfg.is_empty() == false:
+		var header_scene: PackedScene = load("res://scenes/components/MenuHeader.tscn") as PackedScene
+		if header_scene:
+			var menu_header: Control = header_scene.instantiate()
+			add_child(menu_header)
+			if menu_header.has_signal("crystals_pressed") and not menu_header.crystals_pressed.is_connected(_on_header_crystals_pressed):
+				menu_header.crystals_pressed.connect(_on_header_crystals_pressed)
+
 	_main_vbox = VBoxContainer.new()
 	_main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_main_vbox.set_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 25)
+	_main_vbox.offset_top = int(header_height)
 	_main_vbox.add_theme_constant_override("separation", 10)
 	add_child(_main_vbox)
 
@@ -85,19 +113,20 @@ func _build_ui() -> void:
 	var title_row := HBoxContainer.new()
 	title_row.name = "TitleRow"
 	_header.add_child(title_row)
-
+	
 	_back_button = TextureButton.new()
 	_back_button.custom_minimum_size = Vector2(75, 75)
 	_back_button.ignore_texture_size = true
 	_back_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	var ui_icons: Dictionary = {}
-	var game_cfg: Dictionary = DataManager.get_game_config()
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
 	if game_cfg.has("ui_icons") and game_cfg["ui_icons"] is Dictionary:
 		ui_icons = game_cfg["ui_icons"] as Dictionary
 	var back_asset := str(ui_icons.get("back_button", ""))
 	if back_asset != "" and ResourceLoader.exists(back_asset):
 		_back_button.texture_normal = load(back_asset)
 	_back_button.pressed.connect(_on_back_pressed)
+	_back_button.visible = false
 	title_row.add_child(_back_button)
 
 	_title_label = Label.new()
@@ -105,7 +134,7 @@ func _build_ui() -> void:
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var title_cfg := _get_config_dict(["title"], {})
-	_title_label.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", 38)))
+	_title_label.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", _default_title_font_size())))
 	_title_label.add_theme_color_override("font_color", _to_color(title_cfg.get("text_color", "#FFFFFF"), Color.WHITE))
 	title_row.add_child(_title_label)
 
@@ -132,7 +161,7 @@ func _build_ui() -> void:
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_level_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_level_label.add_theme_font_size_override("font_size", int(level_cfg.get("text_size", 26)))
+	_level_label.add_theme_font_size_override("font_size", int(level_cfg.get("text_size", _default_font_size())))
 	_level_label.add_theme_color_override("font_color", _to_color(level_cfg.get("text_color", "#D6E4FF"), Color(0.84, 0.9, 1.0)))
 	level_panel.add_child(_level_label)
 
@@ -149,7 +178,7 @@ func _build_ui() -> void:
 	_skill_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_skill_points_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_skill_points_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_skill_points_label.add_theme_font_size_override("font_size", int(points_cfg.get("text_size", 26)))
+	_skill_points_label.add_theme_font_size_override("font_size", int(points_cfg.get("text_size", _default_font_size())))
 	_skill_points_label.add_theme_color_override("font_color", _to_color(points_cfg.get("text_color", "#FFD56B"), Color(1.0, 0.84, 0.42)))
 	points_panel.add_child(_skill_points_label)
 
@@ -188,7 +217,7 @@ func _build_ui() -> void:
 	xp_text.name = "XPText"
 	xp_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	xp_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	xp_text.add_theme_font_size_override("font_size", 14)
+	xp_text.add_theme_font_size_override("font_size", _default_font_size())
 	xp_text.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
 	xp_text.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	xp_text.add_theme_constant_override("shadow_offset_x", 1)
@@ -225,7 +254,7 @@ func _build_ui() -> void:
 	# --- Info Label ---
 	var subtitle_cfg := _get_config_dict(["subtitle"], {})
 	_info_label = Label.new()
-	_info_label.add_theme_font_size_override("font_size", int(subtitle_cfg.get("font_size", 20)))
+	_info_label.add_theme_font_size_override("font_size", int(subtitle_cfg.get("font_size", _default_font_size())))
 	_info_label.add_theme_color_override("font_color", _to_color(subtitle_cfg.get("text_color", "#C2C9E8"), Color(0.76, 0.79, 0.9)))
 	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -244,9 +273,15 @@ func _build_ui() -> void:
 		_respec_button,
 		respec_cfg.get("background", "#4A2632"),
 		_to_color(respec_cfg.get("text_color", "#FFFFFF"), Color.WHITE),
-		int(respec_cfg.get("text_size", 20)),
+		int(respec_cfg.get("text_size", _default_font_size())),
 		true
 	)
+	# Icône cristal à la taille définie dans game.json (ship_stats.crystals = 30x30)
+	var crystals_cfg: Dictionary = _get_crystals_icon_config()
+	var icon_w: int = int(crystals_cfg.get("icon_width", 30))
+	var icon_h: int = int(crystals_cfg.get("icon_height", 30))
+	_respec_button.add_theme_constant_override("icon_max_width", icon_w)
+	_respec_button.add_theme_constant_override("icon_max_height", icon_h)
 	_respec_button.pressed.connect(_on_respec_pressed)
 	_footer.add_child(_respec_button)
 
@@ -290,14 +325,19 @@ func _refresh_display() -> void:
 		_apply_mouse_filter_pass_recursive(_main_vbox)
 
 func _update_header() -> void:
+	if not ProfileManager:
+		return
 	var level := ProfileManager.get_player_level()
 	var xp := ProfileManager.get_player_xp()
 	var sp := ProfileManager.get_skill_points()
 	var xp_required_for_level: int = max(1, ProfileManager.get_xp_for_level(level))
 
-	_level_label.text = str(level)
-	_skill_points_label.text = str(sp)
-	_title_label.text = _translate("skills.menu.title", {}, "COMPETENCES")
+	if _level_label:
+		_level_label.text = str(level)
+	if _skill_points_label:
+		_skill_points_label.text = str(sp)
+	if _title_label:
+		_title_label.text = _translate("skills.menu.title", {}, "COMPETENCES")
 
 	# XP bar
 	if _xp_bar:
@@ -388,11 +428,13 @@ func _get_pew_pew_unlock_progress() -> Dictionary:
 	}
 
 func _update_tabs() -> void:
+	if not _tab_container:
+		return
 	for tab_id in TAB_IDS:
 		var btn: Button = _tab_container.get_node_or_null("Tab_" + tab_id)
 		if btn == null:
 			continue
-		btn.text = _tab_label(tab_id)
+		UIStyle.set_button_shadow_text(btn, _tab_label(tab_id))
 		var btn_cfg := _get_config_dict(["skills", "buttons", tab_id], {})
 		var bg_value: Variant = btn_cfg.get("background", "#2D3A5C")
 		var text_color := _to_color(btn_cfg.get("text_color", "#FFFFFF"), Color.WHITE)
@@ -419,11 +461,21 @@ func _apply_button_style(button: Button, bg_value: Variant, text_color: Color, t
 	button.add_theme_color_override("font_focus_color", final_color)
 	button.add_theme_color_override("font_disabled_color", final_color)
 	button.add_theme_font_size_override("font_size", text_size)
+	if not button.text.is_empty():
+		UIStyle.apply_button_shadow(button, "medium")
+	UIStyle.set_button_shadow_color(button, final_color)
 
 func _update_respec_button() -> void:
+	if not _respec_button or not ProfileManager:
+		return
 	var cost := ProfileManager.get_respec_cost()
 	var crystals := ProfileManager.get_crystals()
-	_respec_button.text = _translate("skills.menu.respec.button", {"cost": cost}, "Respec (" + str(cost) + ")")
+	var t := _translate("skills.menu.respec.button", {"cost": cost}, "Respec (" + str(cost) + ")")
+	if _respec_button.get_node_or_null("ShadowLabel"):
+		UIStyle.set_button_shadow_text(_respec_button, t)
+	else:
+		_respec_button.text = t
+		UIStyle.apply_button_shadow(_respec_button, "medium")
 	if DataManager and DataManager.has_method("get_shared_crystal_icon_path") and DataManager.has_method("get_texture_from_resource_path"):
 		var crystal_icon_path: String = str(DataManager.get_shared_crystal_icon_path())
 		_respec_button.icon = DataManager.get_texture_from_resource_path(crystal_icon_path)
@@ -440,11 +492,15 @@ func _update_respec_button() -> void:
 # =============================================================================
 
 func _build_skill_tree() -> void:
+	if not _skill_grid:
+		return
 	for child in _skill_grid.get_children():
 		child.queue_free()
 	_skill_nodes.clear()
 
-	var tree_data: Dictionary = DataManager.get_skill_tree(_active_tab)
+	var tree_data: Dictionary = {}
+	if DataManager:
+		tree_data = DataManager.get_skill_tree(_active_tab)
 	if tree_data.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = _translate("skills.menu.empty", {}, "Aucune competence disponible")
@@ -496,7 +552,7 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 
 	var title_label := Label.new()
 	title_label.text = _branch_name(branch_id)
-	title_label.add_theme_font_size_override("font_size", int(title_cfg.get("text_size", 24)))
+	title_label.add_theme_font_size_override("font_size", int(title_cfg.get("text_size", _default_title_font_size())))
 	title_label.add_theme_color_override("font_color", _to_color(title_cfg.get("text_color", "#FFFFFF"), branch_color))
 	header.add_child(title_label)
 
@@ -625,6 +681,7 @@ func _build_fire_default_node(parent: VBoxContainer, block_cfg: Dictionary, bran
 			equip_btn.add_theme_stylebox_override("hover", equip_style)
 			equip_btn.add_theme_stylebox_override("pressed", equip_style)
 	right_col.add_child(equip_btn)
+	UIStyle.apply_button_shadow(equip_btn, "small")
 
 func _build_skill_node(
 	node_data: Dictionary,
@@ -778,6 +835,8 @@ func _build_skill_node(
 		unlock_btn.text = ""
 
 	hbox.add_child(unlock_btn)
+	if not unlock_btn.text.is_empty():
+		UIStyle.apply_button_shadow(unlock_btn, "small")
 	_skill_nodes[skill_id] = unlock_btn
 
 	# --- Fire Pattern: Equip Button ---
@@ -805,6 +864,7 @@ func _build_skill_node(
 			equip_btn.add_theme_stylebox_override("hover", equip_style)
 			equip_btn.add_theme_stylebox_override("pressed", equip_style)
 		hbox.add_child(equip_btn)
+		UIStyle.apply_button_shadow(equip_btn, "small")
 		# Golden border for equipped skill
 		if is_equipped:
 			node_style.border_color = Color("#FFD700")
@@ -960,6 +1020,7 @@ func _show_respec_confirm(cost: int) -> void:
 		_refresh_display()
 	)
 	btn_row.add_child(confirm)
+	UIStyle.apply_button_shadow(confirm, "medium")
 
 	var cancel := Button.new()
 	cancel.text = _translate("skills.menu.respec.cancel_button", {}, "Annuler")
@@ -970,12 +1031,18 @@ func _show_respec_confirm(cost: int) -> void:
 		_popup = null
 	)
 	btn_row.add_child(cancel)
+	UIStyle.apply_button_shadow(cancel, "medium")
 
 func _on_back_pressed() -> void:
 	back_requested.emit()
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+func _on_header_crystals_pressed() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/ShopMenu.tscn")
 
 # =============================================================================
 # CONFIG & I18N HELPERS
@@ -1018,6 +1085,17 @@ func _get_config_dict(path: Array, default_value: Dictionary = {}) -> Dictionary
 	if value is Dictionary:
 		return value as Dictionary
 	return default_value
+
+func _get_crystals_icon_config() -> Dictionary:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var ship_menu: Variant = game_cfg.get("ShipMenu", {})
+	if ship_menu is Dictionary:
+		var ship_stats: Variant = (ship_menu as Dictionary).get("ship_stats", {})
+		if ship_stats is Dictionary:
+			var crystals: Variant = (ship_stats as Dictionary).get("crystals", {})
+			if crystals is Dictionary:
+				return crystals as Dictionary
+	return {"icon_width": 30, "icon_height": 30}
 
 func _to_color(value: Variant, fallback: Color) -> Color:
 	if value is Color:

@@ -17,6 +17,7 @@ var settings: Dictionary = {
 	"sfx_volume": 1.0,
 	"screenshake_enabled": true,
 	"show_health_bar_values": true,
+	"manual_debug_mode": false,
 	"locale": "en"
 }
 
@@ -567,6 +568,12 @@ func mark_story_viewed(story_id: String) -> void:
 		viewed_array.append(story_id)
 		_update_active_profile("viewed_stories", viewed_array)
 		print("[ProfileManager] Story marked as viewed: ", story_id)
+
+## Réinitialise la liste des stories vues (debug). Sauvegarde immédiatement.
+func reset_viewed_stories() -> void:
+	_update_active_profile("viewed_stories", [])
+	save_to_disk()
+	print("[ProfileManager] Viewed stories reset.")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PROGRESSION MONDES/NIVEAUX
@@ -1206,6 +1213,9 @@ func get_setting(key: String, default: Variant = null) -> Variant:
 func set_setting(key: String, value: Variant) -> void:
 	settings[key] = value
 	save_to_disk()
+
+func is_debug_mode_enabled() -> bool:
+	return OS.is_debug_build() or bool(get_setting("manual_debug_mode", false))
 
 # =============================================================================
 # SKILL TREE & XP SYSTEM

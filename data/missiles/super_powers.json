@@ -22,7 +22,7 @@
 				"despawn_after_sec": 5.5,
 				"rotation_speed": 130,
 				"color": "#FF33CC",
-				"asset_anim": "res://assets/missiles/energy_missile.tres",
+				"asset_anim": "res://assets/missiles/gradient_energy_burst.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			}
@@ -48,7 +48,7 @@
 				"damage": 58,
 				"despawn_after_sec": 3.5,
 				"color": "#56E0FF",
-				"asset": "res://assets/missiles/energy_missile.tres"
+				"asset": "res://assets/missiles/blue_energy_burst.tres"
 			}
 		},
 		{
@@ -72,7 +72,7 @@
 				"despawn_after_sec": 6.0,
 				"rotation_speed": 170,
 				"color": "#AA44FF",
-				"asset": "res://assets/missiles/energy_missile.tres",
+				"asset": "res://assets/missiles/gradient_energy_burst.tres",
 				"missile_id": "missile_default"
 			}
 		}

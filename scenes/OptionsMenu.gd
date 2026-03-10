@@ -23,6 +23,11 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var screenshake_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/ScreenShakeCheckbox
 @onready var health_values_label: Label = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/Label
 @onready var health_values_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/HealthValuesCheckbox
+@onready var debug_label: Label = $MarginContainer/VBoxContainer/DebugSection/DebugLabel
+@onready var debug_mode_label: Label = $MarginContainer/VBoxContainer/DebugSection/DebugModeBox/Label
+@onready var debug_mode_checkbox: Button = $MarginContainer/VBoxContainer/DebugSection/DebugModeBox/DebugModeCheckbox
+@onready var story_label: Label = $MarginContainer/VBoxContainer/StorySection/StoryLabel
+@onready var reset_stories_button: Button = $MarginContainer/VBoxContainer/StorySection/ResetStoriesBox/ResetStoriesButton
 
 var _game_config: Dictionary = {}
 
@@ -38,7 +43,12 @@ func _ready() -> void:
 	_setup_audio_sliders()
 	_setup_screenshake_toggle()
 	_setup_health_values_toggle()
+	_setup_debug_mode_toggle()
 	_apply_translations()
+	UIStyle.apply_default_button_style(reset_stories_button, "medium")
+	UIStyle.apply_default_button_style(screenshake_checkbox, "small")
+	UIStyle.apply_default_button_style(health_values_checkbox, "small")
+	UIStyle.apply_default_button_style(debug_mode_checkbox, "small")
 	
 	# Connect signals
 	back_button.pressed.connect(_on_back_pressed)
@@ -47,12 +57,15 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx_volume_changed)
 	screenshake_checkbox.toggled.connect(_on_screenshake_toggled)
 	health_values_checkbox.toggled.connect(_on_health_values_toggled)
+	debug_mode_checkbox.toggled.connect(_on_debug_mode_toggled)
+	reset_stories_button.pressed.connect(_on_reset_stories_pressed)
 	
-	# Setup Back Button Icon
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var back_icon_path: String = str(ui_icons.get("back_button", ""))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path) and back_button:
-		back_button.texture_normal = load(back_icon_path)
+	# Footer : clic sur le bouton retour du bas
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+	if back_button:
+		back_button.visible = false
 
 func _load_game_config() -> void:
 	var file := FileAccess.open("res://data/game.json", FileAccess.READ)
@@ -143,12 +156,23 @@ func _setup_health_values_toggle() -> void:
 		health_values_checkbox.button_pressed = enabled
 		_refresh_toggle_button_text(health_values_checkbox, enabled)
 
+func _setup_debug_mode_toggle() -> void:
+	var enabled: bool = bool(ProfileManager.get_setting("manual_debug_mode", false))
+	if debug_mode_checkbox:
+		debug_mode_checkbox.button_pressed = enabled
+		_refresh_toggle_button_text(debug_mode_checkbox, enabled)
+
 func _refresh_toggle_button_text(btn: Button, enabled: bool) -> void:
 	if not btn:
 		return
 	var on_text: String = LocaleManager.translate("options_toggle_on")
 	var off_text: String = LocaleManager.translate("options_toggle_off")
-	btn.text = on_text if enabled else off_text
+	var t: String = on_text if enabled else off_text
+	if btn.get_node_or_null("ShadowLabel"):
+		UIStyle.set_button_shadow_text(btn, t)
+	else:
+		btn.text = t
+		UIStyle.apply_button_shadow(btn, "small")
 
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
@@ -159,10 +183,18 @@ func _apply_translations() -> void:
 	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
 	if screenshake_label: screenshake_label.text = LocaleManager.translate("options_screenshake")
 	if health_values_label: health_values_label.text = LocaleManager.translate("options_health_bar_values")
+	if debug_label: debug_label.text = LocaleManager.translate("options_debug")
+	if debug_mode_label: debug_mode_label.text = LocaleManager.translate("options_manual_debug_mode")
 	_refresh_toggle_button_text(screenshake_checkbox, screenshake_checkbox.button_pressed if screenshake_checkbox else false)
 	_refresh_toggle_button_text(health_values_checkbox, health_values_checkbox.button_pressed if health_values_checkbox else false)
-	
-	# No back button text anymore as it is an icon
+	_refresh_toggle_button_text(debug_mode_checkbox, debug_mode_checkbox.button_pressed if debug_mode_checkbox else false)
+	if story_label: story_label.text = LocaleManager.translate("options_story")
+	if reset_stories_button:
+		if reset_stories_button.get_node_or_null("ShadowLabel"):
+			UIStyle.set_button_shadow_text(reset_stories_button, LocaleManager.translate("options_reset_stories"))
+		else:
+			reset_stories_button.text = LocaleManager.translate("options_reset_stories")
+			UIStyle.apply_button_shadow(reset_stories_button, "medium")
 
 # =============================================================================
 # CALLBACKS
@@ -201,3 +233,14 @@ func _on_screenshake_toggled(enabled: bool) -> void:
 func _on_health_values_toggled(enabled: bool) -> void:
 	ProfileManager.set_setting("show_health_bar_values", enabled)
 	_refresh_toggle_button_text(health_values_checkbox, enabled)
+
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	ProfileManager.set_setting("manual_debug_mode", enabled)
+	_refresh_toggle_button_text(debug_mode_checkbox, enabled)
+
+func _on_reset_stories_pressed() -> void:
+	ProfileManager.reset_viewed_stories()
+	UIStyle.set_button_shadow_text(reset_stories_button, LocaleManager.translate("options_reset_stories_done"))
+	var tw := create_tween()
+	tw.tween_interval(1.5)
+	tw.tween_callback(func(): UIStyle.set_button_shadow_text(reset_stories_button, LocaleManager.translate("options_reset_stories")))

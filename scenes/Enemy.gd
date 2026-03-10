@@ -369,6 +369,8 @@ func _setup_health_bar() -> void:
 	health_bar.show_percentage = false
 	_configure_enemy_health_bar_styles(hp_bar_cfg)
 	_update_health_bar_color()
+	# N'afficher la barre que si déjà touché (PV < max)
+	health_bar.visible = (current_hp < max_hp)
 
 func apply_stat_multipliers(stats: Dictionary) -> void:
 	var hp_mult = float(stats.get("hp_mult", 1.0))
@@ -597,19 +599,13 @@ func _load_cached_resource(path: String, debug_label: String = "") -> Resource:
 	if _strong_resource_cache.has(path):
 		var strong_cached: Variant = _strong_resource_cache[path]
 		if strong_cached is Resource:
-			if DEBUG_ASSET_LOAD_LOG:
-				print("[EnemyAsset] reused(strong) ", debug_label, " ", path)
 			return strong_cached as Resource
-	var was_cached: bool = ResourceLoader.has_cached(path)
 	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
 	if resource != null:
 		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
 			_strong_resource_cache.clear()
 			_first_frame_texture_cache.clear()
 		_strong_resource_cache[path] = resource
-	if DEBUG_ASSET_LOAD_LOG:
-		var state: String = "reused " if was_cached else "loaded "
-		print("[EnemyAsset] ", state, debug_label, " ", path)
 	return resource
 
 func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
@@ -645,9 +641,6 @@ func _resolve_curve_with_cache(pattern_data: Dictionary) -> Curve2D:
 
 	if bool(pattern_data.get("fit_to_viewport", false)):
 		curve = _fit_curve_to_viewport(curve, pattern_data)
-	if _should_force_top_outside_spawn(pattern_data):
-		var top_margin: float = maxf(40.0, float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN)))
-		curve = _translate_curve_to_top_margin(curve, top_margin)
 	return curve
 
 func _get_cached_resource_curve(pattern_data: Dictionary) -> Curve2D:
@@ -670,9 +663,6 @@ func _get_cached_resource_curve(pattern_data: Dictionary) -> Curve2D:
 
 	if bool(pattern_data.get("fit_to_viewport", false)):
 		curve = _fit_curve_to_viewport(curve, pattern_data)
-	if _should_force_top_outside_spawn(pattern_data):
-		var top_margin: float = maxf(40.0, float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN)))
-		curve = _translate_curve_to_top_margin(curve, top_margin)
 
 	if _resource_curve_cache.size() >= RESOURCE_CURVE_CACHE_MAX:
 		_resource_curve_cache.clear()
@@ -704,6 +694,7 @@ func _build_resource_curve_cache_key(pattern_data: Dictionary, viewport_size: Ve
 	var fit_align_x: float = float(pattern_data.get("fit_align_x", 0.0))
 	var fit_align_y: float = float(pattern_data.get("fit_align_y", 0.0))
 	var top_margin: float = float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN))
+	var bottom_margin: float = float(pattern_data.get("exit_bottom_margin", OFFSCREEN_MARGIN))
 	var force_top: bool = _should_force_top_outside_spawn(pattern_data)
 	return (
 		resource_path + "|" +
@@ -716,8 +707,14 @@ func _build_resource_curve_cache_key(pattern_data: Dictionary, viewport_size: Ve
 		str(snappedf(fit_align_x, 0.001)) + "|" +
 		str(snappedf(fit_align_y, 0.001)) + "|" +
 		("1" if force_top else "0") + "|" +
-		str(snappedf(top_margin, 0.1))
+		str(snappedf(top_margin, 0.1)) + "|" +
+		str(snappedf(bottom_margin, 0.1)) + "|path_force_top_to_bottom_v2"
 	)
+
+func _curve_end_point(curve: Curve2D) -> Vector2:
+	if curve.point_count <= 0:
+		return Vector2.ZERO
+	return curve.get_point_position(curve.point_count - 1)
 
 func _build_proc_curve(proc_func: String, pattern_data: Dictionary) -> Curve2D:
 	match proc_func:
@@ -950,7 +947,8 @@ func _fit_curve_to_viewport(curve: Curve2D, pattern_data: Dictionary) -> Curve2D
 	var scale_x: float = target_width / bounds.size.x
 	var scale_y: float = target_height / bounds.size.y
 	var preserve_aspect: bool = bool(pattern_data.get("fit_preserve_aspect", false))
-	if preserve_aspect:
+	var force_top_to_bottom: bool = _should_force_top_outside_spawn(pattern_data)
+	if preserve_aspect and not force_top_to_bottom:
 		var uniform: float = minf(scale_x, scale_y)
 		scale_x = uniform
 		scale_y = uniform
@@ -961,6 +959,21 @@ func _fit_curve_to_viewport(curve: Curve2D, pattern_data: Dictionary) -> Curve2D
 	var align_y: float = clampf(float(pattern_data.get("fit_align_y", 0.0)), 0.0, 1.0)
 	var offset_x: float = (viewport_size.x - target_width) * align_x
 	var offset_y: float = (viewport_size.y - target_height) * align_y
+	var use_direct_y_mapping: bool = false
+	var start_point := _curve_start_point(curve)
+	var end_point := _curve_end_point(curve)
+	if force_top_to_bottom:
+		var source_start_y: float = start_point.y
+		var source_end_y: float = end_point.y
+		var source_delta_y: float = source_end_y - source_start_y
+		if absf(source_delta_y) > 0.001:
+			var top_margin: float = maxf(40.0, float(pattern_data.get("spawn_top_margin", RESOURCE_PATH_TOP_SPAWN_MARGIN)))
+			var bottom_margin: float = maxf(40.0, float(pattern_data.get("exit_bottom_margin", OFFSCREEN_MARGIN)))
+			var target_start_y: float = -absf(top_margin)
+			var target_end_y: float = viewport_size.y + absf(bottom_margin)
+			scale_y = (target_end_y - target_start_y) / source_delta_y
+			offset_y = target_start_y - source_start_y * scale_y
+			use_direct_y_mapping = true
 
 	var result := Curve2D.new()
 	var point_count: int = curve.point_count
@@ -971,7 +984,7 @@ func _fit_curve_to_viewport(curve: Curve2D, pattern_data: Dictionary) -> Curve2D
 
 		var scaled_pos := Vector2(
 			(old_pos.x - bounds.position.x) * scale_x + offset_x,
-			(old_pos.y - bounds.position.y) * scale_y + offset_y
+			old_pos.y * scale_y + offset_y if use_direct_y_mapping else (old_pos.y - bounds.position.y) * scale_y + offset_y
 		)
 		var scaled_in := Vector2(old_in.x * scale_x, old_in.y * scale_y)
 		var scaled_out := Vector2(old_out.x * scale_x, old_out.y * scale_y)
@@ -1295,18 +1308,12 @@ func _fire_single_wave() -> void:
 	# Get spawn positions based on strategy
 	var spawn_positions: Array = _get_spawn_positions(spawn_strategy, projectile_count)
 	var player_node: Node2D = get_tree().get_first_node_in_group("player")
-	
-	var is_aimed := (trajectory == "aimed") or bool(_missile_pattern_data.get("aim_target", false))
+	var should_aim_at_player: bool = player_node != null
 	
 	for i in range(spawn_positions.size()):
 		var spawn_pos: Vector2 = spawn_positions[i]
-		var direction: Vector2 = Vector2.DOWN
-		
-		if is_aimed and player_node:
-			direction = (player_node.global_position - spawn_pos).normalized()
-		else:
-			# Default direction based on spawn strategy
-			direction = _get_default_direction(spawn_strategy, spawn_pos)
+		var fallback_direction: Vector2 = _get_default_direction(spawn_strategy, spawn_pos)
+		var direction: Vector2 = _get_player_aim_direction(spawn_pos, player_node, fallback_direction) if should_aim_at_player else fallback_direction
 		
 		# Apply spread angle if multiple projectiles from same position
 		if spawn_strategy == "shooter" and projectile_count > 1:
@@ -1316,7 +1323,7 @@ func _fire_single_wave() -> void:
 				# For full circle (radial): Divide evenly around 360 degrees
 				var angle_step: float = TAU / float(projectile_count)
 				var angle: float = angle_step * float(i)
-				direction = Vector2.DOWN.rotated(angle)
+				direction = direction.rotated(angle)
 			else:
 				# For partial spread: Fan out from center
 				var angle_step: float = deg_to_rad(spread_angle) / max(1, projectile_count - 1)
@@ -1410,6 +1417,13 @@ func _get_default_direction(strategy: String, spawn_pos: Vector2) -> Vector2:
 			return (center - spawn_pos).normalized()
 		_:
 			return Vector2.DOWN
+
+func _get_player_aim_direction(spawn_pos: Vector2, player_node: Node2D, fallback_direction: Vector2) -> Vector2:
+	if player_node and is_instance_valid(player_node):
+		var aimed_direction: Vector2 = (player_node.global_position - spawn_pos).normalized()
+		if aimed_direction != Vector2.ZERO:
+			return aimed_direction
+	return fallback_direction
 
 func setup_minefreak(mod_data: Dictionary) -> void:
 	_minefreak_enabled = true
@@ -1614,6 +1628,7 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 	current_hp -= effective_amount
 	current_hp = maxi(0, current_hp)
 	
+	health_bar.visible = true
 	health_bar.value = current_hp
 	_update_health_bar_color()
 	
@@ -1983,6 +1998,7 @@ func _process_status_effects(delta: float) -> void:
 			var tick_dmg := int(result["damage"])
 			current_hp -= tick_dmg
 			current_hp = maxi(0, current_hp)
+			health_bar.visible = true
 			health_bar.value = current_hp
 			_update_health_bar_color()
 			if current_hp <= 0:

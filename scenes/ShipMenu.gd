@@ -17,6 +17,8 @@ const GRID_GAP := 12
 const SHIP_TRACK_DRAG_THRESHOLD := 12.0
 const SHIP_TRACK_SNAP_DURATION := 0.24
 const SHIP_TRACK_GAP := 12
+const SHIP_STRIP_HEIGHT := 63
+const SHIP_STRIP_TRANSLATE_MARGIN := 5  # marge sous la bande pour le translateY (bouton pressé)
 const ItemCardScene = preload("res://scenes/components/ItemCard.tscn")
 const ItemDetailsPopupScene = preload("res://scenes/components/ItemDetailsPopup.tscn")
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
@@ -35,6 +37,7 @@ var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time
 # =============================================================================
 
 @onready var scroll_container: ScrollContainer = $MarginContainer/ScrollContainer
+@onready var margin_container: MarginContainer = $MarginContainer
 @onready var content: VBoxContainer = $MarginContainer/ScrollContainer/Content
 @onready var ship_count_label: Label = %ShipCountLabel
 @onready var ship_unlock_btn: Button = %ShipUnlockButton
@@ -115,7 +118,6 @@ var _recycle_confirm_popup: PanelContainer = null
 
 # Ship scroll state — carousel with drag/snap and infinite wrap
 var current_ship_page: int = 0
-var _ship_visible_count: int = 4
 var _current_ship_index: int = 0
 var _ship_track: Control = null
 var _ship_items: Array[Dictionary] = []
@@ -141,7 +143,11 @@ var _center_retry_count := 0
 
 func _ready() -> void:
 	_load_game_config()
-	
+	_apply_menu_header_offset()
+	var mh: Control = get_node_or_null("MenuHeader")
+	if mh and mh.has_signal("crystals_pressed") and not mh.crystals_pressed.is_connected(_on_header_crystals_pressed):
+		mh.crystals_pressed.connect(_on_header_crystals_pressed)
+
 	if content: content.mouse_filter = Control.MOUSE_FILTER_PASS
 	if inventory_grid: inventory_grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	if slots_grid: slots_grid.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -160,14 +166,19 @@ func _ready() -> void:
 	
 	# Ship carousel uses _input for drag/snap (like WorldSelect); gui_input kept for fallback
 	
-	generate_item_button.pressed.connect(_on_generate_item_pressed)
+	if generate_item_button:
+		generate_item_button.pressed.connect(_on_generate_item_pressed)
+		var debug_section: Node = generate_item_button.get_parent()
+		if debug_section:
+			debug_section.visible = false
 	back_button.pressed.connect(_on_back_pressed)
 	
-	# Load Back Button Texture
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var back_icon_path: String = str(ui_icons.get("back_button", ""))
-	if back_icon_path != "" and ResourceLoader.exists(back_icon_path):
-		back_button.texture_normal = load(back_icon_path)
+	# Footer : propager le clic retour vers la même logique et masquer l'ancien bouton haut
+	var footer: Node = get_node_or_null("MenuFooter")
+	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
+		footer.back_pressed.connect(_on_back_pressed)
+	if back_button:
+		back_button.visible = false
 
 	
 	
@@ -277,6 +288,8 @@ func _ready() -> void:
 		# Button doesn't have letter_spacing directly, but it affects fallback or we can use it if we had a custom label
 		up_button.add_theme_constant_override("letter_spacing", up_letter_spacing)
 		up_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		up_button.text = LocaleManager.translate("ship_menu_none")
+		UIStyle.apply_button_shadow(up_button, "medium")
 
 	# Super Power Display (SPInfo) background
 	if sp_icon_rect:
@@ -329,6 +342,14 @@ func _input(event: InputEvent) -> void:
 func _on_ship_carousel_pointer_down(id: int, global_pos: Vector2) -> void:
 	if not _is_inside_ship_carousel(global_pos):
 		return
+	# Ne pas consommer le clic si on a cliqué sur un bouton de la bande (cristaux ou Sélectionner)
+	for item in _ship_items:
+		var wrapper_node: Variant = item.get("node", null)
+		if wrapper_node is Control and (wrapper_node as Control).get_child_count() >= 2:
+			var strip_btn: Control = (wrapper_node as Control).get_child(1)
+			var r := Rect2(strip_btn.global_position, strip_btn.size)
+			if r.has_point(global_pos):
+				return
 	_ship_pointer_down = true
 	_ship_pointer_id = id
 	_ship_dragging = false
@@ -359,18 +380,17 @@ func _on_ship_carousel_pointer_up(id: int, global_pos: Vector2) -> void:
 		var nearest: int = _nearest_ship_index_for_offset(_ship_track_offset)
 		_snap_to_ship_index(nearest, true)
 	else:
-		# Tap (pas de drag) : animer vers la carte puis mettre à jour la sélection
+		# Tap (pas de drag) : animer vers la carte puis mettre à jour la sélection si débloqué
 		var idx: int = _find_ship_index_at_global_pos(global_pos)
 		if idx >= 0 and idx < _ship_items.size():
 			var ship_id: String = _ship_items[idx]["ship_id"]
 			var unlocked_ids := ProfileManager.get_unlocked_ships()
-			if not unlocked_ids.has(ship_id):
-				_on_ship_card_pressed(ship_id)
-			else:
+			if unlocked_ids.has(ship_id):
 				selected_ship_id = ship_id
 				_current_ship_index = idx
 				ProfileManager.set_active_ship(ship_id)
 				_snap_to_ship_index(idx, true, true)
+			# Vérouillé : ne rien faire au tap sur la carte (l'achat se fait via le bouton cristaux en dessous)
 	get_viewport().set_input_as_handled()
 
 func _initial_layout() -> void:
@@ -426,7 +446,8 @@ func _setup_visuals() -> void:
 			move_child(bg_scroller, 0)
 
 		var viewport_size := get_viewport_rect().size
-		bg_scroller.call("setup", bg_resource, _get_ship_menu_bg_scroll_speed(), viewport_size, false)
+		var scroll_speed: float = _get_ship_menu_bg_scroll_speed() if bool(ship_config.get("background_scroll", false)) else 0.0
+		bg_scroller.call("setup", bg_resource, scroll_speed, viewport_size, false)
 	else:
 		var bg_scroller := get_node_or_null("BackgroundScroller")
 		if bg_scroller:
@@ -488,16 +509,18 @@ func _setup_visuals() -> void:
 		_add_spacer(p_section, 10, "SpacerPowerBottom")
 		_apply_section_background(p_section.name, sections_cfg.get("powers", {}))
 
-	# 5. Section Titles Styling
+	# 5. Section Titles Styling (ship_menu.title: font_size 30, letter_spacing 2, text_color #FFFFFF)
 	var title_cfg: Dictionary = _game_config.get("ship_menu", {}).get("title", {})
-	var t_font_sz: int = int(title_cfg.get("font_size", 24))
+	var t_font_sz: int = int(title_cfg.get("font_size", 30))
 	var t_linesp: int = int(title_cfg.get("letter_spacing", 2))
 	var t_color_hex: String = str(title_cfg.get("text_color", "#FFFFFF"))
 	var t_color: Color = Color.html(t_color_hex)
 	
 	var titles = []
-	# Ship Title
-	var ss_node = content_vbox.get_node_or_null("ShipSection")
+	# Ship Title (may be inside ShipSectionWrapper after section background wrap)
+	var ss_node = content_vbox.get_node_or_null("ShipSectionWrapper/ShipSection")
+	if not ss_node:
+		ss_node = content_vbox.get_node_or_null("ShipSection")
 	if ss_node:
 		var st = ss_node.get_node_or_null("ShipTitleLabel")
 		if st: titles.append(st)
@@ -512,6 +535,9 @@ func _setup_visuals() -> void:
 		t.add_theme_constant_override("letter_spacing", t_linesp)
 		t.add_theme_color_override("font_color", t_color)
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	
+	if page_label:
+		page_label.add_theme_font_size_override("font_size", int(ship_config.get("default_font_size", 16)))
 	
 	# 3. Fix Double Separator
 	var dynamic_sep = content_vbox.get_node_or_null("SeparatorSlotsInventory")
@@ -556,6 +582,35 @@ func _setup_visuals() -> void:
 		if btn and arrow_right_path != "" and ResourceLoader.exists(arrow_right_path):
 			btn.icon = load(arrow_right_path)
 			btn.text = ""
+	
+	# Ship carousel arrows: no background, icon only
+	var empty_style := StyleBoxEmpty.new()
+	if ship_prev_btn:
+		ship_prev_btn.add_theme_stylebox_override("normal", empty_style)
+		ship_prev_btn.add_theme_stylebox_override("hover", empty_style)
+		ship_prev_btn.add_theme_stylebox_override("pressed", empty_style)
+		ship_prev_btn.add_theme_stylebox_override("focus", empty_style)
+		ship_prev_btn.add_theme_stylebox_override("disabled", empty_style)
+	if ship_next_btn:
+		ship_next_btn.add_theme_stylebox_override("normal", empty_style)
+		ship_next_btn.add_theme_stylebox_override("hover", empty_style)
+		ship_next_btn.add_theme_stylebox_override("pressed", empty_style)
+		ship_next_btn.add_theme_stylebox_override("focus", empty_style)
+		ship_next_btn.add_theme_stylebox_override("disabled", empty_style)
+	
+	# Inventory pagination arrows: no background, icon only
+	if prev_page_btn:
+		prev_page_btn.add_theme_stylebox_override("normal", empty_style)
+		prev_page_btn.add_theme_stylebox_override("hover", empty_style)
+		prev_page_btn.add_theme_stylebox_override("pressed", empty_style)
+		prev_page_btn.add_theme_stylebox_override("focus", empty_style)
+		prev_page_btn.add_theme_stylebox_override("disabled", empty_style)
+	if next_page_btn:
+		next_page_btn.add_theme_stylebox_override("normal", empty_style)
+		next_page_btn.add_theme_stylebox_override("hover", empty_style)
+		next_page_btn.add_theme_stylebox_override("pressed", empty_style)
+		next_page_btn.add_theme_stylebox_override("focus", empty_style)
+		next_page_btn.add_theme_stylebox_override("disabled", empty_style)
 	
 	# 7. Sort Button Icon
 
@@ -611,10 +666,13 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 	
 	var parent = section_node.get_parent()
 	if parent and parent.name == section_node_name + "Wrapper":
-		# Already wrapped, just update texture
-		var existing_style = parent.get_theme_stylebox("panel")
-		if existing_style is StyleBoxTexture:
-			existing_style.texture = load(bg_path)
+		# Already wrapped, just update style and opacity
+		var sections_cfg_parent: Dictionary = _game_config.get("ship_menu", {})
+		var section_opacity: float = float(sections_cfg_parent.get("sections_background_opacity", 0.8))
+		parent.modulate = Color(1.0, 1.0, 1.0, section_opacity)
+		var wrapper_style = UIStyle.build_texture_stylebox(bg_path, section_cfg, 15)
+		if wrapper_style:
+			parent.add_theme_stylebox_override("panel", wrapper_style)
 		return
 	
 	var wrapper = PanelContainer.new()
@@ -622,13 +680,19 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 	wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrapper.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	var wrapper_style = StyleBoxTexture.new()
-	wrapper_style.texture = load(bg_path)
-	wrapper_style.content_margin_left = 15
-	wrapper_style.content_margin_right = 15
-	wrapper_style.content_margin_top = 15
-	wrapper_style.content_margin_bottom = 15
+	var wrapper_style = UIStyle.build_texture_stylebox(bg_path, section_cfg, 15)
+	if not wrapper_style:
+		wrapper_style = StyleBoxTexture.new()
+		wrapper_style.texture = load(bg_path)
+		wrapper_style.content_margin_left = 15
+		wrapper_style.content_margin_right = 15
+		wrapper_style.content_margin_top = 15
+		wrapper_style.content_margin_bottom = 15
 	wrapper.add_theme_stylebox_override("panel", wrapper_style)
+	
+	var sections_cfg_parent: Dictionary = _game_config.get("ship_menu", {})
+	var section_opacity: float = float(sections_cfg_parent.get("sections_background_opacity", 0.8))
+	wrapper.modulate = Color(1.0, 1.0, 1.0, section_opacity)
 	
 	var idx = section_node.get_index()
 	parent.add_child(wrapper)
@@ -676,8 +740,11 @@ func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 func _update_popup_buttons_style() -> void:
 	var popups_cfg: Dictionary = _game_config.get("popups", {})
 	var global_btn_cfg: Dictionary = popups_cfg.get("button", {}) if popups_cfg.get("button") is Dictionary else {}
+	if global_btn_cfg.is_empty():
+		global_btn_cfg = UIStyle.get_default_button_style()
 	var details_cfg: Dictionary = _game_config.get("ship_menu", {}).get("ship_details", {}).get("buttons", {})
-	var font_sz = int(details_cfg.get("font_size", global_btn_cfg.get("font_size", 18)))
+	var font_preset := UIStyle.get_button_font_preset("medium")
+	var font_sz = int(details_cfg.get("font_size", font_preset.get("font_size", 18)))
 	var text_col = Color(details_cfg.get("text_color", global_btn_cfg.get("text_color", "#FFFFFF")))
 	
 	# Mapping key -> button node
@@ -717,9 +784,12 @@ func _update_popup_buttons_style() -> void:
 			btn.add_theme_stylebox_override("hover", style)
 			btn.add_theme_stylebox_override("pressed", style)
 			btn.add_theme_stylebox_override("focus", style)
-			btn.add_theme_stylebox_override("disabled", style) # Ensure asset remains when disabled
-			# Only disable flat if we are using stylebox
+			btn.add_theme_stylebox_override("disabled", style)
 			btn.flat = false
+
+	for btn in buttons_map.values():
+		if btn and btn is Button and not btn.text.is_empty():
+			UIStyle.apply_button_shadow(btn, "medium")
 
 
 func _calculate_layout_metrics() -> void:
@@ -779,15 +849,32 @@ func _calculate_layout_metrics() -> void:
 		ship_prev_btn.custom_minimum_size = Vector2(arrow_w, arrow_h)
 		ship_prev_btn.size = Vector2(arrow_w, arrow_h)
 		ship_prev_btn.expand_icon = true
-		ship_prev_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ship_prev_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		ship_prev_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if ship_next_btn:
 		ship_next_btn.custom_minimum_size = Vector2(arrow_w, arrow_h)
 		ship_next_btn.size = Vector2(arrow_w, arrow_h)
 		ship_next_btn.expand_icon = true
-		ship_next_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ship_next_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 		ship_next_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	
+	# Flèches vaisseaux : comme l'inventaire — gauche à gauche, droite à droite, margin 20px
+	var nav_hbox = ship_prev_btn.get_parent() if ship_prev_btn else null
+	if nav_hbox and nav_hbox is HBoxContainer:
+		if not (nav_hbox.get_parent() is MarginContainer):
+			var section = nav_hbox.get_parent()
+			var idx = nav_hbox.get_index()
+			section.remove_child(nav_hbox)
+			var margin_wrapper = MarginContainer.new()
+			margin_wrapper.add_theme_constant_override("margin_left", 20)
+			margin_wrapper.add_theme_constant_override("margin_right", 20)
+			section.add_child(margin_wrapper)
+			section.move_child(margin_wrapper, idx)
+			margin_wrapper.add_child(nav_hbox)
+		if nav_hbox.get_child_count() == 2:
+			var spacer = Control.new()
+			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			nav_hbox.add_child(spacer)
+			nav_hbox.move_child(spacer, 1)
 	# Flèches pagination inventaire (prev/next) : même taille que shared_assets.lock (64x64)
 	var shared_assets: Dictionary = _game_config.get("shared_assets", {}) if _game_config.get("shared_assets") is Dictionary else {}
 	var lock_cfg: Dictionary = shared_assets.get("lock", {}) if shared_assets.get("lock") is Dictionary else {}
@@ -823,17 +910,32 @@ func _calculate_layout_metrics() -> void:
 		var min_inv_h: float = float(inv_rows) * _item_card_size.y + float(inv_rows - 1) * float(v_gap) + 30.0
 		inventory_grid.custom_minimum_size.y = min_inv_h
 	
+	# Marge en bas du contenu scrollable (sous la pagination) pour que le footer ne masque pas les flèches
+	if content:
+		var footer_spacer: Control = content.get_node_or_null("FooterSpacer")
+		if footer_spacer == null:
+			footer_spacer = Control.new()
+			footer_spacer.name = "FooterSpacer"
+			content.add_child(footer_spacer)
+		footer_spacer.custom_minimum_size.y = 120.0
+	
 	# Apply separation to ship cards container
 	if ship_cards_container:
 		ship_cards_container.add_theme_constant_override("separation", GRID_GAP)
 
 func _apply_translations() -> void:
-	# 1. Ship Title
+	# 1. Ship Title (may be inside ShipSectionWrapper after section background wrap)
 	var content_node = $MarginContainer/ScrollContainer/Content
-	var ship_sec = content_node.get_node_or_null("ShipSection")
+	var ship_sec = content_node.get_node_or_null("ShipSectionWrapper/ShipSection")
+	if not ship_sec:
+		ship_sec = content_node.get_node_or_null("ShipSection")
 	if ship_sec:
 		var st = ship_sec.get_node_or_null("ShipTitleLabel")
-		if st: 
+		if st:
+			var title_cfg: Dictionary = _game_config.get("ship_menu", {}).get("title", {})
+			st.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", 30)))
+			st.add_theme_constant_override("letter_spacing", int(title_cfg.get("letter_spacing", 2)))
+			st.add_theme_color_override("font_color", Color.html(str(title_cfg.get("text_color", "#FFFFFF"))))
 			var txt = LocaleManager.translate("ship_menu_ships")
 			if txt == "ship_menu_ships": txt = "VAISSEAUX"
 			st.text = txt.to_upper()
@@ -855,11 +957,8 @@ func _apply_translations() -> void:
 	if inv_txt == "ship_menu_inventory": inv_txt = "INVENTAIRE"
 	inventory_label.text = inv_txt.to_upper()
 
-	generate_item_button.text = LocaleManager.translate("ship_menu_generate_item")
-	# back_button is now a TextureButton, no text property
-	if popup_cancel_btn: popup_cancel_btn.text = LocaleManager.translate("item_popup_close")
-	
-	if popup_cancel_btn: popup_cancel_btn.text = LocaleManager.translate("item_popup_close")
+	if popup_cancel_btn:
+		UIStyle.set_button_shadow_text(popup_cancel_btn, LocaleManager.translate("item_popup_close"))
 	
 	# Clean up old labels in PowersSection if they still exist (though removed from tscn mostly)
 	# var powers_section := content_node.get_node_or_null("PowersSection") # Unused variable removed
@@ -901,9 +1000,10 @@ func _load_ships(update_center_from_selection: bool = true) -> void:
 		if ship_cards_container:
 			ship_cards_container.visible = false
 
-	# Ship container must have enough height for the cards
+	# Ship container must have enough height for the cards + strip + margin for button translateY
+	var full_card_h: float = _ship_card_size.y + SHIP_STRIP_HEIGHT + SHIP_STRIP_TRANSLATE_MARGIN
 	if ship_container:
-		ship_container.custom_minimum_size = Vector2(ship_container.custom_minimum_size.x, _ship_card_size.y)
+		ship_container.custom_minimum_size = Vector2(ship_container.custom_minimum_size.x, full_card_h)
 
 	# Clear track
 	if _ship_track:
@@ -939,14 +1039,9 @@ func _load_ships(update_center_from_selection: bool = true) -> void:
 				break
 		_current_ship_index = current_index
 
-	# Counter label
+	# Counter label: hidden (no longer show "vaisseaux X/Y")
 	if ship_count_label:
-		var count_str := str(unlocked_ids.size()) + " / " + str(total_ships)
-		var translated := LocaleManager.translate("ship_menu_unlocked_count", {"unlocked": str(unlocked_ids.size()), "total": str(total_ships)})
-		if translated != "ship_menu_unlocked_count":
-			ship_count_label.text = translated
-		else:
-			ship_count_label.text = count_str
+		ship_count_label.visible = false
 
 	# Build all ship cards in track
 	for i in range(total_ships):
@@ -962,15 +1057,16 @@ func _load_ships(update_center_from_selection: bool = true) -> void:
 		var is_unlocked := unlocked_ids.has(s_id)
 		var is_selected := (s_id == selected_ship_id)
 		_create_ship_card(s_id, s_name, is_unlocked, is_selected, ship_dict)
-		var card: Control = _ship_track.get_child(_ship_track.get_child_count() - 1) as Control
-		card.position = Vector2(i * (_ship_card_size.x + SHIP_TRACK_GAP), 0.0)
-		card.size = _ship_card_size
-		_ship_items.append({"node": card, "ship_id": s_id, "data": ship_dict})
+		var parent_node: Control = _ship_track if _ship_track != null else ship_cards_container
+		var wrapper: Control = parent_node.get_child(parent_node.get_child_count() - 1) as Control
+		wrapper.position = Vector2(i * (_ship_card_size.x + SHIP_TRACK_GAP), 0.0)
+		wrapper.size = Vector2(_ship_card_size.x, full_card_h)
+		_ship_items.append({"node": wrapper, "ship_id": s_id, "data": ship_dict})
 
 	# Track size and offset
 	if _ship_track and total_ships > 0:
 		var total_w: float = total_ships * _ship_card_size.x + (total_ships - 1) * SHIP_TRACK_GAP
-		_ship_track.size = Vector2(total_w, _ship_card_size.y)
+		_ship_track.size = Vector2(total_w, full_card_h)
 		_ship_track_offset = _offset_for_ship_index(_current_ship_index)
 		_apply_ship_track_offset()
 		if update_center_from_selection:
@@ -1031,9 +1127,10 @@ func _nearest_ship_index_for_offset(offset: float) -> int:
 func _apply_ship_track_offset() -> void:
 	if _ship_track == null:
 		return
+	var full_h: float = _ship_card_size.y + SHIP_STRIP_HEIGHT + SHIP_STRIP_TRANSLATE_MARGIN
 	var y: float = 0.0
 	if ship_container:
-		y = (ship_container.size.y - _ship_card_size.y) * 0.5
+		y = (ship_container.size.y - full_h) * 0.5
 	_ship_track.position = Vector2(_ship_track_offset, y)
 
 func _kill_ship_track_tween() -> void:
@@ -1268,14 +1365,7 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 		lock_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 		lock_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-		# Dark tint
-		var tint := ColorRect.new()
-		tint.color = Color(0, 0, 0, 0.55)
-		tint.set_anchors_preset(Control.PRESET_FULL_RECT)
-		tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lock_overlay.add_child(tint)
-
-		# Lock icon
+		# Lock icon only (centered), no dark tint rectangle
 		var lock_w: float = maxf(16.0, float(lock_cfg.get("width", 64)))
 		var lock_h: float = maxf(16.0, float(lock_cfg.get("height", 64)))
 		var lock_asset: String = str(lock_cfg.get("asset", "res://assets/ui/buttons/locked.png"))
@@ -1291,95 +1381,89 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 		if ResourceLoader.exists(lock_asset):
 			lock_tex_rect.texture = ResourceLoader.load(lock_asset, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 		lock_overlay.add_child(lock_tex_rect)
-
-		# Price row: crystal icon + number (same height as text)
-		var ship_price: int = int(ship_data.get("crystal_price", 0))
-		if ship_price > 0:
-			var txt_color: Color = Color(lock_cfg.get("text_color", "#FFFFFF"))
-			var txt_size: int = int(lock_cfg.get("text_size", 16))
-			var icon_h: float = float(txt_size) + 6.0
-
-			var row := HBoxContainer.new()
-			row.alignment = BoxContainer.ALIGNMENT_CENTER
-			row.add_theme_constant_override("separation", 4)
-			row.set_anchors_preset(Control.PRESET_CENTER)
-			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			# Position row below lock icon
-			row.position = Vector2(-70.0, lock_h * 0.5 + 4.0)
-			row.size = Vector2(140.0, icon_h + 4.0)
-
-			# Crystal icon (shared_assets > crystal_icon)
-			var crystal_cfg: Dictionary = {}
-			var crystal_v: Variant = shared.get("crystal_icon", {})
-			if crystal_v is Dictionary:
-				crystal_cfg = crystal_v as Dictionary
-			var crystal_asset: String = str(crystal_cfg.get("asset", ""))
-			var crystal_tex: Texture2D = null
-			if crystal_asset != "" and ResourceLoader.exists(crystal_asset):
-				var res: Resource = ResourceLoader.load(crystal_asset, "", ResourceLoader.CACHE_MODE_REUSE)
-				if res is Texture2D:
-					crystal_tex = res as Texture2D
-				elif res is SpriteFrames:
-					var frames: SpriteFrames = res as SpriteFrames
-					var anim_name: StringName = &"default"
-					if frames.get_animation_names().size() > 0:
-						anim_name = frames.get_animation_names()[0]
-					if frames.get_frame_count(anim_name) > 0:
-						crystal_tex = frames.get_frame_texture(anim_name, 0)
-			if crystal_tex:
-				var crystal_icon_rect := TextureRect.new()
-				crystal_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				crystal_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				crystal_icon_rect.custom_minimum_size = Vector2(icon_h, icon_h)
-				crystal_icon_rect.texture = crystal_tex
-				crystal_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				row.add_child(crystal_icon_rect)
-
-			var price_lbl := Label.new()
-			price_lbl.text = str(ship_price)
-			price_lbl.add_theme_font_size_override("font_size", txt_size)
-			price_lbl.add_theme_color_override("font_color", txt_color)
-			price_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			price_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(price_lbl)
-
-			lock_overlay.add_child(row)
-
+		# Prix et cristaux : affichés dans la bande bleue en dessous, pas sur la carte
 		card.add_child(lock_overlay)
 
-	# 6. LOGIQUE D'ANIMATION (réservé pour futur usage)
-	
-	# 7. Bouton Invisible pour l'interaction
-	var btn := Button.new()
-	btn.flat = true
-	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
-	btn.mouse_filter = Control.MOUSE_FILTER_PASS
-	
-	var empty_style = StyleBoxEmpty.new()
-	btn.add_theme_stylebox_override("normal", empty_style)
-	btn.add_theme_stylebox_override("pressed", empty_style)
-	btn.add_theme_stylebox_override("focus", empty_style)
-	
-	var hover_style = StyleBoxFlat.new()
-	hover_style.bg_color = Color(1, 1, 1, 0.05)
-	btn.add_theme_stylebox_override("hover", hover_style)
-	
-	if is_selected:
-		btn.disabled = true
-		btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 6. Wrapper (carte + bande sous le vaisseau)
+	var parent_node: Control = _ship_track if _ship_track != null else ship_cards_container
+	var wrapper := VBoxContainer.new()
+	wrapper.add_theme_constant_override("separation", 0)
+	wrapper.custom_minimum_size = Vector2(_ship_card_size.x, _ship_card_size.y + SHIP_STRIP_HEIGHT + SHIP_STRIP_TRANSLATE_MARGIN)
+	wrapper.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrapper.add_child(card)
+
+	# Bande sous la carte : cristaux (vérouillé) ou bouton Sélectionner / Sélectionné (débloqué)
+	if not is_unlocked:
+		var ship_price: int = int(ship_data.get("crystal_price", 0))
+		var crystal_btn := Button.new()
+		crystal_btn.custom_minimum_size = Vector2(_ship_card_size.x, SHIP_STRIP_HEIGHT)
+		crystal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		crystal_btn.pressed.connect(_on_crystal_strip_pressed.bind(ship_id))
+		crystal_btn.text = ""
+		UIStyle.apply_default_button_style(crystal_btn, "small")
+		# Icône cristaux (max 15px hauteur) + prix
+		var hbox := HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		hbox.add_theme_constant_override("separation", 6)
+		hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var shared: Dictionary = _game_config.get("shared_assets", {})
+		var crystal_cfg: Dictionary = shared.get("crystal_icon", {}) if shared.get("crystal_icon") is Dictionary else {}
+		var crystal_asset: String = str(crystal_cfg.get("asset", ""))
+		var crystal_tex: Texture2D = null
+		if crystal_asset != "" and ResourceLoader.exists(crystal_asset):
+			var res: Resource = ResourceLoader.load(crystal_asset, "", ResourceLoader.CACHE_MODE_REUSE)
+			if res is Texture2D:
+				crystal_tex = res as Texture2D
+			elif res is SpriteFrames:
+				var frames: SpriteFrames = res as SpriteFrames
+				if frames.get_animation_names().size() > 0 and frames.get_frame_count(frames.get_animation_names()[0]) > 0:
+					crystal_tex = frames.get_frame_texture(frames.get_animation_names()[0], 0)
+		if crystal_tex:
+			var crystal_icon_rect := TextureRect.new()
+			crystal_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			crystal_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			crystal_icon_rect.custom_minimum_size = Vector2(15, 15)
+			crystal_icon_rect.texture = crystal_tex
+			hbox.add_child(crystal_icon_rect)
+		var price_lbl := Label.new()
+		price_lbl.text = str(ship_price)
+		var btn_cfg: Dictionary = _game_config.get("buttons", {}).get("default_style", {})
+		var font_preset: Dictionary = UIStyle.get_button_font_preset("small")
+		price_lbl.add_theme_font_size_override("font_size", int(font_preset.get("font_size", 14)))
+		price_lbl.add_theme_color_override("font_color", Color(str(btn_cfg.get("text_color", "#FFFFFF"))))
+		hbox.add_child(price_lbl)
+		crystal_btn.add_child(hbox)
+		wrapper.add_child(crystal_btn)
 	else:
-		btn.pressed.connect(func():
-			if not _ship_dragging:
-				_on_ship_card_pressed(ship_id)
-		)
-	
-	card.add_child(btn)
-	
-	# Metadata & Finalisation
+		var strip_btn := Button.new()
+		strip_btn.custom_minimum_size = Vector2(_ship_card_size.x, SHIP_STRIP_HEIGHT)
+		if is_selected:
+			strip_btn.text = LocaleManager.translate("ship_menu_selected")
+			strip_btn.disabled = true
+			UIStyle.apply_validation_to_button(strip_btn, {}, "small")
+			strip_btn.add_theme_color_override("font_disabled_color", Color(1.0, 1.0, 1.0, 1.0))
+			UIStyle.apply_button_shadow(strip_btn, "small")
+			UIStyle.set_button_shadow_text(strip_btn, LocaleManager.translate("ship_menu_selected"))
+			UIStyle.set_button_shadow_color(strip_btn, Color(1.0, 1.0, 1.0, 1.0))
+		else:
+			strip_btn.text = LocaleManager.translate("ship_menu_select_button")
+			UIStyle.apply_default_button_style(strip_btn, "small")
+			UIStyle.apply_button_shadow(strip_btn, "small")
+			UIStyle.set_button_shadow_text(strip_btn, LocaleManager.translate("ship_menu_select_button"))
+			strip_btn.pressed.connect(func():
+				if not _ship_dragging:
+					_on_ship_card_pressed(ship_id)
+			)
+		wrapper.add_child(strip_btn)
+
 	card.set_meta("ship_id", ship_id)
 	card.set_meta("price", int(ship_data.get("crystal_price", 0)))
-	var parent_node: Control = _ship_track if _ship_track != null else ship_cards_container
-	parent_node.add_child(card)
+	wrapper.set_meta("ship_id", ship_id)
+	parent_node.add_child(wrapper)
 
 func _get_first_spriteframes_animation(frames: SpriteFrames) -> StringName:
 	if frames == null:
@@ -1435,65 +1519,68 @@ func _show_purchase_overlay(ship_id: String) -> void:
 		return
 	var price := int(ship_data.get("crystal_price", 0))
 	
-	# Trouver la carte du vaisseau
+	# Trouver la carte du vaisseau (enfant du wrapper)
 	var cards_parent: Node = ship_cards_container
 	if _ship_track != null:
 		cards_parent = _ship_track
-	for card in cards_parent.get_children():
-		if card.has_meta("ship_id") and card.get_meta("ship_id") == ship_id:
-			# Vérifier si un overlay existe déjà
-			var existing_overlay: Node = card.get_node_or_null("PurchaseOverlay")
-			if existing_overlay:
-				existing_overlay.queue_free()
-				return # Toggle off
-			
-			# Créer l'overlay
-			var overlay := PanelContainer.new()
-			overlay.name = "PurchaseOverlay"
-			overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-			
-			var overlay_style := StyleBoxFlat.new()
-			overlay_style.bg_color = Color(0, 0, 0, 0.8)
-			overlay.add_theme_stylebox_override("panel", overlay_style)
-			
-			var vbox := VBoxContainer.new()
-			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-			overlay.add_child(vbox)
-			
-			# Spacer top
-			var spacer_top := Control.new()
-			spacer_top.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			vbox.add_child(spacer_top)
-			
-			# Prix
-			var price_label := Label.new()
-			price_label.text = str(price) + " cristaux"
-			price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			price_label.add_theme_font_size_override("font_size", 20)
-			vbox.add_child(price_label)
-			
-			# Bouton Acheter
-			var buy_btn := Button.new()
-			buy_btn.text = LocaleManager.translate("shop_buy")
-			buy_btn.custom_minimum_size = Vector2(80, 35)
-			buy_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-			var can_afford := ProfileManager.get_crystals() >= price
-			buy_btn.disabled = not can_afford
-			buy_btn.pressed.connect(func():
-				selected_ship_id = ship_id
-				_on_ship_unlock_pressed()
-				overlay.queue_free()
-			)
-			vbox.add_child(buy_btn)
-			
-			# Spacer bottom
-			var spacer_bottom := Control.new()
-			spacer_bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			vbox.add_child(spacer_bottom)
-			
-			card.add_child(overlay)
-			break
+	for wrapper in cards_parent.get_children():
+		if not wrapper.has_meta("ship_id") or wrapper.get_meta("ship_id") != ship_id:
+			continue
+		var card: Node = wrapper.get_child(0) if wrapper.get_child_count() > 0 else wrapper
+		# Vérifier si un overlay existe déjà
+		var existing_overlay: Node = card.get_node_or_null("PurchaseOverlay")
+		if existing_overlay:
+			existing_overlay.queue_free()
+			return # Toggle off
+
+		# Créer l'overlay
+		var overlay := PanelContainer.new()
+		overlay.name = "PurchaseOverlay"
+		overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+		var overlay_style := StyleBoxFlat.new()
+		overlay_style.bg_color = Color(0, 0, 0, 0.8)
+		overlay.add_theme_stylebox_override("panel", overlay_style)
+
+		var vbox := VBoxContainer.new()
+		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		overlay.add_child(vbox)
+
+		# Spacer top
+		var spacer_top := Control.new()
+		spacer_top.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		vbox.add_child(spacer_top)
+
+		# Prix
+		var price_label := Label.new()
+		price_label.text = str(price) + " cristaux"
+		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		price_label.add_theme_font_size_override("font_size", 20)
+		vbox.add_child(price_label)
+
+		# Bouton Acheter
+		var buy_btn := Button.new()
+		buy_btn.text = LocaleManager.translate("shop_buy")
+		buy_btn.custom_minimum_size = Vector2(80, 35)
+		buy_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var can_afford := ProfileManager.get_crystals() >= price
+		buy_btn.disabled = not can_afford
+		buy_btn.pressed.connect(func():
+			selected_ship_id = ship_id
+			_on_ship_unlock_pressed()
+			overlay.queue_free()
+		)
+		vbox.add_child(buy_btn)
+		UIStyle.apply_button_shadow(buy_btn, "small")
+
+		# Spacer bottom
+		var spacer_bottom := Control.new()
+		spacer_bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		vbox.add_child(spacer_bottom)
+
+		card.add_child(overlay)
+		break
 
 func _update_ship_info(ship_id: String) -> void:
 	_cleanup_orphaned_icons()
@@ -1510,13 +1597,14 @@ func _update_ship_info(ship_id: String) -> void:
 	
 	var name_lbl = Label.new()
 	name_lbl.text = s_name.to_upper()
-	name_lbl.add_theme_font_size_override("font_size", 24)
+	var sh_config = _game_config.get("ship_menu", {})
+	var default_font_sz: int = int(sh_config.get("default_font_size", 16))
+	name_lbl.add_theme_font_size_override("font_size", default_font_sz)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ship_stats_container.add_child(name_lbl)
 	
 	# Calculated Stats
 	var final_stats = _calculate_ship_stats(ship_id)
-	var sh_config = _game_config.get("ship_menu", {})
 	var max_vals = sh_config.get("stats_max_values", {})
 	var stat_cfgs = sh_config.get("ship_stats", {})
 	var stat_icons_override = sh_config.get("stat_icons", {}) # NEW: Read overrides
@@ -1547,21 +1635,6 @@ func _update_ship_info(ship_id: String) -> void:
 					cfg[anim_key] = shared_crystal_icon_cfg[anim_key]
 		return cfg
 	
-	# 2. SUMMARY ROW (Power, Crystals, Shop)
-	var summary_row = HBoxContainer.new()
-	summary_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	summary_row.add_theme_constant_override("separation", 30)
-	ship_stats_container.add_child(summary_row)
-	
-	# Power
-	_add_stat_summary_item(summary_row, "POWER", str(int(final_stats.power)), get_cfg.call("power"))
-	
-	# Crystals
-	_add_stat_summary_item(summary_row, "CRISTAUX", str(ProfileManager.get_crystals()), get_cfg.call("crystals"))
-	
-	# Shop (icon only)
-	_add_stat_summary_shop_button(summary_row, get_cfg.call("shop"))
-	
 	# 3. DETAILED STATS GRID
 	var grid = HBoxContainer.new()
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1583,10 +1656,9 @@ func _update_ship_info(ship_id: String) -> void:
 	for stat_key in stat_order:
 		if stat_key == "missile_count":
 			continue
-		# Power is already shown in the summary row.
-		if stat_key == "power":
+		if stat_key == "missile_damage":
 			continue
-
+		# power, hp, fire_rate, etc. : tous en bloc détaillé (petit format)
 		var value: float = float(final_stats.get(stat_key, 0.0))
 		var max_value: float = _resolve_ship_stat_max_value(stat_key, max_vals, value)
 		var label: String = _resolve_ship_stat_label(stat_key)
@@ -1604,6 +1676,12 @@ func _update_locking_ui(_ship_id: String) -> void:
 	# Bouton "Acheter (X cristaux)" sous le slide retiré : le déblocage se fait via le lock overlay sur la carte
 	if ship_unlock_btn:
 		ship_unlock_btn.visible = false
+
+func _on_crystal_strip_pressed(ship_id: String) -> void:
+	if _ship_dragging:
+		return
+	selected_ship_id = ship_id
+	_on_ship_unlock_pressed()
 
 func _on_ship_unlock_pressed() -> void:
 	if selected_ship_id == "": return
@@ -2065,6 +2143,11 @@ func _on_back_pressed() -> void:
 	else:
 		get_tree().change_scene_to_file("res://scenes/HomeScreen.tscn")
 
+func _on_header_crystals_pressed() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/ShopMenu.tscn")
+
 
 
 # =============================================================================
@@ -2115,23 +2198,23 @@ func _update_powers_ui() -> void:
 		up_button.add_theme_color_override("font_hover_color", up_text_color)
 		up_button.add_theme_color_override("font_pressed_color", up_text_color)
 		up_button.add_theme_font_size_override("font_size", up_font_size)
-		# Button doesn't support letter_spacing directly via theme constant
+		UIStyle.set_button_shadow_color(up_button, up_text_color)
 		
 		var avail := ProfileManager.get_available_unique_powers(selected_ship_id)
 		if avail.is_empty():
-			up_button.text = LocaleManager.translate("ship_menu_none")
-			up_button.disabled = false # Still clickable but nothing to select
-			up_button.modulate.a = 0.7 # Reduced opacity
+			UIStyle.set_button_shadow_text(up_button, LocaleManager.translate("ship_menu_none"))
+			up_button.disabled = false
+			up_button.modulate.a = 0.7
 		else:
-			up_button.modulate.a = 1.0 # Full opacity
+			up_button.modulate.a = 1.0
 			up_button.disabled = false
 			var active := ProfileManager.get_active_unique_power(selected_ship_id)
 			if active != "":
 				var p_data := DataManager.get_unique_power(active)
-				up_button.text = str(p_data.get("name", active))
+				UIStyle.set_button_shadow_text(up_button, str(p_data.get("name", active)))
 			else:
-				up_button.text = LocaleManager.translate("ship_menu_none")
-				up_button.modulate.a = 0.7 # No power selected
+				UIStyle.set_button_shadow_text(up_button, LocaleManager.translate("ship_menu_none"))
+				up_button.modulate.a = 0.7
 
 func _on_up_button_pressed() -> void:
 	if selected_ship_id == "": return
@@ -2162,6 +2245,7 @@ func _refresh_unique_popup_list() -> void:
 			
 		btn.pressed.connect(func(): _on_unique_power_selected(pid))
 		unique_list.add_child(btn)
+		UIStyle.apply_button_shadow(btn, "small")
 
 func _on_unique_power_selected(pid: String) -> void:
 	ProfileManager.set_active_unique_power(selected_ship_id, pid)
@@ -2258,9 +2342,9 @@ func _setup_rarity_filter_ui() -> void:
 	if filters_container.has_node("RarityFilterContainer"):
 		return
 	
-	var rarity_box = HBoxContainer.new()
+	var rarity_box = VBoxContainer.new()
 	rarity_box.name = "RarityFilterContainer"
-	rarity_box.add_theme_constant_override("separation", 15)
+	rarity_box.add_theme_constant_override("separation", 8)
 	
 	# Add to FiltersContainer (Row 2, after icons)
 	filters_container.add_child(rarity_box)
@@ -2268,6 +2352,8 @@ func _setup_rarity_filter_ui() -> void:
 	# RESTORED: "Slot:" or "Emplacement :" label Logic
 	# Actually, user asked for "Empl. :" just BEFORE filters.
 	# Since icons are the first row, we should add the label BEFORE the icon box.
+	
+	var default_font_sz: int = int(_game_config.get("ship_menu", {}).get("default_font_size", 16))
 	
 	# Check if label already exists or add it
 	var slot_label = filters_container.get_node_or_null("SlotLabelPlaceholder")
@@ -2277,18 +2363,22 @@ func _setup_rarity_filter_ui() -> void:
 		slot_label.text = LocaleManager.translate("ship_menu_slot_label") # "Empl. :"
 		# If translation missing, fallback
 		if slot_label.text == "ship_menu_slot_label": slot_label.text = "Empl. :"
-		
+		slot_label.add_theme_font_size_override("font_size", default_font_sz)
 		# Insert at top (index 0), shifting icons to 1
 		filters_container.add_child(slot_label)
 		filters_container.move_child(slot_label, 0)
 	else:
 		slot_label.text = "Empl. :" # Force update or use translation
+		slot_label.add_theme_font_size_override("font_size", default_font_sz)
 	
+	# Ligne 1 : label "Rareté" seul
 	rarity_filter_label = Label.new()
 	rarity_filter_label.name = "RarityFilterLabel"
 	rarity_filter_label.text = LocaleManager.translate("ship_menu_rarity_label")
+	rarity_filter_label.add_theme_font_size_override("font_size", default_font_sz)
 	rarity_box.add_child(rarity_filter_label)
 	
+	# Ligne 2 : boutons de filtre rareté
 	var badges_box = HBoxContainer.new()
 	badges_box.add_theme_constant_override("separation", 8)
 	rarity_box.add_child(badges_box)
@@ -2556,6 +2646,7 @@ func _show_recycle_confirmation_popup(message_text: String, on_confirm: Callable
 		_close_recycle_confirmation_popup()
 	)
 	hbox.add_child(btn_confirm)
+	UIStyle.apply_button_shadow(btn_confirm, "medium")
 	
 	var btn_cancel = Button.new()
 	btn_cancel.text = LocaleManager.translate("cancel")
@@ -2571,6 +2662,7 @@ func _show_recycle_confirmation_popup(message_text: String, on_confirm: Callable
 	btn_cancel.custom_minimum_size = Vector2(160, 50)
 	btn_cancel.pressed.connect(_close_recycle_confirmation_popup)
 	hbox.add_child(btn_cancel)
+	UIStyle.apply_button_shadow(btn_cancel, "medium")
 	
 	add_child(popup)
 	popup.set_anchors_preset(Control.PRESET_CENTER)
@@ -2757,12 +2849,11 @@ func _on_popup_upgrade_pressed() -> void:
 	# Disable button temporarily
 	if popup_upgrade_btn: 
 		popup_upgrade_btn.disabled = true
-		popup_upgrade_btn.text = LocaleManager.translate("upgrading") + "..."
+		UIStyle.set_button_shadow_text(popup_upgrade_btn, LocaleManager.translate("upgrading") + "...")
 	
-	# Disable NEW popup button
 	if _item_details_popup and _item_details_popup.upgrade_btn:
 		_item_details_popup.upgrade_btn.disabled = true
-		_item_details_popup.upgrade_btn.text = LocaleManager.translate("upgrading") + "..."
+		UIStyle.set_button_shadow_text(_item_details_popup.upgrade_btn, LocaleManager.translate("upgrading") + "...")
 	
 	# CRAFTING DELAY (3 seconds)
 	var sh_opts = _game_config.get("ship_menu", {})
@@ -3049,11 +3140,11 @@ func _calculate_ship_stats(ship_id: String) -> Dictionary:
 
 func _get_ship_stat_display_order() -> Array[String]:
 	var ordered: Array[String] = [
-		"max_hp",
+		"power",
 		"move_speed",
+		"max_hp",
 		"fire_rate",
 		"missile_speed_pct",
-		"missile_damage",
 		"crit_chance",
 		"crit_damage",
 		"dodge_chance",
@@ -3064,8 +3155,7 @@ func _get_ship_stat_display_order() -> Array[String]:
 		"shield_regen",
 		"loot_radius",
 		"luck",
-		"xp_multiplier",
-		"power"
+		"xp_multiplier"
 	]
 
 	var slot_ids_variant: Variant = DataManager.get_slot_ids()
@@ -3182,89 +3272,6 @@ func _calculate_levels_completed() -> int:
 				count += 1 # The 6th level
 	return count
 
-func _add_stat_summary_item(parent: Control, label_text: String, value_text: String, cfg: Dictionary) -> void:
-	if not parent: return
-	
-	var item_hbox = HBoxContainer.new()
-	item_hbox.add_theme_constant_override("separation", 10)
-	item_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var icon_path = _resolve_asset_path(str(cfg.get("icon_asset", "")))
-	# Apply scaling: Icon +120% (x2.2), Font +25% (x1.25)
-	var w = int(cfg.get("icon_width", 32) * 2.2) 
-	var h = int(cfg.get("icon_height", 32) * 2.2)
-	var font_sz = int(cfg.get("font_size", 22) * 1.25)
-	var font_col = Color(str(cfg.get("font_color", "#FFFFFF")))
-
-	if icon_path != "" and ResourceLoader.exists(icon_path):
-		var icon_control = Control.new()
-		icon_control.custom_minimum_size = Vector2(w, h)
-		icon_control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		item_hbox.add_child(icon_control)
-		_add_ship_stat_icon(icon_control, icon_path, w, h, cfg)
-		
-	var text_vbox = VBoxContainer.new()
-	text_vbox.add_theme_constant_override("separation", -2)
-	text_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var lbl = Label.new()
-	lbl.text = label_text.to_upper()
-	lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	lbl.add_theme_font_size_override("font_size", int(12 * 1.25)) # +25%
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	text_vbox.add_child(lbl)
-	
-	var val_lbl = Label.new()
-	val_lbl.text = value_text
-	val_lbl.add_theme_font_size_override("font_size", font_sz)
-	val_lbl.add_theme_color_override("font_color", font_col)
-	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	text_vbox.add_child(val_lbl)
-	
-	item_hbox.add_child(text_vbox)
-	parent.add_child(item_hbox)
-
-func _add_stat_summary_shop_button(parent: Control, cfg: Dictionary) -> void:
-	if not parent: return
-	
-	var item_hbox = HBoxContainer.new()
-	item_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	item_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	parent.add_child(item_hbox)
-	
-	var icon_path = _resolve_asset_path(str(cfg.get("icon_asset", "")))
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
-		var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-		var fallback_shop_icon = str(ui_icons.get("shop_icon", ""))
-		if fallback_shop_icon != "" and ResourceLoader.exists(fallback_shop_icon):
-			icon_path = fallback_shop_icon
-	
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
-		var default_icon := ""
-		if DataManager and DataManager.has_method("get_shared_crystal_icon_path"):
-			default_icon = str(DataManager.get_shared_crystal_icon_path())
-		if ResourceLoader.exists(default_icon):
-			icon_path = default_icon
-	
-	var w = int(cfg.get("icon_width", 30) * 2.2)
-	var h = int(cfg.get("icon_height", 30) * 2.2)
-	
-	var shop_btn := TextureButton.new()
-	shop_btn.custom_minimum_size = Vector2(w, h)
-	shop_btn.ignore_texture_size = true
-	shop_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	shop_btn.pressed.connect(_on_shop_button_pressed)
-	item_hbox.add_child(shop_btn)
-	
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
-		return
-	
-	var icon_control = Control.new()
-	icon_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shop_btn.add_child(icon_control)
-	_add_ship_stat_icon(icon_control, icon_path, w, h, cfg)
-
 func _add_ship_stat_icon(icon_parent: Control, icon_path: String, w: int, h: int, cfg: Dictionary) -> void:
 	if not icon_parent:
 		return
@@ -3373,15 +3380,17 @@ func _repeat_ship_stat_icon(
 		VFXManager.play_sprite_frames(anim, source_frames, anim_name, play_loop, play_duration)
 
 func _add_detailed_stat(parent: Control, stat_key: String, label_text: String, current_value: float, max_value: float, cfg: Dictionary, bar_color_hex: String) -> void:
+	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
+	var default_font_sz: int = int(ship_menu_cfg.get("default_font_size", 16))
+	
 	var item_hbox = HBoxContainer.new()
 	item_hbox.add_theme_constant_override("separation", 10)
 	parent.add_child(item_hbox)
 	
 	var icon_path = _resolve_asset_path(str(cfg.get("icon_asset", "")))
-	# Apply scaling: Icon +120% (x2.2), Font +25% (x1.25)
+	# Apply scaling: Icon +120% (x2.2). Label = default_font_size (taille normale)
 	var w = int(cfg.get("icon_width", 24) * 2.2)
 	var h = int(cfg.get("icon_height", 24) * 2.2)
-	var font_sz = int(cfg.get("font_size", 16) * 1.25)
 	var font_col = Color(str(cfg.get("font_color", "#FFFFFF")))
 	
 	if icon_path != "" and ResourceLoader.exists(icon_path):
@@ -3397,7 +3406,7 @@ func _add_detailed_stat(parent: Control, stat_key: String, label_text: String, c
 	
 	var lbl = Label.new()
 	lbl.text = label_text.to_upper()
-	lbl.add_theme_font_size_override("font_size", font_sz)
+	lbl.add_theme_font_size_override("font_size", default_font_sz)
 	lbl.add_theme_color_override("font_color", font_col)
 	content_vbox.add_child(lbl)
 	
@@ -3414,8 +3423,9 @@ func _add_detailed_stat(parent: Control, stat_key: String, label_text: String, c
 	content_vbox.add_child(bar_control)
 	item_hbox.add_child(content_vbox)
 	
-	# Value Label (Right aligned)
-	var stat_font_size: int = int(_game_config.get("ship_options", {}).get("stats_number_font_size", 20))
+	# Value Label (Right aligned) — taille depuis ship_options.stats_number_font_size ou ship_menu.default_font_size
+	var ship_opts: Dictionary = _game_config.get("ship_options", {})
+	var stat_font_size: int = int(ship_opts.get("stats_number_font_size", ship_menu_cfg.get("default_font_size", 16)))
 	var val_label = Label.new()
 	
 	# Formatting logic
@@ -3492,6 +3502,15 @@ func _load_game_config() -> void:
 		if json.parse(file.get_as_text()) == OK:
 			_game_config = json.data
 		file.close()
+
+func _apply_menu_header_offset() -> void:
+	if margin_container == null:
+		return
+	var h: Variant = _game_config.get("menu_header", {})
+	if h is Dictionary:
+		var height_px: int = int((h as Dictionary).get("height_px", 72))
+		var margin_t: int = int((h as Dictionary).get("margin_top", 8))
+		margin_container.add_theme_constant_override("margin_top", height_px + margin_t)
 
 func _apply_popup_style() -> void:
 	var popups_config: Dictionary = _game_config.get("popups", {})

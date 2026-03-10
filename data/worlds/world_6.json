@@ -4,17 +4,40 @@
 	"description": "Une cité morte hantée par les ombres d'un empire déchu, où les murs murmurent encore.",
 	"order": 6,
 	"skin_overrides": {
-		"enemies": {},
-		"bosses": {},
-		"obstacles": {}
+		"enemies": {
+			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+			"fighter": "res://assets/enemies/atlantis/fighter.tres",
+			"tank": "res://assets/enemies/atlantis/tank.tres",
+			"artillery": "res://assets/enemies/atlantis/artillery.tres",
+			"elite": "res://assets/enemies/atlantis/elite.tres"
+		},
+		"bosses": {
+			"boss_atlantis_1": "res://assets/bosses/atlantis/atlantis_boss_1.tres",
+			"boss_atlantis_2": "res://assets/bosses/atlantis/atlantis_boss_2.tres",
+			"boss_atlantis_3": "res://assets/bosses/atlantis/atlantis_boss_3.tres",
+			"boss_atlantis_4": "res://assets/bosses/atlantis/atlantis_boss_4.tres",
+			"boss_atlantis_5": "res://assets/bosses/atlantis/atlantis_boss_5.tres",
+			"boss_atlantis_final": "res://assets/bosses/atlantis/atlantis_boss_final.tres"
+		},
+		"obstacles": {
+			"explosives": [
+				"res://assets/obstacles/necropolis/obstacle_explosive_1.png",
+				"res://assets/obstacles/necropolis/obstacle_explosive_2.png",
+				"res://assets/obstacles/necropolis/obstacle_explosive_3.png",
+				"res://assets/obstacles/necropolis/obstacle_explosive_4.png",
+				"res://assets/obstacles/necropolis/obstacle_explosive_5.png",
+				"res://assets/obstacles/necropolis/obstacle_explosive_6.png"
+			]
+		}
 	},
 	"multipliers": {
 		"hp": 8.5,
 		"damage": 5.5,
-		"speed": 1.5
+		"speed": 1.1
 	},
 	"theme": {
 		"background": "",
+		"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_world.jpg",
 		"music": "res://assets/music/starlight.ogg",
 		"color_palette": "#2c1e3f"
 	},
@@ -27,15 +50,8 @@
 			"duration_sec": 60,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_0.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_0.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_0.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/necropolis/layer_2_necro_0.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -63,7 +79,7 @@
 				{
 					"time": 26.1,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -103,15 +119,8 @@
 			"duration_sec": 80,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_1.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_1.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_1.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -139,7 +148,7 @@
 				{
 					"time": 25.2,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -176,7 +185,7 @@
 				{
 					"time": 54.8,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -215,15 +224,8 @@
 			"duration_sec": 100,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_2.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_2.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_2.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/necropolis/layer_2_necro_2.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -251,7 +253,7 @@
 				{
 					"time": 24.7,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -282,7 +284,7 @@
 				{
 					"time": 53.6,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -319,7 +321,7 @@
 				{
 					"time": 82.5,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -345,15 +347,8 @@
 			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_3.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_3.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_3.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/necropolis/layer_2_necro_3.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -418,7 +413,7 @@
 				{
 					"time": 56.2,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -449,7 +444,7 @@
 				{
 					"time": 86.6,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -489,15 +484,8 @@
 			"duration_sec": 140,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_4.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_4.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_4.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/necropolis/layer_2_necro_0.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -525,7 +513,7 @@
 				{
 					"time": 25.3,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -556,7 +544,7 @@
 				{
 					"time": 55.1,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -587,7 +575,7 @@
 				{
 					"time": 84.9,
 					"type": "obstacle",
-					"obstacle_id": "planet_large",
+					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
 					"duration": 15.0,
 					"speed": 70,
@@ -624,7 +612,7 @@
 				{
 					"time": 114.7,
 					"type": "obstacle",
-					"obstacle_id": "energy_barrier",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 150,
@@ -657,15 +645,8 @@
 			"duration_sec": 160,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_5.png",
+				"sphere_texture": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_5.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_5.png",
-				"mid_layer": [
-					[
-						{
-							"asset": "res://assets/backgrounds/worlds/necropolis/layer_2_necro_1.png",
-							"opacity": 1.0
-						}
-					]
-				],
 				"near_layer": []
 			},
 			"waves": [
@@ -693,7 +674,7 @@
 				{
 					"time": 25.0,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,
@@ -761,7 +742,7 @@
 				{
 					"time": 83.7,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall_destructible",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 160,
@@ -792,7 +773,7 @@
 				{
 					"time": 113.0,
 					"type": "obstacle",
-					"obstacle_id": "metal_wall",
+					"obstacle_id": "asteroid_medium",
 					"pattern": "gates",
 					"duration": 15.0,
 					"speed": 180,

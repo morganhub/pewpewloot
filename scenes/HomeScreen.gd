@@ -10,6 +10,7 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 # =============================================================================
 
 @onready var background_rect: TextureRect = $Background
+@onready var menu_header: Control = $MenuHeader
 @onready var top_section: VBoxContainer = $TopSection
 @onready var bottom_section: VBoxContainer = $BottomSection
 
@@ -17,12 +18,6 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var logo_texture: TextureRect = $TopSection/LogoTexture
 @onready var logo_anim_container: Control = $TopSection/LogoAnimContainer
 @onready var logo_anim: AnimatedSprite2D = $TopSection/LogoAnimContainer/LogoAnim
-@onready var profile_info_panel: PanelContainer = $TopSection/ProfileInfoPanel
-@onready var profile_info: HBoxContainer = $TopSection/ProfileInfoPanel/Margin/ProfileInfo
-@onready var crystal_icon: TextureRect = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/CrystalIcon
-@onready var crystal_label: Label = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/CrystalLabel
-@onready var level_label: Label = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/LevelLabel
-@onready var ship_preview: HBoxContainer = $TopSection/ProfileInfoPanel/Margin/ProfileInfo/ShipPreview
 
 @onready var play_button: Button = $BottomSection/PlayButton
 @onready var ship_button: Button = $BottomSection/ShipButton
@@ -31,9 +26,10 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var quit_button: Button = $BottomSection/QuitButton
 @onready var change_profile_button: Button = $BottomSection/ChangeProfileButton
 @onready var unlock_all_button: Button = $BottomSection/UnlockAllButton
+@onready var reset_viewed_stories_button: Button = $BottomSection/ResetViewedStoriesButton
+@onready var start_story_button: Button = $BottomSection/StartStoryButton
 
 var _game_config: Dictionary = {}
-var _crystal_anim: AnimatedSprite2D = null
 static var _logo_first_visit: bool = true
 
 # =============================================================================
@@ -47,9 +43,10 @@ func _ready() -> void:
 	_setup_background()
 	_setup_logo()
 	_setup_buttons()
-	_setup_profile_info_bar()
 	_apply_translations()
-	_update_info()
+	if menu_header and menu_header.has_signal("crystals_pressed"):
+		if not menu_header.crystals_pressed.is_connected(_on_crystals_header_pressed):
+			menu_header.crystals_pressed.connect(_on_crystals_header_pressed)
 	_request_menu_prewarm()
 	
 	# Connect signals
@@ -62,9 +59,21 @@ func _ready() -> void:
 	
 	# Temporary dev button (editor only): regenerate movement curve resources.
 	if unlock_all_button:
-		unlock_all_button.visible = OS.has_feature("editor")
+		unlock_all_button.visible = ProfileManager.is_debug_mode_enabled()
 		if unlock_all_button.visible:
 			unlock_all_button.pressed.connect(_on_unlock_all_pressed)
+	if reset_viewed_stories_button:
+		reset_viewed_stories_button.visible = ProfileManager.is_debug_mode_enabled()
+		if reset_viewed_stories_button.visible:
+			reset_viewed_stories_button.pressed.connect(_on_reset_viewed_stories_pressed)
+	if start_story_button:
+		start_story_button.visible = ProfileManager.is_debug_mode_enabled()
+		if start_story_button.visible:
+			start_story_button.pressed.connect(_on_start_story_pressed)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and visible and menu_header != null and menu_header.has_method("refresh"):
+		menu_header.refresh()
 
 func _load_game_config() -> void:
 	if DataManager:
@@ -73,197 +82,16 @@ func _load_game_config() -> void:
 		_game_config = {}
 
 func _setup_layout() -> void:
-	# Layout is handled by anchors
-	pass
-
-func _setup_profile_info_bar() -> void:
-	if profile_info_panel == null:
-		return
-
-	var target_width: float = 540.0
-	if play_button and play_button.custom_minimum_size.x > 0.0:
-		target_width = play_button.custom_minimum_size.x
-
-	var target_height: float = 70.0
-	if play_button and play_button.custom_minimum_size.y > 0.0:
-		target_height = play_button.custom_minimum_size.y
-	profile_info_panel.custom_minimum_size = Vector2(target_width, target_height)
-
-	var buttons_config: Dictionary = _game_config.get("buttons", {})
-	var shared_cfg := _extract_shared_button_cfg(buttons_config)
-	var play_cfg := _merge_button_cfg(shared_cfg, buttons_config.get("play", {}))
-	var play_asset: String = str(play_cfg.get("asset", ""))
-
-	var style: StyleBox = null
-	if play_asset != "" and ResourceLoader.exists(play_asset):
-		style = UIStyle.build_texture_stylebox(play_asset, play_cfg, 10)
-	if style == null:
-		var fallback_style := StyleBoxFlat.new()
-		fallback_style.bg_color = Color(0.04, 0.07, 0.15, 0.8)
-		fallback_style.set_corner_radius_all(10)
-		style = fallback_style
-	profile_info_panel.add_theme_stylebox_override("panel", style)
-
-	var crystal_icon_path := _get_shared_crystal_icon_path()
-	_setup_crystal_icon(crystal_icon_path)
-
-func _get_shared_crystal_icon_path() -> String:
-	if DataManager and DataManager.has_method("get_shared_crystal_icon_path"):
-		return str(DataManager.get_shared_crystal_icon_path())
-	return "res://assets/ui/icons/crystal.png"
-
-func _load_texture_from_resource_path(path: String) -> Texture2D:
-	if path == "" or not ResourceLoader.exists(path):
-		return null
-	if DataManager and DataManager.has_method("get_texture_from_resource_path"):
-		return DataManager.get_texture_from_resource_path(path)
-	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
-	if resource is Texture2D:
-		return resource as Texture2D
-	if resource is SpriteFrames:
-		var frames := resource as SpriteFrames
-		var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
-		if anim_name != &"" and frames.get_frame_count(anim_name) > 0:
-			return frames.get_frame_texture(anim_name, 0)
-	return null
-
-func _get_shared_crystal_icon_cfg() -> Dictionary:
-	if DataManager and DataManager.has_method("get_shared_crystal_icon_config"):
-		return DataManager.get_shared_crystal_icon_config()
-	var path := _get_shared_crystal_icon_path()
-	return {
-		"asset": path,
-		"animation_repeat_seconds": 0.0,
-		"animation_type": "loop",
-		"animation_duration": 2.0
-	}
-
-func _setup_crystal_icon(path: String) -> void:
-	if crystal_icon == null:
-		return
-
-	var cfg: Dictionary = _get_shared_crystal_icon_cfg()
-	var resolved_path := str(cfg.get("asset", path)).strip_edges()
-	if resolved_path == "" or not ResourceLoader.exists(resolved_path):
-		resolved_path = path
-
-	if resolved_path == "" or not ResourceLoader.exists(resolved_path):
-		crystal_icon.texture = null
-		crystal_icon.visible = false
-		_clear_home_crystal_anim()
-		return
-
-	var res: Resource = ResourceLoader.load(resolved_path, "", ResourceLoader.CACHE_MODE_REUSE)
-	if res is SpriteFrames:
-		var frames := res as SpriteFrames
-		var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
-		if anim_name != &"" and frames.get_frame_count(anim_name) > 0:
-			var first_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
-			crystal_icon.texture = first_tex
-			crystal_icon.visible = true
-			_ensure_home_crystal_anim(frames, cfg)
-			return
-
-	var crystal_texture := _load_texture_from_resource_path(resolved_path)
-	crystal_icon.texture = crystal_texture
-	crystal_icon.visible = crystal_texture != null
-	_clear_home_crystal_anim()
-
-func _ensure_home_crystal_anim(frames: SpriteFrames, cfg: Dictionary) -> void:
-	if crystal_icon == null:
-		return
-	if _crystal_anim == null or not is_instance_valid(_crystal_anim):
-		_crystal_anim = AnimatedSprite2D.new()
-		_crystal_anim.name = "CrystalAnim"
-		_crystal_anim.centered = true
-		_crystal_anim.z_index = 0
-		crystal_icon.add_child(_crystal_anim)
-		if not crystal_icon.resized.is_connected(_on_home_crystal_icon_resized):
-			crystal_icon.resized.connect(_on_home_crystal_icon_resized)
-
-	_crystal_anim.sprite_frames = frames
-	_on_home_crystal_icon_resized()
-	_play_home_shared_icon(_crystal_anim, cfg)
-
-func _clear_home_crystal_anim() -> void:
-	if _crystal_anim != null and is_instance_valid(_crystal_anim):
-		_crystal_anim.stop()
-		_crystal_anim.visible = false
-		_crystal_anim.queue_free()
-	_crystal_anim = null
-
-func _stop_home_crystal_for_transition() -> void:
-	if crystal_icon:
-		crystal_icon.visible = false
-		crystal_icon.texture = null
-	_clear_home_crystal_anim()
-
-func prepare_for_transition() -> void:
-	_stop_home_crystal_for_transition()
-
-func _on_home_crystal_icon_resized() -> void:
-	if crystal_icon == null or _crystal_anim == null or not is_instance_valid(_crystal_anim):
-		return
-
-	_crystal_anim.position = crystal_icon.size * 0.5
-	var frames: SpriteFrames = _crystal_anim.sprite_frames
-	if frames == null:
-		return
-	var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
-	if anim_name == &"" or frames.get_frame_count(anim_name) <= 0:
-		return
-	var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
-	if frame_tex == null:
-		return
-	var frame_size := frame_tex.get_size()
-	if frame_size.x <= 0.0 or frame_size.y <= 0.0:
-		return
-	var fit_scale := minf(crystal_icon.size.x / frame_size.x, crystal_icon.size.y / frame_size.y)
-	_crystal_anim.scale = Vector2(fit_scale, fit_scale)
-
-func _play_home_shared_icon(anim: AnimatedSprite2D, cfg: Dictionary) -> void:
-	if anim == null or not is_instance_valid(anim):
-		return
-	var frames: SpriteFrames = anim.sprite_frames
-	if frames == null:
-		return
-	var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
-	if anim_name == &"":
-		return
-
-	var repeat_seconds: float = maxf(0.0, float(cfg.get("animation_repeat_seconds", 0.0)))
-	var play_duration: float = maxf(0.0, float(cfg.get("animation_duration", 0.0)))
-	var anim_type: String = str(cfg.get("animation_type", "")).strip_edges().to_lower()
-	var play_loop := repeat_seconds <= 0.0
-	if anim_type == "loop":
-		play_loop = true
-	elif anim_type in ["once", "one_shot", "oneshot", "single"]:
-		play_loop = false
-	if repeat_seconds > 0.0:
-		play_loop = false
-
-	VFXManager.play_sprite_frames(anim, frames, anim_name, play_loop, play_duration)
-	if repeat_seconds > 0.0:
-		_repeat_home_shared_icon(anim, anim_name, repeat_seconds, play_duration, play_loop)
-
-func _repeat_home_shared_icon(
-	anim: AnimatedSprite2D,
-	anim_name: StringName,
-	repeat_seconds: float,
-	play_duration: float,
-	play_loop: bool
-) -> void:
-	while is_instance_valid(anim):
-		var tree := anim.get_tree()
-		if tree == null:
-			return
-		await tree.create_timer(repeat_seconds).timeout
-		if not is_instance_valid(anim):
-			return
-		var frames: SpriteFrames = anim.sprite_frames
-		if frames == null:
-			return
-		VFXManager.play_sprite_frames(anim, frames, anim_name, play_loop, play_duration)
+	var header_height: int = 0
+	var h: Variant = _game_config.get("menu_header", {})
+	if h is Dictionary:
+		header_height = int((h as Dictionary).get("height_px", 72))
+		var margin_t: int = int((h as Dictionary).get("margin_top", 8))
+		header_height += margin_t
+	if top_section:
+		top_section.offset_top = 30 + header_height
+	if bottom_section:
+		bottom_section.offset_top = 0
 
 func _setup_background() -> void:
 	var menu_config: Dictionary = _game_config.get("main_menu", {})
@@ -383,15 +211,43 @@ func _center_logo_anim() -> void:
 					logo_anim.scale = Vector2(scale_factor, scale_factor)
 
 func _setup_buttons() -> void:
-	var buttons_config: Dictionary = _game_config.get("buttons", {})
+	var buttons_config: Dictionary = _game_config.get("home_buttons", {})
 	var shared_cfg := _extract_shared_button_cfg(buttons_config)
-	
-	_setup_single_button(play_button, _merge_button_cfg(shared_cfg, buttons_config.get("play", {})), "home_play")
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+	if not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
+		var play_cfg: Dictionary = buttons_config.get("play", {})
+		var merged_cfg: Dictionary = validation_cfg.duplicate()
+		if play_cfg.has("letter_spacing"):
+			merged_cfg["letter_spacing"] = play_cfg["letter_spacing"]
+		if play_cfg.has("text_color"):
+			merged_cfg["text_color"] = play_cfg["text_color"]
+		if play_cfg.has("text_size"):
+			merged_cfg["text_size"] = play_cfg["text_size"]
+		UIStyle.apply_validation_to_button(play_button, merged_cfg, "large")
+		play_button.text = LocaleManager.translate("home_play")
+		_apply_button_text_shadow(play_button)
+	else:
+		_setup_single_button(play_button, _merge_button_cfg(shared_cfg, buttons_config.get("play", {})), "home_play")
 	_setup_single_button(ship_button, _merge_button_cfg(shared_cfg, buttons_config.get("ship", {})), "home_ship_menu")
 	_setup_single_button(options_button, _merge_button_cfg(shared_cfg, buttons_config.get("options", {})), "home_options")
-	_setup_single_button(quit_button, _merge_button_cfg(shared_cfg, buttons_config.get("quit", {})), "home_quit")
+	var cancel_cfg: Dictionary = UIStyle.get_cancellation_config()
+	if not cancel_cfg.is_empty() and str(cancel_cfg.get("asset", "")) != "":
+		var quit_cfg: Dictionary = buttons_config.get("quit", {})
+		var cancel_merged: Dictionary = cancel_cfg.duplicate()
+		if quit_cfg.has("text_size"):
+			cancel_merged["text_size"] = quit_cfg["text_size"]
+		if quit_cfg.has("letter_spacing"):
+			cancel_merged["letter_spacing"] = quit_cfg["letter_spacing"]
+		UIStyle.apply_cancellation_to_button(quit_button, cancel_merged, "large")
+		quit_button.text = LocaleManager.translate("home_quit")
+		_apply_button_text_shadow(quit_button)
+	else:
+		_setup_single_button(quit_button, _merge_button_cfg(shared_cfg, buttons_config.get("quit", {})), "home_quit")
 	_setup_single_button(skills_button, _merge_button_cfg(shared_cfg, buttons_config.get("skills", {})), "home_skills")
 	_setup_single_button(change_profile_button, _merge_button_cfg(shared_cfg, buttons_config.get("change_profile", {})), "home_change_profile_short")
+	UIStyle.apply_button_shadow(unlock_all_button, "small")
+	UIStyle.apply_button_shadow(reset_viewed_stories_button, "small")
+	UIStyle.apply_button_shadow(start_story_button, "small")
 
 func _extract_shared_button_cfg(buttons_config: Dictionary) -> Dictionary:
 	var shared := {}
@@ -405,6 +261,8 @@ func _extract_shared_button_cfg(buttons_config: Dictionary) -> Dictionary:
 		shared["stretch_vertical"] = buttons_config.get("default_stretch_vertical", "stretch")
 	if buttons_config.has("default_draw_center"):
 		shared["draw_center"] = buttons_config.get("default_draw_center", true)
+	if buttons_config.has("default_text_size"):
+		shared["default_text_size"] = buttons_config.get("default_text_size")
 	return shared
 
 func _merge_button_cfg(shared_cfg: Dictionary, per_button_cfg: Variant) -> Dictionary:
@@ -475,6 +333,9 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 	
 	# 3. TEXTE
 	if show_text:
+		var text_size_val: Variant = config.get("text_size", config.get("default_text_size", null))
+		if text_size_val != null:
+			button.add_theme_font_size_override("font_size", int(text_size_val))
 		button.text = LocaleManager.t(translation_key)
 		
 		# Appliquer la couleur personnalisée
@@ -492,74 +353,26 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 				fv.base_font = current_font
 				fv.spacing_glyph = letter_spacing
 				button.add_theme_font_override("font", fv)
-		
-		if has_visual_bg:
-			# Améliorer la lisibilité du texte sur une image
-			button.add_theme_constant_override("outline_size", 4)
-			button.add_theme_color_override("font_outline_color", Color.BLACK)
+		_apply_button_text_shadow(button)
 	else:
 		button.text = ""
 
+func _apply_button_text_shadow(button: Button) -> void:
+	UIStyle.apply_button_shadow(button, "large")
+
 func _apply_style_override(btn: Button, style: StyleBox) -> void:
 	btn.add_theme_stylebox_override("normal", style)
-	btn.add_theme_stylebox_override("hover", style)
-	btn.add_theme_stylebox_override("pressed", style)
-	btn.add_theme_stylebox_override("focus", style)
-	# btn.add_theme_stylebox_override("disabled", style) 
+	var hover_style: StyleBox = UIStyle.get_stylebox_with_hover_offset(style)
+	btn.add_theme_stylebox_override("hover", hover_style)
+	btn.add_theme_stylebox_override("pressed", hover_style)
+	btn.add_theme_stylebox_override("focus", hover_style)
+	UIStyle.apply_button_hover_translate(btn) 
 
 func _center_child_sprite(btn: Control, sprite: Node2D) -> void:
 	sprite.position = btn.size / 2
 
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.t("app_title")
-
-func _update_info() -> void:
-	var _profile := ProfileManager.get_active_profile()
-	
-	# Cristaux
-	var crystals: int = ProfileManager.get_crystals()
-	if crystal_label:
-		crystal_label.text = str(crystals)
-	
-	# Player Level
-	var player_level := ProfileManager.get_player_level()
-	if level_label:
-		level_label.text = "Nv." + str(player_level) + "  " + str(ProfileManager.get_levels_cleared_with_max_override()) + "/" + str(ProfileManager.get_max_levels_override())
-	
-	# Ship preview (visual)
-	_update_ship_preview()
-
-func _update_ship_preview() -> void:
-	var ship_id := ProfileManager.get_active_ship_id()
-	var ship := DataManager.get_ship(ship_id)
-	var ship_name := str(ship.get("name", ship_id))
-	
-	# Clear existing preview
-	for child in ship_preview.get_children():
-		child.queue_free()
-	
-	var visual_data: Dictionary = ship.get("visual", {})
-	var asset_path: String = str(visual_data.get("asset", ""))
-	var asset_anim: String = str(visual_data.get("asset_anim", ""))
-
-	var ship_tex: Texture2D = _load_texture_from_resource_path(asset_path)
-	if ship_tex == null:
-		ship_tex = _load_texture_from_resource_path(asset_anim)
-
-	if ship_tex:
-		var ship_icon := TextureRect.new()
-		ship_icon.texture = ship_tex
-		ship_icon.custom_minimum_size = Vector2(56, 56)
-		ship_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ship_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ship_preview.add_child(ship_icon)
-		return
-
-	var ship_label := Label.new()
-	ship_label.text = ship_name
-	ship_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	ship_label.add_theme_font_size_override("font_size", 20)
-	ship_preview.add_child(ship_label)
 
 func _request_menu_prewarm() -> void:
 	var switcher := get_tree().current_scene
@@ -571,8 +384,8 @@ func _goto_from_home(scene_path: String) -> void:
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen(scene_path)
 
-func _exit_tree() -> void:
-	_stop_home_crystal_for_transition()
+func prepare_for_transition() -> void:
+	pass
 
 # =============================================================================
 # NAVIGATION
@@ -593,11 +406,14 @@ func _on_options_pressed() -> void:
 func _on_quit_pressed() -> void:
 	get_tree().quit()
 
+func _on_crystals_header_pressed() -> void:
+	_goto_from_home("res://scenes/ShopMenu.tscn")
+
 func _on_change_profile_pressed() -> void:
 	_goto_from_home("res://scenes/ProfileSelect.tscn")
 
 func _on_unlock_all_pressed() -> void:
-	if not OS.has_feature("editor"):
+	if not ProfileManager.is_debug_mode_enabled():
 		return
 	if unlock_all_button == null:
 		return
@@ -619,7 +435,24 @@ func _on_unlock_all_pressed() -> void:
 	ProfileManager.save_to_disk()
 
 	unlock_all_button.disabled = true
-	unlock_all_button.text = "Unlocked!"
+	UIStyle.set_button_shadow_text(unlock_all_button, "Unlocked!")
 	await get_tree().create_timer(1.0).timeout
 	unlock_all_button.disabled = false
-	unlock_all_button.text = "Unlock All Worlds"
+	UIStyle.set_button_shadow_text(unlock_all_button, "Unlock All Worlds")
+
+func _on_reset_viewed_stories_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	if reset_viewed_stories_button == null:
+		return
+	ProfileManager.reset_viewed_stories()
+	reset_viewed_stories_button.disabled = true
+	UIStyle.set_button_shadow_text(reset_viewed_stories_button, "Reset!")
+	await get_tree().create_timer(1.0).timeout
+	reset_viewed_stories_button.disabled = false
+	UIStyle.set_button_shadow_text(reset_viewed_stories_button, "Reset viewed stories")
+
+func _on_start_story_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	StoryManager.play_debug_story_flow()

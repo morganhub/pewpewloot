@@ -37,13 +37,19 @@ var _missile_pattern_data: Dictionary = {}
 var _fire_timer: float = 0.0
 var _move_time: float = 0.0
 var _start_position: Vector2 = Vector2.ZERO
+var _move_target_position: Vector2 = Vector2.ZERO
+var _move_state: String = "idle"
+var _move_pause_timer: float = 0.0
+var _move_speed_current: float = 0.0
+var _move_cycle_origin: Vector2 = Vector2.ZERO
 var _fire_rate_sequence: Array = []
 var _fire_rate_sequence_index: int = 0
 var _fire_rate_sequence_step_interval: float = 0.0
 var _fire_rate_sequence_step_timer: float = 0.0
 var _fire_rate_sequence_loop: bool = false
-var _rotation_profile: Dictionary = {}
 var _rotation_base_deg: float = 0.0
+var _shot_rotation_offset_deg: float = 0.0
+var _shot_rotation_velocity_deg: float = 0.0
 
 # Special Power
 var special_power_id: String = ""
@@ -91,6 +97,8 @@ func setup(boss_data: Dictionary) -> void:
 	var raw_phases: Variant = boss_data.get("phases", [])
 	if raw_phases is Array:
 		phases = raw_phases as Array
+
+	_start_position = global_position
 	
 	# Initialiser la phase 1
 	if not phases.is_empty():
@@ -116,7 +124,7 @@ func setup(boss_data: Dictionary) -> void:
 	if DEBUG_BOSS_SETUP_COST_LOG:
 		t_after_visual_usec = Time.get_ticks_usec()
 	
-	_start_position = global_position
+	_reset_visual_rotation()
 	_fire_timer = randf_range(0.0, _get_effective_fire_rate())
 
 	if DEBUG_BOSS_SETUP_COST_LOG:
@@ -337,21 +345,10 @@ func _update_phase_modulators(delta: float) -> void:
 				_fire_rate_sequence_index = 0
 			_fire_rate_sequence_step_timer = _fire_rate_sequence_step_interval
 
-	if _rotation_profile.is_empty():
-		return
-
-	var mode: String = str(_rotation_profile.get("mode", "none"))
-	match mode:
-		"continuous":
-			var speed_deg: float = float(_rotation_profile.get("speed_deg", 0.0))
-			visual_container.rotation_degrees += speed_deg * delta
-		"oscillate":
-			var amplitude_deg: float = float(_rotation_profile.get("amplitude_deg", 0.0))
-			var frequency: float = maxf(0.01, float(_rotation_profile.get("frequency", 1.0)))
-			var phase := sin(_move_time * frequency * TAU)
-			visual_container.rotation_degrees = _rotation_base_deg + (phase * amplitude_deg)
-		_:
-			pass
+	_shot_rotation_offset_deg += _shot_rotation_velocity_deg * delta
+	_shot_rotation_velocity_deg = move_toward(_shot_rotation_velocity_deg, 0.0, 900.0 * delta)
+	_shot_rotation_offset_deg = lerpf(_shot_rotation_offset_deg, 0.0, minf(1.0, delta * 9.0))
+	visual_container.rotation_degrees = _rotation_base_deg + _shot_rotation_offset_deg
 
 func _update_special_power(delta: float) -> void:
 	if special_power_id == "": return
@@ -429,6 +426,7 @@ func _apply_phase(phase_index: int) -> void:
 	
 	if phase_data is Dictionary:
 		var phase_dict := phase_data as Dictionary
+		_start_position = global_position
 		move_pattern_id = str(phase_dict.get("move_pattern_id", "stationary"))
 		missile_pattern_id = str(phase_dict.get("missile_pattern_id", "circle_8"))
 		if phase_dict.has("missile_id"):
@@ -440,8 +438,8 @@ func _apply_phase(phase_index: int) -> void:
 		# Optional phase-based firing cadence
 		_configure_fire_profile(phase_dict)
 
-		# Optional phase-based visual rotation profile
-		_configure_rotation_profile(phase_dict)
+		_reset_visual_rotation()
+		_reset_movement_state()
 		
 		_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
 		
@@ -484,13 +482,11 @@ func _configure_fire_profile(phase_dict: Dictionary) -> void:
 	_fire_rate_sequence_step_timer = _fire_rate_sequence_step_interval
 	_fire_rate_sequence_loop = bool(profile.get("loop", false))
 
-func _configure_rotation_profile(phase_dict: Dictionary) -> void:
-	_rotation_profile.clear()
-	_rotation_base_deg = visual_container.rotation_degrees
-
-	var raw_profile: Variant = phase_dict.get("rotation_profile", null)
-	if raw_profile is Dictionary:
-		_rotation_profile = (raw_profile as Dictionary).duplicate(true)
+func _reset_visual_rotation() -> void:
+	_rotation_base_deg = 0.0
+	_shot_rotation_offset_deg = 0.0
+	_shot_rotation_velocity_deg = 0.0
+	visual_container.rotation_degrees = 0.0
 
 func _resolve_move_pattern_data(pattern_id: String) -> Dictionary:
 	var data: Dictionary = DataManager.get_move_pattern(pattern_id)
@@ -526,34 +522,200 @@ func _resolve_move_pattern_data(pattern_id: String) -> Dictionary:
 
 func _legacy_boss_move_pattern(pattern_id: String) -> Dictionary:
 	match pattern_id:
+		"boss_hold_center":
+			return {
+				"type": "hold",
+				"x_offset": 0.0,
+				"speed": 110.0,
+				"shot_spin_deg": 7.0,
+				"shot_spin_velocity_deg": 180.0
+			}
+		"boss_hold_left":
+			return {
+				"type": "hold",
+				"x_offset": -150.0,
+				"speed": 120.0,
+				"shot_spin_deg": 8.0,
+				"shot_spin_velocity_deg": 190.0
+			}
+		"boss_hold_right":
+			return {
+				"type": "hold",
+				"x_offset": 150.0,
+				"speed": 120.0,
+				"shot_spin_deg": 8.0,
+				"shot_spin_velocity_deg": 190.0
+			}
+		"boss_strafe_narrow":
+			return {
+				"type": "strafe_random",
+				"x_range": 90.0,
+				"speed_min": 90.0,
+				"speed_max": 140.0,
+				"pause_min": 0.45,
+				"pause_max": 0.9,
+				"shot_spin_deg": 8.0,
+				"shot_spin_velocity_deg": 200.0
+			}
+		"boss_strafe_medium":
+			return {
+				"type": "strafe_random",
+				"x_range": 140.0,
+				"speed_min": 120.0,
+				"speed_max": 185.0,
+				"pause_min": 0.25,
+				"pause_max": 0.65,
+				"shot_spin_deg": 10.0,
+				"shot_spin_velocity_deg": 220.0
+			}
+		"boss_strafe_wide":
+			return {
+				"type": "strafe_random",
+				"x_range": 220.0,
+				"speed_min": 140.0,
+				"speed_max": 220.0,
+				"pause_min": 0.15,
+				"pause_max": 0.45,
+				"shot_spin_deg": 11.0,
+				"shot_spin_velocity_deg": 235.0
+			}
+		"boss_strafe_stop":
+			return {
+				"type": "strafe_random",
+				"x_range": 180.0,
+				"speed_min": 90.0,
+				"speed_max": 165.0,
+				"pause_min": 0.65,
+				"pause_max": 1.25,
+				"shot_spin_deg": 9.0,
+				"shot_spin_velocity_deg": 210.0
+			}
+		"boss_strafe_erratic":
+			return {
+				"type": "strafe_random",
+				"x_range": 240.0,
+				"speed_min": 150.0,
+				"speed_max": 280.0,
+				"pause_min": 0.0,
+				"pause_max": 0.3,
+				"shot_spin_deg": 12.0,
+				"shot_spin_velocity_deg": 255.0
+			}
+		"boss_strafe_hold":
+			return {
+				"type": "strafe_random",
+				"x_range": 150.0,
+				"speed_min": 80.0,
+				"speed_max": 130.0,
+				"pause_min": 0.9,
+				"pause_max": 1.55,
+				"shot_spin_deg": 8.0,
+				"shot_spin_velocity_deg": 190.0
+			}
+		"boss_advance_short":
+			return {
+				"type": "advance_return",
+				"x_range": 100.0,
+				"advance_distance": 95.0,
+				"reposition_speed_min": 90.0,
+				"reposition_speed_max": 150.0,
+				"advance_speed_min": 210.0,
+				"advance_speed_max": 290.0,
+				"return_speed_min": 170.0,
+				"return_speed_max": 240.0,
+				"pause_min": 0.25,
+				"pause_max": 0.5,
+				"linger_min": 0.18,
+				"linger_max": 0.35,
+				"cooldown_min": 0.7,
+				"cooldown_max": 1.1,
+				"shot_spin_deg": 12.0,
+				"shot_spin_velocity_deg": 260.0
+			}
+		"boss_advance_medium":
+			return {
+				"type": "advance_return",
+				"x_range": 130.0,
+				"advance_distance": 150.0,
+				"reposition_speed_min": 110.0,
+				"reposition_speed_max": 175.0,
+				"advance_speed_min": 260.0,
+				"advance_speed_max": 350.0,
+				"return_speed_min": 190.0,
+				"return_speed_max": 280.0,
+				"pause_min": 0.2,
+				"pause_max": 0.4,
+				"linger_min": 0.14,
+				"linger_max": 0.3,
+				"cooldown_min": 0.55,
+				"cooldown_max": 0.95,
+				"shot_spin_deg": 13.0,
+				"shot_spin_velocity_deg": 280.0
+			}
+		"boss_advance_long":
+			return {
+				"type": "advance_return",
+				"x_range": 160.0,
+				"advance_distance": 220.0,
+				"reposition_speed_min": 125.0,
+				"reposition_speed_max": 195.0,
+				"advance_speed_min": 320.0,
+				"advance_speed_max": 430.0,
+				"return_speed_min": 220.0,
+				"return_speed_max": 330.0,
+				"pause_min": 0.12,
+				"pause_max": 0.28,
+				"linger_min": 0.12,
+				"linger_max": 0.22,
+				"cooldown_min": 0.45,
+				"cooldown_max": 0.8,
+				"shot_spin_deg": 14.0,
+				"shot_spin_velocity_deg": 300.0
+			}
 		"circle_clockwise":
 			return {
-				"type": "circular",
-				"radius": 180.0,
-				"angular_speed": 0.55,
-				"clockwise": true,
-				"speed": 65.0
+				"type": "strafe_random",
+				"x_range": 140.0,
+				"speed_min": 110.0,
+				"speed_max": 170.0,
+				"pause_min": 0.25,
+				"pause_max": 0.6
 			}
 		"bounce_horizontal":
 			return {
-				"type": "sine_wave",
-				"amplitude": 210.0,
-				"frequency": 0.42,
-				"speed": 60.0
+				"type": "strafe_random",
+				"x_range": 190.0,
+				"speed_min": 120.0,
+				"speed_max": 200.0,
+				"pause_min": 0.15,
+				"pause_max": 0.45
 			}
 		"figure_eight":
 			return {
-				"type": "figure_eight",
-				"radius": 150.0,
-				"frequency": 0.36,
-				"speed": 62.0
+				"type": "advance_return",
+				"x_range": 120.0,
+				"advance_distance": 125.0,
+				"reposition_speed_min": 105.0,
+				"reposition_speed_max": 165.0,
+				"advance_speed_min": 220.0,
+				"advance_speed_max": 320.0,
+				"return_speed_min": 180.0,
+				"return_speed_max": 250.0,
+				"pause_min": 0.2,
+				"pause_max": 0.4,
+				"linger_min": 0.16,
+				"linger_max": 0.3,
+				"cooldown_min": 0.6,
+				"cooldown_max": 0.95
 			}
 		"random_strafe":
 			return {
-				"type": "sine_wave",
-				"amplitude": 280.0,
-				"frequency": 0.24,
-				"speed": 68.0
+				"type": "strafe_random",
+				"x_range": 240.0,
+				"speed_min": 145.0,
+				"speed_max": 260.0,
+				"pause_min": 0.0,
+				"pause_max": 0.35
 			}
 		_:
 			return {
@@ -574,6 +736,12 @@ func _update_movement(delta: float) -> void:
 	match pattern_type:
 		"static":
 			pass
+		"hold":
+			_move_hold(delta, move_speed)
+		"strafe_random":
+			_move_strafe_random(delta)
+		"advance_return":
+			_move_advance_return(delta)
 		"circular":
 			_move_circular(delta, move_speed)
 		"sine_wave":
@@ -617,6 +785,124 @@ func _move_homing(delta: float, speed: float) -> void:
 		velocity = velocity.lerp(to_player * speed, delta * 2.0)
 		move_and_slide()
 
+func _reset_movement_state() -> void:
+	_move_time = 0.0
+	_move_state = "idle"
+	_move_pause_timer = 0.0
+	_move_speed_current = 0.0
+	_move_cycle_origin = _start_position
+	_move_target_position = _start_position
+	velocity = Vector2.ZERO
+
+	var pattern_type := str(_move_pattern_data.get("type", "static"))
+	match pattern_type:
+		"hold":
+			_move_target_position = Vector2(_get_hold_target_x(), _start_position.y)
+			_move_speed_current = maxf(1.0, float(_move_pattern_data.get("speed", 110.0)))
+		"strafe_random":
+			_select_next_strafe_target()
+		"advance_return":
+			_queue_next_advance_cycle()
+		_:
+			pass
+
+func _move_hold(delta: float, speed: float) -> void:
+	var target := Vector2(_get_hold_target_x(), _start_position.y)
+	global_position = global_position.move_toward(target, maxf(1.0, speed) * delta)
+
+func _move_strafe_random(delta: float) -> void:
+	if _move_pause_timer > 0.0:
+		_move_pause_timer -= delta
+		if _move_pause_timer <= 0.0:
+			_select_next_strafe_target()
+		return
+
+	global_position = global_position.move_toward(_move_target_position, _move_speed_current * delta)
+	if global_position.distance_to(_move_target_position) <= 4.0:
+		global_position = _move_target_position
+		_move_pause_timer = _random_from_pattern("pause_min", "pause_max", 0.2, 0.6)
+
+func _move_advance_return(delta: float) -> void:
+	match _move_state:
+		"reposition":
+			global_position = global_position.move_toward(_move_target_position, _move_speed_current * delta)
+			if global_position.distance_to(_move_target_position) <= 4.0:
+				global_position = _move_target_position
+				_move_cycle_origin = _move_target_position
+				_move_pause_timer = _random_from_pattern("pause_min", "pause_max", 0.2, 0.4)
+				_move_state = "prepare_lunge"
+		"prepare_lunge":
+			_move_pause_timer -= delta
+			if _move_pause_timer <= 0.0:
+				var x_jitter: float = float(_move_pattern_data.get("advance_x_jitter", 24.0))
+				var lunge_x := clampf(
+					_move_cycle_origin.x + randf_range(-x_jitter, x_jitter),
+					_get_horizontal_min_limit(),
+					_get_horizontal_max_limit()
+				)
+				_move_target_position = Vector2(
+					lunge_x,
+					_start_position.y + float(_move_pattern_data.get("advance_distance", 120.0))
+				)
+				_move_speed_current = _random_from_pattern("advance_speed_min", "advance_speed_max", 220.0, 320.0)
+				_move_state = "lunge"
+		"lunge":
+			global_position = global_position.move_toward(_move_target_position, _move_speed_current * delta)
+			if global_position.distance_to(_move_target_position) <= 4.0:
+				global_position = _move_target_position
+				_move_pause_timer = _random_from_pattern("linger_min", "linger_max", 0.12, 0.3)
+				_move_state = "linger"
+		"linger":
+			_move_pause_timer -= delta
+			if _move_pause_timer <= 0.0:
+				_move_target_position = _move_cycle_origin
+				_move_speed_current = _random_from_pattern("return_speed_min", "return_speed_max", 180.0, 260.0)
+				_move_state = "return"
+		"return":
+			global_position = global_position.move_toward(_move_target_position, _move_speed_current * delta)
+			if global_position.distance_to(_move_target_position) <= 4.0:
+				global_position = _move_target_position
+				_move_pause_timer = _random_from_pattern("cooldown_min", "cooldown_max", 0.55, 0.95)
+				_move_state = "cooldown"
+		"cooldown":
+			_move_pause_timer -= delta
+			if _move_pause_timer <= 0.0:
+				_queue_next_advance_cycle()
+		_:
+			_queue_next_advance_cycle()
+
+func _select_next_strafe_target() -> void:
+	_move_target_position = Vector2(_pick_random_horizontal_target(), _start_position.y)
+	_move_speed_current = _random_from_pattern("speed_min", "speed_max", 100.0, 160.0)
+
+func _queue_next_advance_cycle() -> void:
+	_move_cycle_origin = Vector2(_pick_random_horizontal_target(), _start_position.y)
+	_move_target_position = _move_cycle_origin
+	_move_speed_current = _random_from_pattern("reposition_speed_min", "reposition_speed_max", 90.0, 150.0)
+	_move_state = "reposition"
+
+func _get_hold_target_x() -> float:
+	var offset: float = float(_move_pattern_data.get("x_offset", 0.0))
+	return clampf(_start_position.x + offset, _get_horizontal_min_limit(), _get_horizontal_max_limit())
+
+func _pick_random_horizontal_target() -> float:
+	var x_range: float = float(_move_pattern_data.get("x_range", 120.0))
+	var x_bias: float = float(_move_pattern_data.get("x_bias", 0.0))
+	var target_x := randf_range((_start_position.x + x_bias) - x_range, (_start_position.x + x_bias) + x_range)
+	return clampf(target_x, _get_horizontal_min_limit(), _get_horizontal_max_limit())
+
+func _get_horizontal_min_limit() -> float:
+	return 70.0
+
+func _get_horizontal_max_limit() -> float:
+	return get_viewport_rect().size.x - 70.0
+
+func _random_from_pattern(min_key: String, max_key: String, default_min: float, default_max: float) -> float:
+	return randf_range(
+		float(_move_pattern_data.get(min_key, default_min)),
+		float(_move_pattern_data.get(max_key, default_max))
+	)
+
 # =============================================================================
 # SHOOTING (Copié d'Enemy.gd)
 # =============================================================================
@@ -639,6 +925,8 @@ func _get_effective_fire_rate() -> float:
 func _fire() -> void:
 	if _missile_pattern_data.is_empty():
 		return
+
+	_trigger_fire_rotation()
 	
 	var projectile_count: int = int(_missile_pattern_data.get("projectile_count", 1))
 	var spread_angle: float = float(_missile_pattern_data.get("spread_angle", 0))
@@ -704,6 +992,13 @@ func _fire() -> void:
 			direction = direction.rotated(angle)
 		
 		ProjectileManager.spawn_enemy_projectile(spawn_pos, direction, speed, damage, _missile_pattern_data)
+
+func _trigger_fire_rotation() -> void:
+	var spin_deg: float = float(_move_pattern_data.get("shot_spin_deg", 10.0))
+	var spin_velocity: float = float(_move_pattern_data.get("shot_spin_velocity_deg", 220.0))
+	var direction := -1.0 if (randi() % 2) == 0 else 1.0
+	_shot_rotation_offset_deg = clampf(_shot_rotation_offset_deg + (direction * spin_deg), -24.0, 24.0)
+	_shot_rotation_velocity_deg = direction * spin_velocity
 
 func _get_spawn_positions(strategy: String, count: int) -> Array:
 	var positions: Array = []

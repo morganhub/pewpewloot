@@ -14,6 +14,8 @@
     "ship_menu_title": "SHIP & EQUIPMENT",
     "ship_menu_ship_label": "Ship:",
     "ship_menu_select_ship": "Select a ship",
+    "ship_menu_select_button": "Select",
+    "ship_menu_selected": "Selected",
     "ship_menu_equipment": "Equipment ({count} slots):",
     "ship_menu_equipment_label": "Equipment:",
     "ship_menu_inventory": "Inventory:",
@@ -81,7 +83,16 @@
     "world_select_title": "World",
     "world_select_back": "Back",
     "world_select_next": "Select",
-    "level_select_title": "World: {name}",
+    "level_select_title": "{name}",
+    "worlds.world_1.name": "Primeval Forest",
+    "worlds.world_2.name": "Atlantis",
+    "worlds.world_3.name": "Industrial Complex",
+    "worlds.world_4.name": "The Forge",
+    "worlds.world_5.name": "Forgotten Mines",
+    "worlds.world_6.name": "Necropolis",
+    "worlds.world_7.name": "Titans' Domain",
+    "worlds.world_8.name": "Alien Hive",
+    "worlds.world_9.name": "Magic Kingdom",
     "level_select_back": "Back",
     "level_select_play": "Play",
     "level_select_override_button": "Override Protocols ({count})",
@@ -124,6 +135,8 @@
     "options_sfx": "Sound Effects",
     "options_screenshake": "Screen Shake",
     "options_health_bar_values": "HP/Shield Values",
+    "options_debug": "Debug",
+    "options_manual_debug_mode": "Manual Debug Mode",
     "options_toggle_on": "ON",
     "options_toggle_off": "OFF",
     "options_back": "←",
@@ -244,7 +257,10 @@
     "skills.skill.paragon_crit.title": "Precision",
     "skills.skill.paragon_crit.description": "+0.5% Crit Chance per rank.",
     "skills.skill.paragon_fire_rate.title": "Haste",
-    "skills.skill.paragon_fire_rate.description": "+0.5% Fire Rate per rank."
+    "skills.skill.paragon_fire_rate.description": "+0.5% Fire Rate per rank.",
+    "options_story": "Story",
+    "options_reset_stories": "Restart Story",
+    "options_reset_stories_done": "Story reset!"
   }
 }
 

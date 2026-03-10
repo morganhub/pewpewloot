@@ -120,13 +120,22 @@ func _load_assets() -> void:
 		title_label.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", 32)))
 		title_label.add_theme_color_override("font_color", Color.html(str(title_cfg.get("text_color", "#FFFFFF"))))
 
-	# Buttons
-	var pop_btn_cfg = popup_config.get("button", {})
-	_apply_button_style(equip_btn, pop_btn_cfg)
-	_apply_button_style(disassemble_btn, pop_btn_cfg)
-	_apply_button_style(restart_btn, pop_btn_cfg)
-	_apply_button_style(exit_btn, pop_btn_cfg)
-	_apply_button_style(menu_btn, pop_btn_cfg)
+	# Buttons — default style for all, then validation on the primary action only
+	var default_btn_cfg := UIStyle.get_default_button_style()
+	if not default_btn_cfg.is_empty():
+		for btn in [restart_btn, exit_btn, equip_btn, disassemble_btn, menu_btn]:
+			_apply_button_style(btn, default_btn_cfg)
+	else:
+		var pop_btn_cfg = popup_config.get("button", {})
+		for btn in [restart_btn, exit_btn, equip_btn, disassemble_btn, menu_btn]:
+			_apply_button_style(btn, pop_btn_cfg)
+
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+	var use_validation: bool = not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != ""
+	if use_validation:
+		var primary_btn: Button = _get_validation_target()
+		if primary_btn:
+			UIStyle.apply_validation_to_button(primary_btn, validation_cfg, "large")
 	
 	var equip_path: String = str(reward_config.get("button_equip", ""))
 	if equip_path != "" and ResourceLoader.exists(equip_path):
@@ -140,6 +149,14 @@ func _load_assets() -> void:
 		disassemble_btn.icon = load(destroy_path)
 		disassemble_btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
+	for btn in [restart_btn, exit_btn, menu_btn]:
+		if btn and not btn.text.is_empty():
+			UIStyle.apply_button_shadow(btn, "medium")
+	if equip_btn and not equip_btn.text.is_empty():
+		UIStyle.apply_button_shadow(equip_btn, "medium")
+	if disassemble_btn and not disassemble_btn.text.is_empty():
+		UIStyle.apply_button_shadow(disassemble_btn, "medium")
+
 func _apply_button_style(btn: Button, cfg: Dictionary) -> void:
 	if not btn or cfg.is_empty(): return
 	
@@ -151,15 +168,20 @@ func _apply_button_style(btn: Button, cfg: Dictionary) -> void:
 		btn.add_theme_stylebox_override("pressed", style)
 		btn.add_theme_stylebox_override("focus", style)
 	
-	# Use text_color (now #FFFFFF in game.json)
 	var col = str(cfg.get("text_color", "#FFFFFF"))
 	btn.add_theme_color_override("font_color", Color.html(col))
 	btn.add_theme_color_override("font_hover_color", Color.html(col))
 	btn.add_theme_color_override("font_pressed_color", Color.html(col))
 	btn.add_theme_color_override("font_focus_color", Color.html(col))
 	
-	btn.add_theme_font_size_override("font_size", int(cfg.get("font_size", 18)))
-	btn.add_theme_constant_override("letter_spacing", int(cfg.get("letter_spacing", 0)))
+	var font_preset := UIStyle.get_button_font_preset("medium")
+	btn.add_theme_font_size_override("font_size", int(cfg.get("font_size", font_preset.get("font_size", 18))))
+	btn.add_theme_constant_override("letter_spacing", int(cfg.get("letter_spacing", font_preset.get("letter_spacing", 0))))
+
+func _get_validation_target() -> Button:
+	if not _is_victory:
+		return restart_btn
+	return exit_btn
 
 func _update_ui() -> void:
 	# Clear previous stats
@@ -498,9 +520,9 @@ func set_navigation_labels(secondary_label: String, menu_label: String = "Menu")
 
 func _apply_navigation_labels() -> void:
 	if exit_btn:
-		exit_btn.text = _secondary_nav_label
+		UIStyle.set_button_shadow_text(exit_btn, _secondary_nav_label)
 	if menu_btn:
-		menu_btn.text = _menu_nav_label
+		UIStyle.set_button_shadow_text(menu_btn, _menu_nav_label)
 
 func _close(emit_finished: bool = true) -> void:
 	_close_item_details_popup()

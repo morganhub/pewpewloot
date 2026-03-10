@@ -143,6 +143,15 @@ func setup_empty(p_slot_id: String, slot_name: String, config: Dictionary = {}) 
 	empty_label.visible = true
 	empty_label.text = slot_name
 	empty_label.add_theme_color_override("font_color", Color.WHITE)
+	# Use ship_menu.default_font_size when available so placeholders (Réacteur, Ciblage, etc.) match ship stats text.
+	var default_font_sz: int = 0
+	if DataManager != null and DataManager.has_method("get_game_config"):
+		var game_cfg: Dictionary = DataManager.get_game_config()
+		var ship_menu_cfg: Variant = game_cfg.get("ship_menu", {})
+		if ship_menu_cfg is Dictionary:
+			default_font_sz = int((ship_menu_cfg as Dictionary).get("default_font_size", 0))
+	if default_font_sz > 0:
+		empty_label.add_theme_font_size_override("font_size", default_font_sz)
 
 func _set_background(path: String, is_empty: bool = false) -> void:
 	if path != "" and ResourceLoader.exists(path):

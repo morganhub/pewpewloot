@@ -26,4 +26,4 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=947305457]
-position = Vector2(360, 373)
+position = Vector2(0, 0)

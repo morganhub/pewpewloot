@@ -16,6 +16,8 @@ const MENU_PREWARM_YIELD_EVERY := 6
 @onready var fade: ColorRect = $Fade
 
 var current_screen: Node = null
+var _current_screen_path: String = ""
+var _screen_before_shop: String = ""
 var _prewarmed_screens: Dictionary = {} # scene_path -> PackedScene
 var _menu_prewarm_started: bool = false
 
@@ -25,7 +27,7 @@ func _ready() -> void:
 
 	# Show bootstrap LoadingScreen (bar + main_menu background), load data + scenes, then go to ProfileSelect or HomeScreen
 	var canvas_layer := CanvasLayer.new()
-	canvas_layer.layer = 100
+	canvas_layer.layer = 1000
 	canvas_layer.name = "LoadingLayer"
 	add_child(canvas_layer)
 
@@ -46,6 +48,7 @@ func _ready() -> void:
 		screen_root.add_child(current_screen)
 		if current_screen is Control:
 			current_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_current_screen_path = target_screen_path
 	else:
 		push_error("[SceneSwitcher] Failed to load bootstrap scene: " + target_screen_path)
 
@@ -74,9 +77,9 @@ func goto_screen(scene_path: String, with_fade: bool = true) -> void:
 	var is_game_scene = scene_path.to_lower().contains("game.tscn")
 	
 	if is_game_scene:
-		# Use Loading Screen (CanvasLayer for top-most z-index to cover HUD/etc)
+		# Use Loading Screen (CanvasLayer with highest layer so it stays on top of Game HUD/StoryOverlay)
 		var canvas_layer = CanvasLayer.new()
-		canvas_layer.layer = 100
+		canvas_layer.layer = 1000
 		canvas_layer.name = "LoadingLayer"
 		add_child(canvas_layer)
 		
@@ -101,17 +104,25 @@ func goto_screen(scene_path: String, with_fade: bool = true) -> void:
 			screen_root.add_child(current_screen)
 			if current_screen is Control:
 				current_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_current_screen_path = scene_path
 		else:
 			push_error("[SceneSwitcher] Failed to load scene: " + scene_path)
 			
 		# Fade out loading screen
 		await loading_screen.fade_out()
-		
-		# Cleanup
+
+		# Cleanup loading layer (Game is now visible with its background)
 		canvas_layer.queue_free()
+
+		# Pause + story overlay if needed (after loading screen is gone)
+		if current_screen != null and current_screen.has_method("run_post_loading_story"):
+			await current_screen.run_post_loading_story()
 		
 	else:
 		# Simple Fade Transition for menus (faster, less intrusive)
+		var is_shop: bool = scene_path.get_file().to_lower().contains("shopmenu")
+		if is_shop and _current_screen_path != "":
+			_screen_before_shop = _current_screen_path
 		if with_fade:
 			await _fade_to(1.0) # Fade to Black
 
@@ -130,9 +141,13 @@ func goto_screen(scene_path: String, with_fade: bool = true) -> void:
 		screen_root.add_child(current_screen)
 		if current_screen is Control:
 			current_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_current_screen_path = scene_path
 			
 		if with_fade:
 			await _fade_to(0.0) # Fade to Transparent
+
+func get_screen_before_shop() -> String:
+	return _screen_before_shop
 
 func _prepare_current_screen_for_transition() -> void:
 	if current_screen == null or not is_instance_valid(current_screen):

@@ -7,12 +7,14 @@ signal spawn_enemy(enemy_data: Dictionary, spawn_pos: Vector2)
 signal spawn_obstacle(obstacle_data: Dictionary, positions: Array, speed: float)
 signal level_completed
 signal wave_started(wave_index: int)
+signal story_check_before_wave(wave_index: int)
 
 const ObstacleSpawnerScript: Script = preload("res://scenes/obstacles/ObstacleSpawner.gd")
 
 var _current_level_data: Dictionary = {}
 var _waves: Array = []
 var _current_wave_index: int = 0
+var _pending_wave_index: int = -1
 var _level_time: float = 0.0
 var _is_active: bool = false
 var _pending_spawns: Array = [] # {time, enemy_id, pattern_id}
@@ -59,6 +61,7 @@ func set_override_elite_replacement_chance(chance: float) -> void:
 
 func stop() -> void:
 	_is_active = false
+	_pending_wave_index = -1
 	_pending_spawns.clear()
 	_enemy_skin_type_cache.clear()
 	# Arrêter tous les spawners d'obstacles actifs
@@ -76,7 +79,18 @@ func _process(delta: float) -> void:
 	_check_waves()
 	_process_pending_spawns(delta)
 
+func continue_after_story() -> void:
+	if _pending_wave_index < 0 or _pending_wave_index >= _waves.size():
+		_pending_wave_index = -1
+		return
+	var next_wave: Dictionary = _waves[_pending_wave_index]
+	_start_wave(next_wave)
+	_current_wave_index = _pending_wave_index + 1
+	_pending_wave_index = -1
+
 func _check_waves() -> void:
+	if _pending_wave_index >= 0:
+		return
 	if _current_wave_index >= _waves.size():
 		# Plus de vagues à lancer, attendre que tout soit clean ? 
 		# Pour l'instant on considère le niveau fini quand le temps dépasse la dernière vague + marge
@@ -95,10 +109,9 @@ func _check_waves() -> void:
 	var wave_time: float = float(next_wave.get("time", 0.0))
 	
 	if _level_time >= wave_time:
-		_start_wave(next_wave)
-		_current_wave_index += 1
-		# Check recursivement si plusieurs vagues ont le même temps
-		_check_waves()
+		_pending_wave_index = _current_wave_index
+		story_check_before_wave.emit(_current_wave_index)
+		return
 
 func _get_last_wave_time() -> float:
 	if _waves.is_empty(): return 0.0
@@ -128,7 +141,9 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 	var count: int = int(wave.get("count", 1))
 	var interval: float = float(wave.get("interval", 1.0))
 	var pattern_id: String = _pick_random_move_pattern_id()
-	
+
+	print("[Wave] wave ", _current_wave_index + 1, " move_pattern=", pattern_id, " enemy_id=", enemy_id, " count=", count)
+
 	# Resolve skin: world-level override > wave-level fallback > none
 	var enemy_skin: String = ""
 	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})

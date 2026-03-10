@@ -64,6 +64,9 @@ var active_boss: CharacterBody2D = null
 var _end_session_started: bool = false
 var _player_death_registered: bool = false
 var _wave_total_with_boss: int = 0
+var _boss_sequence_ids: Array[String] = []
+var _boss_sequence_index: int = -1
+var _boss_sequence_active: bool = false
 var session_xp: int = 0  # XP accumulated this session (= score)
 var _end_screen_delay_seconds: float = 1.5
 var _end_screen_context_action: String = "level_select"
@@ -130,6 +133,7 @@ var _override_boss_overdrive_fire_rate: float = 0.05
 var _override_emp_vignette_strength: float = 0.72
 var _override_emp_vignette_radius: float = 0.58
 var _override_emp_vignette_color: Color = Color(0.0, 0.0, 0.0, 1.0)
+var _overlay_rect: ColorRect = null
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -165,8 +169,8 @@ func _ready() -> void:
 	else:
 		App.play_menu_music() # Enforce menu music if no override
 	
-	_setup_background()
 	_setup_camera()
+	_setup_background()
 	_setup_hud()
 	_spawn_player()
 	_setup_projectile_manager()
@@ -174,6 +178,37 @@ func _ready() -> void:
 	_preload_override_visual_resources()
 	_setup_emp_vignette()
 	_start_enemy_spawner()
+
+func run_post_loading_story() -> void:
+	var stories: Array = DataManager.get_stories_for_trigger_start(current_world_id, current_level_index)
+	var will_play_any: bool = false
+	for story in stories:
+		if story is Dictionary and str((story as Dictionary).get("id", "")) != "" and not ProfileManager.has_viewed_story(str((story as Dictionary).get("id", ""))):
+			will_play_any = true
+			break
+	if will_play_any and is_instance_valid(player) and player.has_method("set_can_shoot"):
+		player.set_can_shoot(false)
+	var had_story: bool = await _play_level_story_if_needed()
+	if had_story and is_instance_valid(player) and player.has_method("set_can_shoot"):
+		await get_tree().create_timer(2.0).timeout
+		if is_instance_valid(player) and player.has_method("set_can_shoot"):
+			player.set_can_shoot(true)
+
+func _play_level_story_if_needed() -> bool:
+	var stories: Array = DataManager.get_stories_for_trigger_start(current_world_id, current_level_index)
+	var played_any: bool = false
+	for story in stories:
+		if not (story is Dictionary):
+			continue
+		var story_id: String = str((story as Dictionary).get("id", ""))
+		if story_id == "" or ProfileManager.has_viewed_story(story_id):
+			continue
+		get_tree().paused = true
+		await StoryManager.play_story(story_id, true)
+		ProfileManager.mark_story_viewed(story_id)
+		played_any = true
+		get_tree().paused = false
+	return played_any
 
 func _load_gameplay_config() -> void:
 	var game_cfg: Dictionary = DataManager.get_game_config()
@@ -475,28 +510,58 @@ func _setup_background() -> void:
 	
 	var bgs: Dictionary = level_data.get("backgrounds", {})
 	var viewport_size := get_viewport_rect().size
-	var base_speed: float = 50.0
+	var game_cfg: Dictionary = DataManager.get_game_config()
+	var gameplay_cfg: Dictionary = game_cfg.get("gameplay", {}) if game_cfg.get("gameplay") is Dictionary else {}
+	var bg_scroll_cfg: Dictionary = gameplay_cfg.get("background_scroll", {}) if gameplay_cfg.get("background_scroll") is Dictionary else {}
+	var far_speed: float = float(bg_scroll_cfg.get("far_speed", 10.0))
+	var mid_speed: float = float(bg_scroll_cfg.get("mid_speed", 50.0))
+	var near_speed: float = float(bg_scroll_cfg.get("near_speed", 125.0))
 	
 	print("[Game] Loading background for ", level_id)
-	
-	# 1. FAR LAYER (0.2x, JPG Opaque, Tiling)
-	var far_path: String = str(bgs.get("far_layer", ""))
+
+	# 1. FAR LAYER (0.2x) — TEST TEMPORAIRE: texture carrée répétée (sphere_texture) au lieu de far_layer
+	var far_path: String = str(bgs.get("sphere_texture", ""))
+	if far_path == "":
+		far_path = str(bgs.get("far_layer", ""))
 	if far_path != "":
-		_create_layer(bg_container, far_path, base_speed * 0.2, viewport_size, false)
+		_create_layer(bg_container, far_path, far_speed, viewport_size, false)
 	
 	# 2. MID LAYER (1.0x, PNG Alpha, Random/Tiling)
 	var mid_layers := _flatten_layer_entries(bgs.get("mid_layer", []), 1.0)
 	for mid_entry in mid_layers:
 		var mid_path: String = str(mid_entry.get("path", ""))
 		var mid_opacity: float = float(mid_entry.get("opacity", 1.0))
-		_create_layer(bg_container, mid_path, base_speed * 1.0, viewport_size, true, mid_opacity)
+		_create_layer(bg_container, mid_path, mid_speed, viewport_size, true, mid_opacity)
 	
 	# 3. NEAR LAYER (2.5x, PNG Alpha, Fast/Blur)
 	var near_layers := _flatten_layer_entries(bgs.get("near_layer", []), 1.0)
 	for near_entry in near_layers:
 		var near_path: String = str(near_entry.get("path", ""))
 		var near_opacity: float = float(near_entry.get("opacity", 1.0))
-		_create_layer(bg_container, near_path, base_speed * 2.5, viewport_size, true, near_opacity)
+		_create_layer(bg_container, near_path, near_speed, viewport_size, true, near_opacity)
+
+	# 4. OVERLAY — full rect color layer on top of backgrounds (improves ship visibility)
+	var overlay_cfg: Variant = bg_scroll_cfg.get("overlay", {})
+	if overlay_cfg is Dictionary and not (overlay_cfg as Dictionary).is_empty():
+		var overlay_dict: Dictionary = overlay_cfg as Dictionary
+		var overlay_color: Color = Color.from_string(str(overlay_dict.get("color", "#000000")), Color.BLACK)
+		overlay_color.a = clampf(float(overlay_dict.get("opacity", 0.5)), 0.0, 1.0)
+		var overlay_rect := ColorRect.new()
+		overlay_rect.name = "BackgroundOverlay"
+		overlay_rect.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		var design_size: Vector2 = _get_design_viewport_size()
+		var zoom_vec: Vector2 = camera.zoom
+		var overlay_size: Vector2 = design_size / zoom_vec
+		var center: Vector2 = camera.get_screen_center_position()
+		overlay_rect.position = center - overlay_size / 2.0
+		overlay_rect.size = overlay_size
+		overlay_rect.color = overlay_color
+		overlay_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg_container.add_child(overlay_rect)
+		overlay_rect.z_index = 100
+		_overlay_rect = overlay_rect
+		var viewport_actual: Vector2 = get_viewport_rect().size
+		print("[Game] BackgroundOverlay at level load: design_size=", design_size, " zoom=", zoom_vec, " overlay_size=", overlay_size, " center=", center, " overlay.position=", overlay_rect.position, " viewport=", viewport_actual)
 
 func _create_layer(
 	parent: Node,
@@ -548,10 +613,25 @@ func _flatten_layer_entries(data: Variant, default_opacity: float = 1.0) -> Arra
 			})
 	return result
 
+func _get_design_viewport_size() -> Vector2:
+	var w: int = int(ProjectSettings.get_setting("display/window/size/viewport_width", 720))
+	var h: int = int(ProjectSettings.get_setting("display/window/size/viewport_height", 1280))
+	if w <= 0 or h <= 0:
+		return get_viewport_rect().size
+	return Vector2(w, h)
+
 func _process(delta: float) -> void:
+	if _overlay_rect != null and is_instance_valid(_overlay_rect) and camera != null:
+		var design_size: Vector2 = _get_design_viewport_size()
+		var zoom_vec: Vector2 = camera.zoom
+		var overlay_size: Vector2 = design_size / zoom_vec
+		var center: Vector2 = camera.get_screen_center_position()
+		_overlay_rect.size = overlay_size
+		_overlay_rect.position = center - overlay_size / 2.0
 	# Le background se gère tout seul via ScrollingLayer._process
 	_debug_log_frame_hitch(delta)
 	_update_hud()
+	_update_boss_debug_hud()
 	_update_override_runtime_effects(delta)
 
 # func _update_background(delta: float) -> void: ... DELETED
@@ -678,7 +758,8 @@ func _setup_emp_vignette() -> void:
 # =============================================================================
 
 func _setup_camera() -> void:
-	# Force Camera to Top-Left alignment to match background coordinates
+	# Top-left anchor + position (0,0) so the visible area is exactly [0,0]..[viewport_width, viewport_height].
+	# This matches background/scrolling coordinates and keeps the overlay full-screen.
 	camera.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
 	camera.position = Vector2.ZERO
 	VFXManager.set_camera(camera)
@@ -694,6 +775,7 @@ func _setup_hud() -> void:
 	
 	# Connect pause signal
 	hud.pause_requested.connect(_show_pause_menu)
+	hud.next_boss_requested.connect(_skip_to_next_debug_boss)
 	
 	# Load and setup PauseMenu
 	var pause_scene := load("res://scenes/PauseMenu.tscn")
@@ -811,6 +893,7 @@ func _start_enemy_spawner() -> void:
 	wave_manager.spawn_obstacle.connect(_on_wave_obstacle_spawn)
 	wave_manager.level_completed.connect(_on_level_completed)
 	wave_manager.wave_started.connect(_on_wave_started)
+	wave_manager.story_check_before_wave.connect(_on_story_check_before_wave)
 	
 	# Démarrer le niveau actuel
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)
@@ -822,6 +905,7 @@ func _start_enemy_spawner() -> void:
 	wave_manager.setup(level_id, current_world_id)
 	if wave_manager and wave_manager.has_method("set_override_elite_replacement_chance"):
 		wave_manager.call("set_override_elite_replacement_chance", _override_enemy_elite_replacement_chance)
+	_maybe_start_boss_sequence_immediately(level_id)
 
 func _prime_runtime_enemy_spawn_costs(level_id: String) -> void:
 	var t0_usec: int = Time.get_ticks_usec()
@@ -1087,23 +1171,147 @@ func _warmup_resource_path(path: String) -> void:
 
 func _configure_wave_counter(level_id: String) -> void:
 	var level_data: Dictionary = DataManager.get_level_data(level_id)
-	var waves_variant: Variant = level_data.get("waves", [])
-	var waves_count: int = 0
-	if waves_variant is Array:
-		waves_count = (waves_variant as Array).size()
-	
-	var boss_id: String = str(level_data.get("boss_id", ""))
-	var has_boss: bool = boss_id != ""
-	_wave_total_with_boss = waves_count + (1 if has_boss else 0)
+	var waves_count: int = _get_level_wave_count(level_data)
+	var boss_count: int = _extract_boss_sequence_ids(level_data).size()
+	if boss_count <= 0 and str(level_data.get("boss_id", "")) != "":
+		boss_count = 1
+	_wave_total_with_boss = waves_count + boss_count
 	
 	if hud and hud.has_method("configure_wave_counter"):
 		hud.call("configure_wave_counter", _wave_total_with_boss)
+
+func _get_current_level_id() -> String:
+	return current_world_id + "_lvl_" + str(current_level_index)
+
+func _get_current_level_data() -> Dictionary:
+	return DataManager.get_level_data(_get_current_level_id())
+
+func _get_level_wave_count(level_data: Dictionary) -> int:
+	var waves_variant: Variant = level_data.get("waves", [])
+	if waves_variant is Array:
+		return (waves_variant as Array).size()
+	return 0
+
+func _extract_boss_sequence_ids(level_data: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	var sequence_variant: Variant = level_data.get("boss_sequence", [])
+	if sequence_variant is Array:
+		for boss_id_variant in (sequence_variant as Array):
+			var boss_id: String = str(boss_id_variant).strip_edges()
+			if boss_id != "":
+				result.append(boss_id)
+	return result
+
+func _maybe_start_boss_sequence_immediately(level_id: String) -> void:
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	if _get_level_wave_count(level_data) > 0:
+		return
+	if _extract_boss_sequence_ids(level_data).is_empty():
+		return
+	if wave_manager:
+		wave_manager.stop()
+	call_deferred("_begin_boss_sequence", level_data)
+
+func _begin_boss_sequence(level_data: Dictionary) -> void:
+	_boss_sequence_ids = _extract_boss_sequence_ids(level_data)
+	_boss_sequence_index = -1
+	_boss_sequence_active = not _boss_sequence_ids.is_empty()
+	_set_boss_debug_mode(_boss_sequence_active)
+	if _boss_sequence_active:
+		_spawn_next_boss_in_sequence()
+
+func _spawn_next_boss_in_sequence() -> void:
+	if _boss_sequence_ids.is_empty():
+		return
+	_boss_sequence_index += 1
+	if _boss_sequence_index >= _boss_sequence_ids.size():
+		_set_boss_debug_mode(false)
+		await _play_end_story_if_needed()
+		_show_end_session_screen(true)
+		return
+	_spawn_boss(_boss_sequence_ids[_boss_sequence_index])
+
+func _set_boss_debug_mode(active: bool) -> void:
+	if hud and hud.has_method("set_boss_debug_visible"):
+		hud.call("set_boss_debug_visible", active)
+
+func _update_boss_debug_hud() -> void:
+	if not hud or not hud.has_method("update_boss_debug_info"):
+		return
+	if not _boss_sequence_active or not is_instance_valid(active_boss):
+		return
+	hud.call(
+		"update_boss_debug_info",
+		str(active_boss.boss_name),
+		str(active_boss.boss_id),
+		str(active_boss.special_power_id),
+		str(active_boss.missile_id)
+	)
+
+func _clear_runtime_boss_effects() -> void:
+	if ProjectileManager and ProjectileManager.has_method("clear_all_projectiles"):
+		ProjectileManager.call("clear_all_projectiles")
+	for hazard_node in get_tree().get_nodes_in_group("runtime_hazards"):
+		if is_instance_valid(hazard_node):
+			hazard_node.queue_free()
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy_node):
+			enemy_node.queue_free()
+
+func _skip_to_next_debug_boss() -> void:
+	if not _boss_sequence_active or _end_session_started:
+		return
+	if is_instance_valid(active_boss):
+		if active_boss.boss_died.is_connected(_on_boss_died):
+			active_boss.boss_died.disconnect(_on_boss_died)
+		if active_boss.health_changed.is_connected(_on_boss_health_changed):
+			active_boss.health_changed.disconnect(_on_boss_health_changed)
+		active_boss.queue_free()
+	active_boss = null
+	boss_spawned = false
+	_clear_runtime_boss_effects()
+	if _boss_sequence_index >= _boss_sequence_ids.size() - 1:
+		_set_boss_debug_mode(false)
+		_show_end_session_screen(true, true)
+		return
+	_spawn_next_boss_in_sequence()
 
 func _on_wave_started(wave_index: int) -> void:
 	_reset_wave_powerup_drop_counters()
 	var current_wave: int = wave_index + 1
 	if hud and hud.has_method("update_wave_counter"):
 		hud.call("update_wave_counter", current_wave)
+
+func _on_story_check_before_wave(wave_index: int) -> void:
+	var wave_one_based: int = wave_index + 1
+	var story := DataManager.get_story_for_trigger(current_world_id, current_level_index, wave_one_based)
+	if story.is_empty():
+		if wave_manager and wave_manager.has_method("continue_after_story"):
+			wave_manager.continue_after_story()
+		return
+	var story_id: String = str(story.get("id", ""))
+	if story_id == "" or ProfileManager.has_viewed_story(story_id):
+		if wave_manager and wave_manager.has_method("continue_after_story"):
+			wave_manager.continue_after_story()
+		return
+	get_tree().paused = true
+	await StoryManager.play_story(story_id, true)
+	ProfileManager.mark_story_viewed(story_id)
+	get_tree().paused = false
+	if wave_manager and wave_manager.has_method("continue_after_story"):
+		wave_manager.continue_after_story()
+
+func _play_end_story_if_needed() -> void:
+	var story := DataManager.get_story_for_trigger(current_world_id, current_level_index, "end")
+	if story.is_empty():
+		return
+	var story_id: String = str(story.get("id", ""))
+	if story_id == "" or ProfileManager.has_viewed_story(story_id):
+		return
+	get_tree().paused = true
+	await StoryManager.play_story(story_id, true)
+	ProfileManager.mark_story_viewed(story_id)
+	get_tree().paused = false
 
 func _reset_wave_powerup_drop_counters() -> void:
 	_wave_powerup_drop_counts["shield"] = 0
@@ -1261,16 +1469,18 @@ func _randomize_obstacle_dimensions(data: Dictionary) -> void:
 
 func _pick_random_sprite(data: Dictionary) -> void:
 	# Check world-level obstacle skin overrides first
-	var shape: String = str(data.get("shape", ""))
+	var obs_type: String = str(data.get("type", ""))
 	var obs_overrides: Variant = _world_skin_overrides.get("obstacles", {})
-	if obs_overrides is Dictionary and shape != "":
-		var shape_sprites: Variant = (obs_overrides as Dictionary).get(shape, [])
-		if shape_sprites is Array:
-			var arr: Array = shape_sprites as Array
-			if arr.size() > 0:
-				data["sprite_path"] = str(arr[randi() % arr.size()])
-				return
-	
+	if obs_overrides is Dictionary:
+		var obs_dict: Dictionary = obs_overrides as Dictionary
+		# Explosive obstacles use dedicated "explosives" visuals when defined
+		if obs_type == "explosive":
+			var explosives_sprites: Variant = obs_dict.get("explosives", [])
+			if explosives_sprites is Array:
+				var arr: Array = explosives_sprites as Array
+				if arr.size() > 0:
+					data["sprite_path"] = str(arr[randi() % arr.size()])
+					return
 	# Fallback to default sprite_path from obstacles.json
 	var sprite_paths: Variant = data.get("sprite_path", "")
 	if sprite_paths is Array:
@@ -1287,8 +1497,13 @@ func _on_obstacle_destroyed(_obstacle: Node2D) -> void:
 		hud.add_score(5)
 
 func _on_level_completed() -> void:
-	var level_id := current_world_id + "_lvl_" + str(current_level_index)
-	var level_data := DataManager.get_level_data(level_id)
+	var level_data := _get_current_level_data()
+	var boss_sequence: Array[String] = _extract_boss_sequence_ids(level_data)
+	if not boss_sequence.is_empty():
+		print("[Game] Level completed. Starting boss sequence: ", boss_sequence)
+		_begin_boss_sequence(level_data)
+		return
+
 	var boss_id: String = str(level_data.get("boss_id", ""))
 	
 	if boss_id != "":
@@ -1296,6 +1511,7 @@ func _on_level_completed() -> void:
 		_spawn_boss(boss_id)
 	else:
 		print("[Game] Level Waves Completed! No Boss defined, triggering victory.")
+		await _play_end_story_if_needed()
 		_show_end_session_screen(true)
 
 func _on_enemy_died(enemy: CharacterBody2D) -> void:
@@ -1368,7 +1584,10 @@ func _spawn_boss(boss_id: String) -> void:
 	boss_spawned = true
 	print("[Game] BOSS INCOMING: ", boss_id)
 	if hud and hud.has_method("update_wave_counter"):
-		hud.call("update_wave_counter", _wave_total_with_boss)
+		var boss_wave_index: int = _wave_total_with_boss
+		if _boss_sequence_active and _boss_sequence_index >= 0:
+			boss_wave_index = _get_level_wave_count(_get_current_level_data()) + _boss_sequence_index + 1
+		hud.call("update_wave_counter", boss_wave_index)
 	
 	# Arrêter le spawn d'ennemis normaux
 	_stop_all_timers()
@@ -1451,21 +1670,29 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 	
 	# Track XP
 	session_xp += int(boss.score)
-	
+
+	active_boss = null
+	if _boss_sequence_active and _boss_sequence_index < _boss_sequence_ids.size() - 1:
+		_clear_runtime_boss_effects()
+		_spawn_next_boss_in_sequence()
+		return
+
+	_set_boss_debug_mode(false)
+
 	# Rendre le joueur invincible pour éviter de mourir pendant le popup de loot
 	if player:
 		player.is_invincible = true
 		if player.has_method("set_can_shoot"):
 			player.set_can_shoot(false)
-	
-	active_boss = null
-			
+
+	await _play_end_story_if_needed()
 	_show_end_session_screen(true)
 
 func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false) -> void:
 	if _end_session_started:
 		return
 	_end_session_started = true
+	_set_boss_debug_mode(false)
 	
 	# Disable spawning/shooting immediately
 	if player and player.has_method("set_can_shoot"):

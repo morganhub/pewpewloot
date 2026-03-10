@@ -34,6 +34,10 @@ var _explosion_data: Dictionary = {}
 var _homing_turn_rate: float = 3.0
 var _homing_duration: float = -1.0
 var _target: Node2D = null
+var _spawn_position: Vector2 = Vector2.ZERO
+var _spiral_forward_direction: Vector2 = Vector2.UP
+var _spiral_perpendicular_direction: Vector2 = Vector2.RIGHT
+var _spiral_last_position: Vector2 = Vector2.ZERO
 const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.tscn")
 const SINGULARITY_SCENE: PackedScene = preload("res://scenes/effects/Singularity.tscn")
 const STRONG_RESOURCE_CACHE_MAX: int = 256
@@ -84,6 +88,10 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	damage = dmg
 	_pattern_data = pattern_data
 	_time_alive = 0.0
+	_spawn_position = pos
+	_spiral_last_position = pos
+	_spiral_forward_direction = direction if direction != Vector2.ZERO else Vector2.UP
+	_spiral_perpendicular_direction = Vector2(-_spiral_forward_direction.y, _spiral_forward_direction.x)
 	_max_lifetime = maxf(0.1, float(pattern_data.get("despawn_after_sec", pattern_data.get("max_lifetime", 20.0))))
 	is_active = true
 	is_critical = is_crit
@@ -432,10 +440,24 @@ func _move_sine_wave(delta: float) -> void:
 	global_position += base_move + wave_offset
 
 func _move_spiral(delta: float) -> void:
-	var rotation_speed: float = float(_pattern_data.get("rotation_speed", 90))
-	direction = direction.rotated(deg_to_rad(rotation_speed) * delta)
+	var rotation_speed_deg: float = float(_pattern_data.get("rotation_speed", 180.0))
+	var helix_amplitude: float = maxf(0.0, float(_pattern_data.get("helix_amplitude", _pattern_data.get("amplitude", 42.0))))
+	var helix_forward_speed_scale: float = maxf(0.05, float(_pattern_data.get("helix_forward_speed_scale", 1.0)))
+	var phase: float = deg_to_rad(rotation_speed_deg) * _time_alive
+	var forward_progress: float = speed * helix_forward_speed_scale * _time_alive
+	var helix_offset: float = sin(phase) * helix_amplitude
+	var new_position: Vector2 = _spawn_position \
+		+ (_spiral_forward_direction * forward_progress) \
+		+ (_spiral_perpendicular_direction * helix_offset)
+
+	var tangent: Vector2 = new_position - _spiral_last_position
+	if tangent.length_squared() > 0.0001:
+		direction = tangent.normalized()
+	else:
+		direction = _spiral_forward_direction
 	rotation = direction.angle() + PI / 2
-	global_position += direction * speed * delta
+	global_position = new_position
+	_spiral_last_position = new_position
 
 func _move_homing(delta: float) -> void:
 	# After homing_duration, keep current heading (straight line).

@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://cmkyx6yqg3w5u"]
+[gd_scene load_steps=2 format=3 uid="uid://cmkyx6yqg3w5u"]
 
-[ext_resource type="Script" uid="uid://cijlsaydrrewx" path="res://scenes/ProfileSelect.gd" id="1_profile"]
+[ext_resource type="Script" uid="uid://dow86xj5g3qqq" path="res://scenes/ProfileSelect.gd" id="1_profile"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuFooter.tscn" id="3_footer"]
 
 [node name="ProfileSelect" type="Control"]
 layout_mode = 3
@@ -183,3 +184,6 @@ custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "✓ Valider"
+
+[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+layout_mode = 1

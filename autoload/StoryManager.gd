@@ -23,7 +23,9 @@ var _is_playing: bool = false
 # =============================================================================
 
 ## Lance une cinématique par son ID. Retourne quand elle est terminée (await).
-func play_story(story_id: String) -> void:
+## run_while_paused: si true, l'overlay reste actif quand l'arbre est en pause (début de niveau en Game).
+## debug_mode: affiche id/world/level/wave et un bouton Next (éditeur uniquement).
+func play_story(story_id: String, run_while_paused: bool = false, debug_mode: bool = false) -> void:
 	if _is_playing:
 		push_warning("[StoryManager] A story is already playing.")
 		return
@@ -39,13 +41,15 @@ func play_story(story_id: String) -> void:
 	
 	# Instancier l'overlay
 	_current_overlay = STORY_OVERLAY_SCENE.instantiate()
+	if run_while_paused:
+		_current_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.add_child(_current_overlay)
 	
 	# Connecter le signal de fin
 	_current_overlay.story_finished.connect(_on_story_finished, CONNECT_ONE_SHOT)
 	
-	# Lancer la lecture
-	_current_overlay.play(story_id)
+	# Lancer la lecture (avec mode debug si demandé)
+	_current_overlay.play(story_id, debug_mode)
 	
 	# Attendre la fin
 	await _current_overlay.story_finished
@@ -110,3 +114,24 @@ func _on_story_finished() -> void:
 	
 	print("[StoryManager] Story finished, overlay cleaned up.")
 	story_finished.emit()
+
+## Mode debug (éditeur) : enchaîne toutes les séquences story sur le HomeScreen.
+## Une même overlay est réutilisée ; à la fin de chaque séquence, le bouton "Next" passe à la suivante.
+func play_debug_story_flow() -> void:
+	if not OS.has_feature("editor"):
+		return
+	var ids: Array = DataManager.get_story_sequence_ids()
+	if ids.is_empty():
+		push_warning("[StoryManager] No story sequences for debug flow.")
+		return
+	# Une seule overlay pour tout le flux
+	_current_overlay = STORY_OVERLAY_SCENE.instantiate()
+	get_tree().root.add_child(_current_overlay)
+	for story_id in ids:
+		var sid: String = str(story_id)
+		_current_overlay.play(sid, true)
+		await _current_overlay.story_finished
+	if _current_overlay != null:
+		_current_overlay.queue_free()
+		_current_overlay = null
+	print("[StoryManager] Debug story flow finished.")

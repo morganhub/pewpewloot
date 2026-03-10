@@ -25,9 +25,11 @@ var _game_config: Dictionary = {} # game.json data
 var _override_protocols: Dictionary = {} # override_protocols.json data
 var _skills: Dictionary = {} # skills.json data
 var _obstacles: Dictionary = {} # obstacle_id -> data
+var _obstacles_global_settings: Dictionary = {} # global_settings from obstacles.json
 var _fluids: Dictionary = {} # fluid_preset_id -> data
 var _stories: Dictionary = {} # story_id -> sequence data
 var _story_settings: Dictionary = {} # global_settings from story.json
+var _story_order: Array = [] # sequence ids in order from story.json (for debug flow)
 
 var _default_unlocked_ships: Array = []
 
@@ -924,6 +926,9 @@ func get_level_upgrade_data(level: int) -> Dictionary:
 func _load_obstacles() -> void:
 	_obstacles.clear()
 	var data := _load_json("res://data/obstacles.json")
+	var raw_gs: Variant = data.get("global_settings", {})
+	if raw_gs is Dictionary:
+		_obstacles_global_settings = (raw_gs as Dictionary).duplicate(true)
 	var raw_obstacles: Variant = data.get("obstacles", {})
 	if raw_obstacles is Dictionary:
 		for key in raw_obstacles:
@@ -939,6 +944,9 @@ func get_obstacle(obstacle_id: String) -> Dictionary:
 
 func get_all_obstacles() -> Dictionary:
 	return _obstacles
+
+func get_obstacles_global_settings() -> Dictionary:
+	return _obstacles_global_settings
 
 # =============================================================================
 # FLUID PRESETS DATA (fluids/fluid_presets.json)
@@ -970,6 +978,7 @@ func get_all_fluid_presets() -> Dictionary:
 func _load_stories() -> void:
 	_stories.clear()
 	_story_settings.clear()
+	_story_order.clear()
 	var data := _load_json("res://data/story.json")
 	if data.is_empty():
 		push_warning("[DataManager] No story data found.")
@@ -980,7 +989,7 @@ func _load_stories() -> void:
 	if settings is Dictionary:
 		_story_settings = settings as Dictionary
 	
-	# Charger les séquences indexées par ID
+	# Charger les séquences indexées par ID (ordre préservé pour le debug)
 	var sequences: Variant = data.get("sequences", [])
 	if sequences is Array:
 		for seq in sequences:
@@ -989,10 +998,128 @@ func _load_stories() -> void:
 				var seq_id: String = str(seq_dict.get("id", ""))
 				if seq_id != "":
 					_stories[seq_id] = seq_dict
+					_story_order.append(seq_id)
+
+## Retourne la story "intro monde" pour un monde (world présent, level absent ou null).
+## Déprécié: utiliser get_story_for_trigger(world_id, 0, "start") pour l'intro.
+func get_story_for_world(world_id: String) -> Dictionary:
+	return get_story_for_trigger(world_id, 0, "start")
+
+## Retourne la story "avant niveau" pour (world_id, level_index).
+## Déprécié: utiliser get_story_for_trigger(world_id, level_index, "start").
+func get_story_for_level(world_id: String, level_index: int) -> Dictionary:
+	return get_story_for_trigger(world_id, level_index, "start")
+
+## Retourne une séquence pour (world_id, level_index, wave_trigger).
+## wave_trigger: "start" (début niveau / intro monde), entier 1-based (avant cette wave), "end" (après boss).
+## level_index 0-based. Intro monde = pas de level en JSON, jouée au level_index 0 + wave "start".
+## Pour level_index 0 + "start", on renvoie d'abord l'intro monde (sans level) si elle existe.
+func get_story_for_trigger(world_id: String, level_index: int, wave_trigger: Variant) -> Dictionary:
+	var level_one_based: int = level_index + 1
+	var want_start: bool = (str(wave_trigger) == "start")
+	var want_end: bool = (str(wave_trigger) == "end")
+	var want_wave: int = -1
+	if not want_start and not want_end and wave_trigger != null:
+		if wave_trigger is int:
+			want_wave = int(wave_trigger)
+		elif wave_trigger is float:
+			want_wave = int(wave_trigger)
+		else:
+			want_wave = int(str(wave_trigger))
+	# Pour (world, 0, "start"), priorité à l'intro monde (sans level)
+	if want_start and level_index == 0:
+		for seq_id in _stories:
+			var seq: Dictionary = _stories[seq_id]
+			if str(seq.get("world", "")) != world_id:
+				continue
+			if seq.get("level", null) != null:
+				continue
+			var sw: Variant = seq.get("wave", null)
+			if str(sw) != "start":
+				continue
+			return seq
+	for seq_id in _stories:
+		var seq: Dictionary = _stories[seq_id]
+		var w: String = str(seq.get("world", ""))
+		if w != world_id:
+			continue
+		var lv: Variant = seq.get("level", null)
+		var seq_level_one: int = -1
+		if lv != null and (lv is int or lv is float):
+			seq_level_one = int(lv) if lv is int else int(float(lv))
+		var seq_wave: Variant = seq.get("wave", null)
+		var seq_want_start: bool = (str(seq_wave) == "start")
+		var seq_want_end: bool = (str(seq_wave) == "end")
+		var seq_wave_num: int = -1
+		if not seq_want_start and not seq_want_end and seq_wave != null:
+			var sw_str: String = str(seq_wave)
+			if sw_str.is_valid_int():
+				seq_wave_num = int(sw_str)
+			elif seq_wave is int:
+				seq_wave_num = int(seq_wave)
+			elif seq_wave is float:
+				seq_wave_num = int(seq_wave)
+			else:
+				seq_wave_num = int(sw_str)
+		# level match: intro (no level) only for level_index 0; else seq level must match level_one_based
+		if seq_level_one < 0:
+			if level_index != 0:
+				continue
+		elif seq_level_one != level_one_based:
+			continue
+		# wave match
+		if want_start:
+			if not seq_want_start:
+				continue
+			return seq
+		if want_end:
+			if not seq_want_end:
+				continue
+			return seq
+		if want_wave >= 0:
+			if seq_wave_num != want_wave:
+				continue
+			return seq
+	return {}
+
+## Retourne toutes les séquences "start" pour (world_id, level_index). Permet de jouer intro + level start pour le niveau 0.
+func get_stories_for_trigger_start(world_id: String, level_index: int) -> Array:
+	var out: Array = []
+	var level_one_based: int = level_index + 1
+	# Intro monde (sans level) pour level_index 0
+	if level_index == 0:
+		for seq_id in _stories:
+			var seq: Dictionary = _stories[seq_id]
+			if str(seq.get("world", "")) != world_id or seq.get("level", null) != null:
+				continue
+			var sw: Variant = seq.get("wave", null)
+			if str(sw) != "start":
+				continue
+			out.append(seq)
+	# Story niveau (level N)
+	for seq_id in _stories:
+		var seq: Dictionary = _stories[seq_id]
+		if str(seq.get("world", "")) != world_id:
+			continue
+		var lv: Variant = seq.get("level", null)
+		if lv == null:
+			continue
+		var lv_int: int = int(lv) if lv is int else int(float(lv))
+		if lv_int != level_one_based:
+			continue
+		var sw: Variant = seq.get("wave", null)
+		if str(sw) != "start":
+			continue
+		out.append(seq)
+	return out
 
 ## Retourne une séquence de story par son ID
 func get_story(story_id: String) -> Dictionary:
 	return _stories.get(story_id, {})
+
+## Retourne les IDs des séquences dans l'ordre du fichier story.json (pour le mode debug).
+func get_story_sequence_ids() -> Array:
+	return _story_order.duplicate()
 
 ## Retourne les paramètres globaux des stories
 func get_story_settings() -> Dictionary:

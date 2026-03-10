@@ -111,8 +111,7 @@ func play_music(path: String, fade_duration: float = DEFAULT_FADE_DURATION) -> v
 		_music_player.stream = stream
 		_music_player.volume_db = -80.0
 		_music_player.play()
-		print("[AudioManager] Start track: ", path)
-		
+
 		_current_tween.tween_property(_music_player, "volume_db", 0.0, fade_duration)
 
 ## Stoppe la musique avec un Fade Out

@@ -35,7 +35,7 @@ biomes = [
         "name": "Forêt Primordiale",
         "description": "Une forêt ancienne aux canopées denses, où la lumière perce à peine à travers le feuillage.",
         "folder": "forest",
-        "far_files": [f"world_forest_{i}.png" for i in range(6)],
+        "far_files": [f"world_{i}.png" for i in range(6)],
         "mid_files": [f"layer_2_clouds_{i}.png" for i in range(6)],
         "music": "acceleration.ogg",
         "color": "#2d5a27",
