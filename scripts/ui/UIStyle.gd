@@ -1,5 +1,39 @@
 extends RefCounted
 
+const HIGHLIGHT_GLOW_SHADER_CODE := """
+shader_type canvas_item;
+render_mode blend_add;
+
+uniform vec4 glow_color : source_color = vec4(1.0, 0.85, 0.42, 1.0);
+uniform float glow_thickness = 6.0;
+uniform float glow_intensity = 1.25;
+uniform float pulse_frequency = 1.6;
+uniform float pulse_amplitude = 0.22;
+uniform vec2 source_tex_size = vec2(256.0, 128.0);
+
+void fragment() {
+	vec2 uv = UV;
+	vec2 px = 1.0 / max(source_tex_size, vec2(1.0));
+	float center_alpha = texture(TEXTURE, uv).a;
+	float ring = 0.0;
+	float smooth_edge = max(glow_thickness * 0.35, 1.0);
+
+	for (int i = 0; i < 16; i++) {
+		float a = (6.2831853 / 16.0) * float(i);
+		vec2 dir = vec2(cos(a), sin(a));
+		float near_alpha = texture(TEXTURE, uv + dir * px * glow_thickness).a;
+		float far_alpha = texture(TEXTURE, uv + dir * px * (glow_thickness + smooth_edge)).a;
+		ring = max(ring, max(near_alpha, far_alpha * 0.7));
+	}
+
+	float edge = clamp(ring - center_alpha, 0.0, 1.0);
+	edge *= smoothstep(0.0, 1.0, edge);
+	float pulse = 1.0 + sin(TIME * pulse_frequency * 6.2831853) * pulse_amplitude;
+	float alpha_out = edge * glow_intensity * pulse * glow_color.a;
+	COLOR = vec4(glow_color.rgb, alpha_out);
+}
+"""
+
 ## Helper centralise pour appliquer des StyleBoxTexture en mode 9-slice.
 ## Compatible avec des configs partielles: fallback propre si des cles manquent.
 
@@ -242,15 +276,15 @@ static func build_validation_styleboxes(asset_path: String, cfg: Dictionary) -> 
 	if frame_count <= 0:
 		return {}
 	var tex_normal: Texture2D = frames.get_frame_texture(anim_name, 0)
-	var fallback_margin: int = 14
-	var cm: Variant = cfg.get("content_margin", {})
-	if cm is Dictionary and (cm as Dictionary).get("left", -1) >= 0:
-		fallback_margin = -1
-	var style_normal := build_stylebox_from_texture(tex_normal, cfg, fallback_margin)
-	if style_normal == null:
+	var res_fallback_margin: int = 14
+	var res_cm: Variant = cfg.get("content_margin", {})
+	if res_cm is Dictionary and (res_cm as Dictionary).get("left", -1) >= 0:
+		res_fallback_margin = -1
+	var res_style_normal := build_stylebox_from_texture(tex_normal, cfg, res_fallback_margin)
+	if res_style_normal == null:
 		return {}
-	var style_hover := _stylebox_with_content_offset(style_normal, offset_y)
-	return { "normal": style_normal, "hover": style_hover }
+	var res_style_hover := _stylebox_with_content_offset(res_style_normal, offset_y)
+	return { "normal": res_style_normal, "hover": res_style_hover }
 
 ## Applies a text shadow to a Button by overlaying a Label child.
 ## Godot 4 Button does not support font_shadow natively; this workaround
@@ -414,6 +448,12 @@ static func get_cancellation_config() -> Dictionary:
 	var c: Variant = buttons.get("cancellation", {})
 	return c if c is Dictionary else {}
 
+## Returns the highlight button config (same structure as validation + glow params).
+static func get_highlight_config() -> Dictionary:
+	var buttons := _get_buttons_section()
+	var h: Variant = buttons.get("highlight", {})
+	return h if h is Dictionary else {}
+
 ## Applies the default button style (asset 9-slice + text_color) and font preset to a Button.
 static func apply_default_button_style(btn: Button, font_size_key: String = "medium") -> void:
 	if btn == null:
@@ -493,3 +533,71 @@ static func apply_validation_to_button(btn: Button, validation_cfg: Dictionary =
 static func apply_cancellation_to_button(btn: Button, cancellation_cfg: Dictionary = {}, font_size_key: String = "medium") -> void:
 	var cfg := cancellation_cfg if not cancellation_cfg.is_empty() else get_cancellation_config()
 	apply_validation_to_button(btn, cfg, font_size_key)
+
+## Applies highlight style and animated alpha-aware glow around the button shape.
+static func apply_highlight_to_button(btn: Button, highlight_cfg: Dictionary = {}, font_size_key: String = "medium") -> void:
+	if btn == null:
+		return
+	var cfg := highlight_cfg if not highlight_cfg.is_empty() else get_highlight_config()
+	apply_validation_to_button(btn, cfg, font_size_key)
+	_attach_highlight_glow(btn, cfg)
+
+static func _attach_highlight_glow(btn: Button, cfg: Dictionary) -> void:
+	var asset_path: String = str(cfg.get("asset", ""))
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+	var tex: Texture2D = _resolve_button_texture(asset_path)
+	if tex == null:
+		return
+
+	var glow_node: TextureRect = btn.get_node_or_null("HighlightGlowTexture")
+	if glow_node == null:
+		glow_node = TextureRect.new()
+		glow_node.name = "HighlightGlowTexture"
+		glow_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		glow_node.texture = tex
+		glow_node.z_index = -1
+		glow_node.set_anchors_preset(Control.PRESET_FULL_RECT)
+		glow_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glow_node.stretch_mode = TextureRect.STRETCH_SCALE
+		btn.add_child(glow_node)
+	else:
+		glow_node.texture = tex
+
+	var extra_margin: float = maxf(4.0, float(cfg.get("glow_thickness", 6.0)) + 2.0)
+	glow_node.offset_left = -extra_margin
+	glow_node.offset_top = -extra_margin
+	glow_node.offset_right = extra_margin
+	glow_node.offset_bottom = extra_margin
+
+	var mat: ShaderMaterial = glow_node.material as ShaderMaterial
+	if mat == null:
+		mat = ShaderMaterial.new()
+		mat.shader = Shader.new()
+		mat.shader.code = HIGHLIGHT_GLOW_SHADER_CODE
+		glow_node.material = mat
+
+	var glow_color := Color.from_string(str(cfg.get("glow_color", "#FFD86B")), Color(1.0, 0.85, 0.42, 1.0))
+	mat.set_shader_parameter("glow_color", glow_color)
+	mat.set_shader_parameter("glow_thickness", maxf(1.0, float(cfg.get("glow_thickness", 6.0))))
+	mat.set_shader_parameter("glow_intensity", maxf(0.0, float(cfg.get("glow_intensity", 1.25))))
+	mat.set_shader_parameter("pulse_frequency", maxf(0.05, float(cfg.get("pulse_frequency", 1.6))))
+	mat.set_shader_parameter("pulse_amplitude", maxf(0.0, float(cfg.get("pulse_amplitude", 0.22))))
+	mat.set_shader_parameter("source_tex_size", tex.get_size())
+
+static func _resolve_button_texture(asset_path: String) -> Texture2D:
+	var ext: String = asset_path.get_extension().to_lower()
+	if ext in ["png", "jpg", "jpeg", "webp"]:
+		var tex_res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+		return tex_res as Texture2D
+	var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res is SpriteFrames:
+		var frames: SpriteFrames = res as SpriteFrames
+		var anims: Array = frames.get_animation_names()
+		if anims.is_empty():
+			return null
+		var anim: StringName = anims[0]
+		if frames.get_frame_count(anim) <= 0:
+			return null
+		return frames.get_frame_texture(anim, 0)
+	return null

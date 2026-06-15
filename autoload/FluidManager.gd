@@ -34,7 +34,7 @@ func _ready() -> void:
 func _load_presets() -> void:
 	_presets = DataManager.get_all_fluid_presets()
 	if _presets.is_empty():
-		push_warning("[FluidManager] Aucun fluid preset chargé.")
+		pass
 
 
 

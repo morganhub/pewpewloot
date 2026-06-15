@@ -12,7 +12,10 @@ var _shake_amount: float = 0.0
 var _shake_duration: float = 0.0
 const _ANIM_META_SEQ_KEY: String = "_anim_playback_seq"
 const _SPRITEFRAMES_VARIANT_CACHE_MAX: int = 128
+const STRONG_RESOURCE_CACHE_MAX: int = 256
 var _spriteframes_variant_cache: Dictionary = {}
+var _strong_resource_cache: Dictionary = {}
+var _first_frame_texture_cache: Dictionary = {}
 
 func set_camera(camera: Camera2D) -> void:
 	_camera = camera
@@ -204,7 +207,14 @@ func spawn_explosion(
 	lifetime: float = -1.0,
 	fade_out_duration: float = 0.3,
 	asset_anim_duration: float = 0.0,
-	asset_anim_loop: bool = true
+	asset_anim_loop: bool = true,
+	fade_in_duration: float = 0.0,
+	scale_start: float = 1.0,
+	scale_middle: float = 1.0,
+	scale_end: float = 1.0,
+	scale_middle_ratio: float = 0.45,
+	target_width: float = -1.0,
+	target_height: float = -1.0
 ) -> void:
 	var explosion := Node2D.new()
 	explosion.global_position = pos
@@ -214,11 +224,12 @@ func spawn_explosion(
 	
 	# Priority 1: Animated Asset
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames = load(asset_anim)
+		var frames: Resource = _load_cached_resource(asset_anim)
 		if frames is SpriteFrames:
 			var anim_sprite := AnimatedSprite2D.new()
 			anim_sprite.name = "ExplosionAnim"
 			explosion.add_child(anim_sprite)
+			_prepare_fade_in(anim_sprite, fade_in_duration)
 			var frames_data: SpriteFrames = frames as SpriteFrames
 			var played_anim: StringName = play_sprite_frames(
 				anim_sprite,
@@ -232,10 +243,19 @@ func spawn_explosion(
 			# Assuming default frame size is ~64x64, we scale to match 'size * 2'
 			var tex: Texture2D = null
 			if played_anim != &"":
-				tex = frames_data.get_frame_texture(played_anim, 0)
+				tex = _get_cached_first_frame_texture(frames_data, played_anim)
 			if tex:
-				var s = tex.get_size()
-				anim_sprite.scale = Vector2(size * 4 / s.x, size * 4 / s.y) # Bigger explosion
+				anim_sprite.scale = _compute_explosion_scale(tex.get_size(), size, 4.0, target_width, target_height)
+			var anim_total_duration: float = asset_anim_duration if asset_anim_duration > 0.0 else 0.2
+			_apply_explosion_scale_profile(
+				anim_sprite,
+				anim_sprite.scale,
+				scale_start,
+				scale_middle,
+				scale_end,
+				scale_middle_ratio,
+				anim_total_duration
+			)
 
 			if life > 0.0:
 				var ex_ref: WeakRef = weakref(explosion)
@@ -282,15 +302,26 @@ func spawn_explosion(
 
 	# Priority 2: Static Asset (Fade out)
 	if asset_path != "" and ResourceLoader.exists(asset_path):
-		var texture = load(asset_path)
-		if texture:
+		var texture_res: Resource = _load_cached_resource(asset_path)
+		if texture_res is Texture2D:
+			var texture: Texture2D = texture_res as Texture2D
 			var sprite := Sprite2D.new()
 			sprite.texture = texture
 			explosion.add_child(sprite)
+			_prepare_fade_in(sprite, fade_in_duration)
 			
 			# Scale
-			var s = texture.get_size()
-			sprite.scale = Vector2(size * 3 / s.x, size * 3 / s.y)
+			sprite.scale = _compute_explosion_scale(texture.get_size(), size, 3.0, target_width, target_height)
+			var static_total_duration: float = life if life > 0.0 else 0.18
+			_apply_explosion_scale_profile(
+				sprite,
+				sprite.scale,
+				scale_start,
+				scale_middle,
+				scale_end,
+				scale_middle_ratio,
+				static_total_duration
+			)
 			
 			var alpha_tween := create_tween()
 			if life > 0.0:
@@ -304,26 +335,90 @@ func spawn_explosion(
 	circle.color = color
 	circle.polygon = _create_circle(size)
 	explosion.add_child(circle)
+	_prepare_fade_in(circle, fade_in_duration)
+	var circle_total_duration: float = life if life > 0.0 else 0.3
+	_apply_explosion_scale_profile(
+		circle,
+		circle.scale,
+		scale_start,
+		scale_middle,
+		scale_end,
+		scale_middle_ratio,
+		circle_total_duration
+	)
 	
-	# Animation
-	var tween := create_tween()
-	tween.set_parallel(true)
-	var scale_duration: float = 0.3
-	if life > 0.0:
-		scale_duration = maxf(0.15, life)
-	tween.tween_property(circle, "scale", Vector2(2.5, 2.5), scale_duration)
 	if life > 0.0:
 		var fade_tween := create_tween()
 		fade_tween.tween_interval(life)
 		fade_tween.tween_property(circle, "modulate:a", 0.0, fade_time)
 		fade_tween.tween_callback(explosion.queue_free)
 	else:
-		tween.tween_property(circle, "modulate:a", 0.0, 0.3)
-		tween.chain().tween_callback(explosion.queue_free)
+		var fade_tween := create_tween()
+		fade_tween.tween_property(circle, "modulate:a", 0.0, 0.3)
+		fade_tween.tween_callback(explosion.queue_free)
 	
 	# Particles placeholder (points qui s'éloignent)
 	for i in range(8):
 		_spawn_particle(pos, size, color, container)
+
+func _prepare_fade_in(node: CanvasItem, fade_in_duration: float) -> void:
+	if node == null:
+		return
+	var fade_in: float = maxf(0.0, fade_in_duration)
+	if fade_in <= 0.0:
+		node.modulate.a = 1.0
+		return
+	var col: Color = node.modulate
+	col.a = 0.0
+	node.modulate = col
+	var tween := create_tween()
+	tween.tween_property(node, "modulate:a", 1.0, fade_in)
+
+func _apply_explosion_scale_profile(
+	node: Node2D,
+	base_scale: Vector2,
+	scale_start: float,
+	scale_middle: float,
+	scale_end: float,
+	scale_middle_ratio: float,
+	total_duration: float
+) -> void:
+	if node == null:
+		return
+	var start_mul: float = maxf(0.01, scale_start)
+	var middle_mul: float = maxf(0.01, scale_middle)
+	var end_mul: float = maxf(0.01, scale_end)
+	var duration: float = maxf(0.05, total_duration)
+	var middle_ratio_clamped: float = clampf(scale_middle_ratio, 0.05, 0.95)
+	var t1: float = duration * middle_ratio_clamped
+	var t2: float = maxf(0.02, duration - t1)
+
+	node.scale = base_scale * start_mul
+	var scale_tween := create_tween()
+	scale_tween.tween_property(node, "scale", base_scale * middle_mul, t1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	scale_tween.tween_property(node, "scale", base_scale * end_mul, t2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+func _compute_explosion_scale(
+	tex_size: Vector2,
+	size: float,
+	base_factor: float,
+	target_width: float,
+	target_height: float
+) -> Vector2:
+	if tex_size.x <= 0.0 or tex_size.y <= 0.0:
+		return Vector2.ONE
+
+	var w: float = target_width
+	var h: float = target_height
+	if w > 0.0 or h > 0.0:
+		if w <= 0.0:
+			w = tex_size.x
+		if h <= 0.0:
+			h = tex_size.y
+		var contain_factor: float = minf(w / tex_size.x, h / tex_size.y)
+		return Vector2.ONE * contain_factor
+
+	return Vector2((size * base_factor) / tex_size.x, (size * base_factor) / tex_size.y)
 
 func _spawn_particle(pos: Vector2, size: float, color: Color, container: Node) -> void:
 	var particle := Polygon2D.new()
@@ -418,3 +513,39 @@ func _create_circle(radius: float) -> PackedVector2Array:
 		var angle := (i / float(num_points)) * TAU
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
+
+func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _strong_resource_cache.has(path):
+		var cached: Variant = _strong_resource_cache[path]
+		if cached is Resource:
+			return cached as Resource
+
+	var resource: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if resource != null:
+		if _strong_resource_cache.size() >= STRONG_RESOURCE_CACHE_MAX:
+			_strong_resource_cache.clear()
+			_first_frame_texture_cache.clear()
+		_strong_resource_cache[path] = resource
+	return resource
+
+func _get_cached_first_frame_texture(frames: SpriteFrames, anim_name: StringName) -> Texture2D:
+	if frames == null or anim_name == &"":
+		return null
+	var frame_key: String = _build_frame_cache_key(frames, anim_name)
+	if _first_frame_texture_cache.has(frame_key):
+		var cached: Variant = _first_frame_texture_cache[frame_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+
+	var texture: Texture2D = frames.get_frame_texture(anim_name, 0)
+	if texture != null:
+		_first_frame_texture_cache[frame_key] = texture
+	return texture
+
+func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> String:
+	var path: String = frames.resource_path
+	if path == "":
+		path = "rid:" + str(frames.get_rid().get_id())
+	return path + "|" + String(anim_name)

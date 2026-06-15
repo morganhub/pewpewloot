@@ -38,7 +38,7 @@ func load_locale(locale: String) -> void:
 	# Charger les story strings séparément
 	_load_story_locale(locale)
 	
-	print("[LocaleManager] Loaded locale: ", locale, " (", _strings.size(), " strings, ", _story_strings.size(), " story strings)")
+	pass
 
 ## Retourne la locale actuelle
 func get_locale() -> String:

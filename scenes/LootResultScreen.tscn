@@ -2,19 +2,12 @@
 
 [ext_resource type="Script" uid="uid://cp342oj2efc1p" path="res://scenes/LootResultScreen.gd" id="1_loot"]
 
-[node name="LootResultScreen" type="Control" unique_id=2035183221]
-process_mode = 3
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="LootResultScreen" type="CanvasLayer" unique_id=2035183221]
+layer = 20
 script = ExtResource("1_loot")
 
 [node name="Background" type="TextureRect" parent="." unique_id=1018799003]
 unique_name_in_owner = true
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -26,7 +19,6 @@ stretch_mode = 6
 [node name="FallbackBg" type="ColorRect" parent="." unique_id=2028645517]
 unique_name_in_owner = true
 visible = false
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -35,7 +27,6 @@ grow_vertical = 2
 color = Color(0.1, 0.1, 0.15, 0.95)
 
 [node name="CenterContainer" type="CenterContainer" parent="." unique_id=1025210087]
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -62,9 +53,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "BOSS LOOT!"
 horizontal_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=38924169]
-layout_mode = 2
 
 [node name="ItemNameLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=885455228]
 unique_name_in_owner = true
@@ -119,9 +107,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Recycler"
 icon_alignment = 1
-
-[node name="HSeparator2" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=1860613718]
-layout_mode = 2
 
 [node name="SessionLootContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer" unique_id=780710581]
 unique_name_in_owner = true

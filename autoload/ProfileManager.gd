@@ -240,6 +240,49 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	if not migrated.has("levels_cleared_with_max_override"):
 		migrated["levels_cleared_with_max_override"] = 0
 		needs_save = true
+
+	# Migration: local level score records
+	if not migrated.has("level_scores"):
+		migrated["level_scores"] = {}
+		needs_save = true
+	else:
+		var level_scores_v: Variant = migrated.get("level_scores", {})
+		if not (level_scores_v is Dictionary):
+			migrated["level_scores"] = {}
+			needs_save = true
+		else:
+			var sanitized_level_scores: Dictionary = {}
+			for world_key_v in (level_scores_v as Dictionary).keys():
+				var world_key: String = str(world_key_v).strip_edges()
+				if world_key == "":
+					needs_save = true
+					continue
+				var world_scores_v: Variant = (level_scores_v as Dictionary).get(world_key_v, {})
+				if not (world_scores_v is Dictionary):
+					needs_save = true
+					continue
+				var world_scores_clean: Dictionary = {}
+				for level_key_v in (world_scores_v as Dictionary).keys():
+					var level_key: String = str(level_key_v).strip_edges()
+					if level_key == "":
+						needs_save = true
+						continue
+					var rec_v: Variant = (world_scores_v as Dictionary).get(level_key_v, {})
+					var best_score: int = 0
+					var stars: int = 0
+					if rec_v is Dictionary:
+						best_score = maxi(0, int((rec_v as Dictionary).get("best_score", 0)))
+						stars = clampi(int((rec_v as Dictionary).get("stars", 0)), 0, 3)
+					else:
+						needs_save = true
+					world_scores_clean[level_key] = {
+						"best_score": best_score,
+						"stars": stars
+					}
+				sanitized_level_scores[world_key] = world_scores_clean
+			if sanitized_level_scores != (level_scores_v as Dictionary):
+				needs_save = true
+			migrated["level_scores"] = sanitized_level_scores
 	
 	# Keep profile ship references valid if ship IDs changed in ships.json.
 	if _can_validate_ship_ids():
@@ -492,6 +535,7 @@ func create_profile(profile_name: String, portrait_id: int) -> String:
 		"name": profile_name,
 		"portrait_id": portrait_id,
 		"progress": _create_default_progress(),
+		"level_scores": {},
 		"ships_unlocked": default_unlocked,
 		"active_ship_id": default_active,
 		"inventory": [],
@@ -574,6 +618,28 @@ func reset_viewed_stories() -> void:
 	_update_active_profile("viewed_stories", [])
 	save_to_disk()
 	print("[ProfileManager] Viewed stories reset.")
+
+## Reset player progression used for level-up testing (debug helper).
+## Keeps world progression, inventory and currency untouched.
+func reset_player_level_progress() -> void:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+
+	var updated := profile.duplicate(true)
+	updated["player_xp"] = 0
+	updated["player_level"] = 1
+	updated["skill_points"] = 0
+	updated["skills_unlocked"] = {"fire_straight": 1}
+	updated["active_magic_branch"] = ""
+	updated["equipped_fire_pattern"] = "fire_ship_default"
+
+	for i in range(profiles.size()):
+		if str(profiles[i].get("id", "")) == active_profile_id:
+			profiles[i] = updated
+			break
+	save_to_disk()
+	print("[ProfileManager] Player level progression reset to level 1.")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PROGRESSION MONDES/NIVEAUX
@@ -711,6 +777,167 @@ func unlock_next_world_if_needed(current_world_id: String) -> void:
 
 func _apply_progress_to_active_profile(new_progress: Dictionary) -> void:
 	_update_active_profile("progress", new_progress)
+
+# =============================================================================
+# SCORE LOCAL PAR NIVEAU
+# =============================================================================
+
+func get_profile_count() -> int:
+	return profiles.size()
+
+func _get_level_scores_dict(profile: Dictionary) -> Dictionary:
+	var raw: Variant = profile.get("level_scores", {})
+	if raw is Dictionary:
+		return (raw as Dictionary).duplicate(true)
+	return {}
+
+func _set_level_scores_for_active_profile(level_scores: Dictionary) -> void:
+	_update_active_profile("level_scores", level_scores)
+
+func _resolve_world_level_key(world_id: String, level_id: String) -> String:
+	var trimmed: String = level_id.strip_edges()
+	if trimmed == "":
+		return ""
+	# Preferred storage key: normalized level scene id (world_X_lvl_Y) when resolvable.
+	var direct: Dictionary = DataManager.get_level_data(trimmed) if DataManager else {}
+	if not direct.is_empty():
+		return trimmed
+	# Accept "level_1" / "level_2" style from spec and map to world_X_lvl_(n-1).
+	if trimmed.begins_with("level_"):
+		var suffix: String = trimmed.trim_prefix("level_")
+		if suffix.is_valid_int():
+			var idx: int = maxi(0, int(suffix) - 1)
+			return world_id + "_lvl_" + str(idx)
+	# Accept numeric string index as fallback.
+	if trimmed.is_valid_int():
+		return world_id + "_lvl_" + str(maxi(0, int(trimmed)))
+	return trimmed
+
+func _resolve_level_thresholds(world_id: String, level_id: String) -> Dictionary:
+	var level_key: String = _resolve_world_level_key(world_id, level_id)
+	if level_key == "" or DataManager == null:
+		return {}
+	var level_data: Dictionary = DataManager.get_level_data(level_key)
+	if level_data.is_empty():
+		return {}
+	return {
+		"score_1star": int(level_data.get("score_1star", 0)),
+		"score_2stars": int(level_data.get("score_2stars", 0)),
+		"score_3stars": int(level_data.get("score_3stars", 0))
+	}
+
+func _compute_stars_for_score(world_id: String, level_id: String, score: int) -> int:
+	var thresholds: Dictionary = _resolve_level_thresholds(world_id, level_id)
+	if thresholds.is_empty():
+		return 0
+	var s1: int = int(thresholds.get("score_1star", 0))
+	var s2: int = int(thresholds.get("score_2stars", 0))
+	var s3: int = int(thresholds.get("score_3stars", 0))
+	var stars: int = 0
+	if score >= s1 and s1 > 0:
+		stars = 1
+	if score >= s2 and s2 > 0:
+		stars = 2
+	if score >= s3 and s3 > 0:
+		stars = 3
+	return stars
+
+func save_level_score(world_id: String, level_id: String, score: int) -> Dictionary:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return {"updated": false, "best_score": 0, "stars": 0}
+	var world_key: String = world_id.strip_edges()
+	var level_key: String = _resolve_world_level_key(world_key, level_id)
+	if world_key == "" or level_key == "":
+		return {"updated": false, "best_score": 0, "stars": 0}
+
+	var candidate: int = maxi(0, score)
+	var level_scores: Dictionary = _get_level_scores_dict(profile)
+	var world_scores_v: Variant = level_scores.get(world_key, {})
+	var world_scores: Dictionary = {}
+	if world_scores_v is Dictionary:
+		world_scores = (world_scores_v as Dictionary).duplicate(true)
+	var record_v: Variant = world_scores.get(level_key, {})
+	var previous_best: int = 0
+	if record_v is Dictionary:
+		previous_best = maxi(0, int((record_v as Dictionary).get("best_score", 0)))
+	var updated: bool = candidate > previous_best
+	var final_best: int = candidate if updated else previous_best
+	var final_stars: int = _compute_stars_for_score(world_key, level_key, final_best)
+
+	world_scores[level_key] = {
+		"best_score": final_best,
+		"stars": final_stars
+	}
+	level_scores[world_key] = world_scores
+	_set_level_scores_for_active_profile(level_scores)
+	return {
+		"updated": updated,
+		"best_score": final_best,
+		"stars": final_stars
+	}
+
+func get_level_best_score(world_id: String, level_id: String) -> int:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return 0
+	var world_key: String = world_id.strip_edges()
+	var level_key: String = _resolve_world_level_key(world_key, level_id)
+	if world_key == "" or level_key == "":
+		return 0
+	var level_scores: Dictionary = _get_level_scores_dict(profile)
+	var world_scores_v: Variant = level_scores.get(world_key, {})
+	if not (world_scores_v is Dictionary):
+		return 0
+	var rec_v: Variant = (world_scores_v as Dictionary).get(level_key, {})
+	if rec_v is Dictionary:
+		return maxi(0, int((rec_v as Dictionary).get("best_score", 0)))
+	return 0
+
+func get_level_stars(world_id: String, level_id: String) -> int:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return 0
+	var world_key: String = world_id.strip_edges()
+	var level_key: String = _resolve_world_level_key(world_key, level_id)
+	if world_key == "" or level_key == "":
+		return 0
+	var level_scores: Dictionary = _get_level_scores_dict(profile)
+	var world_scores_v: Variant = level_scores.get(world_key, {})
+	if not (world_scores_v is Dictionary):
+		return 0
+	var rec_v: Variant = (world_scores_v as Dictionary).get(level_key, {})
+	if rec_v is Dictionary:
+		return clampi(int((rec_v as Dictionary).get("stars", 0)), 0, 3)
+	return 0
+
+func get_global_best_score(world_id: String, level_id: String) -> Dictionary:
+	var world_key: String = world_id.strip_edges()
+	var level_key: String = _resolve_world_level_key(world_key, level_id)
+	if world_key == "" or level_key == "":
+		return {"score": 0, "profile_name": "", "profile_id": ""}
+	var best_score: int = 0
+	var best_name: String = ""
+	var best_id: String = ""
+	for profile_v in profiles:
+		if not (profile_v is Dictionary):
+			continue
+		var profile: Dictionary = profile_v as Dictionary
+		var all_scores_v: Variant = profile.get("level_scores", {})
+		if not (all_scores_v is Dictionary):
+			continue
+		var world_scores_v: Variant = (all_scores_v as Dictionary).get(world_key, {})
+		if not (world_scores_v is Dictionary):
+			continue
+		var rec_v: Variant = (world_scores_v as Dictionary).get(level_key, {})
+		if not (rec_v is Dictionary):
+			continue
+		var s: int = maxi(0, int((rec_v as Dictionary).get("best_score", 0)))
+		if s > best_score:
+			best_score = s
+			best_name = str(profile.get("name", ""))
+			best_id = str(profile.get("id", ""))
+	return {"score": best_score, "profile_name": best_name, "profile_id": best_id}
 
 # =============================================================================
 # VAISSEAUX

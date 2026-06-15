@@ -321,8 +321,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Fermer"
 
-[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+[node name="MenuFooter" parent="." unique_id=1122009691 instance=ExtResource("3_footer")]
 layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5
 
 [node name="UniqueSelectionPopup" type="PanelContainer" parent="." unique_id=958983873]
 unique_name_in_owner = true

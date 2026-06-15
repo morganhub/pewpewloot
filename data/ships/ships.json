@@ -120,7 +120,7 @@
 			},
 			"missile_id": "missile_car",
 			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_barrel_roll"
+			"special_power_id": "power_paint_sweep"
 		},
 		{
 			"id": "ship_supercarB",

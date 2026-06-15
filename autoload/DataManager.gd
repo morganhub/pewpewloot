@@ -9,7 +9,8 @@ var _ships: Array = []
 var _enemies: Dictionary = {}       # enemy_id -> data
 var _bosses: Dictionary = {}        # boss_id -> data
 var _move_patterns: Dictionary = {} # pattern_id -> data
-var _missile_patterns: Dictionary = {} # pattern_id -> data
+var _missile_patterns_player: Dictionary = {} # pattern_id -> data
+var _missile_patterns_enemy: Dictionary = {} # pattern_id -> data
 var _missiles: Dictionary = {} # missile_id -> data
 var _slots: Array = []
 var _slot_ids: Array = []
@@ -38,7 +39,7 @@ var _full_data_loaded: bool = false
 func _ready() -> void:
 	_load_game_config()
 	_load_override_protocols()
-	print("[DataManager] Minimal data loaded (game + override_protocols).")
+	pass
 
 ## Call this during bootstrap loading (e.g. from LoadingScreen). Loads all remaining JSON data.
 func load_remaining_data() -> void:
@@ -60,19 +61,6 @@ func load_remaining_data() -> void:
 	_load_fluids()
 	_load_stories()
 	_full_data_loaded = true
-	print("[DataManager] All data loaded.")
-	print("[DataManager] Worlds: ", _worlds.size())
-	print("[DataManager] Ships: ", _ships.size())
-	print("[DataManager] Move Patterns: ", _move_patterns.size())
-	print("[DataManager] Missile Patterns: ", _missile_patterns.size())
-	print("[DataManager] Enemies: ", _enemies.size())
-	print("[DataManager] Bosses: ", _bosses.size())
-	print("[DataManager] Slots: ", _slots.size())
-	print("[DataManager] Rarities: ", _rarities.size())
-	print("[DataManager] Uniques: ", _uniques.size())
-	print("[DataManager] Obstacles: ", _obstacles.size())
-	print("[DataManager] Fluids: ", _fluids.size())
-	print("[DataManager] Stories: ", _stories.size())
 
 func _load_all_data() -> void:
 	_load_game_config()
@@ -88,7 +76,6 @@ func _load_skills() -> void:
 	var data := _load_json("res://data/skills.json")
 	if not data.is_empty():
 		_skills = data
-		print("[DataManager] Skills loaded: ", _skills.get("trees", {}).keys())
 
 func get_skills_config() -> Dictionary:
 	return _skills
@@ -233,6 +220,36 @@ func get_game_config() -> Dictionary:
 	
 func get_game_data() -> Dictionary:
 	return _game_config
+
+func get_killstreak_config() -> Dictionary:
+	var scoring: Variant = _game_config.get("scoring", {})
+	if not (scoring is Dictionary):
+		return {}
+	var cfg: Variant = (scoring as Dictionary).get("killstreak_system", {})
+	if cfg is Dictionary:
+		return (cfg as Dictionary).duplicate(true)
+	return {}
+
+func get_bonus_crystals_config() -> Dictionary:
+	var scoring: Variant = _game_config.get("scoring", {})
+	if not (scoring is Dictionary):
+		return {}
+	var cfg: Variant = (scoring as Dictionary).get("bonus_crystals", {})
+	if cfg is Dictionary:
+		return (cfg as Dictionary).duplicate(true)
+	return {}
+
+func get_explosions_config() -> Dictionary:
+	var cfg: Variant = _game_config.get("explosions", {})
+	if cfg is Dictionary:
+		return (cfg as Dictionary).duplicate(true)
+	return {}
+
+func get_path_trial_defaults() -> Dictionary:
+	var cfg: Variant = _game_config.get("path_trial_defaults", {})
+	if cfg is Dictionary:
+		return (cfg as Dictionary).duplicate(true)
+	return {}
 
 func get_shared_asset_config(asset_id: String) -> Dictionary:
 	var shared_assets: Variant = _game_config.get("shared_assets", {})
@@ -475,7 +492,8 @@ func get_default_unlocked_ships() -> Array:
 
 func _load_patterns() -> void:
 	_move_patterns.clear()
-	_missile_patterns.clear()
+	_missile_patterns_player.clear()
+	_missile_patterns_enemy.clear()
 	
 	# Move patterns
 	var move_data := _load_json("res://data/patterns/move_patterns.json")
@@ -497,7 +515,7 @@ func _load_patterns() -> void:
 				var p_dict := pattern as Dictionary
 				var p_id: String = str(p_dict.get("id", ""))
 				if p_id != "":
-					_missile_patterns[p_id] = p_dict
+					_missile_patterns_player[p_id] = p_dict
 	
 	# Missile patterns - ENEMY
 	var missile_enemy_data := _load_json("res://data/patterns/missile_patterns_enemy.json")
@@ -508,7 +526,7 @@ func _load_patterns() -> void:
 				var p_dict := pattern as Dictionary
 				var p_id: String = str(p_dict.get("id", ""))
 				if p_id != "":
-					_missile_patterns[p_id] = p_dict
+					_missile_patterns_enemy[p_id] = p_dict
 
 ## Retourne un move pattern par ID
 func get_move_pattern(pattern_id: String) -> Dictionary:
@@ -518,13 +536,21 @@ func get_move_pattern(pattern_id: String) -> Dictionary:
 func get_all_move_patterns() -> Array:
 	return _move_patterns.values()
 
-## Retourne un missile pattern par ID
-func get_missile_pattern(pattern_id: String) -> Dictionary:
-	return _missile_patterns.get(pattern_id, {})
+## Retourne un missile pattern joueur par ID
+func get_player_missile_pattern(pattern_id: String) -> Dictionary:
+	return _missile_patterns_player.get(pattern_id, {})
 
-## Retourne tous les missile patterns
-func get_all_missile_patterns() -> Array:
-	return _missile_patterns.values()
+## Retourne tous les missile patterns joueur
+func get_all_player_missile_patterns() -> Array:
+	return _missile_patterns_player.values()
+
+## Retourne un missile pattern ennemi par ID
+func get_enemy_missile_pattern(pattern_id: String) -> Dictionary:
+	return _missile_patterns_enemy.get(pattern_id, {})
+
+## Retourne tous les missile patterns ennemi
+func get_all_enemy_missile_patterns() -> Array:
+	return _missile_patterns_enemy.values()
 
 # =============================================================================
 # MISSILES (Visuals)
@@ -937,7 +963,6 @@ func _load_obstacles() -> void:
 				var o_dict := entry as Dictionary
 				var o_id: String = str(o_dict.get("id", key))
 				_obstacles[o_id] = o_dict
-	print("[DataManager] Obstacles loaded: ", _obstacles.size())
 
 func get_obstacle(obstacle_id: String) -> Dictionary:
 	return _obstacles.get(obstacle_id, {})
@@ -963,7 +988,6 @@ func _load_fluids() -> void:
 		var entry: Variant = data[key]
 		if entry is Dictionary:
 			_fluids[key] = entry as Dictionary
-	print("[DataManager] Fluid presets loaded: ", _fluids.size())
 
 func get_fluid_preset(fluid_id: String) -> Dictionary:
 	return _fluids.get(fluid_id, {})

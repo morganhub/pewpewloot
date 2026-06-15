@@ -1,189 +1,168 @@
 extends Control
 
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
-const H_MARGIN := 36.0
-const BOTTOM_MARGIN := 24.0
-const TITLE_TO_CAROUSEL_GAP := 14.0
-const DETAILS_OVERLAP := 24.0
-const DETAILS_GAP := 16.0
-const WARNING_GAP := 8.0
-const ACTION_BUTTON_HEIGHT := 72.0
-const ITEM_HEIGHT_RATIO := 0.9
-const ITEM_SPACING := 48.0
-const DRAG_THRESHOLD := 12.0
-const SNAP_DURATION := 0.24
-const MAX_CAROUSEL_HEIGHT := 520.0
-const MIN_DETAILS_HEIGHT := 92.0
-const MAX_DETAILS_HEIGHT := 200.0
-const MIN_ACTION_BUTTON_HEIGHT := 52.0
-const HARD_MIN_DETAILS_HEIGHT := 48.0
-const HARD_MIN_ACTION_BUTTON_HEIGHT := 40.0
-const OVERRIDE_BUTTON_HEIGHT := 56.0
-const OVERRIDE_BUTTON_GAP := 10.0
-const OVERRIDE_HINT_DURATION := 2.0
+const H_MARGIN := 20.0
+const STAR_LIST_SIZE := 28.0
+const EXPANDED_DETAILS_HEIGHT := 200.0
+const EXPAND_DURATION := 0.35
+const HOVER_DURATION := 0.12
 const OVERRIDE_POPUP_WIDTH_RATIO := 0.86
 const OVERRIDE_POPUP_HEIGHT_RATIO := 0.72
 
 @onready var background: TextureRect = $Background
-@onready var back_button: TextureButton = $BackButton
 @onready var title_label: Label = $TitleLabel
-@onready var carousel_area: Control = $CarouselArea
-@onready var carousel_viewport: Control = $CarouselArea/CarouselViewport
-@onready var carousel_track: Control = $CarouselArea/CarouselViewport/CarouselTrack
-@onready var left_arrow: TextureButton = $CarouselArea/LeftArrow
-@onready var right_arrow: TextureButton = $CarouselArea/RightArrow
-@onready var details_panel: Control = $DetailsPanel
-@onready var details_panel_bg: TextureRect = $DetailsPanel/Background
-@onready var details_title: Label = $DetailsPanel/Content/Title
-@onready var details_description: Label = $DetailsPanel/Content/Description
-@onready var inventory_warning_label: Label = $InventoryWarningLabel
-@onready var action_button: Button = $ActionButton
+@onready var scroll_container: ScrollContainer = $ScrollContainer
+@onready var level_list: VBoxContainer = $ScrollContainer/LevelList
 
 var _game_config: Dictionary = {}
 var _world_select_cfg: Dictionary = {}
-var _default_card_colors: Array = []
+var _level_select_cfg: Dictionary = {}
 var _items: Array[Dictionary] = []
 var _world_data: Dictionary = {}
 var world_id := ""
-
-var _current_index := 0
-var _item_size := Vector2(700.0, 380.0)
-var _track_offset := 0.0
-var _track_tween: Tween = null
-
-var _pointer_down := false
-var _pointer_id := -1
-var _dragging := false
-var _drag_start_x := 0.0
-var _drag_start_offset := 0.0
+var _expanded_index: int = -1
+var _expand_tween: Tween = null
+var _toggle_locked: bool = false
 
 var _locked_asset_path := ""
 var _locked_opacity := 0.45
-var _image_width_pct := 0.52
-var _arrow_size := Vector2(82.0, 82.0)
-var _reference_aspect_ratio := 0.58
-var _back_button_pos := Vector2(35.0, 35.0)
-var _back_button_size := Vector2(75.0, 75.0)
+
+var _card_height := 80.0
+var _card_corner_radius := 12
+var _overlay_opacity := 0.70
+var _hover_translate_y := 4.0
+var _frame_tex: Texture2D = null
+var _frame_margin := {"top": 4, "right": 4, "bottom": 4, "left": 4}
+var _content_margin := {"top": 5, "bottom": 5, "left": 0, "right": 0}
+var _details_panel_bg_path := ""
+var _details_nine_slice: Dictionary = {}
+var _details_content_margin: Dictionary = {}
+
+var _score_cfg: Dictionary = {}
+var _score_star_size: Vector2 = Vector2(64.0, 64.0)
+var _score_star_empty_tex: Texture2D = null
+var _score_star_filled_tex: Texture2D = null
+
 var _override_cfg: Dictionary = {}
 var _override_ui_settings: Dictionary = {}
 var _override_protocols: Array = []
 var _active_override_protocol_ids: Array = []
-var _override_button: Button = null
-var _override_hint_label: Label = null
 var _override_popup_overlay: Control = null
-var _override_popup_panel: PanelContainer = null
+var _override_popup_panel: Panel = null
 var _override_popup_list: VBoxContainer = null
 var _override_popup_summary: Label = null
 var _override_checkbox_map: Dictionary = {}
-var _override_hint_nonce: int = 0
 var _override_button_active_bg: String = ""
 var _override_button_inactive_bg: String = ""
 var _protocol_settings: Dictionary = {}
-
-func _get_menu_header_offset() -> float:
-	var h: Variant = _game_config.get("menu_header", {})
-	if h is Dictionary:
-		return float(int((h as Dictionary).get("height_px", 72)) + int((h as Dictionary).get("margin_top", 8)))
-	return 0.0
+var _proto_tap_start: Vector2 = Vector2.ZERO
+var _proto_tap_item_id: String = ""
 
 func _ready() -> void:
 	_load_config()
 	App.play_menu_music()
-	_setup_static_ui()
 	_resolve_world_context()
 	_refresh_header_and_background()
 	_load_level_items()
 	_apply_layout()
-	_current_index = _find_last_unlocked_level_index()
-	_snap_to_index(_current_index, false)
-	_update_inventory_warning_ui()
-	_apply_layout()
-	_snap_to_index(_current_index, false)
+	_setup_override_popup()
+
 	var mh: Control = get_node_or_null("MenuHeader")
 	if mh and mh.has_signal("crystals_pressed") and not mh.crystals_pressed.is_connected(_on_header_crystals_pressed):
 		mh.crystals_pressed.connect(_on_header_crystals_pressed)
 
-	# Footer : clic sur le bouton retour du bas
 	var footer: Node = get_node_or_null("MenuFooter")
 	if footer and footer.has_signal("back_pressed") and not footer.back_pressed.is_connected(_on_back_pressed):
 		footer.back_pressed.connect(_on_back_pressed)
-	if back_button:
-		back_button.visible = false
 
 func prepare_for_transition() -> void:
-	_kill_track_tween()
-	_pointer_down = false
-	_dragging = false
+	_kill_expand_tween()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
-		if not is_node_ready():
-			return
-		_apply_layout()
-		_snap_to_index(_current_index, false)
+		if is_node_ready():
+			_apply_layout()
 
 func _input(event: InputEvent) -> void:
+	var popup_open: bool = _override_popup_overlay != null and _override_popup_overlay.visible
+	if not popup_open:
+		return
+
+	var pos: Vector2 = Vector2.ZERO
+	var is_press: bool = false
+	var is_release: bool = false
+
 	if event is InputEventScreenTouch:
-		var e := event as InputEventScreenTouch
-		if e.pressed:
-			_on_pointer_down(e.index, e.position)
-		else:
-			_on_pointer_up(e.index, e.position)
-		return
+		var touch := event as InputEventScreenTouch
+		pos = touch.position
+		is_press = touch.pressed
+		is_release = not touch.pressed
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			pos = mb.global_position
+			is_press = mb.pressed
+			is_release = not mb.pressed
 
-	if event is InputEventScreenDrag:
-		var e := event as InputEventScreenDrag
-		_on_pointer_drag(e.index, e.position)
-		return
+	if is_press:
+		_proto_tap_start = pos
+		_proto_tap_item_id = _find_protocol_item_at(pos)
+	elif is_release:
+		if _proto_tap_item_id != "":
+			var dist: float = _proto_tap_start.distance_to(pos)
+			if dist <= 40.0:
+				_on_override_protocol_row_pressed(_proto_tap_item_id)
+				get_viewport().set_input_as_handled()
+		_proto_tap_item_id = ""
+		_proto_tap_start = Vector2.ZERO
 
-	if event is InputEventMouseButton:
-		var e := event as InputEventMouseButton
-		if e.button_index != MOUSE_BUTTON_LEFT:
-			return
-		if e.pressed:
-			_on_pointer_down(-999, e.position)
-		else:
-			_on_pointer_up(-999, e.position)
-		return
-
-	if event is InputEventMouseMotion:
-		var e := event as InputEventMouseMotion
-		if _pointer_down and _pointer_id == -999:
-			_on_pointer_drag(-999, e.position)
+# ─── Config ──────────────────────────────────────────────────
 
 func _load_config() -> void:
 	_game_config = DataManager.get_game_config()
 	_protocol_settings = _game_config.get("protocol_settings", {})
 	_world_select_cfg = _game_config.get("world_select", {})
-	_default_card_colors = _game_config.get(
-		"default_card_colors",
-		["#3a4f6f", "#6f3a4f", "#4f6f3a", "#6f5a3a"]
+	_level_select_cfg = _game_config.get("level_select", {}) if _game_config.get("level_select") is Dictionary else {}
+	_score_cfg = _game_config.get("score_parameters", {}) if _game_config.get("score_parameters") is Dictionary else {}
+
+	var star_size_cfg: Dictionary = _score_cfg.get("star_size", {}) if _score_cfg.get("star_size") is Dictionary else {}
+	_score_star_size = Vector2(
+		maxf(14.0, float(star_size_cfg.get("x", 64))),
+		maxf(14.0, float(star_size_cfg.get("y", 64)))
 	)
-
-	var ui_icons: Dictionary = _game_config.get("ui_icons", {})
-	var details_cfg: Dictionary = {}
-	var details_cfg_v: Variant = _world_select_cfg.get("details", {})
-	if details_cfg_v is Dictionary:
-		details_cfg = details_cfg_v as Dictionary
-
-	_image_width_pct = clampf(float(_world_select_cfg.get("image_width_pct", 0.52)), 0.2, 0.95)
-
-	var arrows_cfg: Dictionary = {}
-	var arrows_cfg_v: Variant = _world_select_cfg.get("arrows", {})
-	if arrows_cfg_v is Dictionary:
-		arrows_cfg = arrows_cfg_v as Dictionary
-	var arrow_w := float(arrows_cfg.get("width", 82.0))
-	var arrow_h := float(arrows_cfg.get("height", 82.0))
-	_arrow_size = Vector2(maxf(24.0, arrow_w), maxf(24.0, arrow_h))
-
-	# Back button top-left is now visual-only (hidden) and kept for layout math
-	_back_button_pos = Vector2(35.0, 35.0)
-	_back_button_size = Vector2(75.0, 75.0)
+	var star_empty_path: String = _resolve_asset_path(str(_score_cfg.get("star_empty_asset", "")))
+	var star_filled_path: String = _resolve_asset_path(str(_score_cfg.get("star_filled_asset", "")))
+	if star_empty_path != "" and ResourceLoader.exists(star_empty_path):
+		_score_star_empty_tex = ResourceLoader.load(star_empty_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+	if star_filled_path != "" and ResourceLoader.exists(star_filled_path):
+		_score_star_filled_tex = ResourceLoader.load(star_filled_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 
 	_locked_asset_path = _resolve_asset_path(
 		str(_world_select_cfg.get("locked_asset", "res://assets/ui/buttons/locked.png"))
 	)
 	_locked_opacity = clampf(float(_world_select_cfg.get("locked_opacity", 0.45)), 0.05, 1.0)
+
+	_card_height = maxf(40.0, float(_level_select_cfg.get("card_height", 80)))
+	_card_corner_radius = int(_level_select_cfg.get("card_corner_radius", 12))
+	_overlay_opacity = clampf(float(_level_select_cfg.get("overlay_opacity", 0.70)), 0.0, 1.0)
+	_hover_translate_y = float(_level_select_cfg.get("hover_translate_y", 4))
+
+	var fm_v: Variant = _level_select_cfg.get("card_frame_margin", {})
+	if fm_v is Dictionary:
+		_frame_margin = fm_v as Dictionary
+	var cm_v: Variant = _level_select_cfg.get("card_content_margin", {})
+	if cm_v is Dictionary:
+		_content_margin = cm_v as Dictionary
+
+	var frame_path := _resolve_asset_path(str(_level_select_cfg.get("card_frame_asset", "")))
+	if frame_path != "" and ResourceLoader.exists(frame_path):
+		_frame_tex = ResourceLoader.load(frame_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+
+	_details_panel_bg_path = _resolve_asset_path(str(_level_select_cfg.get("details_panel_bg", "")))
+	var dns_v: Variant = _level_select_cfg.get("details_nine_slice", {})
+	_details_nine_slice = dns_v if dns_v is Dictionary else {}
+	var dcm_v: Variant = _level_select_cfg.get("details_content_margin", {})
+	_details_content_margin = dcm_v if dcm_v is Dictionary else {}
 
 	_override_cfg = DataManager.get_override_protocols_config()
 	var override_ui_v: Variant = _override_cfg.get("ui_settings", {})
@@ -198,194 +177,6 @@ func _load_config() -> void:
 		_override_protocols = []
 	_override_button_active_bg = _resolve_asset_path(str(_override_ui_settings.get("button_active_bg", "")))
 	_override_button_inactive_bg = _resolve_asset_path(str(_override_ui_settings.get("button_inactive_bg", "")))
-
-	var details_bg_path := _resolve_asset_path(str(details_cfg.get("details_panel_bg", "")))
-	if details_bg_path == "":
-		details_bg_path = _resolve_asset_path(str(_world_select_cfg.get("details_panel_bg", "")))
-	if details_bg_path != "" and ResourceLoader.exists(details_bg_path):
-		details_panel_bg.texture = ResourceLoader.load(
-			details_bg_path,
-			"",
-			ResourceLoader.CACHE_MODE_REUSE
-		) as Texture2D
-
-	details_title.add_theme_font_size_override(
-		"font_size",
-		int(details_cfg.get("title_text_size", 30))
-	)
-	details_description.add_theme_font_size_override(
-		"font_size",
-		int(details_cfg.get("description_text_size", 20))
-	)
-	var details_color := _parse_color(details_cfg.get("text_color", "#FFFFFF"), Color.WHITE)
-	details_title.add_theme_color_override("font_color", details_color)
-	details_description.add_theme_color_override("font_color", details_color)
-
-	var button_bg_path := _resolve_asset_path(str(_world_select_cfg.get("button_bg", "")))
-	var validation_cfg: Dictionary = UIStyle.get_validation_config()
-	if not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
-		var v := validation_cfg.duplicate(true)
-		v["asset"] = _resolve_asset_path(str(v.get("asset", "")))
-		if str(v.get("asset", "")) != "":
-			UIStyle.apply_validation_to_button(action_button, v, "large")
-	else:
-		if button_bg_path != "":
-			_apply_button_style(action_button, button_bg_path)
-	action_button.add_theme_font_size_override(
-		"font_size",
-		int(_world_select_cfg.get("button_font_size", 24))
-	)
-	if validation_cfg.is_empty():
-		action_button.add_theme_color_override(
-			"font_color",
-			_parse_color(_world_select_cfg.get("button_font_color", "#FFFFFF"), Color.WHITE)
-		)
-
-	var left_path := _resolve_asset_path(str(_world_select_cfg.get("arrow_left", ui_icons.get("arrow_left", ""))))
-	var right_path := _resolve_asset_path(str(_world_select_cfg.get("arrow_right", ui_icons.get("arrow_right", ""))))
-	if left_path != "" and ResourceLoader.exists(left_path):
-		left_arrow.texture_normal = ResourceLoader.load(left_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
-	if right_path != "" and ResourceLoader.exists(right_path):
-		right_arrow.texture_normal = ResourceLoader.load(right_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
-
-func _setup_static_ui() -> void:
-	back_button.pressed.connect(_on_back_pressed)
-	left_arrow.pressed.connect(_on_left_arrow_pressed)
-	right_arrow.pressed.connect(_on_right_arrow_pressed)
-	action_button.pressed.connect(_on_action_pressed)
-
-	back_button.ignore_texture_size = true
-	back_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	left_arrow.ignore_texture_size = true
-	left_arrow.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	right_arrow.ignore_texture_size = true
-	right_arrow.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	action_button.text = LocaleManager.translate("level_select_play")
-	UIStyle.apply_button_shadow(action_button, "large")
-
-	details_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	inventory_warning_label.visible = false
-	_setup_override_controls()
-
-func _setup_override_controls() -> void:
-	if _override_button == null:
-		_override_button = Button.new()
-		_override_button.name = "OverrideButton"
-		_override_button.text = LocaleManager.translate("level_select_override_pending")
-		_override_button.pressed.connect(_on_override_button_pressed)
-		_override_button.add_theme_font_size_override(
-			"font_size",
-			int(_override_ui_settings.get("item_title_size", 20))
-		)
-		add_child(_override_button)
-		UIStyle.apply_default_button_style(_override_button, "medium")
-		UIStyle.apply_button_shadow(_override_button, "medium")
-
-	if _override_hint_label == null:
-		_override_hint_label = Label.new()
-		_override_hint_label.name = "OverrideHintLabel"
-		_override_hint_label.visible = false
-		_override_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_override_hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_override_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_override_hint_label.add_theme_font_size_override("font_size", 16)
-		_override_hint_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35, 1.0))
-		_override_hint_label.add_theme_color_override("font_outline_color", Color.BLACK)
-		_override_hint_label.add_theme_constant_override("outline_size", 2)
-		add_child(_override_hint_label)
-
-	if _override_popup_overlay != null:
-		return
-
-	_override_popup_overlay = Control.new()
-	_override_popup_overlay.name = "OverridePopupOverlay"
-	_override_popup_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_override_popup_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_override_popup_overlay.visible = false
-	add_child(_override_popup_overlay)
-
-	var dim := ColorRect.new()
-	dim.name = "Dim"
-	dim.color = Color(0.0, 0.0, 0.0, 0.72)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	_override_popup_overlay.add_child(dim)
-
-	_override_popup_panel = PanelContainer.new()
-	_override_popup_panel.name = "Panel"
-	_override_popup_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_override_popup_overlay.add_child(_override_popup_panel)
-	_apply_override_popup_background()
-
-	# Contenu : marges fixes
-	var margin := MarginContainer.new()
-	margin.name = "Margin"
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	_override_popup_panel.add_child(margin)
-
-	var main := VBoxContainer.new()
-	main.name = "Main"
-	main.add_theme_constant_override("separation", 12)
-	margin.add_child(main)
-
-	# Titre du popup
-	var title := Label.new()
-	title.name = "Title"
-	title.text = LocaleManager.translate("level_select_override_popup_title")
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", int(_protocol_settings.get("title_size", _override_ui_settings.get("header_font_size", 28))))
-	title.add_theme_color_override("font_color", _parse_color(_override_ui_settings.get("header_text_color", "#ffffff"), Color.WHITE))
-	main.add_child(title)
-
-	# Résumé (XP / cristaux)
-	_override_popup_summary = Label.new()
-	_override_popup_summary.name = "Summary"
-	_override_popup_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_override_popup_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_override_popup_summary.add_theme_font_size_override("font_size", int(_protocol_settings.get("summary_size", _override_ui_settings.get("summary_font_size", 20))))
-	_override_popup_summary.add_theme_color_override("font_color", _parse_color(_override_ui_settings.get("item_title_color", "#C2C9E8"), Color(0.76, 0.79, 0.91)))
-	main.add_child(_override_popup_summary)
-
-	# Zone scrollable : liste de boutons protocoles
-	var scroll := ScrollContainer.new()
-	scroll.name = "Scroll"
-	scroll.custom_minimum_size = Vector2(280, 200)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	main.add_child(scroll)
-
-	_override_popup_list = VBoxContainer.new()
-	_override_popup_list.name = "ProtocolList"
-	_override_popup_list.add_theme_constant_override("separation", 8)
-	scroll.add_child(_override_popup_list)
-
-	# Footer : Reset + Close (9-slice + shadow 3px comme partout)
-	var footer := HBoxContainer.new()
-	footer.name = "Footer"
-	footer.add_theme_constant_override("separation", 12)
-	main.add_child(footer)
-
-	var reset_btn := Button.new()
-	reset_btn.name = "ResetButton"
-	reset_btn.text = LocaleManager.translate("level_select_override_reset")
-	reset_btn.pressed.connect(_on_override_reset_pressed)
-	UIStyle.apply_default_button_style(reset_btn, "medium")
-	UIStyle.apply_button_shadow(reset_btn, "large")
-	footer.add_child(reset_btn)
-
-	var close_btn := Button.new()
-	close_btn.name = "CloseButton"
-	close_btn.text = LocaleManager.translate("level_select_override_close")
-	close_btn.pressed.connect(_close_override_popup)
-	UIStyle.apply_validation_to_button(close_btn, UIStyle.get_validation_config(), "medium")
-	UIStyle.apply_button_shadow(close_btn, "large")
-	footer.add_child(close_btn)
-
-	dim.gui_input.connect(_on_override_overlay_gui_input)
 
 func _resolve_world_context() -> void:
 	world_id = App.current_world_id
@@ -408,6 +199,8 @@ func _refresh_header_and_background() -> void:
 	if world_name == world_name_key or world_name.is_empty():
 		world_name = str(_world_data.get("name", world_id))
 	title_label.text = world_name
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_label_shadow(title_label)
 
 	var world_theme: Variant = _world_data.get("theme", {})
 	var bg_path := ""
@@ -420,9 +213,12 @@ func _refresh_header_and_background() -> void:
 	if bg_path != "" and ResourceLoader.exists(bg_path):
 		background.texture = ResourceLoader.load(bg_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 
+# ─── Level card list ─────────────────────────────────────────
+
 func _load_level_items() -> void:
 	_items.clear()
-	for child in carousel_track.get_children():
+	_expanded_index = -1
+	for child in level_list.get_children():
 		child.queue_free()
 
 	var levels_v: Variant = _world_data.get("levels", [])
@@ -430,7 +226,6 @@ func _load_level_items() -> void:
 		return
 	var levels := levels_v as Array
 	var max_unlocked := _get_max_unlocked_level()
-	var color_count: int = maxi(1, _default_card_colors.size())
 
 	for i in range(levels.size()):
 		var lv: Variant = levels[i]
@@ -441,327 +236,521 @@ func _load_level_items() -> void:
 		var level_type := str(level.get("type", "normal"))
 		if level_type == "boss":
 			level_name = "👑 " + level_name
-		var fallback_color := str(_default_card_colors[i % color_count])
+
+		var level_id: String = str(level.get("id", world_id + "_lvl_" + str(i)))
+		var bg_path := ""
+		var bgs_v: Variant = level.get("backgrounds", {})
+		if bgs_v is Dictionary:
+			bg_path = _resolve_asset_path(str((bgs_v as Dictionary).get("card", "")))
+
+		var unlocked: bool = i <= max_unlocked or _is_debug_force_unlocked_level(i)
 
 		var entry := {
 			"level_index": i,
+			"level_id": level_id,
 			"name": level_name,
-			"description": _build_level_description(level, i),
-			"asset_path": _resolve_level_asset_path(level),
-			"fallback_color": fallback_color,
-			"unlocked": i <= max_unlocked or _is_debug_force_unlocked_level(i)
+			"unlocked": unlocked,
+			"bg_path": bg_path,
+			"level_data": level,
 		}
-		var node := _create_level_card(entry)
-		carousel_track.add_child(node)
-		entry["node"] = node
+
+		var card := _create_level_card(entry)
+		level_list.add_child(card)
+		entry["node"] = card
 		_items.append(entry)
 
-	_reference_aspect_ratio = 1.0
+func _create_level_card(entry: Dictionary) -> VBoxContainer:
+	var fm_t: float = float(_frame_margin.get("top", 4))
+	var fm_r: float = float(_frame_margin.get("right", 4))
+	var fm_b: float = float(_frame_margin.get("bottom", 4))
+	var fm_l: float = float(_frame_margin.get("left", 4))
+	var total_height: float = _card_height + fm_t + fm_b
 
-func _estimate_reference_aspect_ratio() -> float:
-	var fallback_ratio := 0.58
-	for entry in _items:
-		var raw_path := str(entry.get("asset_path", ""))
-		if raw_path == "":
-			continue
-		var ratio := _get_asset_aspect_ratio(raw_path)
-		if ratio > 0.0:
-			return ratio
-	return fallback_ratio
+	var wrapper := VBoxContainer.new()
+	wrapper.add_theme_constant_override("separation", 0)
+	wrapper.mouse_filter = Control.MOUSE_FILTER_STOP
 
-func _get_asset_aspect_ratio(asset_path: String) -> float:
-	var resolved_path := _resolve_asset_path(asset_path)
-	if resolved_path == "" or not ResourceLoader.exists(resolved_path):
-		return 0.0
-	var res: Resource = ResourceLoader.load(resolved_path, "", ResourceLoader.CACHE_MODE_REUSE)
-	if res is Texture2D:
-		var tex_size: Vector2 = (res as Texture2D).get_size()
-		if tex_size.x > 0.0:
-			return tex_size.y / tex_size.x
-		return 0.0
-	if res is SpriteFrames:
-		var frames := res as SpriteFrames
-		var anim_name := _get_first_animation_name(frames)
-		if anim_name == &"" or frames.get_frame_count(anim_name) <= 0:
-			return 0.0
-		var frame_tex := frames.get_frame_texture(anim_name, 0)
-		if frame_tex == null:
-			return 0.0
-		var frame_size: Vector2 = frame_tex.get_size()
-		if frame_size.x > 0.0:
-			return frame_size.y / frame_size.x
-	return 0.0
+	# Header wrapper (fixed-height Control so we can position frame + card)
+	var header_wrapper := Control.new()
+	header_wrapper.name = "HeaderWrapper"
+	header_wrapper.custom_minimum_size = Vector2(0, total_height)
+	header_wrapper.mouse_filter = Control.MOUSE_FILTER_STOP
+	wrapper.add_child(header_wrapper)
 
-func _resolve_level_asset_path(level: Dictionary) -> String:
-	var backgrounds: Variant = level.get("backgrounds", {})
-	if backgrounds is Dictionary:
-		var bg_dict: Dictionary = backgrounds as Dictionary
-		return _resolve_asset_path(str(bg_dict.get("sphere_texture", "")))
-	return ""
+	# Frame image behind the card
+	if _frame_tex != null:
+		var frame_rect := NinePatchRect.new()
+		frame_rect.name = "Frame"
+		frame_rect.texture = _frame_tex
+		frame_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		frame_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		header_wrapper.add_child(frame_rect)
 
-func _get_level_sphere_texture_path_by_index(level_index: int) -> String:
-	var levels_v: Variant = _world_data.get("levels", [])
-	if not (levels_v is Array):
-		return ""
-	var levels: Array = levels_v as Array
-	if level_index < 0 or level_index >= levels.size():
-		return ""
-	var lv: Variant = levels[level_index]
-	if not (lv is Dictionary):
-		return ""
-	return _resolve_level_asset_path(lv as Dictionary)
+	# Inner card
+	var card := PanelContainer.new()
+	card.name = "Card"
+	card.anchor_left = 0.0
+	card.anchor_right = 1.0
+	card.anchor_top = 0.0
+	card.anchor_bottom = 0.0
+	card.offset_left = fm_l
+	card.offset_right = -fm_r
+	card.offset_top = fm_t
+	card.offset_bottom = fm_t + _card_height
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func _build_level_description(level: Dictionary, index: int) -> String:
-	var lore := str(level.get("description", level.get("lore", ""))).strip_edges()
-	var tags: Array[String] = []
-	var level_type := str(level.get("type", "normal"))
-	if level_type == "boss":
-		tags.append("BOSS")
-	else:
-		tags.append("Level " + str(index + 1))
-	var duration := int(level.get("duration_sec", 0))
-	if duration > 0:
-		tags.append(str(duration) + "s")
-	var story_id := str(level.get("story_id", ""))
-	if story_id != "":
-		tags.append("Story")
-	var tags_line := " | ".join(tags)
-	if lore == "":
-		return tags_line
-	return lore + "\n" + tags_line
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = Color(0.15, 0.15, 0.2, 1.0)
+	flat.set_corner_radius_all(_card_corner_radius)
+	flat.content_margin_left = 0
+	flat.content_margin_right = 0
+	flat.content_margin_top = 0
+	flat.content_margin_bottom = 0
+	card.add_theme_stylebox_override("panel", flat)
+	header_wrapper.add_child(card)
 
-func _create_level_card(entry: Dictionary) -> Control:
-	var root := Control.new()
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var visual := Control.new()
-	visual.name = "Visual"
-	visual.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_child(visual)
-	_add_level_visual(visual, entry)
+	var clip := Control.new()
+	clip.name = "Clip"
+	clip.set_anchors_preset(Control.PRESET_FULL_RECT)
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(clip)
 
-	var lock_icon := TextureRect.new()
-	lock_icon.name = "LockIcon"
-	lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	lock_icon.set_anchors_preset(Control.PRESET_CENTER)
-	lock_icon.custom_minimum_size = Vector2(120, 120)
-	lock_icon.size = Vector2(120, 120)
-	lock_icon.position = Vector2(-60, -60)
-	lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if _locked_asset_path != "" and ResourceLoader.exists(_locked_asset_path):
-		lock_icon.texture = ResourceLoader.load(
-			_locked_asset_path,
-			"",
-			ResourceLoader.CACHE_MODE_REUSE
-		) as Texture2D
-	root.add_child(lock_icon)
+	var bg_path: String = str(entry.get("bg_path", ""))
+	if bg_path != "" and ResourceLoader.exists(bg_path):
+		var tex := ResourceLoader.load(bg_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+		if tex:
+			var bg_rect := TextureRect.new()
+			bg_rect.texture = tex
+			bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			bg_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+			bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			clip.add_child(bg_rect)
 
-	var unlocked := bool(entry.get("unlocked", false))
-	visual.modulate = Color(1.0, 1.0, 1.0, 1.0 if unlocked else _locked_opacity)
-	lock_icon.visible = not unlocked
+	var overlay := ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, _overlay_opacity)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.add_child(overlay)
 
-	return root
+	# Content with configurable margins
+	var cm_t: float = float(_content_margin.get("top", 5))
+	var cm_b: float = float(_content_margin.get("bottom", 5))
+	var cm_l: float = float(_content_margin.get("left", 0))
+	var cm_r: float = float(_content_margin.get("right", 0))
 
-func _add_level_visual(parent: Control, entry: Dictionary) -> void:
+	var hbox := HBoxContainer.new()
+	hbox.anchor_left = 0.0
+	hbox.anchor_right = 1.0
+	hbox.anchor_top = 0.0
+	hbox.anchor_bottom = 1.0
+	hbox.offset_left = cm_l
+	hbox.offset_right = -cm_r
+	hbox.offset_top = cm_t
+	hbox.offset_bottom = -cm_b
+	hbox.add_theme_constant_override("separation", 10)
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.add_child(hbox)
+
+	var ml := Control.new()
+	ml.custom_minimum_size = Vector2(16, 0)
+	ml.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(ml)
+
+	var name_label := Label.new()
+	name_label.text = str(entry.get("name", ""))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 22)
+	name_label.add_theme_color_override("font_color", Color.WHITE)
+	_apply_label_shadow(name_label)
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(name_label)
+
+	var stars_hbox := HBoxContainer.new()
+	stars_hbox.name = "Stars"
+	stars_hbox.alignment = BoxContainer.ALIGNMENT_END
+	stars_hbox.add_theme_constant_override("separation", 3)
+	stars_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(stars_hbox)
+
+	var level_id: String = str(entry.get("level_id", ""))
+	var star_count: int = 0
+	if ProfileManager and ProfileManager.has_method("get_level_stars"):
+		star_count = int(ProfileManager.call("get_level_stars", world_id, level_id))
+	_build_star_icons(stars_hbox, star_count, STAR_LIST_SIZE)
+
+	var mr := Control.new()
+	mr.custom_minimum_size = Vector2(16, 0)
+	mr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(mr)
+
+	var unlocked: bool = bool(entry.get("unlocked", false))
+	if not unlocked:
+		clip.modulate = Color(1.0, 1.0, 1.0, _locked_opacity)
+		var lock_icon := TextureRect.new()
+		lock_icon.name = "LockIcon"
+		lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		lock_icon.set_anchors_preset(Control.PRESET_CENTER)
+		lock_icon.custom_minimum_size = Vector2(48, 48)
+		lock_icon.size = Vector2(48, 48)
+		lock_icon.position = Vector2(-24, -24)
+		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if _locked_asset_path != "" and ResourceLoader.exists(_locked_asset_path):
+			lock_icon.texture = ResourceLoader.load(_locked_asset_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+		clip.add_child(lock_icon)
+
+	# Details panel (collapsed by default)
+	var details := PanelContainer.new()
+	details.name = "Details"
+	details.visible = false
+	details.clip_contents = true
+	details.custom_minimum_size = Vector2(0, 0)
+	details.mouse_filter = Control.MOUSE_FILTER_STOP
+	_apply_details_panel_style(details)
+	wrapper.add_child(details)
+
+	# Hover translate on the header
+	if _hover_translate_y != 0.0:
+		header_wrapper.mouse_entered.connect(_on_card_hover_enter.bind(header_wrapper))
+		header_wrapper.mouse_exited.connect(_on_card_hover_exit.bind(header_wrapper))
+
 	var level_index: int = int(entry.get("level_index", 0))
-	var sphere_texture_path: String = _get_level_sphere_texture_path_by_index(level_index)
-	if sphere_texture_path == "" or not ResourceLoader.exists(sphere_texture_path):
-		_add_fallback_level_visual(parent, entry)
-		return
-	var res: Resource = ResourceLoader.load(sphere_texture_path, "", ResourceLoader.CACHE_MODE_REUSE)
-	if res is Texture2D:
-		var sphere_script: GDScript = load("res://scenes/components/SphereView.gd") as GDScript
-		if sphere_script != null:
-			var sphere_view: Control = sphere_script.new()
-			sphere_view.set_anchors_preset(Control.PRESET_FULL_RECT)
-			sphere_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			parent.add_child(sphere_view)
-			var path_for_sphere: String = _get_level_sphere_texture_path_by_index(level_index)
-			push_warning("[LevelSelect] sphere level_index=%s path=%s" % [level_index, path_for_sphere])
-			sphere_view.set_texture_path(path_for_sphere)
+	header_wrapper.gui_input.connect(_on_level_header_input.bind(level_index, unlocked))
+
+	return wrapper
+
+func _apply_details_panel_style(panel: PanelContainer) -> void:
+	if _details_panel_bg_path != "" and ResourceLoader.exists(_details_panel_bg_path):
+		var cfg := {}
+		if not _details_nine_slice.is_empty():
+			cfg["nine_slice"] = _details_nine_slice
+		if not _details_content_margin.is_empty():
+			cfg["content_margin"] = _details_content_margin
+		var style: StyleBoxTexture = UIStyle.build_texture_stylebox(_details_panel_bg_path, cfg, 12)
+		if style != null:
+			panel.add_theme_stylebox_override("panel", style)
 			return
-		var tex_rect := TextureRect.new()
-		tex_rect.name = "Texture"
-		tex_rect.texture = res as Texture2D
-		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tex_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		parent.add_child(tex_rect)
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = Color(0.1, 0.1, 0.15, 0.9)
+	flat.set_corner_radius_all(8)
+	flat.content_margin_left = 14
+	flat.content_margin_right = 14
+	flat.content_margin_top = 10
+	flat.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", flat)
+
+func _on_card_hover_enter(card: Control) -> void:
+	if not card.has_meta("hover_base_y"):
+		card.set_meta("hover_base_y", card.position.y)
+	var base_y: float = card.get_meta("hover_base_y")
+	_stop_hover_tween(card)
+	var tw := card.create_tween()
+	tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(card, "position:y", base_y + _hover_translate_y, HOVER_DURATION)
+	card.set_meta("hover_tween", tw)
+
+func _on_card_hover_exit(card: Control) -> void:
+	if not card.has_meta("hover_base_y"):
 		return
-	if res is SpriteFrames:
-		var anim := AnimatedSprite2D.new()
-		anim.name = "Anim"
-		anim.centered = true
-		anim.sprite_frames = res as SpriteFrames
-		var anim_name := _get_first_animation_name(anim.sprite_frames)
-		if anim_name != &"":
-			anim.play(anim_name)
-			anim.animation = anim_name
-		parent.add_child(anim)
+	var base_y: float = card.get_meta("hover_base_y")
+	_stop_hover_tween(card)
+	var tw := card.create_tween()
+	tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(card, "position:y", base_y, HOVER_DURATION)
+	card.set_meta("hover_tween", tw)
+
+func _stop_hover_tween(card: Control) -> void:
+	if not card.has_meta("hover_tween"):
 		return
-	_add_fallback_level_visual(parent, entry)
+	var old_tw: Variant = card.get_meta("hover_tween")
+	if old_tw is Tween and is_instance_valid(old_tw):
+		(old_tw as Tween).kill()
 
+# ─── Toggle expand/collapse ──────────────────────────────────
 
-func _add_fallback_level_visual(parent: Control, entry: Dictionary) -> void:
-	var fallback := ColorRect.new()
-	fallback.color = _parse_color(entry.get("fallback_color", "#3a4f6f"), Color(0.2, 0.25, 0.4, 1.0))
-	fallback.set_anchors_preset(Control.PRESET_FULL_RECT)
-	parent.add_child(fallback)
+func _on_level_header_input(event: InputEvent, level_index: int, unlocked: bool) -> void:
+	if not unlocked or _toggle_locked:
+		return
+	var should_toggle := false
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			should_toggle = true
+	elif event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			should_toggle = true
+	if should_toggle:
+		_toggle_locked = true
+		_toggle_expand(level_index)
+		get_viewport().set_input_as_handled()
 
-func _apply_layout() -> void:
-	var viewport_size := size
-	var content_width := maxf(300.0, viewport_size.x - H_MARGIN * 2.0)
-	var header_offset := _get_menu_header_offset()
+func _toggle_expand(index: int) -> void:
+	_kill_expand_tween()
+	if index == _expanded_index:
+		_do_collapse(index)
+	else:
+		var old := _expanded_index
+		if old >= 0:
+			_do_collapse_instant(old)
+		_do_expand(index)
 
-	back_button.position = _back_button_pos + Vector2(0.0, header_offset)
-	back_button.size = _back_button_size
-	back_button.custom_minimum_size = _back_button_size
+func _do_expand(index: int) -> void:
+	if index < 0 or index >= _items.size():
+		_toggle_locked = false
+		return
+	var entry: Dictionary = _items[index]
+	var node: VBoxContainer = entry.get("node") as VBoxContainer
+	if node == null:
+		_toggle_locked = false
+		return
+	var details: PanelContainer = node.get_node_or_null("Details") as PanelContainer
+	if details == null:
+		_toggle_locked = false
+		return
 
-	var title_height := clampf(viewport_size.y * 0.07, 42.0, 66.0)
-	var title_top := _back_button_pos.y + _back_button_size.y + 8.0 + header_offset
-	title_label.position = Vector2(H_MARGIN, title_top)
-	title_label.size = Vector2(content_width, title_height)
+	_expanded_index = index
+	_populate_details(details, entry)
+	details.visible = true
+	details.custom_minimum_size = Vector2(0, 0)
 
-	var carousel_top := title_top + title_height + TITLE_TO_CAROUSEL_GAP
-	var space_for_block := maxf(0.0, viewport_size.y - BOTTOM_MARGIN - carousel_top)
-	var action_height := clampf(ACTION_BUTTON_HEIGHT, MIN_ACTION_BUTTON_HEIGHT, ACTION_BUTTON_HEIGHT)
-	var override_height := clampf(OVERRIDE_BUTTON_HEIGHT, HARD_MIN_ACTION_BUTTON_HEIGHT, ACTION_BUTTON_HEIGHT)
-	var details_height := clampf(viewport_size.y * 0.2, MIN_DETAILS_HEIGHT, MAX_DETAILS_HEIGHT)
-	var warning_height := 34.0 if inventory_warning_label.visible else 0.0
-	var non_carousel_space := (details_height - DETAILS_OVERLAP) + DETAILS_GAP + override_height + OVERRIDE_BUTTON_GAP + action_height
+	var inner: Control = details.get_node_or_null("DetailsInner") as Control
+	if inner:
+		inner.modulate = Color(1, 1, 1, 0)
+		inner.position = Vector2(0, -20)
 
-	if non_carousel_space > space_for_block:
-		var overflow := non_carousel_space - space_for_block
-		var details_reducible_soft := maxf(0.0, details_height - MIN_DETAILS_HEIGHT)
-		var details_reduce_soft := minf(overflow, details_reducible_soft)
-		details_height -= details_reduce_soft
-		overflow -= details_reduce_soft
-
-		var action_reducible_soft := maxf(0.0, action_height - MIN_ACTION_BUTTON_HEIGHT)
-		var action_reduce_soft := minf(overflow, action_reducible_soft)
-		action_height -= action_reduce_soft
-		overflow -= action_reduce_soft
-
-		if overflow > 0.0:
-			var details_reducible_hard := maxf(0.0, details_height - HARD_MIN_DETAILS_HEIGHT)
-			var details_reduce_hard := minf(overflow, details_reducible_hard)
-			details_height -= details_reduce_hard
-			overflow -= details_reduce_hard
-
-		if overflow > 0.0:
-			var action_reducible_hard := maxf(0.0, action_height - HARD_MIN_ACTION_BUTTON_HEIGHT)
-			var action_reduce_hard := minf(overflow, action_reducible_hard)
-			action_height -= action_reduce_hard
-			overflow -= action_reduce_hard
-
-	non_carousel_space = (details_height - DETAILS_OVERLAP) + DETAILS_GAP + override_height + OVERRIDE_BUTTON_GAP + action_height
-	var available_for_carousel := maxf(0.0, space_for_block - non_carousel_space)
-	var carousel_height := minf(MAX_CAROUSEL_HEIGHT, available_for_carousel)
-
-	carousel_area.position = Vector2(0.0, carousel_top)
-	carousel_area.size = Vector2(viewport_size.x, carousel_height)
-	carousel_viewport.position = Vector2.ZERO
-
-	left_arrow.custom_minimum_size = _arrow_size
-	left_arrow.size = _arrow_size
-	left_arrow.position = Vector2(12.0, (carousel_height - _arrow_size.y) * 0.5)
-	right_arrow.custom_minimum_size = _arrow_size
-	right_arrow.size = _arrow_size
-	right_arrow.position = Vector2(
-		carousel_area.size.x - _arrow_size.x - 12.0,
-		(carousel_height - _arrow_size.y) * 0.5
+	_expand_tween = create_tween()
+	_expand_tween.set_parallel(true)
+	_expand_tween.set_ease(Tween.EASE_IN_OUT)
+	_expand_tween.set_trans(Tween.TRANS_CUBIC)
+	_expand_tween.tween_property(details, "custom_minimum_size:y", EXPANDED_DETAILS_HEIGHT, EXPAND_DURATION)
+	if inner:
+		_expand_tween.tween_property(inner, "modulate:a", 1.0, EXPAND_DURATION * 0.7).set_delay(EXPAND_DURATION * 0.15)
+		_expand_tween.tween_property(inner, "position:y", 0.0, EXPAND_DURATION)
+	_expand_tween.chain().tween_callback(func() -> void:
+		_expand_tween = null
+		_toggle_locked = false
 	)
 
-	var details_width := maxf(280.0, content_width * 0.9)
-	details_panel.position = Vector2(
-		(viewport_size.x - details_width) * 0.5,
-		carousel_area.position.y + carousel_area.size.y - DETAILS_OVERLAP
+func _do_collapse(index: int) -> void:
+	if index < 0 or index >= _items.size():
+		_toggle_locked = false
+		return
+	var entry: Dictionary = _items[index]
+	var node: VBoxContainer = entry.get("node") as VBoxContainer
+	if node == null:
+		_toggle_locked = false
+		return
+	var details: PanelContainer = node.get_node_or_null("Details") as PanelContainer
+	if details == null:
+		_toggle_locked = false
+		return
+
+	_expanded_index = -1
+
+	var inner: Control = details.get_node_or_null("DetailsInner") as Control
+
+	_expand_tween = create_tween()
+	_expand_tween.set_parallel(true)
+	_expand_tween.set_ease(Tween.EASE_IN_OUT)
+	_expand_tween.set_trans(Tween.TRANS_CUBIC)
+	_expand_tween.tween_property(details, "custom_minimum_size:y", 0.0, EXPAND_DURATION)
+	if inner:
+		_expand_tween.tween_property(inner, "modulate:a", 0.0, EXPAND_DURATION * 0.5)
+		_expand_tween.tween_property(inner, "position:y", -20.0, EXPAND_DURATION)
+	_expand_tween.chain().tween_callback(func() -> void:
+		details.visible = false
+		var inner_node: VBoxContainer = details.get_node_or_null("DetailsInner") as VBoxContainer
+		if inner_node:
+			for child in inner_node.get_children():
+				child.queue_free()
+		_expand_tween = null
+		_toggle_locked = false
 	)
-	details_panel.size = Vector2(details_width, details_height)
 
-	if _override_button != null:
-		_override_button.position = Vector2(
-			(viewport_size.x - details_width) * 0.5,
-			details_panel.position.y + details_height + DETAILS_GAP
-		)
-		_override_button.size = Vector2(details_width, override_height)
-
-	action_button.position = Vector2(
-		(viewport_size.x - details_width) * 0.5,
-		details_panel.position.y + details_height + DETAILS_GAP + override_height + OVERRIDE_BUTTON_GAP
-	)
-	action_button.size = Vector2(details_width, action_height)
-
-	inventory_warning_label.position = Vector2(action_button.position.x, action_button.position.y - warning_height - WARNING_GAP)
-	inventory_warning_label.size = Vector2(action_button.size.x, warning_height)
-	if _override_hint_label != null:
-		var hint_height := maxf(34.0, warning_height)
-		_override_hint_label.position = Vector2(
-			action_button.position.x,
-			(_override_button.position.y if _override_button != null else action_button.position.y) - hint_height - WARNING_GAP
-		)
-		_override_hint_label.size = Vector2(action_button.size.x, hint_height)
-
-	var desired_item_width := clampf(
-		viewport_size.x * _image_width_pct,
-		160.0,
-		maxf(200.0, carousel_viewport.size.x - 24.0)
-	)
-	var max_item_height := maxf(120.0, carousel_viewport.size.y * ITEM_HEIGHT_RATIO)
-	var desired_item_height := desired_item_width * _reference_aspect_ratio
-	_item_size = Vector2(
-		desired_item_width,
-		clampf(desired_item_height, 120.0, max_item_height)
-	)
-	_layout_track_items()
-	_layout_override_popup(viewport_size)
-
-func _layout_track_items() -> void:
-	var total_width := 0.0
-	for i in range(_items.size()):
-		var entry := _items[i]
-		var node_v: Variant = entry.get("node", null)
-		if not (node_v is Control):
-			continue
-		var node := node_v as Control
-		node.position = Vector2(i * (_item_size.x + ITEM_SPACING), 0.0)
-		node.size = _item_size
-		total_width = node.position.x + _item_size.x
-		_layout_item_content(node)
-
-	carousel_track.size = Vector2(maxf(total_width, _item_size.x), _item_size.y)
-	_apply_track_offset()
-
-func _layout_item_content(card: Control) -> void:
-	var visual := card.get_node_or_null("Visual") as Control
-	if visual == null:
+func _do_collapse_instant(index: int) -> void:
+	if index < 0 or index >= _items.size():
 		return
+	var entry: Dictionary = _items[index]
+	var node: VBoxContainer = entry.get("node") as VBoxContainer
+	if node == null:
+		return
+	var details: PanelContainer = node.get_node_or_null("Details") as PanelContainer
+	if details == null:
+		return
+	details.visible = false
+	details.custom_minimum_size = Vector2(0, 0)
+	var inner: VBoxContainer = details.get_node_or_null("DetailsInner") as VBoxContainer
+	if inner:
+		for child in inner.get_children():
+			child.queue_free()
+	if index == _expanded_index:
+		_expanded_index = -1
 
-	var anim := visual.get_node_or_null("Anim") as AnimatedSprite2D
-	if anim != null:
-		_fit_animated_sprite(anim, card.size)
+func _populate_details(details: PanelContainer, entry: Dictionary) -> void:
+	# Remove old inner content
+	var old_inner: Node = details.get_node_or_null("DetailsInner")
+	if old_inner:
+		old_inner.queue_free()
 
-func _fit_animated_sprite(anim: AnimatedSprite2D, target_size: Vector2) -> void:
-	var frames := anim.sprite_frames
-	if frames == null:
-		return
-	var anim_name := anim.animation
-	if anim_name == &"":
-		anim_name = _get_first_animation_name(frames)
-	if anim_name == &"":
-		return
-	if frames.get_frame_count(anim_name) <= 0:
-		return
-	var tex := frames.get_frame_texture(anim_name, 0)
-	if tex == null:
-		return
-	var src := tex.get_size()
-	if src.x <= 0.0 or src.y <= 0.0:
-		return
-	var scale_factor := minf(target_size.x / src.x, target_size.y / src.y)
-	anim.scale = Vector2.ONE * scale_factor
-	anim.position = target_size * 0.5
+	var inner := VBoxContainer.new()
+	inner.name = "DetailsInner"
+	inner.add_theme_constant_override("separation", 8)
+	details.add_child(inner)
+
+	var level_index: int = int(entry.get("level_index", 0))
+	var level_id: String = str(entry.get("level_id", ""))
+	var level_data: Dictionary = entry.get("level_data", {})
+
+	var padding_top := Control.new()
+	padding_top.custom_minimum_size = Vector2(0, 4)
+	inner.add_child(padding_top)
+
+	# Score row
+	var personal_best: int = 0
+	var stars: int = 0
+	if ProfileManager:
+		if ProfileManager.has_method("get_level_best_score"):
+			personal_best = int(ProfileManager.call("get_level_best_score", world_id, level_id))
+		if ProfileManager.has_method("get_level_stars"):
+			stars = int(ProfileManager.call("get_level_stars", world_id, level_id))
+
+	var score_label := Label.new()
+	var best_text: String = _loc("score_personal_best_label", "Meilleur score")
+	score_label.text = "%s : %s" % [best_text, str(personal_best) if personal_best > 0 else "-"]
+	score_label.add_theme_font_size_override("font_size", 18)
+	score_label.add_theme_color_override("font_color", Color.WHITE)
+	_apply_label_shadow(score_label)
+	inner.add_child(score_label)
+
+	# Star thresholds
+	var s1: int = int(level_data.get("score_1star", 0))
+	var s2: int = int(level_data.get("score_2stars", 0))
+	var s3: int = int(level_data.get("score_3stars", 0))
+	if s1 > 0 or s2 > 0 or s3 > 0:
+		var thresholds_vbox := VBoxContainer.new()
+		thresholds_vbox.add_theme_constant_override("separation", 2)
+		for star_i in range(1, 4):
+			var threshold: int = [s1, s2, s3][star_i - 1]
+			if threshold <= 0:
+				continue
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 4)
+			var earned_this: bool = stars >= star_i
+			_add_star_threshold_row(row, star_i, threshold, earned_this)
+			thresholds_vbox.add_child(row)
+		inner.add_child(thresholds_vbox)
+
+	# Buttons row
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 10)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	var proto_count: int = _active_override_protocol_ids.size()
+	var proto_btn := Button.new()
+	var proto_text: String = LocaleManager.translate("level_select_override_button", {"count": str(proto_count)})
+	proto_btn.text = proto_text
+	proto_btn.custom_minimum_size = Vector2(0, 48)
+	proto_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UIStyle.apply_default_button_style(proto_btn, "medium")
+	UIStyle.apply_button_shadow(proto_btn, "medium")
+	proto_btn.pressed.connect(_on_override_button_pressed)
+	btn_row.add_child(proto_btn)
+
+	var play_btn := Button.new()
+	play_btn.text = _loc("level_select_play", "JOUER")
+	play_btn.custom_minimum_size = Vector2(0, 48)
+	play_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+	if not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
+		var v := validation_cfg.duplicate(true)
+		v["asset"] = _resolve_asset_path(str(v.get("asset", "")))
+		if str(v.get("asset", "")) != "":
+			UIStyle.apply_validation_to_button(play_btn, v, "large")
+	else:
+		UIStyle.apply_default_button_style(play_btn, "large")
+	UIStyle.apply_button_shadow(play_btn, "large")
+	play_btn.pressed.connect(_on_play_pressed.bind(level_index))
+	btn_row.add_child(play_btn)
+
+	inner.add_child(btn_row)
+
+	# Global best score
+	var profile_count: int = 1
+	if ProfileManager and ProfileManager.has_method("get_profile_count"):
+		profile_count = int(ProfileManager.call("get_profile_count"))
+	if profile_count > 1 and ProfileManager and ProfileManager.has_method("get_global_best_score"):
+		var global_v: Variant = ProfileManager.call("get_global_best_score", world_id, level_id)
+		if global_v is Dictionary:
+			var global_dict: Dictionary = global_v as Dictionary
+			var global_score: int = int(global_dict.get("score", 0))
+			if global_score > 0:
+				var holder: String = str(global_dict.get("profile_name", ""))
+				if holder == "":
+					holder = _loc("score_unknown_profile", "Unknown")
+				var global_lbl := Label.new()
+				global_lbl.text = "👑 %s: %d (%s)" % [_loc("score_global_best_short", "Global"), global_score, holder]
+				global_lbl.add_theme_font_size_override("font_size", 15)
+				global_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
+				_apply_label_shadow(global_lbl)
+				inner.add_child(global_lbl)
+
+func _add_star_threshold_row(row: HBoxContainer, star_count: int, threshold: int, earned: bool) -> void:
+	for j in range(star_count):
+		var tex: Texture2D = _score_star_filled_tex if earned else _score_star_empty_tex
+		if tex != null:
+			var icon := TextureRect.new()
+			icon.texture = tex
+			icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.custom_minimum_size = Vector2(18, 18)
+			row.add_child(icon)
+		else:
+			var fb := Label.new()
+			fb.text = "★" if earned else "☆"
+			fb.add_theme_font_size_override("font_size", 14)
+			row.add_child(fb)
+
+	var thresh_lbl := Label.new()
+	thresh_lbl.text = " : %d" % threshold
+	thresh_lbl.add_theme_font_size_override("font_size", 16)
+	thresh_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1.0) if not earned else Color(1.0, 0.85, 0.3, 1.0))
+	_apply_label_shadow(thresh_lbl)
+	row.add_child(thresh_lbl)
+
+func _build_star_icons(container: HBoxContainer, filled_count: int, icon_size: float) -> void:
+	for child in container.get_children():
+		child.queue_free()
+	var clamped: int = clampi(filled_count, 0, 3)
+	for i in range(3):
+		var filled: bool = i < clamped
+		var tex: Texture2D = _score_star_filled_tex if filled else _score_star_empty_tex
+		if tex != null:
+			var icon := TextureRect.new()
+			icon.texture = tex
+			icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.custom_minimum_size = Vector2(icon_size, icon_size)
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			container.add_child(icon)
+		else:
+			var fb := Label.new()
+			fb.text = "★" if filled else "☆"
+			fb.add_theme_font_size_override("font_size", int(maxf(12.0, icon_size * 0.6)))
+			fb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			container.add_child(fb)
+
+# ─── Play / navigate ─────────────────────────────────────────
+
+func _on_play_pressed(level_index: int) -> void:
+	App.set_active_override_protocols(_active_override_protocol_ids)
+	App.current_level_index = level_index
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/Game.tscn")
 
 func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
@@ -773,57 +762,159 @@ func _on_header_crystals_pressed() -> void:
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/ShopMenu.tscn")
 
-func _on_left_arrow_pressed() -> void:
-	_snap_to_index(_current_index - 1, true)
+# ─── Layout ──────────────────────────────────────────────────
 
-func _on_right_arrow_pressed() -> void:
-	_snap_to_index(_current_index + 1, true)
+func _apply_layout() -> void:
+	var viewport_size := size
+	var header_offset := _get_menu_header_offset()
+	var footer_height := _get_menu_footer_height()
 
-func _on_action_pressed() -> void:
-	if _items.is_empty():
-		return
-	var selected := _items[_current_index]
-	if not bool(selected.get("unlocked", false)):
-		return
-	App.set_active_override_protocols(_active_override_protocol_ids)
-	App.current_level_index = int(selected.get("level_index", 0))
-	var switcher := get_tree().current_scene
-	if switcher and switcher.has_method("goto_screen"):
-		switcher.goto_screen("res://scenes/Game.tscn")
+	title_label.position = Vector2(H_MARGIN, header_offset + 4.0)
+	title_label.size = Vector2(viewport_size.x - H_MARGIN * 2.0, 44.0)
 
-func _on_card_tapped(global_pos: Vector2) -> void:
-	if _override_popup_overlay != null and _override_popup_overlay.visible:
-		return
-	if not _is_inside_carousel(global_pos):
-		return
-	var tapped_index := _find_item_index_at_global_pos(global_pos)
-	if tapped_index < 0:
-		return
-	_snap_to_index(tapped_index, false)
-	_on_action_pressed()
+	var scroll_top := header_offset + 52.0
+	var scroll_bottom := viewport_size.y - footer_height - 8.0
+	scroll_container.position = Vector2(H_MARGIN, scroll_top)
+	scroll_container.size = Vector2(viewport_size.x - H_MARGIN * 2.0, maxf(100.0, scroll_bottom - scroll_top))
 
-func _find_item_index_at_global_pos(global_pos: Vector2) -> int:
-	for i in range(_items.size()):
-		var item_v: Variant = _items[i].get("node", null)
-		if not (item_v is Control):
-			continue
-		var card := item_v as Control
-		var card_rect := Rect2(card.global_position, card.size)
-		if card_rect.has_point(global_pos):
-			return i
-	return -1
+	level_list.custom_minimum_size.x = viewport_size.x - H_MARGIN * 2.0
+	_layout_override_popup(viewport_size)
+
+func _get_menu_header_offset() -> float:
+	var h: Variant = _game_config.get("menu_header", {})
+	if h is Dictionary:
+		return float(int((h as Dictionary).get("height_px", 72)) + int((h as Dictionary).get("margin_top", 8)))
+	return 0.0
+
+func _get_menu_footer_height() -> float:
+	var footer: Control = get_node_or_null("MenuFooter") as Control
+	if footer:
+		return footer.size.y
+	return 80.0
+
+# ─── Override protocols popup ────────────────────────────────
 
 func _on_override_button_pressed() -> void:
 	if not _is_current_world_override_unlocked():
-		_show_override_locked_hint()
 		return
 	_open_override_popup()
+
+func _setup_override_popup() -> void:
+	if _override_popup_overlay != null:
+		return
+
+	_override_popup_overlay = Control.new()
+	_override_popup_overlay.name = "OverridePopupOverlay"
+	_override_popup_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_override_popup_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_override_popup_overlay.visible = false
+	add_child(_override_popup_overlay)
+
+	var dim := ColorRect.new()
+	dim.name = "Dim"
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_override_popup_overlay.add_child(dim)
+
+	_override_popup_panel = Panel.new()
+	_override_popup_panel.name = "Panel"
+	_override_popup_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_override_popup_overlay.add_child(_override_popup_panel)
+	_apply_override_popup_background()
+
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_override_popup_panel.add_child(margin)
+
+	var main := VBoxContainer.new()
+	main.name = "Main"
+	main.add_theme_constant_override("separation", 12)
+	margin.add_child(main)
+
+	var title := Label.new()
+	title.name = "Title"
+	title.text = LocaleManager.translate("level_select_override_popup_title")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", int(_protocol_settings.get("popup_title_size", 36)))
+	title.add_theme_color_override("font_color", _parse_color(_override_ui_settings.get("header_text_color", "#ffffff"), Color.WHITE))
+	main.add_child(title)
+
+	_override_popup_summary = Label.new()
+	_override_popup_summary.name = "Summary"
+	_override_popup_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_override_popup_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_override_popup_summary.add_theme_font_size_override("font_size", int(_protocol_settings.get("text_size", 20)))
+	_override_popup_summary.add_theme_color_override("font_color", _parse_color(_override_ui_settings.get("item_title_color", "#C2C9E8"), Color(0.76, 0.79, 0.91)))
+	main.add_child(_override_popup_summary)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.custom_minimum_size = Vector2(280, 200)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	main.add_child(scroll)
+
+	_override_popup_list = VBoxContainer.new()
+	_override_popup_list.name = "ProtocolList"
+	_override_popup_list.add_theme_constant_override("separation", 8)
+	scroll.add_child(_override_popup_list)
+
+	var footer_wrapper := MarginContainer.new()
+	footer_wrapper.name = "FooterWrapper"
+	footer_wrapper.add_theme_constant_override("margin_bottom", 10)
+	main.add_child(footer_wrapper)
+
+	var footer := HBoxContainer.new()
+	footer.name = "Footer"
+	footer_wrapper.add_child(footer)
+
+	var footer_default_cfg: Dictionary = UIStyle.get_default_button_style()
+	var footer_btn_min_h: int = int(footer_default_cfg.get("min_height", 56))
+	footer.add_theme_constant_override("separation", 10)
+
+	var reset_btn := Button.new()
+	reset_btn.name = "ResetButton"
+	reset_btn.text = LocaleManager.translate("level_select_override_reset")
+	reset_btn.pressed.connect(_on_override_reset_pressed)
+	reset_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	reset_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reset_btn.custom_minimum_size = Vector2(0, footer_btn_min_h)
+	UIStyle.apply_cancellation_to_button(reset_btn, {}, "medium")
+	UIStyle.apply_button_shadow(reset_btn, "large")
+	footer.add_child(reset_btn)
+
+	var close_btn := Button.new()
+	close_btn.name = "CloseButton"
+	close_btn.text = LocaleManager.translate("level_select_override_close")
+	close_btn.pressed.connect(_close_override_popup)
+	close_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	close_btn.custom_minimum_size = Vector2(0, footer_btn_min_h)
+	UIStyle.apply_default_button_style(close_btn, "medium")
+	UIStyle.apply_button_shadow(close_btn, "large")
+	footer.add_child(close_btn)
+
+	dim.gui_input.connect(_on_override_overlay_gui_input)
+
+func _open_override_popup() -> void:
+	if _override_popup_overlay == null:
+		return
+	_refresh_override_popup()
+	_override_popup_overlay.visible = true
+
+func _close_override_popup() -> void:
+	if _override_popup_overlay == null:
+		return
+	_override_popup_overlay.visible = false
 
 func _on_override_reset_pressed() -> void:
 	_active_override_protocol_ids.clear()
 	_save_override_selection()
 	_refresh_override_popup()
-	_refresh_override_ui()
 
 func _on_override_overlay_gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
@@ -840,165 +931,11 @@ func _on_override_overlay_gui_input(event: InputEvent) -> void:
 		return
 	_close_override_popup()
 
-func _open_override_popup() -> void:
-	if _override_popup_overlay == null:
-		return
-	_refresh_override_popup()
-	_override_popup_overlay.visible = true
-
-func _close_override_popup() -> void:
-	if _override_popup_overlay == null:
-		return
-	_override_popup_overlay.visible = false
-
-func _show_override_locked_hint() -> void:
-	if _override_hint_label == null:
-		return
-	_override_hint_nonce += 1
-	var nonce := _override_hint_nonce
-	_override_hint_label.text = LocaleManager.translate("level_select_override_locked_hint")
-	_override_hint_label.visible = true
-	get_tree().create_timer(OVERRIDE_HINT_DURATION).timeout.connect(func() -> void:
-		if nonce == _override_hint_nonce and _override_hint_label != null:
-			_override_hint_label.visible = false
-	)
-
-func _on_pointer_down(id: int, global_pos: Vector2) -> void:
-	if not _is_inside_carousel(global_pos):
-		return
-	_pointer_down = true
-	_pointer_id = id
-	_dragging = false
-	_drag_start_x = global_pos.x
-	_drag_start_offset = _track_offset
-	_kill_track_tween()
-
-func _on_pointer_drag(id: int, global_pos: Vector2) -> void:
-	if not _pointer_down or id != _pointer_id:
-		return
-	var delta_x := global_pos.x - _drag_start_x
-	if not _dragging and absf(delta_x) >= DRAG_THRESHOLD:
-		_dragging = true
-	if not _dragging:
-		return
-	var bounds := _get_offset_bounds()
-	_set_track_offset(clampf(_drag_start_offset + delta_x, bounds.x, bounds.y))
-	get_viewport().set_input_as_handled()
-
-func _on_pointer_up(id: int, global_pos: Vector2 = Vector2.ZERO) -> void:
-	if not _pointer_down or id != _pointer_id:
-		return
-	_pointer_down = false
-	_pointer_id = -1
-	if _dragging:
-		_dragging = false
-		_snap_to_index(_nearest_index_for_offset(_track_offset), true)
-		return
-	_on_card_tapped(global_pos)
-
-func _is_inside_carousel(global_pos: Vector2) -> bool:
-	var rect := Rect2(carousel_area.global_position, carousel_area.size)
-	return rect.has_point(global_pos)
-
-func _snap_to_index(index: int, animated: bool) -> void:
-	if _items.is_empty():
-		_current_index = 0
-		left_arrow.visible = false
-		right_arrow.visible = false
-		action_button.disabled = true
-		return
-
-	_current_index = clampi(index, 0, _items.size() - 1)
-	var target_offset := _offset_for_index(_current_index)
-	var bounds := _get_offset_bounds()
-	target_offset = clampf(target_offset, bounds.x, bounds.y)
-
-	if not animated:
-		_set_track_offset(target_offset)
-	else:
-		_kill_track_tween()
-		_track_tween = create_tween()
-		_track_tween.set_ease(Tween.EASE_OUT)
-		_track_tween.set_trans(Tween.TRANS_QUAD)
-		_track_tween.tween_method(_set_track_offset, _track_offset, target_offset, SNAP_DURATION)
-		_track_tween.finished.connect(func() -> void:
-			_track_tween = null
-		)
-
-	_refresh_selection_ui()
-
-func _set_track_offset(value: float) -> void:
-	_track_offset = value
-	_apply_track_offset()
-
-func _apply_track_offset() -> void:
-	var y := (carousel_viewport.size.y - _item_size.y) * 0.5
-	carousel_track.position = Vector2(_track_offset, y)
-
-func _offset_for_index(index: int) -> float:
-	var center_x := carousel_viewport.size.x * 0.5
-	return center_x - (float(index) * (_item_size.x + ITEM_SPACING) + _item_size.x * 0.5)
-
-func _get_offset_bounds() -> Vector2:
-	if _items.size() <= 1:
-		var centered := _offset_for_index(0)
-		return Vector2(centered, centered)
-	var first := _offset_for_index(0)
-	var last := _offset_for_index(_items.size() - 1)
-	return Vector2(minf(first, last), maxf(first, last))
-
-func _nearest_index_for_offset(offset: float) -> int:
-	if _items.is_empty():
-		return 0
-	var best_idx := 0
-	var best_dist := INF
-	for i in range(_items.size()):
-		var dist := absf(offset - _offset_for_index(i))
-		if dist < best_dist:
-			best_dist = dist
-			best_idx = i
-	return best_idx
-
-func _refresh_selection_ui() -> void:
-	if _items.is_empty():
-		return
-	var selected := _items[_current_index]
-	details_title.text = str(selected.get("name", ""))
-	var desc := str(selected.get("description", "")).strip_edges()
-	details_description.text = desc if desc != "" else "-"
-
-	var unlocked := bool(selected.get("unlocked", false))
-	action_button.disabled = not unlocked
-	UIStyle.set_button_shadow_text(action_button, LocaleManager.translate("level_select_play") if unlocked else _get_locked_label())
-	_refresh_override_ui()
-
-	left_arrow.visible = _current_index > 0
-	right_arrow.visible = _current_index < _items.size() - 1
-
-func _refresh_override_ui() -> void:
-	if _override_button == null:
-		return
-
-	var unlocked: bool = _is_current_world_override_unlocked()
-	var selected_count: int = _active_override_protocol_ids.size()
-	if unlocked:
-		UIStyle.set_button_shadow_text(_override_button, LocaleManager.translate(
-			"level_select_override_button",
-			{"count": str(selected_count)}
-		))
-		_apply_override_button_style(true)
-	else:
-		UIStyle.set_button_shadow_text(_override_button, LocaleManager.translate("level_select_override_pending"))
-		_apply_override_button_style(false)
-
 func _refresh_override_popup() -> void:
 	if _override_popup_list == null:
 		return
-
+	_layout_override_popup(size)
 	_rebuild_override_popup_items()
-	if _override_popup_panel != null and _override_popup_list != null:
-		var content_w := maxf(260.0, _override_popup_panel.size.x - 32.0)
-		_override_popup_list.custom_minimum_size.x = content_w
 	if _override_popup_summary == null:
 		return
 
@@ -1017,7 +954,6 @@ func _refresh_override_popup() -> void:
 func _rebuild_override_popup_items() -> void:
 	if _override_popup_list == null:
 		return
-
 	for child in _override_popup_list.get_children():
 		child.queue_free()
 	_override_checkbox_map.clear()
@@ -1025,8 +961,22 @@ func _rebuild_override_popup_items() -> void:
 	_active_override_protocol_ids = _sanitize_protocol_selection(_active_override_protocol_ids)
 
 	var default_cfg: Dictionary = _game_config.get("buttons", {}).get("default_style", {})
-	var btn_min_w := int(default_cfg.get("min_width", 220))
-	var btn_min_h := int(default_cfg.get("min_height", 56))
+	var validation_cfg: Dictionary = UIStyle.get_validation_config()
+
+	var font_presets: Dictionary = {}
+	var fp_v: Variant = _game_config.get("buttons", {}).get("font_presets", {})
+	if fp_v is Dictionary:
+		font_presets = fp_v as Dictionary
+	var medium_preset: Dictionary = {}
+	var mp_v: Variant = font_presets.get("medium", {})
+	if mp_v is Dictionary:
+		medium_preset = mp_v as Dictionary
+	var small_preset: Dictionary = {}
+	var sp_v: Variant = font_presets.get("small", {})
+	if sp_v is Dictionary:
+		small_preset = sp_v as Dictionary
+	var title_font_size: int = int(medium_preset.get("font_size", 26))
+	var desc_font_size: int = int(small_preset.get("font_size", 18))
 
 	for protocol_variant in _override_protocols:
 		if not (protocol_variant is Dictionary):
@@ -1040,33 +990,75 @@ func _rebuild_override_popup_items() -> void:
 		var description_text: String = LocaleManager.translate(str(protocol_data.get("description_key", "")))
 		var is_selected: bool = _active_override_protocol_ids.has(protocol_id)
 
-		var btn := Button.new()
-		btn.name = "Protocol_" + protocol_id
-		btn.flat = true
-		var display_text: String = title_text
+		var active_cfg: Dictionary = validation_cfg if is_selected else default_cfg
+		var cm_raw: Variant = active_cfg.get("content_margin", {})
+		var cm: Dictionary = cm_raw if cm_raw is Dictionary else {}
+		var cm_left: int = int(cm.get("left", 12))
+		var cm_right: int = int(cm.get("right", 12))
+		var cm_top: int = int(cm.get("top", 8))
+		var cm_bottom: int = int(cm.get("bottom", 8))
+
+		var item := PanelContainer.new()
+		item.name = "Item_" + protocol_id
+		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+		var item_style_cfg: Dictionary = validation_cfg if is_selected else default_cfg
+		var item_asset: String = _resolve_asset_path(str(item_style_cfg.get("asset", "")))
+		if item_asset != "" and ResourceLoader.exists(item_asset):
+			var item_style: StyleBoxTexture = UIStyle.build_texture_stylebox(item_asset, item_style_cfg, 10)
+			if item_style != null:
+				item.add_theme_stylebox_override("panel", item_style)
+
+		var margin_ctr := MarginContainer.new()
+		margin_ctr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		margin_ctr.add_theme_constant_override("margin_left", cm_left)
+		margin_ctr.add_theme_constant_override("margin_right", cm_right)
+		margin_ctr.add_theme_constant_override("margin_top", cm_top)
+		margin_ctr.add_theme_constant_override("margin_bottom", cm_bottom)
+		item.add_child(margin_ctr)
+
+		var vbox := VBoxContainer.new()
+		vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vbox.add_theme_constant_override("separation", 4)
+		margin_ctr.add_child(vbox)
+
+		var title_color: Color = _parse_color(item_style_cfg.get("text_color", "#FFFFFF"), Color.WHITE)
+
+		var title_lbl := Label.new()
+		title_lbl.text = title_text.to_upper()
+		title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		title_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title_lbl.add_theme_font_size_override("font_size", title_font_size)
+		title_lbl.add_theme_color_override("font_color", title_color)
+		_apply_label_shadow(title_lbl)
+		vbox.add_child(title_lbl)
+
 		if description_text != "":
-			display_text += "\n" + description_text
-		btn.text = display_text
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		btn.custom_minimum_size = Vector2(btn_min_w, maxi(btn_min_h, 52))
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var desc_lbl := Label.new()
+			desc_lbl.text = description_text
+			desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			desc_lbl.add_theme_font_size_override("font_size", desc_font_size)
+			desc_lbl.add_theme_color_override("font_color", Color(title_color.r, title_color.g, title_color.b, 0.78))
+			_apply_label_shadow(desc_lbl)
+			vbox.add_child(desc_lbl)
 
-		if is_selected:
-			UIStyle.apply_validation_to_button(btn, UIStyle.get_validation_config(), "")
-		else:
-			UIStyle.apply_default_button_style(btn, "medium")
+		_override_popup_list.add_child(item)
+		_override_checkbox_map[protocol_id] = item
 
-		UIStyle.apply_button_shadow(btn, "large")
-		var shadow_lbl: Label = btn.get_node_or_null("ShadowLabel")
-		if shadow_lbl != null:
-			shadow_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-			shadow_lbl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-			shadow_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-
-		btn.pressed.connect(_on_override_protocol_row_pressed.bind(protocol_id))
-		_override_popup_list.add_child(btn)
-		_override_checkbox_map[protocol_id] = btn
+func _find_protocol_item_at(global_pos: Vector2) -> String:
+	for pid in _override_checkbox_map:
+		var ctrl: Control = _override_checkbox_map[pid] as Control
+		if ctrl == null or not is_instance_valid(ctrl) or not ctrl.visible:
+			continue
+		if Rect2(ctrl.global_position, ctrl.size).has_point(global_pos):
+			return str(pid)
+	return ""
 
 func _on_override_protocol_row_pressed(protocol_id: String) -> void:
 	var currently_enabled: bool = _active_override_protocol_ids.has(protocol_id)
@@ -1081,7 +1073,6 @@ func _on_override_protocol_toggled(enabled: bool, protocol_id: String) -> void:
 	_active_override_protocol_ids = _sanitize_protocol_selection(_active_override_protocol_ids)
 	_save_override_selection()
 	_refresh_override_popup()
-	_refresh_override_ui()
 
 func _save_override_selection() -> void:
 	ProfileManager.set_world_active_override_protocols(world_id, _active_override_protocol_ids)
@@ -1095,30 +1086,17 @@ func _sanitize_protocol_selection(selection: Variant) -> Array:
 			var protocol_id: String = str((protocol_variant as Dictionary).get("id", "")).strip_edges()
 			if protocol_id != "":
 				allowed_ids[protocol_id] = true
-
 	if not (selection is Array):
 		return cleaned
 	for raw_id in (selection as Array):
 		var protocol_id: String = str(raw_id).strip_edges()
-		if protocol_id == "":
-			continue
-		if not allowed_ids.has(protocol_id):
-			continue
-		if cleaned.has(protocol_id):
+		if protocol_id == "" or not allowed_ids.has(protocol_id) or cleaned.has(protocol_id):
 			continue
 		cleaned.append(protocol_id)
 	return cleaned
 
 func _is_current_world_override_unlocked() -> bool:
 	return ProfileManager.is_world_cleared(world_id)
-
-func _apply_override_button_style(active: bool) -> void:
-	if _override_button == null:
-		return
-	var style_path: String = _override_button_active_bg if active else _override_button_inactive_bg
-	if style_path == "":
-		return
-	_apply_button_style(_override_button, style_path)
 
 func _apply_override_popup_background() -> void:
 	if _override_popup_panel == null:
@@ -1136,54 +1114,27 @@ func _apply_override_popup_background() -> void:
 	if popup_bg_path != "" and ResourceLoader.exists(popup_bg_path):
 		var texture := ResourceLoader.load(popup_bg_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 		if texture != null:
-			var style := StyleBoxTexture.new()
-			style.texture = texture
-			style.texture_margin_left = 24
-			style.texture_margin_top = 24
-			style.texture_margin_right = 24
-			style.texture_margin_bottom = 24
-			_override_popup_panel.add_theme_stylebox_override("panel", style)
+			var fallback_style := StyleBoxTexture.new()
+			fallback_style.texture = texture
+			fallback_style.texture_margin_left = 24
+			fallback_style.texture_margin_top = 24
+			fallback_style.texture_margin_right = 24
+			fallback_style.texture_margin_bottom = 24
+			_override_popup_panel.add_theme_stylebox_override("panel", fallback_style)
 			return
-	var style := _make_override_flat_style(
-		_parse_color(str(_override_ui_settings.get("popup_bg_color", "#1a1a2e")), Color(0.1, 0.1, 0.18)),
-		16,
-		0
-	)
-	_override_popup_panel.add_theme_stylebox_override("panel", style)
-
-func _make_override_flat_style(bg_color: Color, radius: int, content_margin: int) -> StyleBoxFlat:
-	var flat := StyleBoxFlat.new()
-	flat.bg_color = bg_color
-	flat.set_corner_radius_all(radius)
-	if content_margin > 0:
-		flat.content_margin_left = content_margin
-		flat.content_margin_right = content_margin
-		flat.content_margin_top = content_margin
-		flat.content_margin_bottom = content_margin
-	return flat
-
-func _apply_override_popup_button_style(button: Button, bg_hex: String, text_color: Color) -> void:
-	var style := _make_override_flat_style(Color.from_string(bg_hex, Color(0.2, 0.2, 0.3)), 8, 0)
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_stylebox_override("hover", style)
-	button.add_theme_stylebox_override("pressed", style)
-	button.add_theme_stylebox_override("focus", style)
-	button.add_theme_stylebox_override("disabled", style)
-	button.add_theme_color_override("font_color", text_color)
-	button.add_theme_color_override("font_pressed_color", text_color)
-	button.add_theme_color_override("font_hover_color", text_color)
-	button.add_theme_font_size_override("font_size", 20)
+	var generic_style := StyleBoxFlat.new()
+	generic_style.bg_color = _parse_color(str(_override_ui_settings.get("popup_bg_color", "#1a1a2e")), Color(0.1, 0.1, 0.18))
+	generic_style.set_corner_radius_all(16)
+	_override_popup_panel.add_theme_stylebox_override("panel", generic_style)
 
 func _layout_override_popup(viewport_size: Vector2) -> void:
-	if _override_popup_overlay == null:
-		return
-	if _override_popup_panel == null:
+	if _override_popup_overlay == null or _override_popup_panel == null:
 		return
 	var popup_width := viewport_size.x * OVERRIDE_POPUP_WIDTH_RATIO
 	var popup_height := viewport_size.y * OVERRIDE_POPUP_HEIGHT_RATIO
 	_override_popup_panel.size = Vector2(
 		clampf(popup_width, 320.0, viewport_size.x - H_MARGIN * 2.0),
-		clampf(popup_height, 320.0, viewport_size.y - BOTTOM_MARGIN * 2.0)
+		clampf(popup_height, 320.0, viewport_size.y - 48.0)
 	)
 	_override_popup_panel.position = (viewport_size - _override_popup_panel.size) * 0.5
 	var content_w := _override_popup_panel.size.x - 32.0
@@ -1194,13 +1145,7 @@ func _layout_override_popup(viewport_size: Vector2) -> void:
 	if _override_popup_list != null:
 		_override_popup_list.custom_minimum_size.x = content_w
 
-func _find_last_unlocked_level_index() -> int:
-	if _items.is_empty():
-		return 0
-	var max_unlocked := _get_max_unlocked_level()
-	if _is_debug_force_unlocked_level(_items.size() - 1):
-		max_unlocked = maxi(max_unlocked, _items.size() - 1)
-	return clampi(max_unlocked, 0, _items.size() - 1)
+# ─── Utilities ───────────────────────────────────────────────
 
 func _get_max_unlocked_level() -> int:
 	var progress := _get_active_progress()
@@ -1212,31 +1157,19 @@ func _get_max_unlocked_level() -> int:
 func _is_debug_force_unlocked_level(level_index: int) -> bool:
 	return ProfileManager.is_debug_mode_enabled() and world_id == "world_9" and level_index == 6
 
-func _update_inventory_warning_ui() -> void:
-	var current_size := ProfileManager.get_unequipped_inventory_count()
-	var max_size := ProfileManager.get_max_inventory_size()
-	var is_full := current_size >= max_size
-	var was_visible := inventory_warning_label.visible
-	inventory_warning_label.visible = is_full
-	if is_full:
-		inventory_warning_label.text = LocaleManager.translate(
-			"inventory_full_warning_level_select",
-			{"current": str(current_size), "max": str(max_size)}
-		)
-	if was_visible != is_full:
-		_apply_layout()
-		_snap_to_index(_current_index, false)
-
-func _get_locked_label() -> String:
-	var locked_label := LocaleManager.translate("skills.menu.button.locked")
-	return "Locked" if locked_label == "skills.menu.button.locked" else locked_label
-
 func _get_active_progress() -> Dictionary:
 	var profile := ProfileManager.get_active_profile()
 	var progress_v: Variant = profile.get("progress", {})
 	if progress_v is Dictionary:
 		return progress_v as Dictionary
 	return {}
+
+func _loc(key: String, fallback: String) -> String:
+	if LocaleManager:
+		var translated: String = str(LocaleManager.translate(key))
+		if translated != "" and translated != key:
+			return translated
+	return fallback
 
 func _resolve_asset_path(raw_path: String) -> String:
 	var clean := raw_path.strip_edges()
@@ -1248,43 +1181,35 @@ func _resolve_asset_path(raw_path: String) -> String:
 func _parse_color(value: Variant, fallback: Color) -> Color:
 	return Color.from_string(str(value), fallback)
 
+func _apply_label_shadow(label: Label) -> void:
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+
 func _apply_button_style(button: Button, texture_path: String) -> void:
 	if texture_path == "" or not ResourceLoader.exists(texture_path):
 		return
 	var texture := ResourceLoader.load(texture_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 	if texture == null:
 		return
-
 	var normal := StyleBoxTexture.new()
 	normal.texture = texture
 	normal.texture_margin_left = 18
 	normal.texture_margin_right = 18
 	normal.texture_margin_top = 18
 	normal.texture_margin_bottom = 18
-
 	var hover := normal.duplicate() as StyleBoxTexture
 	hover.modulate_color = Color(1.08, 1.08, 1.08, 1.0)
-
 	var pressed := normal.duplicate() as StyleBoxTexture
 	pressed.modulate_color = Color(0.9, 0.9, 0.9, 1.0)
-
 	var disabled := normal.duplicate() as StyleBoxTexture
 	disabled.modulate_color = Color(0.55, 0.55, 0.55, 1.0)
-
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
 	button.add_theme_stylebox_override("disabled", disabled)
 
-func _get_first_animation_name(frames: SpriteFrames) -> StringName:
-	if frames == null:
-		return &""
-	if frames.has_animation(&"default"):
-		return &"default"
-	var names := frames.get_animation_names()
-	return StringName(names[0]) if not names.is_empty() else &""
-
-func _kill_track_tween() -> void:
-	if _track_tween != null and is_instance_valid(_track_tween):
-		_track_tween.kill()
-	_track_tween = null
+func _kill_expand_tween() -> void:
+	if _expand_tween != null and is_instance_valid(_expand_tween):
+		_expand_tween.kill()
+	_expand_tween = null

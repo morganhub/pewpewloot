@@ -6,7 +6,7 @@ extends Control
 signal crystals_pressed
 
 const DEBUG_HEADER_LAYOUT := false
-const DEBUG_RECT_HEIGHT := true  # Affiche hauteurs rectangle XP / protocols pour debug
+const DEBUG_RECT_HEIGHT := false  # Affiche hauteurs rectangle XP / protocols pour debug
 
 var _cfg: Dictionary = {}
 var _last_debug_vp: float = -1.0
@@ -29,6 +29,7 @@ var _protocols_rect_wrapper: Control  # wrapper hauteur fixe pour rectangle prot
 var _xp_track_panel: PanelContainer
 var _xp_fill_panel: PanelContainer
 var _xp_label: Label
+var _xp_label_wrapper: MarginContainer
 var _protocols_icon: TextureRect
 var _protocols_label: Label
 var _crystals_panel: Button
@@ -48,6 +49,77 @@ func _get_config() -> Dictionary:
 	var game: Dictionary = DataManager.get_game_config()
 	var h: Variant = game.get("menu_header", {})
 	return h if h is Dictionary else {}
+
+func _normalize_screen_key(raw_name: String) -> String:
+	var s: String = raw_name.strip_edges().to_lower()
+	if s.is_empty():
+		return ""
+	# Supporte variantes avec/sans underscore.
+	if s == "homescreen" or s == "home_screen":
+		return "homescreen"
+	if s == "shipmenu" or s == "ship_menu":
+		return "shipmenu"
+	if s == "worldselect" or s == "world_select":
+		return "world_select"
+	if s == "levelselect" or s == "level_select":
+		return "level_select"
+	if s == "skillsmenu" or s == "skills_menu":
+		return "skillsmenu"
+	if s == "optionsmenu" or s == "options_menu":
+		return "optionsmenu"
+	if s == "shopmenu" or s == "shop_menu":
+		return "shopmenu"
+	if s == "profileselect" or s == "profile_select":
+		return "profileselect"
+	if s == "pausemenu" or s == "pause_menu":
+		return "pausemenu"
+	if s == "lootresultscreen" or s == "loot_result_screen":
+		return "lootresultscreen"
+	return s
+
+func _get_header_screen_key() -> String:
+	# 1) Priorité au parent direct du MenuHeader (le plus fiable dans ce projet).
+	var parent_node: Node = get_parent()
+	if parent_node != null:
+		if parent_node is Node and (parent_node as Node).scene_file_path != "":
+			var parent_scene_key := _normalize_screen_key((parent_node as Node).scene_file_path.get_file().get_basename())
+			if not parent_scene_key.is_empty():
+				return parent_scene_key
+		var parent_name_key := _normalize_screen_key(str(parent_node.name))
+		if not parent_name_key.is_empty():
+			return parent_name_key
+
+	# 2) Fallback sur current_scene.
+	var scene = get_tree().current_scene
+	if scene != null:
+		var by_path := _normalize_screen_key(scene.scene_file_path.get_file().get_basename())
+		if not by_path.is_empty():
+			return by_path
+		var by_name := _normalize_screen_key(str(scene.name))
+		if not by_name.is_empty():
+			return by_name
+	return ""
+
+func _get_header_background_color_hex() -> String:
+	var key: String = _get_header_screen_key()
+	if key.is_empty():
+		return str(_cfg.get("default_background_color", "")).strip_edges()
+	var color_key := key + "_background_color"
+	# Si la clé écran existe, sa valeur est prioritaire (même vide => transparent)
+	if _cfg.has(color_key):
+		return str(_cfg.get(color_key, "")).strip_edges()
+	# Sinon fallback sur la valeur par défaut
+	return str(_cfg.get("default_background_color", "")).strip_edges()
+
+func _get_header_background_opacity() -> float:
+	var key: String = _get_header_screen_key()
+	if key.is_empty():
+		return float(_cfg.get("default_background_opacity", 0.85))
+	var opacity_key := key + "_background_opacity"
+	var op: Variant = _cfg.get(opacity_key, null) if _cfg.has(opacity_key) else null
+	if op == null:
+		op = _cfg.get("default_background_opacity", 0.85)
+	return float(op)
 
 func _get_minimum_size() -> Vector2:
 	# Ne jamais imposer une largeur min au parent : le header doit tenir dans le viewport.
@@ -112,14 +184,60 @@ func _build_ui() -> void:
 	var margin_l: int = int(_cfg.get("margin_left", 20))
 	var margin_r: int = int(_cfg.get("margin_right", 20))
 	var margin_t: int = int(_cfg.get("margin_top", 8))
-	var spacing: int = int(_cfg.get("spacing_between_blocks", 16))
+	var grad_h: int = int(_cfg.get("bottom_gradient_height_px", 20))
+	if grad_h < 0:
+		grad_h = 0
+	if grad_h > height_px:
+		grad_h = height_px
 
 	custom_minimum_size.y = height_px
 	set_anchors_preset(Control.PRESET_TOP_WIDE)
 	anchor_bottom = 0.0
+	z_index = 50
 	clip_contents = true
 	# Ne jamais imposer une largeur min : prendre celle du parent (viewport).
 	custom_minimum_size.x = 0
+
+	# Fond couleur pleine + dégradé sur la bande basse (X px), paramétrable par écran (game.json)
+	var _bg_color_hex: String = _get_header_background_color_hex()
+	if _bg_color_hex != "":
+		var _bg_opacity: float = _get_header_background_opacity()
+		var bg_color: Color = Color.from_string(_bg_color_hex, Color.BLACK)
+		bg_color.a = _bg_opacity
+		# Partie haute : couleur pleine (hors bande de dégradé)
+		if grad_h < height_px:
+			var top_solid := ColorRect.new()
+			top_solid.name = "HeaderBackgroundSolidTop"
+			top_solid.color = bg_color
+			top_solid.set_anchors_preset(Control.PRESET_TOP_WIDE)
+			top_solid.offset_top = 0.0
+			top_solid.offset_bottom = -float(grad_h)
+			top_solid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(top_solid)
+		# Partie basse : dégradé strict alpha 1 -> 0 (sans texture pour éviter les artefacts blancs)
+		if grad_h > 0:
+			var fade_rect := ColorRect.new()
+			fade_rect.name = "HeaderBackgroundFadeBottom"
+			fade_rect.color = bg_color
+			fade_rect.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+			fade_rect.offset_top = -float(grad_h)
+			fade_rect.offset_bottom = 0.0
+			fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var fade_shader := Shader.new()
+			fade_shader.code = "shader_type canvas_item;\nvoid fragment() {\n\tvec4 c = COLOR;\n\tc.a *= clamp(1.0 - UV.y, 0.0, 1.0);\n\tCOLOR = c;\n}\n"
+			var fade_mat := ShaderMaterial.new()
+			fade_mat.shader = fade_shader
+			fade_rect.material = fade_mat
+			add_child(fade_rect)
+		# Si grad_h == 0, fond plein partout
+		if grad_h == 0:
+			var full_solid := ColorRect.new()
+			full_solid.name = "HeaderBackgroundSolidFull"
+			full_solid.color = bg_color
+			full_solid.set_anchors_preset(Control.PRESET_FULL_RECT)
+			full_solid.set_offsets_preset(Control.PRESET_FULL_RECT)
+			full_solid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(full_solid)
 
 	var root := MarginContainer.new()
 	root.name = "RootMargin"
@@ -129,13 +247,51 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("margin_top", margin_t)
 	add_child(root)
 
-	var hbox := HBoxContainer.new()
-	hbox.name = "HBox"
-	hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.add_theme_constant_override("separation", spacing)
-	root.add_child(hbox)
+	# Layout par ancres (pas HBox) pour forcer un vrai 33/33/33 indépendant du contenu
+	var layout := Control.new()
+	layout.name = "HeaderLayout"
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(layout)
+
+	var left_cell := HBoxContainer.new()
+	left_cell.name = "LeftCell"
+	left_cell.set_anchor(SIDE_LEFT, 0.0)
+	left_cell.set_anchor(SIDE_RIGHT, 1.0 / 3.0)
+	left_cell.set_anchor(SIDE_TOP, 0.0)
+	left_cell.set_anchor(SIDE_BOTTOM, 1.0)
+	left_cell.set_offset(SIDE_LEFT, 0)
+	left_cell.set_offset(SIDE_RIGHT, 0)
+	left_cell.set_offset(SIDE_TOP, 0)
+	left_cell.set_offset(SIDE_BOTTOM, 0)
+	left_cell.alignment = BoxContainer.ALIGNMENT_BEGIN
+	layout.add_child(left_cell)
+
+	var center_cell := HBoxContainer.new()
+	center_cell.name = "CenterCell"
+	center_cell.set_anchor(SIDE_LEFT, 1.0 / 3.0)
+	center_cell.set_anchor(SIDE_RIGHT, 2.0 / 3.0)
+	center_cell.set_anchor(SIDE_TOP, 0.0)
+	center_cell.set_anchor(SIDE_BOTTOM, 1.0)
+	center_cell.set_offset(SIDE_LEFT, 0)
+	center_cell.set_offset(SIDE_RIGHT, 0)
+	center_cell.set_offset(SIDE_TOP, 0)
+	center_cell.set_offset(SIDE_BOTTOM, 0)
+	center_cell.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_child(center_cell)
+
+	var right_cell := HBoxContainer.new()
+	right_cell.name = "RightCell"
+	right_cell.set_anchor(SIDE_LEFT, 2.0 / 3.0)
+	right_cell.set_anchor(SIDE_RIGHT, 1.0)
+	right_cell.set_anchor(SIDE_TOP, 0.0)
+	right_cell.set_anchor(SIDE_BOTTOM, 1.0)
+	right_cell.set_offset(SIDE_LEFT, 0)
+	right_cell.set_offset(SIDE_RIGHT, 0)
+	right_cell.set_offset(SIDE_TOP, 0)
+	right_cell.set_offset(SIDE_BOTTOM, 0)
+	right_cell.alignment = BoxContainer.ALIGNMENT_END
+	layout.add_child(right_cell)
 
 	# --- Level + XP block (left): icône trophée + niveau en dehors, seul le rectangle contient la barre XP ---
 	var rect_cfg: Dictionary = _cfg.get("rectangle", {})
@@ -159,7 +315,7 @@ func _build_ui() -> void:
 	level_block_wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	level_block_wrapper.alignment = BoxContainer.ALIGNMENT_CENTER
 	level_block_wrapper.add_theme_constant_override("separation", -icon_overlap)
-	hbox.add_child(level_block_wrapper)
+	left_cell.add_child(level_block_wrapper)
 
 	_level_icon = TextureRect.new()
 	_level_icon.name = "LevelIcon"
@@ -181,9 +337,9 @@ func _build_ui() -> void:
 
 	var level_panel := PanelContainer.new()
 	level_panel.name = "LevelPanel"
-	var level_panel_style: StyleBoxFlat = _rect_style.duplicate()
-	level_panel_style.content_margin_left = 0
-	level_panel_style.content_margin_right = 0
+	# Pour le bloc XP, on ne veut que la barre (track) et pas un gros rectangle arrondi derrière :
+	# on utilise un style vide pour que seul XpBarPanel soit visible.
+	var level_panel_style := StyleBoxEmpty.new()
 	level_panel.add_theme_stylebox_override("panel", level_panel_style)
 	level_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	level_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -195,19 +351,30 @@ func _build_ui() -> void:
 	# Barre XP seule dans le rectangle (pas d'icône dedans)
 	var xp_bar_cfg: Dictionary = _cfg.get("xp_bar", {})
 	var bar_min_w: int = int(xp_bar_cfg.get("bar_min_width", 120))
+	var bar_fixed: int = int(xp_bar_cfg.get("width", 0))
+	var bar_w: int = bar_fixed if bar_fixed > 0 else bar_min_w
 	var xp_text_ml: int = int(xp_bar_cfg.get("text_margin_left", 0))
 	var xp_text_mr: int = int(xp_bar_cfg.get("text_margin_right", 0))
 	var xp_wrapper := MarginContainer.new()
 	xp_wrapper.name = "XpBarWrapper"
-	# Largeur min = barre + marges texte + outline pour que le texte ne dépasse pas
-	xp_wrapper.custom_minimum_size.x = bar_min_w + xp_text_ml + xp_text_mr + 2 * _xp_bar_border_width
-	xp_wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	xp_wrapper.add_theme_constant_override("margin_left", -icon_overlap)
+	xp_wrapper.custom_minimum_size.x = bar_w + xp_text_ml + xp_text_mr + 2 * _xp_bar_border_width
+	# Largeur fixe centrée dans la colonne si width > 0, sinon comportement extensible comme avant
+	if bar_fixed > 0:
+		xp_wrapper.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		xp_wrapper.add_theme_constant_override("margin_left", 0)
+	else:
+		xp_wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		xp_wrapper.add_theme_constant_override("margin_left", -icon_overlap)
 	level_panel.add_child(xp_wrapper)
 
 	var xp_panel := PanelContainer.new()
 	xp_panel.name = "XpBarPanel"
-	xp_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Track de fond : même largeur que le wrapper
+	if bar_fixed > 0:
+		xp_panel.custom_minimum_size.x = bar_w + xp_text_ml + xp_text_mr + 2 * _xp_bar_border_width
+		xp_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	else:
+		xp_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	xp_panel.add_theme_stylebox_override("panel", _xp_bar_track_style)
 	xp_wrapper.add_child(xp_panel)
 	_xp_track_panel = xp_panel
@@ -248,36 +415,48 @@ func _build_ui() -> void:
 	var xp_text_col: String = str(xp_bar_cfg.get("text_color", "#ffffff"))
 	_xp_label.add_theme_color_override("font_color", Color.from_string(xp_text_col, Color.WHITE))
 	_xp_label.add_theme_font_size_override("font_size", int(xp_bar_cfg.get("font_size", 16)))
-	var xp_label_wrapper := MarginContainer.new()
-	xp_label_wrapper.set_anchors_preset(Control.PRESET_FULL_RECT)
-	xp_label_wrapper.set_offsets_preset(Control.PRESET_FULL_RECT)
-	xp_label_wrapper.add_theme_constant_override("margin_left", xp_text_ml)
-	xp_label_wrapper.add_theme_constant_override("margin_right", xp_text_mr)
-	xp_label_wrapper.add_child(_xp_label)
-	xp_content_box.add_child(xp_label_wrapper)
+	_xp_label_wrapper = MarginContainer.new()
+	_xp_label_wrapper.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_xp_label_wrapper.set_offsets_preset(Control.PRESET_FULL_RECT)
+	_xp_label_wrapper.add_theme_constant_override("margin_left", xp_text_ml)
+	_xp_label_wrapper.add_theme_constant_override("margin_right", xp_text_mr)
+	_xp_label_wrapper.add_child(_xp_label)
+	_xp_label_wrapper.z_index = 5 # Guarantee it renders above the fill panels
+	xp_content_box.add_child(_xp_label_wrapper)
 	# Chiffres XP visibles uniquement au clic/appui sur la barre
-	_xp_label.visible = false
-	level_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	level_panel.gui_input.connect(_on_xp_bar_gui_input)
+	_xp_label_wrapper.visible = false
+	_xp_label.visible = true
+	
+	_level_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_rect_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	xp_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	xp_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	xp_content_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	xp_inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_label_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	level_block_wrapper.mouse_filter = Control.MOUSE_FILTER_STOP
+	level_block_wrapper.gui_input.connect(_on_xp_bar_gui_input)
 
 	_xp_track_panel.resized.connect(_update_xp_fill_size)
-
-	# --- Spacer ---
-	var spacer1 := Control.new()
-	spacer1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(spacer1)
 
 	# --- Protocols block: icône à gauche (z-index au-dessus), seul le nombre dans le rectangle ---
 	var protocols_cfg: Dictionary = _cfg.get("protocols", {})
 	var protocols_asset: String = _resolve_asset(str(protocols_cfg.get("asset", "")))
 	var proto_icon_sz: int = int(protocols_cfg.get("icon_size", 32))
 	var proto_icon_sz_clamped: int = mini(proto_icon_sz, height_px)
+	var proto_offset_x: int = int(protocols_cfg.get("center_offset_x", 0))
+	if proto_offset_x != 0:
+		center_cell.set_offset(SIDE_LEFT, proto_offset_x)
+		center_cell.set_offset(SIDE_RIGHT, proto_offset_x)
 
 	var protocols_block_wrapper := HBoxContainer.new()
 	protocols_block_wrapper.name = "ProtocolsBlockWrapper"
 	protocols_block_wrapper.alignment = BoxContainer.ALIGNMENT_CENTER
 	protocols_block_wrapper.add_theme_constant_override("separation", -icon_overlap)
-	hbox.add_child(protocols_block_wrapper)
+	center_cell.add_child(protocols_block_wrapper)
 
 	_protocols_icon = TextureRect.new()
 	_protocols_icon.name = "ProtocolsIcon"
@@ -311,33 +490,26 @@ func _build_ui() -> void:
 	protocols_panel.add_child(_protocols_label)
 	protocols_rect_wrapper.add_child(protocols_panel)
 
-	# --- Spacer ---
-	var spacer2 := Control.new()
-	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(spacer2)
-
-	# --- Crystals block: conteneur ancré à droite pour que le rectangle soit à 100% à margin_r du bord ---
-	var crystals_anchor_cell := Control.new()
-	crystals_anchor_cell.name = "CrystalsAnchorCell"
-	crystals_anchor_cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(crystals_anchor_cell)
-
+	# --- Crystals block: enfant normal du right_cell HBox (alignment=END le pousse à droite) ---
 	var crystals_cfg: Dictionary = _cfg.get("crystals", {})
 	var crystal_icon_sz: int = int(crystals_cfg.get("icon_size", 28))
 	var crystal_icon_sz_clamped: int = mini(crystal_icon_sz, height_px)
 	var crystal_panel_min_w: int = crystal_icon_sz_clamped + cm_l + cm_r + 80
+
 	_crystals_panel = Button.new()
 	_crystals_panel.name = "CrystalsPanel"
 	_crystals_panel.flat = true
 	_crystals_panel.focus_mode = Control.FOCUS_NONE
 	_crystals_panel.custom_minimum_size.x = crystal_panel_min_w
 	_crystals_panel.custom_minimum_size.y = rect_height
+	_crystals_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var empty_style := StyleBoxEmpty.new()
 	_crystals_panel.add_theme_stylebox_override("normal", empty_style)
 	_crystals_panel.add_theme_stylebox_override("hover", empty_style)
 	_crystals_panel.add_theme_stylebox_override("pressed", empty_style)
 	_crystals_panel.add_theme_stylebox_override("disabled", empty_style)
 	_crystals_panel.pressed.connect(_on_crystals_pressed)
+	right_cell.add_child(_crystals_panel)
 
 	var crystals_inner_hbox := HBoxContainer.new()
 	crystals_inner_hbox.add_theme_constant_override("separation", -icon_overlap)
@@ -379,7 +551,6 @@ func _build_ui() -> void:
 	crystals_inner.add_theme_constant_override("margin_bottom", cm_b)
 	crystals_inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	crystal_number_panel.add_child(crystals_inner)
-	crystal_number_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crystal_label = Label.new()
 	_crystal_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crystal_label.horizontal_alignment = _parse_h_align(align_h)
@@ -388,17 +559,6 @@ func _build_ui() -> void:
 	_crystal_label.add_theme_font_size_override("font_size", int(crystals_cfg.get("font_size", 18)))
 	crystals_inner.add_child(_crystal_label)
 	crystal_rect_wrapper.add_child(crystal_number_panel)
-	crystals_anchor_cell.add_child(_crystals_panel)
-	# Centrer le bloc cristaux verticalement dans la ligne (height_px)
-	_crystals_panel.set_anchor(SIDE_TOP, 0.5)
-	_crystals_panel.set_anchor(SIDE_BOTTOM, 0.5)
-	_crystals_panel.set_offset(SIDE_TOP, -rect_height / 2)
-	_crystals_panel.set_offset(SIDE_BOTTOM, rect_height / 2)
-	# Ancrage: bord droit du panel = bord droit du cell = viewport - margin_r (fiable à 100%)
-	_crystals_panel.set_anchor(SIDE_LEFT, 1.0)
-	_crystals_panel.set_anchor(SIDE_RIGHT, 1.0)
-	_crystals_panel.set_offset(SIDE_RIGHT, 0)
-	_crystals_panel.set_offset(SIDE_LEFT, -crystal_panel_min_w)
 
 	# Level label on top of level icon (level number, centré dans le symbole selon icon_size)
 	var level_center := CenterContainer.new()
@@ -441,9 +601,12 @@ func _debug_rect_heights() -> void:
 	print("  _xp_bar_track_style content_margin (inset barre): L=%d T=%d R=%d B=%d" % [_xp_bar_track_style.content_margin_left, _xp_bar_track_style.content_margin_top, _xp_bar_track_style.content_margin_right, _xp_bar_track_style.content_margin_bottom])
 	print("  Header: size=%s custom_minimum_size=%s clip_contents=%s" % [size, custom_minimum_size, clip_contents])
 	var root: Control = get_child(0) if get_child_count() > 0 else null
-	var hbox: Control = root.get_child(0) if root and root.get_child_count() > 0 else null
-	if hbox:
-		print("  HBox: size=%s custom_minimum_size=%s" % [hbox.size, hbox.custom_minimum_size])
+	var layout_node: Control = root.get_child(0) if root and root.get_child_count() > 0 else null
+	if layout_node:
+		print("  HeaderLayout: size=%s custom_minimum_size=%s" % [layout_node.size, layout_node.custom_minimum_size])
+		for cell_node in layout_node.get_children():
+			if cell_node is Control:
+				print("    %s: pos=%s size=%s anchors=[%.3f, %.3f]" % [cell_node.name, cell_node.position, cell_node.size, cell_node.anchor_left, cell_node.anchor_right])
 	if is_instance_valid(_level_rect_wrapper):
 		var wr: Control = _level_rect_wrapper
 		var panel: Control = wr.get_child(0) if wr.get_child_count() > 0 else null
@@ -514,7 +677,7 @@ func _load_texture(path: String) -> Texture2D:
 				return sf.get_frame_texture(names[0], 0)
 	return null
 
-func _parse_h_align(s: String) -> int:
+func _parse_h_align(s: String) -> HorizontalAlignment:
 	match s.to_lower():
 		"left":
 			return HORIZONTAL_ALIGNMENT_LEFT
@@ -523,7 +686,7 @@ func _parse_h_align(s: String) -> int:
 		_:
 			return HORIZONTAL_ALIGNMENT_CENTER
 
-func _parse_v_align(s: String) -> int:
+func _parse_v_align(s: String) -> VerticalAlignment:
 	match s.to_lower():
 		"top":
 			return VERTICAL_ALIGNMENT_TOP
@@ -561,15 +724,12 @@ func _update_values() -> void:
 	_update_xp_fill_size()
 
 func _on_xp_bar_gui_input(event: InputEvent) -> void:
-	var show_label := false
-	if event is InputEventMouseButton:
-		var e: InputEventMouseButton = event as InputEventMouseButton
-		show_label = e.pressed
-	elif event is InputEventScreenTouch:
-		var e: InputEventScreenTouch = event as InputEventScreenTouch
-		show_label = e.pressed
-	if is_instance_valid(_xp_label):
-		_xp_label.visible = show_label
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		if is_instance_valid(_xp_label_wrapper):
+			_xp_label_wrapper.visible = not _xp_label_wrapper.visible
+	elif event is InputEventScreenTouch and not event.pressed:
+		if is_instance_valid(_xp_label_wrapper):
+			_xp_label_wrapper.visible = not _xp_label_wrapper.visible
 
 var _xp_bar_ratio: float = 0.0
 
@@ -628,7 +788,7 @@ func _format_compact_number(value: int, locale: String) -> String:
 			s = s.replace(".", ",")
 		return s + "k"
 	if value < 1_000_000:
-		return str(value / 1000) + "k"
+		return str(value / 1000.0) + "k"
 	if value < 100_000_000:
 		var v: float = value / 1_000_000.0
 		var s: String = "%.1f" % v
@@ -636,7 +796,7 @@ func _format_compact_number(value: int, locale: String) -> String:
 			s = s.replace(".", ",")
 		return s + "m"
 	if value < 1_000_000_000:
-		return str(value / 1_000_000) + "m"
+		return str(value / 1_000_000.0) + "m"
 	var billion_suffix: String = "M" if locale == "fr" else "b"
 	if value < 100_000_000_000:
 		var v: float = value / 1_000_000_000.0
@@ -644,7 +804,7 @@ func _format_compact_number(value: int, locale: String) -> String:
 		if locale == "fr":
 			s = s.replace(".", ",")
 		return s + billion_suffix
-	return str(value / 1_000_000_000) + billion_suffix
+	return str(value / 1_000_000_000.0) + billion_suffix
 
 func _debug_header_layout(vp_width: float) -> void:
 	if not DEBUG_HEADER_LAYOUT:

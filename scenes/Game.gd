@@ -18,6 +18,10 @@ const WAVE_MANAGER_SCRIPT: Script = preload("res://scenes/WaveManager.gd")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/Enemy.tscn")
 const BOSS_SCENE: PackedScene = preload("res://scenes/Boss.tscn")
 const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.tscn")
+const KILLSTREAK_MANAGER_SCRIPT: Script = preload("res://autoload/KillstreakManager.gd")
+const BONUS_CRYSTAL_SCENE: PackedScene = preload("res://scenes/pickups/BonusCrystal.tscn")
+const LOOT_DROP_SCENE: PackedScene = preload("res://scenes/LootDrop.tscn")
+const PATH_TRIAL_SCENE: PackedScene = preload("res://scenes/mechanics/PathTrial.tscn")
 const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/obstacles/ObstacleExplosive.tscn",
 	"res://scenes/obstacles/ObstaclePusher.tscn",
@@ -31,6 +35,9 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/effects/IceAura.tscn",
 	"res://scenes/effects/IceShards.tscn",
 	"res://scenes/effects/VacuumRadius.tscn",
+	"res://scenes/pickups/BonusCrystal.tscn",
+	"res://scenes/mechanics/PathTrial.tscn",
+	"res://scenes/Projectile.tscn",
 	"res://scenes/abilities/objects/Wall.tscn",
 	"res://scenes/abilities/WallSpawner.gd",
 	"res://scenes/effects/BossVoidZone.gd",
@@ -39,8 +46,11 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 const RUNTIME_WARMUP_PREFIXES: PackedStringArray = [
 	"res://scenes/abilities/",
 	"res://scenes/effects/",
+	"res://scenes/mechanics/",
 	"res://scenes/objects/",
+	"res://scenes/pickups/",
 	"res://scenes/LootDrop",
+	"res://scenes/Projectile",
 	"res://scenes/obstacles/"
 ]
 const DEBUG_PERF_HITCH_LOG := true
@@ -55,7 +65,7 @@ const OVERRIDE_STRONG_RESOURCE_CACHE_MAX: int = 128
 var player: CharacterBody2D = null
 var hud: CanvasLayer = null
 var boss_hud: Control = null
-var pause_menu: Control = null
+var pause_menu: CanvasLayer = null
 
 var enemies_killed: int = 0
 var boss_spawned: bool = false
@@ -67,8 +77,11 @@ var _wave_total_with_boss: int = 0
 var _boss_sequence_ids: Array[String] = []
 var _boss_sequence_index: int = -1
 var _boss_sequence_active: bool = false
-var session_xp: int = 0  # XP accumulated this session (= score)
+var session_score: int = 0 # Single source of truth for run score.
+var session_xp: int = 0  # Kept in sync with session_score for XP/crystal formulas.
 var _end_screen_delay_seconds: float = 1.5
+var _boss_spawn_top_margin_px: float = 28.0
+var _boss_spawn_entry_duration_sec: float = 0.55
 var _end_screen_context_action: String = "level_select"
 
 const END_SCREEN_ACTION_LEVEL_SELECT := "level_select"
@@ -134,6 +147,28 @@ var _override_emp_vignette_strength: float = 0.72
 var _override_emp_vignette_radius: float = 0.58
 var _override_emp_vignette_color: Color = Color(0.0, 0.0, 0.0, 1.0)
 var _overlay_rect: ColorRect = null
+var _killstreak_manager: Node = null
+var _killstreak_cfg: Dictionary = {}
+var _bonus_crystals_cfg: Dictionary = {}
+var _killstreak_warning_active: bool = false
+var _active_bonus_crystals: Array[Node] = []
+var _active_path_trials: Array[Node] = []
+var _wave_splash_cfg: Dictionary = {
+	"enabled": true,
+	"color": "#FFFFFF",
+	"font_size": 92,
+	"zoom_start": 0.0,
+	"zoom_end": 1.0,
+	"animation_duration_sec": 0.65,
+	"warning_duration_sec": 1.4,
+	"warning_delay_sec": 0.4,
+	"warning_margin_top": 30.0
+}
+var _wave_splash_label: Label = null
+var _wave_splash_sub_label: Label = null
+var _wave_splash_tween: Tween = null
+var _wave_splash_warning_tween: Tween = null
+var _run_bootstrap_done: bool = false
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -148,6 +183,7 @@ func _ready() -> void:
 	current_level_index = App.current_level_index
 	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
 	_load_gameplay_config()
+	_setup_scoring_system()
 	_load_override_protocol_state()
 	
 	add_to_group("game_controller")
@@ -177,22 +213,39 @@ func _ready() -> void:
 	_setup_fluid_simulation()
 	_preload_override_visual_resources()
 	_setup_emp_vignette()
+	# Keep heavy runtime warmup inside scene init so it happens behind the loading layer.
 	_start_enemy_spawner()
+	# Gameplay bootstrap (story gate + first combat start) is handled in run_post_loading_story().
+	# Keep player disarmed until that sequence explicitly unlocks combat.
+	if is_instance_valid(player) and player.has_method("set_can_shoot"):
+		player.set_can_shoot(false)
 
 func run_post_loading_story() -> void:
+	if _run_bootstrap_done:
+		return
+	_run_bootstrap_done = true
+
+	_clean_start_of_run_state()
+
 	var stories: Array = DataManager.get_stories_for_trigger_start(current_world_id, current_level_index)
 	var will_play_any: bool = false
 	for story in stories:
 		if story is Dictionary and str((story as Dictionary).get("id", "")) != "" and not ProfileManager.has_viewed_story(str((story as Dictionary).get("id", ""))):
 			will_play_any = true
 			break
-	if will_play_any and is_instance_valid(player) and player.has_method("set_can_shoot"):
+
+	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		player.set_can_shoot(false)
-	var had_story: bool = await _play_level_story_if_needed()
-	if had_story and is_instance_valid(player) and player.has_method("set_can_shoot"):
-		await get_tree().create_timer(2.0).timeout
-		if is_instance_valid(player) and player.has_method("set_can_shoot"):
-			player.set_can_shoot(true)
+
+	await _play_level_story_if_needed()
+	if is_instance_valid(player) and player.has_method("set_can_shoot"):
+		player.set_can_shoot(true)
+
+func _clean_start_of_run_state() -> void:
+	# Hard cleanup so the level always starts from a clean visual/combat state.
+	if ProjectileManager:
+		ProjectileManager.clear_all_projectiles()
+	_clear_bonus_crystals()
 
 func _play_level_story_if_needed() -> bool:
 	var stories: Array = DataManager.get_stories_for_trigger_start(current_world_id, current_level_index)
@@ -212,6 +265,14 @@ func _play_level_story_if_needed() -> bool:
 
 func _load_gameplay_config() -> void:
 	var game_cfg: Dictionary = DataManager.get_game_config()
+	# Prefer fresh disk read so tuning in game.json is reflected without full app restart.
+	if FileAccess.file_exists("res://data/game.json"):
+		var f := FileAccess.open("res://data/game.json", FileAccess.READ)
+		if f:
+			var json := JSON.new()
+			if json.parse(f.get_as_text()) == OK and json.data is Dictionary:
+				game_cfg = json.data as Dictionary
+			f.close()
 	var gameplay_cfg: Variant = game_cfg.get("gameplay", {})
 	if not (gameplay_cfg is Dictionary):
 		_loot_drop_rules = _build_default_loot_drop_rules()
@@ -223,10 +284,201 @@ func _load_gameplay_config() -> void:
 		_loot_drop_rules.merge((loot_cfg as Dictionary), true)
 
 	var end_session_cfg: Variant = (gameplay_cfg as Dictionary).get("end_session", {})
-	if not (end_session_cfg is Dictionary):
+	if end_session_cfg is Dictionary:
+		_end_screen_delay_seconds = maxf(0.0, float((end_session_cfg as Dictionary).get("post_battle_delay_seconds", 1.5)))
+
+	var boss_spawn_cfg: Variant = (gameplay_cfg as Dictionary).get("boss_spawn", {})
+	if boss_spawn_cfg is Dictionary:
+		_boss_spawn_top_margin_px = maxf(0.0, float((boss_spawn_cfg as Dictionary).get("top_margin_px", 28.0)))
+		_boss_spawn_entry_duration_sec = maxf(0.0, float((boss_spawn_cfg as Dictionary).get("entry_duration_sec", 0.55)))
+
+	var wave_splash_cfg_v: Variant = (gameplay_cfg as Dictionary).get("wave_splash", {})
+	if wave_splash_cfg_v is Dictionary:
+		_wave_splash_cfg.merge(wave_splash_cfg_v as Dictionary, true)
+
+func _setup_scoring_system() -> void:
+	_killstreak_cfg = DataManager.get_killstreak_config()
+	_bonus_crystals_cfg = DataManager.get_bonus_crystals_config()
+	_killstreak_warning_active = false
+
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		_killstreak_manager.queue_free()
+	_killstreak_manager = KILLSTREAK_MANAGER_SCRIPT.new()
+	add_child(_killstreak_manager)
+	_killstreak_manager.call("configure", _killstreak_cfg)
+
+	if _killstreak_manager.has_signal("streak_warning") and not _killstreak_manager.streak_warning.is_connected(_on_killstreak_warning):
+		_killstreak_manager.streak_warning.connect(_on_killstreak_warning)
+	if _killstreak_manager.has_signal("streak_updated") and not _killstreak_manager.streak_updated.is_connected(_on_killstreak_updated):
+		_killstreak_manager.streak_updated.connect(_on_killstreak_updated)
+	if _killstreak_manager.has_signal("streak_ended") and not _killstreak_manager.streak_ended.is_connected(_on_killstreak_ended):
+		_killstreak_manager.streak_ended.connect(_on_killstreak_ended)
+
+func _on_killstreak_warning(_time_left: float, _ratio: float) -> void:
+	_killstreak_warning_active = true
+
+func _on_killstreak_updated(
+	_kill_count: int,
+	_multiplier: float,
+	_time_left: float,
+	_time_ratio: float,
+	_tier_id: String,
+	_tier_label: String
+) -> void:
+	_killstreak_warning_active = false
+
+func _on_killstreak_ended(final_kill_count: int, _highest_multiplier: float, end_bonus_score: int) -> void:
+	_killstreak_warning_active = false
+	if end_bonus_score > 0:
+		_add_run_score(end_bonus_score)
+	if hud and hud.has_method("show_killstreak_end"):
+		hud.show_killstreak_end(end_bonus_score, final_kill_count)
+
+func _add_run_score(points: int) -> void:
+	var delta: int = maxi(0, points)
+	if delta <= 0:
+		return
+	session_score += delta
+	session_xp = session_score
+	if hud:
+		hud.add_score(delta)
+
+func _update_killstreak_hud() -> void:
+	if not hud or not hud.has_method("set_killstreak_state"):
+		return
+	if _killstreak_manager == null or not is_instance_valid(_killstreak_manager):
+		hud.call("set_killstreak_state", {"active": false})
+		return
+	hud.call("set_killstreak_state", {
+		"active": bool(_killstreak_manager.call("is_active")),
+		"kill_count": int(_killstreak_manager.call("get_kill_count")),
+		"multiplier": float(_killstreak_manager.call("get_multiplier")),
+		"time_ratio": float(_killstreak_manager.call("get_time_ratio")),
+		"tier_label_key": str(_killstreak_manager.call("get_tier_label_key")),
+		"warning": _killstreak_warning_active
+	})
+
+func _award_scaled_score(base_score: int, bonus_flat: int = 0) -> int:
+	var awarded: int = maxi(0, base_score)
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		awarded = int(_killstreak_manager.call("compute_score", awarded))
+	awarded += maxi(0, bonus_flat)
+	_add_run_score(awarded)
+	return awarded
+
+func _is_enemy_elite(enemy: CharacterBody2D) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	if enemy.is_in_group("elite"):
+		return true
+	var enemy_id: String = str(enemy.get("enemy_id"))
+	return enemy_id.findn("elite") >= 0
+
+func _pick_bonus_crystal_type() -> Dictionary:
+	var types_v: Variant = _bonus_crystals_cfg.get("types", [])
+	if not (types_v is Array):
+		return {}
+	var types: Array = types_v as Array
+	if types.is_empty():
+		return {}
+	var total_weight: float = 0.0
+	for entry in types:
+		if entry is Dictionary:
+			total_weight += maxf(0.0, float((entry as Dictionary).get("weight", 0.0)))
+	if total_weight <= 0.0:
+		return {}
+	var roll: float = randf() * total_weight
+	var acc: float = 0.0
+	for entry in types:
+		if not (entry is Dictionary):
+			continue
+		var d: Dictionary = entry as Dictionary
+		acc += maxf(0.0, float(d.get("weight", 0.0)))
+		if roll <= acc:
+			return d.duplicate(true)
+	var last_variant: Variant = types[types.size() - 1]
+	return (last_variant as Dictionary).duplicate(true) if (last_variant is Dictionary) else {}
+
+func _try_spawn_bonus_crystal(at_pos: Vector2, is_boss: bool, is_elite: bool) -> void:
+	if _bonus_crystals_cfg.is_empty() or not bool(_bonus_crystals_cfg.get("enabled", false)):
+		return
+	if is_boss and _killstreak_manager and is_instance_valid(_killstreak_manager):
+		if not bool(_killstreak_manager.call("boss_can_drop_bonus_crystal")):
+			return
+
+	var drop_table: Dictionary = _bonus_crystals_cfg.get("drop_table", {}) if _bonus_crystals_cfg.get("drop_table") is Dictionary else {}
+	var chance: float = float(drop_table.get("normal_enemy_drop_chance", 0.12))
+	if is_elite:
+		chance = float(drop_table.get("elite_enemy_drop_chance", chance))
+	if is_boss:
+		chance = float(drop_table.get("boss_drop_chance", chance))
+	chance = clampf(chance, 0.0, 1.0)
+	if randf() > chance:
 		return
 
-	_end_screen_delay_seconds = maxf(0.0, float((end_session_cfg as Dictionary).get("post_battle_delay_seconds", 1.5)))
+	var crystal_type: Dictionary = _pick_bonus_crystal_type()
+	if crystal_type.is_empty():
+		return
+	var crystal_node: Node = BONUS_CRYSTAL_SCENE.instantiate()
+	if crystal_node == null:
+		return
+	var spawn_data: Dictionary = crystal_type.duplicate(true)
+	spawn_data["despawn_time_sec"] = float(_bonus_crystals_cfg.get("despawn_time_sec", 8.0))
+	spawn_data["pickup_radius"] = float(_bonus_crystals_cfg.get("pickup_radius", 28.0))
+	spawn_data["magnet_speed"] = float(_bonus_crystals_cfg.get("magnet_speed", 420.0))
+	spawn_data["size_px"] = float(_bonus_crystals_cfg.get("size_px", 28.0))
+	spawn_data["fall_speed_px_sec"] = float(_bonus_crystals_cfg.get("fall_speed_px_sec", 420.0))
+	var default_asset: String = str(_bonus_crystals_cfg.get("default_asset", ""))
+	if str(spawn_data.get("asset", "")).strip_edges() == "" and default_asset != "":
+		spawn_data["asset"] = default_asset
+
+	var crystal_area: Area2D = crystal_node as Area2D
+	if crystal_area:
+		crystal_area.global_position = at_pos + Vector2(0.0, float(_bonus_crystals_cfg.get("spawn_offset_y", 10.0)))
+		game_layer.add_child(crystal_area)
+		_active_bonus_crystals.append(crystal_area)
+		if crystal_area.has_signal("collected"):
+			crystal_area.collected.connect(_on_bonus_crystal_collected)
+		crystal_area.tree_exiting.connect(func() -> void:
+			_active_bonus_crystals.erase(crystal_area)
+		)
+		if crystal_area.has_method("setup"):
+			crystal_area.call("setup", spawn_data, player)
+
+func _on_bonus_crystal_collected(data: Dictionary) -> void:
+	var crystal_type: String = str(data.get("type", ""))
+	if crystal_type == "score_crystal":
+		var score_value: int = maxi(0, int(data.get("score_value", 0)))
+		if score_value > 0:
+			_add_run_score(score_value)
+			VFXManager.spawn_floating_text(
+				player.global_position if is_instance_valid(player) else Vector2.ZERO,
+				"+%d" % score_value,
+				Color(0.5, 0.9, 1.0),
+				hud_container
+			)
+	elif crystal_type == "streak_time_crystal":
+		var time_bonus: float = maxf(0.0, float(data.get("time_bonus_sec", 0.0)))
+		if time_bonus > 0.0 and _killstreak_manager and is_instance_valid(_killstreak_manager):
+			_killstreak_manager.call("add_time_bonus", time_bonus)
+
+func _clear_bonus_crystals() -> void:
+	for i in range(_active_bonus_crystals.size() - 1, -1, -1):
+		var node: Node = _active_bonus_crystals[i]
+		if node == null or not is_instance_valid(node):
+			_active_bonus_crystals.remove_at(i)
+			continue
+		node.queue_free()
+	_active_bonus_crystals.clear()
+
+func _clear_path_trials() -> void:
+	for i in range(_active_path_trials.size() - 1, -1, -1):
+		var node: Node = _active_path_trials[i]
+		if node == null or not is_instance_valid(node):
+			_active_path_trials.remove_at(i)
+			continue
+		node.queue_free()
+	_active_path_trials.clear()
 
 func _build_default_loot_drop_rules() -> Dictionary:
 	return {
@@ -519,10 +771,8 @@ func _setup_background() -> void:
 	
 	print("[Game] Loading background for ", level_id)
 
-	# 1. FAR LAYER (0.2x) — TEST TEMPORAIRE: texture carrée répétée (sphere_texture) au lieu de far_layer
-	var far_path: String = str(bgs.get("sphere_texture", ""))
-	if far_path == "":
-		far_path = str(bgs.get("far_layer", ""))
+	# 1. FAR LAYER (0.2x)
+	var far_path: String = str(bgs.get("far_layer", ""))
 	if far_path != "":
 		_create_layer(bg_container, far_path, far_speed, viewport_size, false)
 	
@@ -541,6 +791,7 @@ func _setup_background() -> void:
 		_create_layer(bg_container, near_path, near_speed, viewport_size, true, near_opacity)
 
 	# 4. OVERLAY — full rect color layer on top of backgrounds (improves ship visibility)
+	# Taille basée sur le viewport RÉEL (runtime) pour couvrir tout l'écran sur mobile (design_size fixe laissait 5–8% en haut/bas).
 	var overlay_cfg: Variant = bg_scroll_cfg.get("overlay", {})
 	if overlay_cfg is Dictionary and not (overlay_cfg as Dictionary).is_empty():
 		var overlay_dict: Dictionary = overlay_cfg as Dictionary
@@ -549,9 +800,9 @@ func _setup_background() -> void:
 		var overlay_rect := ColorRect.new()
 		overlay_rect.name = "BackgroundOverlay"
 		overlay_rect.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		var design_size: Vector2 = _get_design_viewport_size()
+		var viewport_actual: Vector2 = get_viewport_rect().size
 		var zoom_vec: Vector2 = camera.zoom
-		var overlay_size: Vector2 = design_size / zoom_vec
+		var overlay_size: Vector2 = viewport_actual / zoom_vec
 		var center: Vector2 = camera.get_screen_center_position()
 		overlay_rect.position = center - overlay_size / 2.0
 		overlay_rect.size = overlay_size
@@ -560,8 +811,7 @@ func _setup_background() -> void:
 		bg_container.add_child(overlay_rect)
 		overlay_rect.z_index = 100
 		_overlay_rect = overlay_rect
-		var viewport_actual: Vector2 = get_viewport_rect().size
-		print("[Game] BackgroundOverlay at level load: design_size=", design_size, " zoom=", zoom_vec, " overlay_size=", overlay_size, " center=", center, " overlay.position=", overlay_rect.position, " viewport=", viewport_actual)
+		print("[Game] BackgroundOverlay at level load: viewport=", viewport_actual, " zoom=", zoom_vec, " overlay_size=", overlay_size, " center=", center)
 
 func _create_layer(
 	parent: Node,
@@ -622,13 +872,16 @@ func _get_design_viewport_size() -> Vector2:
 
 func _process(delta: float) -> void:
 	if _overlay_rect != null and is_instance_valid(_overlay_rect) and camera != null:
-		var design_size: Vector2 = _get_design_viewport_size()
+		var viewport_actual: Vector2 = get_viewport_rect().size
 		var zoom_vec: Vector2 = camera.zoom
-		var overlay_size: Vector2 = design_size / zoom_vec
+		var overlay_size: Vector2 = viewport_actual / zoom_vec
 		var center: Vector2 = camera.get_screen_center_position()
 		_overlay_rect.size = overlay_size
 		_overlay_rect.position = center - overlay_size / 2.0
 	# Le background se gère tout seul via ScrollingLayer._process
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		_killstreak_manager.call("update", delta)
+		_update_killstreak_hud()
 	_debug_log_frame_hitch(delta)
 	_update_hud()
 	_update_boss_debug_hud()
@@ -837,6 +1090,8 @@ func _on_player_died() -> void:
 		return
 	
 	_player_death_registered = true
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		_killstreak_manager.call("on_player_died")
 	print("[Game] Player died! Game Over.")
 	
 	# Empêche le boss d'être tué après la mort du joueur (ex: projectile déjà en vol).
@@ -884,6 +1139,8 @@ func _setup_fluid_simulation() -> void:
 var wave_manager: Node = null
 
 func _start_enemy_spawner() -> void:
+	if wave_manager and is_instance_valid(wave_manager):
+		return
 	# Instancier le WaveManager
 	wave_manager = WAVE_MANAGER_SCRIPT.new()
 	wave_manager.name = "WaveManager"
@@ -891,6 +1148,8 @@ func _start_enemy_spawner() -> void:
 	
 	wave_manager.spawn_enemy.connect(_on_wave_enemy_spawn)
 	wave_manager.spawn_obstacle.connect(_on_wave_obstacle_spawn)
+	if wave_manager.has_signal("spawn_path_trial"):
+		wave_manager.spawn_path_trial.connect(_on_wave_path_trial_spawn)
 	wave_manager.level_completed.connect(_on_level_completed)
 	wave_manager.wave_started.connect(_on_wave_started)
 	wave_manager.story_check_before_wave.connect(_on_story_check_before_wave)
@@ -1057,6 +1316,66 @@ func _prewarm_runtime_support_assets() -> void:
 	for path_variant in runtime_paths.keys():
 		_warmup_resource_path(str(path_variant))
 	_warmup_runtime_support_nodes(runtime_paths)
+	_prewarm_runtime_pickup_nodes()
+	_prewarm_runtime_path_trial_nodes()
+	_prewarm_runtime_explosion_nodes()
+
+func _prewarm_runtime_path_trial_nodes() -> void:
+	if PATH_TRIAL_SCENE == null:
+		return
+
+	var host := Node2D.new()
+	host.name = "RuntimePathTrialWarmupHost"
+	host.visible = true
+	game_layer.add_child(host)
+
+	var defaults: Dictionary = DataManager.get_path_trial_defaults() if DataManager else {}
+	var configs: Array[Dictionary] = []
+
+	# Baseline defaults warmup.
+	configs.append({
+		"duration": 1.0,
+		"start_delay_sec": float(defaults.get("start_delay_sec", defaults.get("warmup_sec", 1.5))),
+		"speed": 140.0,
+		"path_width": float(defaults.get("path_width", 120.0)),
+		"tick_damage": int(defaults.get("default_tick_damage", 10)),
+		"tick_interval_sec": float(defaults.get("default_tick_interval_sec", 0.5)),
+		"hazard_start_asset_override": str(defaults.get("default_hazard_start_asset", "")),
+		"hazard_asset_override": str(defaults.get("default_hazard_asset", "")),
+		"path_asset_override": str(defaults.get("default_path_asset", ""))
+	})
+
+	# Current level path_trial overrides warmup.
+	var level_id: String = current_world_id + "_lvl_" + str(current_level_index)
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	var waves_v: Variant = level_data.get("waves", [])
+	if waves_v is Array:
+		for wave_v in (waves_v as Array):
+			if not (wave_v is Dictionary):
+				continue
+			var wave: Dictionary = wave_v as Dictionary
+			if str(wave.get("type", "enemy")) != "path_trial":
+				continue
+			var cfg: Dictionary = wave.duplicate(true)
+			cfg["duration"] = maxf(0.2, float(cfg.get("duration", 1.0)))
+			configs.append(cfg)
+
+	for cfg in configs:
+		var node: Node = PATH_TRIAL_SCENE.instantiate()
+		if not (node is Node2D):
+			continue
+		var trial: Node2D = node as Node2D
+		trial.process_mode = Node.PROCESS_MODE_DISABLED
+		trial.z_as_relative = false
+		trial.z_index = -40
+		host.add_child(trial)
+		if trial.has_method("setup"):
+			trial.call("setup", cfg)
+		if trial.has_method("stop"):
+			trial.call("stop")
+		trial.queue_free()
+
+	host.queue_free()
 
 func _warmup_runtime_support_nodes(runtime_paths: Dictionary) -> void:
 	if runtime_paths.is_empty():
@@ -1109,13 +1428,141 @@ func _collect_runtime_support_paths(target: Dictionary) -> void:
 
 	_collect_current_level_wave_assets(target)
 	_collect_resource_paths_recursive(DataManager.get_skills_config(), target)
+	_collect_resource_paths_recursive(DataManager.get_game_config(), target)
 	_collect_resource_paths_recursive(DataManager.get_game_config().get("gameplay", {}), target)
+	_collect_resource_paths_recursive(DataManager.get_bonus_crystals_config(), target)
+	_collect_resource_paths_recursive(DataManager.get_ships(), target)
+	_collect_resource_paths_recursive(DataManager.get_all_player_missile_patterns(), target)
+	_collect_resource_paths_recursive(DataManager.get_all_enemy_missile_patterns(), target)
+	_collect_resource_paths_recursive(_world_skin_overrides, target)
 	_collect_resource_paths_recursive(DataManager.get_override_protocols_config(), target)
 	_collect_resource_paths_recursive(DataManager.get_all_obstacles(), target)
+	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/missiles.json"), target)
 
 	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/super_powers.json"), target)
 	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/unique_powers.json"), target)
 	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/boss_powers.json"), target)
+
+func _prewarm_runtime_pickup_nodes() -> void:
+	var host := Node2D.new()
+	host.name = "RuntimePickupWarmupHost"
+	host.visible = true
+	game_layer.add_child(host)
+
+	var gameplay_cfg: Dictionary = DataManager.get_game_data().get("gameplay", {})
+	var powerups_cfg: Dictionary = gameplay_cfg.get("power_ups", {})
+	var loot_cfg: Dictionary = gameplay_cfg.get("loot", {})
+
+	# Warm powerup drop visuals + loot highlight aura path.
+	var shield_cfg: Dictionary = powerups_cfg.get("shield", {})
+	var shield_drop: Dictionary = {
+		"type": "powerup",
+		"visual_asset": str(shield_cfg.get("asset", "")),
+		"asset_anim_duration": float(shield_cfg.get("asset_anim_duration", shield_cfg.get("asset_duration", 0.0))),
+		"asset_anim_loop": bool(shield_cfg.get("asset_anim_loop", shield_cfg.get("asset_loop", true))),
+		"width": float(shield_cfg.get("width", 70.0)),
+		"height": float(shield_cfg.get("height", 70.0))
+	}
+	_warmup_lootdrop_instance(host, shield_drop, Vector2(180.0, 280.0))
+
+	# Warm generic equipment drop visuals + highlight aura path.
+	var generic_drop: Dictionary = {
+		"type": "equipment",
+		"asset": str(loot_cfg.get("asset", "")),
+		"asset_anim_duration": float(loot_cfg.get("asset_anim_duration", loot_cfg.get("asset_duration", 0.0))),
+		"asset_anim_loop": bool(loot_cfg.get("asset_anim_loop", loot_cfg.get("asset_loop", true))),
+		"width": float(loot_cfg.get("width", 48.0)),
+		"height": float(loot_cfg.get("height", 48.0))
+	}
+	_warmup_lootdrop_instance(host, generic_drop, Vector2(360.0, 280.0))
+
+	# Warm bonus crystal visual + shared highlight setup.
+	var crystals_cfg: Dictionary = DataManager.get_bonus_crystals_config()
+	var crystal_data: Dictionary = {}
+	var crystal_types_v: Variant = crystals_cfg.get("types", [])
+	if crystal_types_v is Array:
+		for type_entry in (crystal_types_v as Array):
+			if type_entry is Dictionary:
+				crystal_data = (type_entry as Dictionary).duplicate(true)
+				break
+	crystal_data["despawn_time_sec"] = float(crystals_cfg.get("despawn_time_sec", 8.0))
+	crystal_data["pickup_radius"] = float(crystals_cfg.get("pickup_radius", 28.0))
+	crystal_data["magnet_speed"] = float(crystals_cfg.get("magnet_speed", 420.0))
+	crystal_data["size_px"] = float(crystals_cfg.get("size_px", 28.0))
+	crystal_data["fall_speed_px_sec"] = float(crystals_cfg.get("fall_speed_px_sec", 420.0))
+	if str(crystal_data.get("asset", "")) == "":
+		crystal_data["asset"] = str(crystals_cfg.get("default_asset", ""))
+	_warmup_bonus_crystal_instance(host, crystal_data, Vector2(540.0, 280.0))
+
+	host.queue_free()
+
+func _warmup_lootdrop_instance(host: Node2D, item_data: Dictionary, position: Vector2) -> void:
+	if LOOT_DROP_SCENE == null:
+		return
+	if item_data.is_empty():
+		return
+	var node: Node = LOOT_DROP_SCENE.instantiate()
+	if not (node is Area2D):
+		return
+	var drop: Area2D = node as Area2D
+	host.add_child(drop)
+	drop.process_mode = Node.PROCESS_MODE_DISABLED
+	if drop.has_method("setup"):
+		drop.call("setup", item_data, position)
+	drop.queue_free()
+
+func _warmup_bonus_crystal_instance(host: Node2D, crystal_data: Dictionary, position: Vector2) -> void:
+	if BONUS_CRYSTAL_SCENE == null:
+		return
+	if crystal_data.is_empty():
+		return
+	var node: Node = BONUS_CRYSTAL_SCENE.instantiate()
+	if not (node is Area2D):
+		return
+	var crystal: Area2D = node as Area2D
+	host.add_child(crystal)
+	crystal.process_mode = Node.PROCESS_MODE_DISABLED
+	crystal.global_position = position
+	if crystal.has_method("setup"):
+		crystal.call("setup", crystal_data, player)
+	crystal.queue_free()
+
+func _prewarm_runtime_explosion_nodes() -> void:
+	var explosions_cfg: Dictionary = DataManager.get_explosions_config()
+	if explosions_cfg.is_empty():
+		return
+
+	var host := Node2D.new()
+	host.name = "RuntimeExplosionWarmupHost"
+	host.visible = false
+	game_layer.add_child(host)
+
+	for key in ["player_missile_impact", "enemy_death", "boss_death"]:
+		var cfg_v: Variant = explosions_cfg.get(key, {})
+		if not (cfg_v is Dictionary):
+			continue
+		var cfg: Dictionary = cfg_v as Dictionary
+		VFXManager.spawn_explosion(
+			Vector2(0.0, 0.0),
+			float(cfg.get("size", 24.0)),
+			Color(str(cfg.get("color", "#FFFFFF"))),
+			host,
+			str(cfg.get("asset", "")),
+			str(cfg.get("asset_anim", "")),
+			0.01,
+			maxf(0.05, float(cfg.get("fade_out_duration", 0.05))),
+			maxf(0.0, float(cfg.get("asset_anim_duration", 0.1))),
+			bool(cfg.get("asset_anim_loop", false)),
+			maxf(0.0, float(cfg.get("fade_in_duration", 0.0))),
+			maxf(0.01, float(cfg.get("scale_start", 1.0))),
+			maxf(0.01, float(cfg.get("scale_middle", 1.0))),
+			maxf(0.01, float(cfg.get("scale_end", 1.0))),
+			clampf(float(cfg.get("scale_middle_ratio", 0.45)), 0.05, 0.95),
+			float(cfg.get("width", -1.0)),
+			float(cfg.get("height", -1.0))
+		)
+
+	host.queue_free()
 
 func _collect_current_level_wave_assets(target: Dictionary) -> void:
 	var level_id: String = current_world_id + "_lvl_" + str(current_level_index)
@@ -1278,9 +1725,119 @@ func _skip_to_next_debug_boss() -> void:
 
 func _on_wave_started(wave_index: int) -> void:
 	_reset_wave_powerup_drop_counters()
+	_clear_path_trials()
+	var is_danger_wave: bool = _is_danger_wave_index(wave_index)
+	if is_instance_valid(player) and player.has_method("set_can_shoot"):
+		# Disable only for level wave path_trial; re-enable on next normal wave.
+		player.set_can_shoot(not is_danger_wave)
 	var current_wave: int = wave_index + 1
+	_show_wave_start_splash(current_wave, is_danger_wave)
 	if hud and hud.has_method("update_wave_counter"):
 		hud.call("update_wave_counter", current_wave)
+
+func _is_danger_wave_index(wave_index: int) -> bool:
+	var level_id := current_world_id + "_lvl_" + str(current_level_index)
+	var level_data: Dictionary = DataManager.get_level_data(level_id)
+	var waves_v: Variant = level_data.get("waves", [])
+	if not (waves_v is Array):
+		return false
+	var waves: Array = waves_v as Array
+	if wave_index < 0 or wave_index >= waves.size():
+		return false
+	var wave_v: Variant = waves[wave_index]
+	if not (wave_v is Dictionary):
+		return false
+	return str((wave_v as Dictionary).get("type", "enemy")) == "path_trial"
+
+func _ensure_wave_splash_label() -> void:
+	if _wave_splash_label and is_instance_valid(_wave_splash_label):
+		return
+	_wave_splash_label = Label.new()
+	_wave_splash_label.name = "WaveSplashLabel"
+	_wave_splash_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wave_splash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wave_splash_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_wave_splash_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_wave_splash_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_wave_splash_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_wave_splash_label.position = Vector2.ZERO
+	_wave_splash_label.modulate.a = 0.0
+	hud_container.add_child(_wave_splash_label)
+
+	_wave_splash_sub_label = Label.new()
+	_wave_splash_sub_label.name = "WaveSplashSubLabel"
+	_wave_splash_sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wave_splash_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wave_splash_sub_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_wave_splash_sub_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_wave_splash_sub_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_wave_splash_sub_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_wave_splash_sub_label.position = Vector2.ZERO
+	_wave_splash_sub_label.modulate.a = 0.0
+	hud_container.add_child(_wave_splash_sub_label)
+
+func _show_wave_start_splash(wave_number: int, is_danger_wave: bool = false) -> void:
+	if not bool(_wave_splash_cfg.get("enabled", true)):
+		return
+	_ensure_wave_splash_label()
+	if _wave_splash_label == null or not is_instance_valid(_wave_splash_label):
+		return
+
+	var template: String = LocaleManager.translate("game_wave_splash")
+	if template == "" or template == "game_wave_splash":
+		template = "Wave {current}"
+	_wave_splash_label.text = template.replace("{current}", str(wave_number))
+	_wave_splash_label.add_theme_font_size_override("font_size", maxi(12, int(_wave_splash_cfg.get("font_size", 92))))
+	_wave_splash_label.add_theme_color_override("font_color", Color(str(_wave_splash_cfg.get("color", "#FFFFFF"))))
+	# Scale around exact center of screen so the zoom never drifts.
+	_wave_splash_label.pivot_offset = _wave_splash_label.size * 0.5
+
+	if _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
+		var danger_text: String = LocaleManager.translate("game_danger_zone")
+		if danger_text == "" or danger_text == "game_danger_zone":
+			danger_text = "Zone de danger"
+		_wave_splash_sub_label.visible = is_danger_wave
+		_wave_splash_sub_label.text = danger_text
+		_wave_splash_sub_label.add_theme_font_size_override("font_size", maxi(10, int(_wave_splash_cfg.get("font_size", 92) * 0.42)))
+		_wave_splash_sub_label.add_theme_color_override("font_color", Color("#FF3B3B"))
+		_wave_splash_sub_label.position = Vector2(
+			0.0,
+			float(_wave_splash_cfg.get("font_size", 92) * 0.52) + maxf(0.0, float(_wave_splash_cfg.get("warning_margin_top", 30.0)))
+		)
+		_wave_splash_sub_label.pivot_offset = _wave_splash_sub_label.size * 0.5
+
+	var start_scale: float = clampf(float(_wave_splash_cfg.get("zoom_start", 0.0)), 0.0, 4.0)
+	var end_scale: float = clampf(float(_wave_splash_cfg.get("zoom_end", 1.0)), 0.1, 4.0)
+	var total_duration: float = maxf(0.15, float(_wave_splash_cfg.get("animation_duration_sec", 0.65)))
+	var warning_duration: float = maxf(total_duration, float(_wave_splash_cfg.get("warning_duration_sec", 1.4)))
+	var first_leg: float = total_duration * 0.6
+	var second_leg: float = total_duration - first_leg
+	var warning_first_leg: float = warning_duration * 0.55
+	var warning_second_leg: float = warning_duration - warning_first_leg
+	var peak_scale: float = maxf(end_scale, end_scale * 1.15)
+
+	if _wave_splash_tween and _wave_splash_tween.is_running():
+		_wave_splash_tween.kill()
+	if _wave_splash_warning_tween and _wave_splash_warning_tween.is_running():
+		_wave_splash_warning_tween.kill()
+
+	_wave_splash_label.scale = Vector2.ONE * start_scale
+	_wave_splash_label.modulate.a = 1.0
+	if _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
+		_wave_splash_sub_label.scale = Vector2.ONE * start_scale
+		_wave_splash_sub_label.modulate.a = 0.0
+	_wave_splash_tween = create_tween()
+	_wave_splash_tween.tween_property(_wave_splash_label, "scale", Vector2.ONE * peak_scale, first_leg).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_wave_splash_tween.tween_property(_wave_splash_label, "scale", Vector2.ONE * end_scale, second_leg).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_wave_splash_tween.parallel().tween_property(_wave_splash_label, "modulate:a", 0.0, total_duration + 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if is_danger_wave and _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
+		var warning_delay: float = maxf(0.0, float(_wave_splash_cfg.get("warning_delay_sec", 0.4)))
+		_wave_splash_warning_tween = create_tween()
+		_wave_splash_warning_tween.tween_interval(warning_delay)
+		_wave_splash_warning_tween.tween_property(_wave_splash_sub_label, "modulate:a", 1.0, 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_wave_splash_warning_tween.parallel().tween_property(_wave_splash_sub_label, "scale", Vector2.ONE * peak_scale, warning_first_leg).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_wave_splash_warning_tween.tween_property(_wave_splash_sub_label, "scale", Vector2.ONE * end_scale, warning_second_leg).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_wave_splash_warning_tween.parallel().tween_property(_wave_splash_sub_label, "modulate:a", 0.0, warning_duration + 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func _on_story_check_before_wave(wave_index: int) -> void:
 	var wave_one_based: int = wave_index + 1
@@ -1451,6 +2008,24 @@ func _on_wave_obstacle_spawn(obstacle_data: Dictionary, positions: Array, speed:
 			if obstacle.has_signal("obstacle_destroyed"):
 				obstacle.obstacle_destroyed.connect(_on_obstacle_destroyed)
 
+func _on_wave_path_trial_spawn(config: Dictionary) -> void:
+	if PATH_TRIAL_SCENE == null:
+		return
+	var node: Node = PATH_TRIAL_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var trial: Node2D = node as Node2D
+	trial.z_as_relative = false
+	trial.z_index = -40
+	trial.add_to_group("runtime_hazards")
+	game_layer.add_child(trial)
+	_active_path_trials.append(trial)
+	trial.tree_exiting.connect(func() -> void:
+		_active_path_trials.erase(trial)
+	)
+	if trial.has_method("setup"):
+		trial.call("setup", config)
+
 func _randomize_obstacle_dimensions(data: Dictionary) -> void:
 	var shape: String = str(data.get("shape", "rectangle"))
 	if shape == "circle":
@@ -1493,10 +2068,12 @@ func _pick_random_sprite(data: Dictionary) -> void:
 
 func _on_obstacle_destroyed(_obstacle: Node2D) -> void:
 	# Score bonus pour destruction d'obstacles
-	if hud and hud.has_method("add_score"):
-		hud.add_score(5)
+	_add_run_score(5)
 
 func _on_level_completed() -> void:
+	if is_instance_valid(player) and player.has_method("set_can_shoot"):
+		# Ensure boss phase is never blocked by prior path_trial wave gating.
+		player.set_can_shoot(true)
 	var level_data := _get_current_level_data()
 	var boss_sequence: Array[String] = _extract_boss_sequence_ids(level_data)
 	if not boss_sequence.is_empty():
@@ -1515,14 +2092,12 @@ func _on_level_completed() -> void:
 		_show_end_session_screen(true)
 
 func _on_enemy_died(enemy: CharacterBody2D) -> void:
-	#print("[Game] Enemy died")
-	
-	# Ajouter score
-	if hud:
-		hud.add_score(enemy.score)
-	
-	# Track XP (Score = XP)
-	session_xp += int(enemy.score)
+	if _end_session_started or _player_death_registered:
+		return
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		_killstreak_manager.call("on_enemy_killed", 1)
+	_award_scaled_score(int(enemy.score))
+	_try_spawn_bonus_crystal(enemy.global_position, false, _is_enemy_elite(enemy))
 
 	if _override_enable_volatile_reactors:
 		_try_trigger_volatile_reactor(enemy)
@@ -1583,6 +2158,8 @@ func _try_trigger_volatile_reactor(enemy: CharacterBody2D) -> void:
 func _spawn_boss(boss_id: String) -> void:
 	boss_spawned = true
 	print("[Game] BOSS INCOMING: ", boss_id)
+	if is_instance_valid(player) and player.has_method("set_can_shoot"):
+		player.set_can_shoot(true)
 	if hud and hud.has_method("update_wave_counter"):
 		var boss_wave_index: int = _wave_total_with_boss
 		if _boss_sequence_active and _boss_sequence_index >= 0:
@@ -1602,18 +2179,26 @@ func _spawn_boss(boss_id: String) -> void:
 	
 	var boss: CharacterBody2D = BOSS_SCENE.instantiate()
 	
-	var viewport_width := get_viewport_rect().size.x
-	var spawn_pos := Vector2(viewport_width / 2, 100)
+	var target_spawn_pos := _compute_boss_spawn_position(boss_data)
+	var entry_spawn_pos := _compute_boss_entry_start_position(boss_data)
 	
 	game_layer.add_child(boss)
-	boss.global_position = spawn_pos
+	boss.global_position = entry_spawn_pos
 	
-	# Apply world-level boss skin override
-	var boss_overrides: Variant = _world_skin_overrides.get("bosses", {})
+	# Apply world-level boss skin override. En mode boss_sequence (debug arena), chaque boss
+	# utilise les overrides de son propre monde (forest -> world_1, magic -> world_9, etc.).
+	var overrides_for_boss: Dictionary = _world_skin_overrides
+	if _boss_sequence_active:
+		var boss_world_id: String = _get_world_id_for_boss(boss_id)
+		overrides_for_boss = DataManager.get_world_skin_overrides(boss_world_id)
+	var boss_overrides: Variant = overrides_for_boss.get("bosses", {})
 	if boss_overrides is Dictionary:
-		var boss_skin: String = str((boss_overrides as Dictionary).get(boss_id, ""))
+		var visual: Dictionary = boss_data.get("visual", {}).duplicate(true)
+		var changed := false
+		var b_dict := boss_overrides as Dictionary
+		
+		var boss_skin: String = str(b_dict.get(boss_id, ""))
 		if boss_skin != "" and ResourceLoader.exists(boss_skin):
-			var visual: Dictionary = boss_data.get("visual", {}).duplicate(true)
 			var ext: String = boss_skin.get_extension().to_lower()
 			if ext == "tres" or ext == "res":
 				visual["asset_anim"] = boss_skin
@@ -1621,9 +2206,35 @@ func _spawn_boss(boss_id: String) -> void:
 			else:
 				visual["asset"] = boss_skin
 				visual["asset_anim"] = ""
+			changed = true
+		
+		var dur_key := boss_id + "_animation_duration"
+		var freq_key := boss_id + "_animation_frequency"
+		if b_dict.has(dur_key):
+			visual["asset_anim_duration"] = float(b_dict[dur_key])
+			changed = true
+		if b_dict.has(freq_key):
+			visual["asset_anim_frequency"] = float(b_dict[freq_key])
+			changed = true
+			
+		if changed:
 			boss_data["visual"] = visual
 	
 	boss.setup(boss_data)
+
+	# Ensure visuals are loaded immediately (off-screen), then play entrance motion.
+	boss.set_process(false)
+	if _boss_spawn_entry_duration_sec > 0.0:
+		var entry_tween := create_tween()
+		entry_tween.set_trans(Tween.TRANS_CUBIC)
+		entry_tween.set_ease(Tween.EASE_OUT)
+		entry_tween.tween_property(boss, "global_position", target_spawn_pos, _boss_spawn_entry_duration_sec)
+		await entry_tween.finished
+	else:
+		boss.global_position = target_spawn_pos
+	if boss.has_method("set_spawn_anchor_to_current_position"):
+		boss.call("set_spawn_anchor_to_current_position")
+	boss.set_process(true)
 	
 	# Appliquer les multipliers du world au boss
 	var boss_hp_mult: float = float(_world_multipliers.get("hp", 1.0)) * _override_enemy_hp_multiplier
@@ -1652,6 +2263,38 @@ func _spawn_boss(boss_id: String) -> void:
 	if bool(ProfileManager.get_setting("screenshake_enabled", true)):
 		VFXManager.screen_shake(15, 0.8)
 
+func _compute_boss_spawn_position(boss_data: Dictionary) -> Vector2:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var boss_size_raw: Variant = boss_data.get("size", {})
+	var boss_h: float = 100.0
+	if boss_size_raw is Dictionary:
+		boss_h = maxf(1.0, float((boss_size_raw as Dictionary).get("height", 100.0)))
+	var spawn_y: float = (boss_h * 0.5) + _boss_spawn_top_margin_px
+	return Vector2(viewport_size.x * 0.5, spawn_y)
+
+func _compute_boss_entry_start_position(boss_data: Dictionary) -> Vector2:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var boss_size_raw: Variant = boss_data.get("size", {})
+	var boss_h: float = 100.0
+	if boss_size_raw is Dictionary:
+		boss_h = maxf(1.0, float((boss_size_raw as Dictionary).get("height", 100.0)))
+	var start_y: float = -((boss_h * 0.5) + _boss_spawn_top_margin_px)
+	return Vector2(viewport_size.x * 0.5, start_y)
+
+## En mode boss_sequence (debug arena), retourne le world_id associé au préfixe du boss_id.
+func _get_world_id_for_boss(boss_id: String) -> String:
+	var id_lower := boss_id.to_lower()
+	if id_lower.begins_with("boss_forest_"): return "world_1"
+	if id_lower.begins_with("boss_atlantis_"): return "world_2"
+	if id_lower.begins_with("boss_industrial_"): return "world_3"
+	if id_lower.begins_with("boss_lava_"): return "world_4"
+	if id_lower.begins_with("boss_mine_"): return "world_5"
+	if id_lower.begins_with("boss_necro_"): return "world_6"
+	if id_lower.begins_with("boss_titan_"): return "world_7"
+	if id_lower.begins_with("boss_alien_"): return "world_8"
+	if id_lower.begins_with("boss_magic_"): return "world_9"
+	return current_world_id
+
 func _on_boss_health_changed(new_hp: int, max_hp: int) -> void:
 	if hud:
 		hud.update_boss_health(new_hp, max_hp)
@@ -1665,11 +2308,14 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 		return
 	
 	print("[Game] BOSS DEFEATED!")
-	if hud:
-		hud.add_score(boss.score)
-	
-	# Track XP
-	session_xp += int(boss.score)
+	var boss_kill_value: int = 1
+	var boss_bonus_flat: int = 0
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		boss_kill_value = int(_killstreak_manager.call("get_boss_kill_count_value"))
+		boss_bonus_flat = int(_killstreak_manager.call("get_boss_kill_bonus_score_flat"))
+		_killstreak_manager.call("on_enemy_killed", boss_kill_value)
+	_award_scaled_score(int(boss.score), boss_bonus_flat)
+	_try_spawn_bonus_crystal(boss.global_position, true, false)
 
 	active_boss = null
 	if _boss_sequence_active and _boss_sequence_index < _boss_sequence_ids.size() - 1:
@@ -1686,12 +2332,43 @@ func _on_boss_died(boss: CharacterBody2D) -> void:
 			player.set_can_shoot(false)
 
 	await _play_end_story_if_needed()
-	_show_end_session_screen(true)
+	await _play_victory_player_exit_animation()
+	_show_end_session_screen(true, true)
+
+func _play_victory_player_exit_animation() -> void:
+	if not is_instance_valid(player):
+		return
+
+	if player.has_method("set_can_shoot"):
+		player.set_can_shoot(false)
+	player.is_invincible = true
+	player.set_process(false)
+
+	# Short pause before dash to make the "charge then leave" feel.
+	await get_tree().create_timer(0.18).timeout
+	if not is_instance_valid(player):
+		return
+
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var start_pos: Vector2 = player.global_position
+	var target_pos := Vector2(start_pos.x, -maxf(160.0, viewport_size.y * 0.30))
+	var travel_distance: float = maxf(1.0, start_pos.distance_to(target_pos))
+	var dash_duration: float = clampf(travel_distance / 2200.0, 0.22, 0.55)
+
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN)
+	tween.tween_property(player, "global_position", target_pos, dash_duration)
+	await tween.finished
 
 func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false) -> void:
 	if _end_session_started:
 		return
 	_end_session_started = true
+	_clear_bonus_crystals()
+	_clear_path_trials()
+	if _killstreak_manager and is_instance_valid(_killstreak_manager):
+		_killstreak_manager.call("on_level_end")
 	_set_boss_debug_mode(false)
 	
 	# Disable spawning/shooting immediately
@@ -1714,9 +2391,33 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 	# --- Skill Tree: Grant session XP ---
 	var xp_before := ProfileManager.get_player_xp()
 	var level_before := ProfileManager.get_player_level()
+	var level_key: String = _get_current_level_id()
+	var score_best_before: int = 0
+	var score_best_after: int = 0
+	var score_stars_after: int = 0
+	var level_score_thresholds: Dictionary = {}
+	var level_cfg: Dictionary = DataManager.get_level_data(level_key)
+	if not level_cfg.is_empty():
+		level_score_thresholds = {
+			"score_1star": int(level_cfg.get("score_1star", 0)),
+			"score_2stars": int(level_cfg.get("score_2stars", 0)),
+			"score_3stars": int(level_cfg.get("score_3stars", 0))
+		}
+	if ProfileManager:
+		if ProfileManager.has_method("get_level_best_score"):
+			score_best_before = int(ProfileManager.call("get_level_best_score", current_world_id, level_key))
+		if ProfileManager.has_method("save_level_score") and session_score > 0:
+			var save_result: Variant = ProfileManager.call("save_level_score", current_world_id, level_key, session_score)
+			if save_result is Dictionary:
+				score_best_after = int((save_result as Dictionary).get("best_score", score_best_before))
+				score_stars_after = int((save_result as Dictionary).get("stars", 0))
+		else:
+			score_best_after = score_best_before
+			if ProfileManager.has_method("get_level_stars"):
+				score_stars_after = int(ProfileManager.call("get_level_stars", current_world_id, level_key))
 	var xp_mult: float = _resolve_session_xp_multiplier()
-	var effective_session_xp: int = int(round(float(session_xp) * xp_mult * _override_reward_multiplier))
-	if session_xp > 0:
+	var effective_session_xp: int = int(round(float(session_score) * xp_mult * _override_reward_multiplier))
+	if session_score > 0:
 		ProfileManager.gain_xp(effective_session_xp)
 	var xp_after := ProfileManager.get_player_xp()
 	var level_after := ProfileManager.get_player_level()
@@ -1772,7 +2473,7 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 
 	var loot_screen_scene := load("res://scenes/LootResultScreen.tscn")
 	if loot_screen_scene:
-		var loot_screen: Control = loot_screen_scene.instantiate()
+		var loot_screen: CanvasLayer = loot_screen_scene.instantiate()
 		hud_container.add_child(loot_screen)
 		loot_screen.setup(item, session_loot, is_victory)
 		if loot_screen.has_method("set_navigation_labels"):
@@ -1780,11 +2481,15 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 		# Pass XP data for display
 		if loot_screen.has_method("set_xp_data"):
 			loot_screen.set_xp_data(xp_gained, xp_before, xp_after, level_before, level_after)
+		if loot_screen.has_method("set_score_data"):
+			loot_screen.set_score_data(session_score, score_best_before, score_best_after, score_stars_after, level_score_thresholds)
 		loot_screen.finished.connect(_return_to_home)
 		loot_screen.restart_requested.connect(_on_restart_requested)
 		loot_screen.exit_requested.connect(_on_end_screen_context_requested)
 		if loot_screen.has_signal("menu_requested"):
 			loot_screen.menu_requested.connect(_return_to_home)
+		if loot_screen.has_signal("skills_menu_requested"):
+			loot_screen.skills_menu_requested.connect(_on_skills_menu_requested)
 
 func _resolve_session_xp_multiplier() -> float:
 	if is_instance_valid(player) and player.has_method("get_xp_gain_multiplier"):
@@ -1803,9 +2508,9 @@ func _compute_override_crystal_reward(is_victory: bool) -> int:
 		return 0
 	if _override_crystal_reward_victory_only and not is_victory:
 		return 0
-	if session_xp <= 0:
+	if session_score <= 0:
 		return 0
-	var raw_reward: float = float(session_xp) * _override_crystal_reward_per_score * _override_crystal_multiplier
+	var raw_reward: float = float(session_score) * _override_crystal_reward_per_score * _override_crystal_multiplier
 	return maxi(0, int(round(raw_reward)))
 
 func _apply_victory_progress() -> void:
@@ -1858,6 +2563,7 @@ func _return_to_home() -> void:
 	get_tree().paused = false
 	
 	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
 	
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
@@ -1876,6 +2582,7 @@ func _on_restart_requested() -> void:
 	get_tree().paused = false
 	
 	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
 	
 	# Recharger la scène de jeu avec les paramètres actuels
 	# On passe par le SceneSwitcher s'il est disponible pour faire propre
@@ -1892,15 +2599,26 @@ func _on_level_select_requested() -> void:
 	get_tree().paused = false
 	
 	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
 	
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/LevelSelect.tscn")
 
+func _on_skills_menu_requested() -> void:
+	App.play_menu_music()
+	get_tree().paused = false
+	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
+	var switcher := get_tree().current_scene
+	if switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/SkillsMenu.tscn")
+
 func _on_next_level_requested() -> void:
 	get_tree().paused = false
 
 	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
 
 	var world_level_count: int = max(1, App.get_world_level_count(current_world_id))
 	var next_level_index: int = min(current_level_index + 1, world_level_count - 1)
@@ -1917,6 +2635,7 @@ func _on_world_select_requested() -> void:
 	get_tree().paused = false
 
 	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
 
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):

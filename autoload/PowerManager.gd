@@ -5,6 +5,7 @@ extends Node
 
 const BOSS_VOID_ZONE := preload("res://scenes/effects/BossVoidZone.gd")
 const BOSS_LASER_ZONE := preload("res://scenes/effects/BossLaserZone.gd")
+const PATH_TRIAL_SCENE: PackedScene = preload("res://scenes/mechanics/PathTrial.tscn")
 const STRONG_RESOURCE_CACHE_MAX: int = 256
 const DEFAULT_PLAYER_POWER_PROJECTILE_SPEED: float = 400.0
 const DEFAULT_BOSS_POWER_PROJECTILE_SPEED: float = 400.0
@@ -157,6 +158,23 @@ func _handle_hazard(source: Node2D, hazard_data: Dictionary, default_duration: f
 				laser.global_position = source.global_position
 				if laser.has_method("setup"):
 					laser.call("setup", source, laser_data, default_duration)
+
+		"path_trial":
+			if PATH_TRIAL_SCENE == null:
+				return
+			var trial_node: Node = PATH_TRIAL_SCENE.instantiate()
+			if trial_node is Node2D:
+				var trial := trial_node as Node2D
+				trial.z_as_relative = false
+				trial.z_index = -40
+				trial.add_to_group("runtime_hazards")
+				container.add_child(trial)
+				trial.global_position = Vector2.ZERO
+				var trial_data: Dictionary = resolved_hazard_data.duplicate(true)
+				if not trial_data.has("duration"):
+					trial_data["duration"] = default_duration
+				if trial.has_method("setup"):
+					trial.call("setup", trial_data)
 
 		_:
 			push_warning("[PowerManager] Unknown hazard type: " + hazard_type)

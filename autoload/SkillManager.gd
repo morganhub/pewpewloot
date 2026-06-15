@@ -109,7 +109,7 @@ func get_fire_pattern_data() -> Dictionary:
 
 	# --- Projectile-based Patterns ---
 	var base_pattern_id: String = str(params.get("base_pattern", "single_straight"))
-	var base_data := DataManager.get_missile_pattern(base_pattern_id).duplicate()
+	var base_data := DataManager.get_player_missile_pattern(base_pattern_id).duplicate()
 	if base_data.is_empty():
 		return { "use_ship_default": true }
 
@@ -135,6 +135,10 @@ func get_fire_pattern_data() -> Dictionary:
 	# Trajectory override (e.g., "radial" for 360)
 	if params.has("trajectory"):
 		base_data["trajectory"] = str(params["trajectory"])
+
+	# fire_cone: distance (px) before projectiles start bending toward UP
+	if params.has("cone_bend_start_distance_px"):
+		base_data["cone_bend_start_distance_px"] = float(params["cone_bend_start_distance_px"])
 
 	base_data["rank"] = rank
 	base_data["fire_pattern_id"] = pattern_id

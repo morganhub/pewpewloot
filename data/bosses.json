@@ -31,7 +31,7 @@
 				{
 					"hp_threshold": 100,
 					"move_pattern_id": "boss_hold_center",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "wave_pattern",
 					"fire_rate": 1.6,
 					"fire_profile": {
 						"rates": [
@@ -161,7 +161,7 @@
 				{
 					"hp_threshold": 100,
 					"move_pattern_id": "boss_hold_right",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "spiral_wide",
 					"fire_rate": 1.3,
 					"fire_profile": {
 						"rates": [
@@ -226,7 +226,7 @@
 				{
 					"hp_threshold": 100,
 					"move_pattern_id": "boss_strafe_narrow",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "cone_forward",
 					"fire_rate": 1.5,
 					"fire_profile": {
 						"rates": [
@@ -325,7 +325,7 @@
 				{
 					"hp_threshold": 55,
 					"move_pattern_id": "boss_strafe_hold",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "sine_tight",
 					"fire_rate": 0.9,
 					"fire_profile": {
 						"rates": [
@@ -391,7 +391,7 @@
 				{
 					"hp_threshold": 100,
 					"move_pattern_id": "boss_strafe_wide",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "triple_aimed",
 					"fire_rate": 1.5,
 					"fire_profile": {
 						"rates": [
@@ -766,7 +766,7 @@
 				{
 					"hp_threshold": 50,
 					"move_pattern_id": "boss_strafe_stop",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "triple_spread",
 					"fire_rate": 0.82,
 					"fire_profile": {
 						"rates": [
@@ -832,7 +832,7 @@
 				{
 					"hp_threshold": 100,
 					"move_pattern_id": "boss_strafe_narrow",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "burst_straight",
 					"fire_rate": 1.35,
 					"fire_profile": {
 						"rates": [
@@ -1206,7 +1206,7 @@
 				{
 					"hp_threshold": 50,
 					"move_pattern_id": "boss_strafe_medium",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "rapid_burst",
 					"fire_rate": 0.7,
 					"fire_profile": {
 						"rates": [
@@ -1272,7 +1272,7 @@
 				{
 					"hp_threshold": 100,
 					"move_pattern_id": "boss_hold_left",
-					"missile_pattern_id": "spiral_continuous",
+					"missile_pattern_id": "burst_straight",
 					"fire_rate": 1.12,
 					"fire_profile": {
 						"rates": [

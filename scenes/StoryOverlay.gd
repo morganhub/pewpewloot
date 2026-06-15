@@ -74,6 +74,7 @@ var _portrait_cutout_cutoff: float = 0.06
 var _portrait_cutout_softness: float = 0.04
 # Couleur du texte dans les bulles (hex, ex. "#000000")
 var _bubble_text_color: Color = Color.BLACK
+var _bubble_font_size: int = 22
 var _enable_bounce_enter: bool = true
 var _fade_out_opacity: float = 0.5
 
@@ -289,6 +290,7 @@ func _apply_settings() -> void:
 	var text_color_str: String = str(_settings.get("bubble_text_color", "#000000")).strip_edges()
 	if text_color_str != "":
 		_bubble_text_color = Color(text_color_str)
+	_bubble_font_size = int(_settings.get("bubble_font_size", 22))
 
 # =============================================================================
 # ANIMATIONS DE FOND
@@ -513,7 +515,7 @@ func _create_bubble(text: String, side: String) -> Control:
 	measure_label.scroll_active = false
 	measure_label.custom_minimum_size = Vector2(text_width, 0)
 	measure_label.size = Vector2(text_width, 4000)
-	measure_label.add_theme_font_size_override("normal_font_size", 22)
+	measure_label.add_theme_font_size_override("normal_font_size", _bubble_font_size)
 	measure_label.add_theme_color_override("default_color", _bubble_text_color)
 	measure_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bubble_container.add_child(measure_label)
@@ -605,7 +607,7 @@ func _create_bubble(text: String, side: String) -> Control:
 		bubble_height - float(eff_top + eff_bottom)
 	)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override("normal_font_size", 22)
+	label.add_theme_font_size_override("normal_font_size", _bubble_font_size)
 	label.add_theme_color_override("default_color", _bubble_text_color)
 	bubble_container.add_child(label)
 	

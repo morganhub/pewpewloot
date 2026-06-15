@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://bnfjmwq614evp"]
+[gd_scene format=3 uid="uid://bnfjmwq614evp"]
 
 [ext_resource type="Script" uid="uid://dy8kuq456d4rq" path="res://scenes/WorldSelect.gd" id="1_3bfae"]
 [ext_resource type="PackedScene" path="res://scenes/components/MenuHeader.tscn" id="2_header"]
@@ -21,126 +21,35 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
-mouse_filter = 2
 
 [node name="MenuHeader" parent="." instance=ExtResource("2_header")]
-
-[node name="BackButton" type="TextureButton" parent="."]
-layout_mode = 0
-offset_left = 36.0
-offset_top = 22.0
-offset_right = 114.0
-offset_bottom = 100.0
-ignore_texture_size = true
-stretch_mode = 5
+layout_mode = 1
 
 [node name="TitleLabel" type="Label" parent="."]
 layout_mode = 0
-offset_left = 126.0
-offset_top = 28.0
-offset_right = 800.0
-offset_bottom = 84.0
-theme_override_font_sizes/font_size = 42
-text = "World Select"
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 700.0
+offset_bottom = 130.0
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CarouselArea" type="Control" parent="."]
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
 layout_mode = 0
-offset_left = 36.0
-offset_top = 78.0
-offset_right = 1044.0
-offset_bottom = 470.0
+offset_left = 20.0
+offset_top = 140.0
+offset_right = 700.0
+offset_bottom = 1200.0
+horizontal_scroll_mode = 0
 
-[node name="CarouselViewport" type="Control" parent="CarouselArea"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-clip_contents = true
-mouse_filter = 2
-
-[node name="CarouselTrack" type="Control" parent="CarouselArea/CarouselViewport"]
-layout_mode = 0
-offset_right = 300.0
-offset_bottom = 180.0
-mouse_filter = 2
-
-[node name="LeftArrow" type="TextureButton" parent="CarouselArea"]
-layout_mode = 0
-offset_left = 12.0
-offset_top = 150.0
-offset_right = 100.0
-offset_bottom = 238.0
-ignore_texture_size = true
-stretch_mode = 5
-
-[node name="RightArrow" type="TextureButton" parent="CarouselArea"]
-layout_mode = 0
-offset_left = 920.0
-offset_top = 150.0
-offset_right = 1008.0
-offset_bottom = 238.0
-ignore_texture_size = true
-stretch_mode = 5
+[node name="WorldList" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
 [node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
 layout_mode = 1
-
-[node name="DetailsPanel" type="Control" parent="."]
-layout_mode = 0
-offset_left = 86.0
-offset_top = 446.0
-offset_right = 994.0
-offset_bottom = 626.0
-
-[node name="Background" type="TextureRect" parent="DetailsPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-expand_mode = 1
-stretch_mode = 6
-mouse_filter = 2
-
-[node name="Content" type="VBoxContainer" parent="DetailsPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 28.0
-offset_top = 22.0
-offset_right = -28.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 8
-mouse_filter = 2
-
-[node name="Title" type="Label" parent="DetailsPanel/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "World Name"
-vertical_alignment = 1
-
-[node name="Description" type="Label" parent="DetailsPanel/Content"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_font_sizes/font_size = 20
-text = "-"
-autowrap_mode = 3
-vertical_alignment = 1
-
-[node name="ActionButton" type="Button" parent="."]
-layout_mode = 0
-offset_left = 86.0
-offset_top = 642.0
-offset_right = 994.0
-offset_bottom = 714.0
-theme_override_font_sizes/font_size = 26
-text = "Next"

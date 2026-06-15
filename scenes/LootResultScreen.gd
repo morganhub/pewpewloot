@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 ## LootResultScreen — Écran de décision après avoir battu un boss et obtenu un item.
@@ -8,6 +8,7 @@ signal finished
 signal restart_requested
 signal exit_requested
 signal menu_requested
+signal skills_menu_requested
 
 var _item: Dictionary = {}
 var _session_loot: Array = []
@@ -21,6 +22,7 @@ var _menu_nav_label: String = "Menu"
 var _item_details_popup: Control = null
 var _item_popup_input_blocker: Control = null
 var _boss_featured_row: HBoxContainer = null
+var _score_cfg: Dictionary = {}
 
 @onready var item_name_label: Label = %ItemNameLabel
 @onready var item_type_label: Label = %ItemTypeLabel
@@ -34,6 +36,7 @@ var _boss_featured_row: HBoxContainer = null
 @onready var restart_btn: Button = %RestartButton
 @onready var exit_btn: Button = %ExitButton
 @onready var menu_btn: Button = %MenuButton
+@onready var nav_buttons_container: VBoxContainer = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NavigationButtons
 
 # Inventory Nodes
 @onready var items_grid: HBoxContainer = %ItemsGrid
@@ -47,6 +50,7 @@ var _boss_featured_row: HBoxContainer = null
 @onready var boss_buttons_container: HBoxContainer = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer
 @onready var mid_separator: HSeparator = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator2
 @onready var session_title_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/SessionTitle
+@onready var bottom_separator: HSeparator = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator3
 
 func setup(item: Dictionary, session_loot: Array = [], is_victory: bool = true) -> void:
 	_item = item
@@ -67,6 +71,10 @@ func setup(item: Dictionary, session_loot: Array = [], is_victory: bool = true) 
 	_update_ui()
 	_update_inventory_ui()
 	_apply_navigation_labels()
+	
+	# Masquer le séparateur sous la section de loot de session (avant les boutons/XP)
+	if bottom_separator:
+		bottom_separator.visible = false
 	
 	# Connect pagination buttons
 	if not prev_btn.pressed.is_connected(_on_prev_page):
@@ -94,6 +102,7 @@ func _load_assets() -> void:
 		var json := JSON.new()
 		if json.parse(file.get_as_text()) == OK:
 			_game_config = json.data
+	_score_cfg = _game_config.get("score_parameters", {}) if _game_config.get("score_parameters") is Dictionary else {}
 	
 	var reward_config: Dictionary = _game_config.get("reward_screen", {})
 	var popup_config: Dictionary = _game_config.get("popups", {})
@@ -156,6 +165,7 @@ func _load_assets() -> void:
 		UIStyle.apply_button_shadow(equip_btn, "medium")
 	if disassemble_btn and not disassemble_btn.text.is_empty():
 		UIStyle.apply_button_shadow(disassemble_btn, "medium")
+	_update_levelup_skills_button()
 
 func _apply_button_style(btn: Button, cfg: Dictionary) -> void:
 	if not btn or cfg.is_empty(): return
@@ -333,7 +343,9 @@ func _update_inventory_ui() -> void:
 		var item_data: Dictionary = _session_loot[i]
 		var card = item_card_scene.instantiate()
 		items_grid.add_child(card)
-		
+		# Agrandir les aperçus de loot de session (~30% et plus visibles)
+		card.custom_minimum_size = Vector2(120, 120)
+		card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		var slot_id = str(item_data.get("slot", "primary"))
 		card.setup_item(item_data, slot_id, inv_config)
 		
@@ -376,7 +388,8 @@ func _update_boss_featured_row(item_card_scene: PackedScene, inv_config: Diction
 	if not hero_card:
 		return
 	_boss_featured_row.add_child(hero_card)
-	hero_card.custom_minimum_size = Vector2(132, 132)
+	# Agrandir l'aperçu du loot de boss (~30% par rapport à la base 132)
+	hero_card.custom_minimum_size = Vector2(172, 172) # 132 * 1.3 arrondi
 
 	var hero_cfg: Dictionary = inv_config.duplicate(true)
 	hero_cfg["hide_badges"] = true
@@ -513,6 +526,10 @@ func _on_menu_pressed() -> void:
 	menu_requested.emit()
 	_close(false)
 
+func _on_skills_menu_pressed() -> void:
+	skills_menu_requested.emit()
+	_close(false)
+
 func set_navigation_labels(secondary_label: String, menu_label: String = "Menu") -> void:
 	_secondary_nav_label = secondary_label
 	_menu_nav_label = menu_label
@@ -546,6 +563,132 @@ func _ensure_boss_loot_in_inventory() -> bool:
 		return true
 	return ProfileManager.add_item_to_inventory(_item)
 
+func _tr(key: String, fallback: String) -> String:
+	if LocaleManager and LocaleManager.has_method("translate"):
+		var translated: String = str(LocaleManager.translate(key))
+		if translated != "" and translated != key:
+			return translated
+	return fallback
+
+func _get_main_vbox() -> VBoxContainer:
+	if panel_container == null:
+		return null
+	var margin: Node = panel_container.get_child(0)
+	if margin == null or margin.get_child_count() <= 0:
+		return null
+	var vbox: VBoxContainer = margin.get_child(0) as VBoxContainer
+	return vbox
+
+# =============================================================================
+# SCORE DISPLAY
+# =============================================================================
+
+var _score_total: int = 0
+var _score_best_before: int = 0
+var _score_best_after: int = 0
+var _score_stars: int = 0
+var _score_thresholds: Dictionary = {}
+var _score_star_nodes: Array = []
+
+func set_score_data(total_score: int, best_before: int, best_after: int, stars: int, thresholds: Dictionary = {}) -> void:
+	_score_total = maxi(0, total_score)
+	_score_best_before = maxi(0, best_before)
+	_score_best_after = maxi(0, best_after)
+	_score_stars = clampi(stars, 0, 3)
+	_score_thresholds = thresholds.duplicate(true)
+	_build_score_section()
+
+func _build_score_section() -> void:
+	var main_vbox: VBoxContainer = _get_main_vbox()
+	if not main_vbox:
+		return
+
+	var old := main_vbox.get_node_or_null("ScoreSection")
+	if old:
+		old.queue_free()
+
+	var score_section := VBoxContainer.new()
+	score_section.name = "ScoreSection"
+	score_section.add_theme_constant_override("separation", 6)
+	main_vbox.add_child(score_section)
+
+	var xp_section := main_vbox.get_node_or_null("XPSection")
+	var target_index: int = main_vbox.get_child_count() - 2
+	if xp_section:
+		target_index = xp_section.get_index()
+	main_vbox.move_child(score_section, clampi(target_index, 0, main_vbox.get_child_count() - 1))
+
+	var score_label := Label.new()
+	score_label.text = "%s: %d" % [_tr("score_total_label", "Score total"), _score_total]
+	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.add_theme_font_size_override("font_size", int(_score_cfg.get("font_size_score", 24)))
+	score_label.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_normal", "#FFFFFF"))))
+	score_section.add_child(score_label)
+
+	var stars_row := HBoxContainer.new()
+	stars_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stars_row.add_theme_constant_override("separation", 10)
+	score_section.add_child(stars_row)
+	_score_star_nodes.clear()
+
+	var star_size_cfg: Dictionary = _score_cfg.get("star_size", {}) if _score_cfg.get("star_size") is Dictionary else {}
+	var star_size := Vector2(
+		float(star_size_cfg.get("x", 52)),
+		float(star_size_cfg.get("y", 52))
+	)
+	var empty_path: String = str(_score_cfg.get("star_empty_asset", ""))
+	var filled_path: String = str(_score_cfg.get("star_filled_asset", ""))
+	var empty_tex: Texture2D = load(empty_path) as Texture2D if empty_path != "" and ResourceLoader.exists(empty_path) else null
+	var filled_tex: Texture2D = load(filled_path) as Texture2D if filled_path != "" and ResourceLoader.exists(filled_path) else null
+
+	for i in range(3):
+		var filled: bool = i < _score_stars
+		var star_control: Control = _build_star_widget(filled, star_size, empty_tex, filled_tex)
+		stars_row.add_child(star_control)
+		_score_star_nodes.append(star_control)
+
+	var is_new_record: bool = _score_total > 0 and _score_best_after > _score_best_before and _score_best_after == _score_total
+	if is_new_record:
+		var record_label := Label.new()
+		record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		record_label.add_theme_font_size_override("font_size", 17)
+		record_label.text = "%s: %d" % [_tr("score_personal_best_label", "Meilleur score"), _score_best_after]
+		record_label.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_record", "#FFD700"))))
+		score_section.add_child(record_label)
+
+	var reveal_delay: float = maxf(0.0, float(_score_cfg.get("star_reveal_delay_sec", 0.0)))
+	if reveal_delay > 0.0:
+		_animate_score_stars(reveal_delay)
+
+func _build_star_widget(filled: bool, star_size: Vector2, empty_tex: Texture2D, filled_tex: Texture2D) -> Control:
+	var tex: Texture2D = filled_tex if filled else empty_tex
+	if tex:
+		var star_rect := TextureRect.new()
+		star_rect.texture = tex
+		star_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		star_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		star_rect.custom_minimum_size = star_size
+		return star_rect
+	var star_lbl := Label.new()
+	star_lbl.text = "★" if filled else "☆"
+	star_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	star_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	star_lbl.custom_minimum_size = star_size
+	star_lbl.add_theme_font_size_override("font_size", int(maxf(18.0, star_size.y * 0.72)))
+	star_lbl.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_record", "#FFD700"))) if filled else Color(0.55, 0.55, 0.55))
+	return star_lbl
+
+func _animate_score_stars(step_delay: float) -> void:
+	for star in _score_star_nodes:
+		if star is CanvasItem:
+			(star as CanvasItem).modulate = Color(1, 1, 1, 0)
+	var tween := create_tween()
+	for star in _score_star_nodes:
+		if not (star is CanvasItem):
+			continue
+		tween.tween_property(star, "modulate", Color(1, 1, 1, 1), 0.16)
+		tween.tween_interval(step_delay)
+
 # =============================================================================
 # XP DISPLAY
 # =============================================================================
@@ -563,6 +706,7 @@ var _xp_right_label: Label = null
 var _xp_pct_label: Label = null
 var _xp_gained_label: Label = null
 var _xp_levelup_label: Label = null
+var _skill_points_btn: Button = null
 
 func set_xp_data(xp_gained: int, xp_before: int, xp_after: int, level_before: int, level_after: int) -> void:
 	_xp_gained = xp_gained
@@ -596,9 +740,6 @@ func _build_xp_section() -> void:
 	# Move it before the navigation buttons (RestartButton/ExitButton)
 	main_vbox.move_child(xp_section, main_vbox.get_child_count() - 2)
 	
-	var sep := HSeparator.new()
-	xp_section.add_child(sep)
-	
 	# XP gained text
 	_xp_gained_label = Label.new()
 	_xp_gained_label.text = "⭐ XP gagné: +" + str(_xp_gained)
@@ -615,20 +756,13 @@ func _build_xp_section() -> void:
 	_xp_levelup_label.visible = false
 	xp_section.add_child(_xp_levelup_label)
 	
-	# XP Progress bar row
+	# XP Progress bar row (sans labels de niveau pour réduire la hauteur)
 	var bar_row := HBoxContainer.new()
 	bar_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	bar_row.add_theme_constant_override("separation", 8)
+	bar_row.add_theme_constant_override("separation", 0)
 	xp_section.add_child(bar_row)
 	
-	# Left level label
-	_xp_left_label = Label.new()
-	_xp_left_label.text = str(_level_before)
-	_xp_left_label.add_theme_font_size_override("font_size", 15)
-	_xp_left_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.9))
-	bar_row.add_child(_xp_left_label)
-	
-	# Progress bar
+	# Progress bar seule
 	_xp_bar = ProgressBar.new()
 	_xp_bar.custom_minimum_size = Vector2(320, 18)
 	_xp_bar.show_percentage = false
@@ -648,28 +782,45 @@ func _build_xp_section() -> void:
 	_xp_bar.add_theme_stylebox_override("fill", bar_fill)
 	bar_row.add_child(_xp_bar)
 	
-	# Right level label
-	_xp_right_label = Label.new()
-	_xp_right_label.text = str(_level_before + 1)
-	_xp_right_label.add_theme_font_size_override("font_size", 15)
-	_xp_right_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.9))
-	bar_row.add_child(_xp_right_label)
-	
-	# Percentage label (centered below bar)
-	_xp_pct_label = Label.new()
-	_xp_pct_label.add_theme_font_size_override("font_size", 13)
-	_xp_pct_label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))
-	_xp_pct_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	xp_section.add_child(_xp_pct_label)
-	
 	# Set initial bar state
 	var xp_for_lvl := float(ProfileManager.get_xp_for_level(_level_before))
 	_xp_bar.max_value = max(1.0, xp_for_lvl)
 	_xp_bar.value = float(_xp_before)
-	_update_xp_pct_label()
 	
 	# Start the animation after a short delay
 	get_tree().create_timer(0.5).timeout.connect(_animate_xp_bar)
+	_update_levelup_skills_button()
+
+func _update_levelup_skills_button() -> void:
+	if not is_instance_valid(nav_buttons_container):
+		return
+
+	var levels_gained: int = _level_after - _level_before
+	if levels_gained <= 0:
+		if is_instance_valid(_skill_points_btn):
+			_skill_points_btn.queue_free()
+			_skill_points_btn = null
+		return
+
+	if not is_instance_valid(_skill_points_btn):
+		_skill_points_btn = Button.new()
+		_skill_points_btn.name = "SkillPointsButton"
+		_skill_points_btn.custom_minimum_size = Vector2(0, 70)
+		_skill_points_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_skill_points_btn.focus_mode = Control.FOCUS_ALL
+		_skill_points_btn.pressed.connect(_on_skills_menu_pressed)
+		nav_buttons_container.add_child(_skill_points_btn)
+
+	var cfg: Dictionary = UIStyle.get_highlight_config()
+	if not cfg.is_empty():
+		UIStyle.apply_highlight_to_button(_skill_points_btn, cfg, "large")
+	else:
+		UIStyle.apply_validation_to_button(_skill_points_btn, UIStyle.get_validation_config(), "large")
+
+	var label_template: String = str(cfg.get("label_template", "Compétences (+%d)"))
+	var label_text: String = label_template % levels_gained if label_template.find("%d") >= 0 else label_template + " (+" + str(levels_gained) + ")"
+	UIStyle.set_button_shadow_text(_skill_points_btn, label_text)
+	UIStyle.apply_button_shadow(_skill_points_btn, "medium")
 
 func _update_xp_pct_label() -> void:
 	if _xp_bar and _xp_pct_label:

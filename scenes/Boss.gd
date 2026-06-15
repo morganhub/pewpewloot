@@ -63,8 +63,14 @@ var _sound_remaining_repeats: int = 0
 var _overdrive_enabled: bool = false
 var _overdrive_fire_rate_override: float = 0.05
 var _damage_multiplier: float = 1.0
+const DEFAULT_MAX_FIRE_RATE: float = 80.0
 
 # Visual
+var _boss_anim_duration: float = 2.0
+var _boss_anim_frequency: float = 8.0
+var _boss_anim_timer: float = 0.0
+var _boss_anim_is_playing: bool = false
+var _boss_played_anim_name: StringName = &""
 @onready var visual_container: Node2D = $Visual
 @onready var shape_visual: Polygon2D = $Visual/Shape
 @onready var sprite_visual: Sprite2D = $Visual/Sprite2D
@@ -154,6 +160,10 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		width = float(size_dict.get("width", 100))
 		height = float(size_dict.get("height", 100))
 	
+	# Taille affichée utilisée pour la hitbox (sans dépasser le visible)
+	var displayed_w: float = width
+	var displayed_h: float = height
+	
 	# Gestion de l'asset vs shape vs anim
 	var visual_data: Variant = boss_data.get("visual", {})
 	var asset_path: String = ""
@@ -167,8 +177,12 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		var v_dict := visual_data as Dictionary
 		asset_path = str(v_dict.get("asset", ""))
 		asset_anim = str(v_dict.get("asset_anim", ""))
-		asset_anim_duration = maxf(0.0, float(v_dict.get("asset_anim_duration", 0.0)))
-		asset_anim_loop = bool(v_dict.get("asset_anim_loop", true))
+		asset_anim_duration = maxf(0.0, float(v_dict.get("asset_anim_duration", 2.0)))
+		_boss_anim_duration = asset_anim_duration
+		_boss_anim_frequency = maxf(0.0, float(v_dict.get("asset_anim_frequency", 8.0)))
+		_boss_anim_timer = 0.0 # Force immediate first play
+		_boss_anim_is_playing = false
+		asset_anim_loop = false # Force false for boss animations
 		color_hex = str(v_dict.get("color", "#AA44FF"))
 		shape_type = str(v_dict.get("shape", "hexagon"))
 	
@@ -192,32 +206,38 @@ func _setup_visual(boss_data: Dictionary) -> void:
 			var played_anim: StringName = &""
 			var frames_data: SpriteFrames = sprite_frames as SpriteFrames
 			var default_anim: StringName = VFXManager.get_first_animation_name(frames_data, &"default")
-			if asset_anim_loop and asset_anim_duration <= 0.0 and default_anim != &"":
+			played_anim = default_anim
+			_boss_played_anim_name = default_anim
+			if played_anim != &"":
 				anim_sprite.sprite_frames = frames_data
-				anim_sprite.animation = default_anim
-				anim_sprite.speed_scale = 1.0
+				anim_sprite.animation = played_anim
+				anim_sprite.stop()
 				anim_sprite.frame = 0
-				anim_sprite.play(default_anim)
-				played_anim = default_anim
-			else:
-				played_anim = VFXManager.play_sprite_frames(
-					anim_sprite,
-					frames_data,
-					&"default",
-					asset_anim_loop,
-					asset_anim_duration
-				)
+				
+				# Adjust speed scale to match duration
+				var speed_fps := frames_data.get_animation_speed(played_anim)
+				var frames_count := frames_data.get_frame_count(played_anim)
+				if _boss_anim_duration > 0.0 and speed_fps > 0 and frames_count > 0:
+					var original_duration := float(frames_count) / speed_fps
+					anim_sprite.speed_scale = original_duration / _boss_anim_duration
+				else:
+					anim_sprite.speed_scale = 1.0
 			
-			# Scale to size
+			# Scale: respect aspect ratio (one dimension constrained, other adapts), no stretch
 			var frame_tex: Texture2D = null
 			if played_anim != &"" and anim_sprite.sprite_frames:
 				frame_tex = _get_cached_first_frame_texture(anim_sprite.sprite_frames, played_anim)
 			if frame_tex:
-				var f_size = frame_tex.get_size()
-				anim_sprite.scale = Vector2(width / f_size.x, height / f_size.y) * 1.5
+				var f_size: Vector2 = frame_tex.get_size()
+				if f_size.x > 0 and f_size.y > 0:
+					var scale_factor: float = minf(width / f_size.x, height / f_size.y)
+					anim_sprite.scale = Vector2(scale_factor, scale_factor)
+					displayed_w = f_size.x * scale_factor
+					displayed_h = f_size.y * scale_factor
+				else:
+					anim_sprite.scale = Vector2(width / 100.0, height / 100.0)
 			else:
-				# Fallback hardcoded scale if no frame texture (unlikely)
-				anim_sprite.scale = Vector2(width / 100.0, height / 100.0) * 1.5
+				anim_sprite.scale = Vector2(width / 100.0, height / 100.0)
 			
 			# Hide static sprite
 			var sprite: Sprite2D = sprite_visual
@@ -244,9 +264,15 @@ func _setup_visual(boss_data: Dictionary) -> void:
 			sprite.visible = true
 			sprite.texture = texture
 			
-			var tex_size = texture.get_size()
+			# Scale: respect aspect ratio, no stretch; hitbox = displayed size
+			var tex_size: Vector2 = texture.get_size()
 			if tex_size.x > 0 and tex_size.y > 0:
-				sprite.scale = Vector2(width / tex_size.x, height / tex_size.y) * 1.2
+				var scale_factor: float = minf(width / tex_size.x, height / tex_size.y)
+				sprite.scale = Vector2(scale_factor, scale_factor)
+				displayed_w = tex_size.x * scale_factor
+				displayed_h = tex_size.y * scale_factor
+			else:
+				sprite.scale = Vector2(width / 100.0, height / 100.0)
 	
 	if not use_asset:
 		var color := Color(color_hex)
@@ -259,11 +285,13 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		shape_visual.visible = true
 		shape_visual.color = color
 		shape_visual.polygon = _create_shape_polygon(shape_type, width * 1.2, height * 1.2)
-
 	
-	# Collision
+	# Collision: ne pas dépasser le visible (cercle inscrit dans la taille affichée)
 	var circle_shape := CircleShape2D.new()
-	circle_shape.radius = (max(width, height) / 2.0) * 1.2 # Scale +20%
+	if use_asset:
+		circle_shape.radius = minf(displayed_w, displayed_h) / 2.0
+	else:
+		circle_shape.radius = (maxf(width, height) / 2.0) * 1.2
 	collision.shape = circle_shape
 
 	# Physics Layer Setup
@@ -333,7 +361,26 @@ func _process(delta: float) -> void:
 	_update_shooting(delta)
 	_update_special_power(delta)
 	_update_sounds(delta)
+	_update_visual_animation(delta)
 	_check_phase_transition()
+
+func _update_visual_animation(delta: float) -> void:
+	if not is_instance_valid(animated_visual) or not animated_visual.visible or _boss_played_anim_name == &"":
+		return
+		
+	_boss_anim_timer -= delta
+	
+	if _boss_anim_is_playing:
+		if _boss_anim_timer <= 0.0:
+			animated_visual.stop()
+			animated_visual.frame = 0 # Retourne à la première frame
+			_boss_anim_is_playing = false
+			_boss_anim_timer = _boss_anim_frequency
+	else:
+		if _boss_anim_timer <= 0.0:
+			animated_visual.play(_boss_played_anim_name)
+			_boss_anim_is_playing = true
+			_boss_anim_timer = _boss_anim_duration
 
 func _update_phase_modulators(delta: float) -> void:
 	if _fire_rate_sequence_step_interval > 0.0 and _fire_rate_sequence.size() > 1:
@@ -373,7 +420,7 @@ func set_invincible(state: bool) -> void:
 
 func set_overdrive_enabled(enabled: bool, fire_rate_override: float = 0.05) -> void:
 	_overdrive_enabled = enabled
-	_overdrive_fire_rate_override = maxf(0.01, fire_rate_override)
+	_overdrive_fire_rate_override = _clamp_fire_interval(maxf(0.01, fire_rate_override))
 	if _overdrive_enabled:
 		_fire_timer = minf(_fire_timer, _overdrive_fire_rate_override)
 		_special_timer = minf(_special_timer, 0.15)
@@ -431,7 +478,7 @@ func _apply_phase(phase_index: int) -> void:
 		missile_pattern_id = str(phase_dict.get("missile_pattern_id", "circle_8"))
 		if phase_dict.has("missile_id"):
 			missile_id = str(phase_dict.get("missile_id", "missile_default"))
-		_base_fire_rate = maxf(0.05, float(phase_dict.get("fire_rate", 2.0)))
+		_base_fire_rate = _clamp_fire_interval(maxf(0.05, float(phase_dict.get("fire_rate", 2.0))))
 		fire_rate = _base_fire_rate
 		_move_pattern_data = _resolve_move_pattern_data(move_pattern_id)
 
@@ -441,7 +488,7 @@ func _apply_phase(phase_index: int) -> void:
 		_reset_visual_rotation()
 		_reset_movement_state()
 		
-		_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
+		_missile_pattern_data = DataManager.get_enemy_missile_pattern(missile_pattern_id)
 		
 		# Load special power settings
 		special_power_id = str(phase_dict.get("special_power_id", ""))
@@ -473,7 +520,7 @@ func _configure_fire_profile(phase_dict: Dictionary) -> void:
 	var raw_rates: Variant = profile.get("rates", [])
 	if raw_rates is Array:
 		for rate in raw_rates:
-			_fire_rate_sequence.append(maxf(0.05, float(rate)))
+			_fire_rate_sequence.append(_clamp_fire_interval(maxf(0.05, float(rate))))
 
 	if _fire_rate_sequence.is_empty():
 		return
@@ -806,6 +853,10 @@ func _reset_movement_state() -> void:
 		_:
 			pass
 
+func set_spawn_anchor_to_current_position() -> void:
+	_start_position = global_position
+	_reset_movement_state()
+
 func _move_hold(delta: float, speed: float) -> void:
 	var target := Vector2(_get_hold_target_x(), _start_position.y)
 	global_position = global_position.move_toward(target, maxf(1.0, speed) * delta)
@@ -912,15 +963,27 @@ func _update_shooting(delta: float) -> void:
 	
 	if _fire_timer <= 0:
 		_fire()
-		_fire_timer = _get_effective_fire_rate()
+		var next_interval: float = _clamp_fire_interval(_get_effective_fire_rate())
+		var cooldown: float = float(_missile_pattern_data.get("cooldown_after_salve", 0.0))
+		_fire_timer = next_interval + cooldown
 
 func _get_effective_fire_rate() -> float:
 	if _overdrive_enabled:
-		return _overdrive_fire_rate_override
+		return _clamp_fire_interval(_overdrive_fire_rate_override)
 	if _fire_rate_sequence.is_empty():
-		return maxf(0.05, _base_fire_rate)
+		return _clamp_fire_interval(maxf(0.05, _base_fire_rate))
 	var idx: int = clampi(_fire_rate_sequence_index, 0, _fire_rate_sequence.size() - 1)
-	return maxf(0.05, float(_fire_rate_sequence[idx]))
+	return _clamp_fire_interval(maxf(0.05, float(_fire_rate_sequence[idx])))
+
+func _clamp_fire_interval(interval_sec: float) -> float:
+	return maxf(_get_min_fire_interval(), interval_sec)
+
+func _get_min_fire_interval() -> float:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var balance_raw: Variant = game_cfg.get("game_balance", {})
+	var balance: Dictionary = balance_raw if balance_raw is Dictionary else {}
+	var max_rate: float = maxf(0.01, float(balance.get("fire_rate_max", DEFAULT_MAX_FIRE_RATE)))
+	return 1.0 / max_rate
 
 func _fire() -> void:
 	if _missile_pattern_data.is_empty():
@@ -1121,11 +1184,66 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 func die() -> void:
 	print("[Boss] ", boss_name, " defeated! Score: ", score)
 	
-	# VFX explosion customisée "boss_explosion"
-	var eff := DataManager.get_effect("boss_explosion")
-	var eff_color := Color(eff.get("fallback_color", "#0088FF"))
-	
-	VFXManager.spawn_explosion(global_position, collision.shape.radius * 2.0, eff_color, get_parent())
+	var base_size: float = collision.shape.radius * 2.0 if collision and collision.shape is CircleShape2D else 80.0
+	var explosion_size: float = base_size
+	var explosion_color: Color = Color("#FFC368")
+	var explosion_asset: String = ""
+	var explosion_asset_anim: String = ""
+	var explosion_anim_duration: float = 0.0
+	var explosion_anim_loop: bool = false
+	var fade_out_duration: float = 0.16
+	var fade_in_duration: float = 0.06
+	var scale_start: float = 1.0
+	var scale_middle: float = 1.0
+	var scale_end: float = 1.0
+	var scale_middle_ratio: float = 0.45
+	var target_width: float = -1.0
+	var target_height: float = -1.0
+
+	var explosions_cfg: Dictionary = DataManager.get_explosions_config() if DataManager else {}
+	var boss_expl_v: Variant = explosions_cfg.get("boss_death", {})
+	if boss_expl_v is Dictionary:
+		var boss_expl: Dictionary = boss_expl_v as Dictionary
+		explosion_size = maxf(
+			float(boss_expl.get("size_min", base_size)),
+			base_size * maxf(0.1, float(boss_expl.get("size_multiplier", 2.8)))
+		)
+		explosion_color = Color(str(boss_expl.get("color", "#FFC368")))
+		explosion_asset = str(boss_expl.get("asset", ""))
+		explosion_asset_anim = str(boss_expl.get("asset_anim", ""))
+		explosion_anim_duration = maxf(0.0, float(boss_expl.get("asset_anim_duration", 0.0)))
+		explosion_anim_loop = bool(boss_expl.get("asset_anim_loop", false))
+		fade_out_duration = maxf(0.05, float(boss_expl.get("fade_out_duration", fade_out_duration)))
+		fade_in_duration = maxf(0.0, float(boss_expl.get("fade_in_duration", fade_in_duration)))
+		scale_start = maxf(0.01, float(boss_expl.get("scale_start", scale_start)))
+		scale_middle = maxf(0.01, float(boss_expl.get("scale_middle", scale_middle)))
+		scale_end = maxf(0.01, float(boss_expl.get("scale_end", scale_end)))
+		scale_middle_ratio = clampf(float(boss_expl.get("scale_middle_ratio", scale_middle_ratio)), 0.05, 0.95)
+		target_width = float(boss_expl.get("width", target_width))
+		target_height = float(boss_expl.get("height", target_height))
+
+	# Boss death explosion is always one-shot.
+	explosion_anim_loop = false
+
+	VFXManager.spawn_explosion(
+		global_position,
+		explosion_size,
+		explosion_color,
+		get_parent(),
+		explosion_asset,
+		explosion_asset_anim,
+		-1.0,
+		fade_out_duration,
+		explosion_anim_duration,
+		explosion_anim_loop,
+		fade_in_duration,
+		scale_start,
+		scale_middle,
+		scale_end,
+		scale_middle_ratio,
+		target_width,
+		target_height
+	)
 	VFXManager.screen_shake(30, 1.2)
 	
 	# TODO: Spawn loot unique si chance

@@ -68,6 +68,8 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 			target_height = maxf(1.0, float(loot_cfg.get("height", target_height)))
 			asset_anim_duration = maxf(0.0, float(loot_cfg.get("asset_anim_duration", loot_cfg.get("asset_duration", asset_anim_duration))))
 			asset_anim_loop = bool(loot_cfg.get("asset_anim_loop", loot_cfg.get("asset_loop", asset_anim_loop)))
+
+	LootDropHighlightSetup.setup_for_parent(self, target_width, target_height)
 	
 	if asset_path != "" and ResourceLoader.exists(asset_path):
 		var loaded_res: Resource = _load_cached_resource(asset_path)

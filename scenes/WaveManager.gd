@@ -5,6 +5,7 @@ extends Node
 
 signal spawn_enemy(enemy_data: Dictionary, spawn_pos: Vector2)
 signal spawn_obstacle(obstacle_data: Dictionary, positions: Array, speed: float)
+signal spawn_path_trial(config: Dictionary)
 signal level_completed
 signal wave_started(wave_index: int)
 signal story_check_before_wave(wave_index: int)
@@ -15,14 +16,18 @@ var _current_level_data: Dictionary = {}
 var _waves: Array = []
 var _current_wave_index: int = 0
 var _pending_wave_index: int = -1
-var _level_time: float = 0.0
 var _is_active: bool = false
+var _is_wave_running: bool = false
+var _current_wave_elapsed: float = 0.0
+var _current_wave_duration: float = 20.0
 var _pending_spawns: Array = [] # {time, enemy_id, pattern_id}
 var _available_move_pattern_ids: Array[String] = []
 var _active_obstacle_spawners: Array = [] # Active ObstacleSpawner nodes
 var _skin_overrides: Dictionary = {} # World-level skin overrides
+var _world_wave_runtime_cfg: Dictionary = {}
 var _enemy_skin_type_cache: Dictionary = {} # skin_path -> "frames" | "texture" | "unknown"
 var _override_elite_replacement_chance: float = 0.0
+var _world_id: String = ""
 
 const DEFAULT_MOVE_PATTERN_ID := "linear_cross_fast"
 const DEBUG_WAVE_PATTERN_LOG := false
@@ -30,7 +35,11 @@ const DEBUG_WAVE_LIFECYCLE_LOG := false
 const DEBUG_RESOURCE_WARMUP_LOG := true
 const DEBUG_SPAWN_COST_LOG := false
 const DEBUG_SPAWN_COST_THRESHOLD_MS := 4.0
-const MAX_ENEMY_SPAWNS_PER_FRAME: int = 2
+const MAX_ENEMY_SPAWNS_PER_FRAME: int = 6
+const MAX_WAVE_ELAPSED_STEP_SEC: float = 0.25
+const WAVE_END_FLYOFF_MIN_SPEED: float = 1080.0
+const WAVE_END_FLYOFF_MAX_SPEED: float = 2040.0
+const WAVE_END_FLYOFF_DURATION_SEC: float = 1.6
 
 func setup(level_id: String, world_id: String = "") -> void:
 	_current_level_data = DataManager.get_level_data(level_id)
@@ -43,15 +52,31 @@ func setup(level_id: String, world_id: String = "") -> void:
 		_skin_overrides = DataManager.get_world_skin_overrides(world_id)
 	else:
 		_skin_overrides = {}
+	_world_id = world_id
+	_world_wave_runtime_cfg = {}
+	if world_id != "" and DataManager:
+		var world_data: Dictionary = DataManager.get_world(world_id)
+		var runtime_cfg_v: Variant = world_data.get("wave_runtime_defaults", {})
+		if runtime_cfg_v is Dictionary:
+			_world_wave_runtime_cfg = (runtime_cfg_v as Dictionary).duplicate(true)
 	
 	_waves = _current_level_data.get("waves", [])
 	_current_wave_index = 0
-	_level_time = 0.0
+	_current_wave_elapsed = 0.0
+	_current_wave_duration = 20.0
+	_is_wave_running = false
+	_pending_wave_index = -1
 	_pending_spawns.clear()
 	_enemy_skin_type_cache.clear()
 	_refresh_move_pattern_pool()
 	_prewarm_wave_resources()
 	_is_active = true
+
+	if _waves.is_empty():
+		_is_active = false
+		level_completed.emit()
+		return
+	_queue_wave_start(_current_wave_index)
 	
 	if DEBUG_WAVE_LIFECYCLE_LOG:
 		print("[WaveManager] Setup level: ", level_id, " with ", _waves.size(), " waves. Skin overrides: ", _skin_overrides.keys())
@@ -61,6 +86,8 @@ func set_override_elite_replacement_chance(chance: float) -> void:
 
 func stop() -> void:
 	_is_active = false
+	_is_wave_running = false
+	_current_wave_elapsed = 0.0
 	_pending_wave_index = -1
 	_pending_spawns.clear()
 	_enemy_skin_type_cache.clear()
@@ -75,9 +102,13 @@ func _process(delta: float) -> void:
 	if not _is_active:
 		return
 	
-	_level_time += delta
-	_check_waves()
 	_process_pending_spawns(delta)
+	if not _is_wave_running:
+		return
+	# Prevent a single long frame from skipping almost a full wave (and its spawns).
+	_current_wave_elapsed += minf(delta, MAX_WAVE_ELAPSED_STEP_SEC)
+	if _current_wave_elapsed >= _current_wave_duration:
+		_complete_current_wave()
 
 func continue_after_story() -> void:
 	if _pending_wave_index < 0 or _pending_wave_index >= _waves.size():
@@ -85,49 +116,66 @@ func continue_after_story() -> void:
 		return
 	var next_wave: Dictionary = _waves[_pending_wave_index]
 	_start_wave(next_wave)
-	_current_wave_index = _pending_wave_index + 1
 	_pending_wave_index = -1
 
-func _check_waves() -> void:
-	if _pending_wave_index >= 0:
+func _queue_wave_start(index: int) -> void:
+	if index < 0 or index >= _waves.size():
 		return
-	if _current_wave_index >= _waves.size():
-		# Plus de vagues à lancer, attendre que tout soit clean ? 
-		# Pour l'instant on considère le niveau fini quand le temps dépasse la dernière vague + marge
-		var all_spawners_done := true
-		for spawner in _active_obstacle_spawners:
-			if is_instance_valid(spawner):
-				all_spawners_done = false
-				break
-		if _pending_spawns.is_empty() and all_spawners_done and _level_time > _get_last_wave_time() + 10.0:
-			if _is_active:
-				_is_active = false
-				level_completed.emit()
-		return
+	_pending_wave_index = index
+	story_check_before_wave.emit(index)
 
-	var next_wave: Dictionary = _waves[_current_wave_index]
-	var wave_time: float = float(next_wave.get("time", 0.0))
-	
-	if _level_time >= wave_time:
-		_pending_wave_index = _current_wave_index
-		story_check_before_wave.emit(_current_wave_index)
-		return
+func _complete_current_wave() -> void:
+	_is_wave_running = false
+	_current_wave_elapsed = 0.0
+	# If spawns were throttled this frame, flush the ready queue before clearing.
+	_flush_ready_spawns_unlimited()
+	_pending_spawns.clear()
+	_start_wave_end_enemy_flyoff()
+	for spawner in _active_obstacle_spawners:
+		if is_instance_valid(spawner):
+			spawner.stop()
+			spawner.queue_free()
+	_active_obstacle_spawners.clear()
 
-func _get_last_wave_time() -> float:
-	if _waves.is_empty(): return 0.0
-	return float(_waves.back().get("time", 0.0))
+	var next_wave_index: int = _current_wave_index + 1
+	if next_wave_index >= _waves.size():
+		_is_active = false
+		level_completed.emit()
+		return
+	_current_wave_index = next_wave_index
+	_queue_wave_start(_current_wave_index)
+
+func _start_wave_end_enemy_flyoff() -> void:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy):
+			continue
+		if enemy.has_method("start_wave_end_flyoff"):
+			# Arc 180°: left-mid -> top -> right-mid (never downward).
+			var angle: float = randf_range(PI, TAU)
+			var dir: Vector2 = Vector2(cos(angle), sin(angle)).normalized()
+			var speed: float = randf_range(WAVE_END_FLYOFF_MIN_SPEED, WAVE_END_FLYOFF_MAX_SPEED)
+			enemy.call("start_wave_end_flyoff", dir, speed, WAVE_END_FLYOFF_DURATION_SEC)
+		else:
+			enemy.queue_free()
 
 func _start_wave(wave: Dictionary) -> void:
 	var t0_usec: int = Time.get_ticks_usec()
 	if DEBUG_WAVE_LIFECYCLE_LOG:
-		print("[WaveManager] Starting wave at time: ", wave.get("time"))
+		print("[WaveManager] Starting wave idx: ", _current_wave_index)
 	wave_started.emit(_current_wave_index)
 	
+	_pending_spawns.clear()
+	_current_wave_duration = maxf(0.1, _resolve_wave_duration(wave))
+	_current_wave_elapsed = 0.0
+	_is_wave_running = true
+
 	var wave_type: String = str(wave.get("type", "enemy"))
 	
 	match wave_type:
 		"obstacle":
 			_start_obstacle_wave(wave)
+		"path_trial":
+			_start_path_trial_wave(wave)
 		_:
 			_start_enemy_wave(wave)
 
@@ -136,10 +184,38 @@ func _start_wave(wave: Dictionary) -> void:
 		if wave_cost_ms >= DEBUG_SPAWN_COST_THRESHOLD_MS:
 			print("[WavePerf] wave_start cost=", snappedf(wave_cost_ms, 0.1), "ms type=", wave_type, " idx=", _current_wave_index)
 
+func _resolve_wave_duration(wave: Dictionary) -> float:
+	var duration: float = _resolve_base_wave_duration(wave)
+	var forced_duration: float = float(_world_wave_runtime_cfg.get("force_duration_sec", -1.0))
+	if forced_duration > 0.0:
+		duration = forced_duration
+	if str(wave.get("type", "enemy")) == "path_trial":
+		duration += _resolve_path_trial_start_delay(wave)
+	return maxf(0.1, duration)
+
+func _resolve_base_wave_duration(wave: Dictionary) -> float:
+	return maxf(0.1, float(wave.get("duration", 20.0)))
+
+func _resolve_path_trial_start_delay(wave: Dictionary) -> float:
+	var defaults: Dictionary = DataManager.get_path_trial_defaults() if DataManager else {}
+	return maxf(
+		0.0,
+		float(
+			wave.get(
+				"start_delay_sec",
+				wave.get(
+					"warmup_sec",
+					defaults.get("start_delay_sec", defaults.get("warmup_sec", 1.5))
+				)
+			)
+		)
+	)
+
 func _start_enemy_wave(wave: Dictionary) -> void:
 	var enemy_id: String = str(wave.get("enemy_id", "enemy_basic"))
-	var count: int = int(wave.get("count", 1))
-	var interval: float = float(wave.get("interval", 1.0))
+	var base_interval: float = maxf(0.05, float(wave.get("interval", _resolve_default_enemy_interval())))
+	var count: int = _resolve_enemy_spawn_count(base_interval)
+	var interval: float = _resolve_enemy_spawn_interval(base_interval)
 	var pattern_id: String = _pick_random_move_pattern_id()
 
 	print("[Wave] wave ", _current_wave_index + 1, " move_pattern=", pattern_id, " enemy_id=", enemy_id, " count=", count)
@@ -176,6 +252,18 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 			"enemy_skin": spawn_skin
 		})
 
+func _resolve_enemy_spawn_count(interval: float) -> int:
+	var safe_interval: float = maxf(0.05, interval)
+	var count: int = maxi(1, int(ceil(_current_wave_duration / safe_interval)))
+	var max_count: int = maxi(1, int(_world_wave_runtime_cfg.get("enemy_max_spawns_per_wave", 160)))
+	return mini(count, max_count)
+
+func _resolve_enemy_spawn_interval(base_interval: float) -> float:
+	return clampf(maxf(0.05, base_interval), 0.05, _current_wave_duration)
+
+func _resolve_default_enemy_interval() -> float:
+	return maxf(0.05, float(_world_wave_runtime_cfg.get("enemy_target_interval_sec", 1.0)))
+
 func _resolve_enemy_skin_for_id(enemy_id: String) -> String:
 	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})
 	if enemy_overrides is Dictionary:
@@ -187,7 +275,10 @@ func _start_obstacle_wave(wave: Dictionary) -> void:
 	spawner_node.name = "ObstacleSpawner_" + str(_current_wave_index)
 	add_child(spawner_node)
 	
-	spawner_node.setup(wave)
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _current_wave_duration
+	spawner_node.setup(payload)
 	spawner_node.obstacle_spawn_request.connect(_on_obstacle_spawn_request)
 	spawner_node.finished.connect(_on_obstacle_spawner_finished.bind(spawner_node))
 	_active_obstacle_spawners.append(spawner_node)
@@ -195,6 +286,24 @@ func _start_obstacle_wave(wave: Dictionary) -> void:
 	if DEBUG_WAVE_LIFECYCLE_LOG:
 		print("[WaveManager] Obstacle wave started: pattern=", wave.get("pattern"),
 			" obstacle=", wave.get("obstacle_id"))
+
+func _start_path_trial_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		var pattern_duration: float = _resolve_base_wave_duration(wave)
+		var forced_duration: float = float(_world_wave_runtime_cfg.get("force_duration_sec", -1.0))
+		if forced_duration > 0.0:
+			pattern_duration = forced_duration
+		payload["duration"] = maxf(0.1, pattern_duration)
+	if not payload.has("start_delay_sec"):
+		payload["start_delay_sec"] = _resolve_path_trial_start_delay(wave)
+	var pattern_id: String = str(payload.get("pattern_id", "")).strip_edges()
+	if pattern_id != "":
+		var pattern_data: Dictionary = DataManager.get_move_pattern(pattern_id)
+		if not pattern_data.is_empty():
+			payload["pattern_data"] = pattern_data.duplicate(true)
+	payload["wave_index"] = _current_wave_index
+	spawn_path_trial.emit(payload)
 
 func _on_obstacle_spawn_request(obstacle_data: Dictionary, positions: Array, speed: float) -> void:
 	spawn_obstacle.emit(obstacle_data, positions, speed)
@@ -290,6 +399,16 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 				" skin=", str(spawn_info.get("enemy_skin", ""))
 			)
 
+func _flush_ready_spawns_unlimited() -> void:
+	for i in range(_pending_spawns.size() - 1, -1, -1):
+		var spawn_info_v: Variant = _pending_spawns[i]
+		if not (spawn_info_v is Dictionary):
+			continue
+		var spawn_info: Dictionary = spawn_info_v as Dictionary
+		if float(spawn_info.get("delay", 0.0)) > 0.0:
+			continue
+		_trigger_spawn(spawn_info)
+
 func _apply_enemy_skin_override(enemy_data: Dictionary, enemy_skin: String) -> void:
 	if enemy_skin == "":
 		return
@@ -364,7 +483,17 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 		if not (wave_variant is Dictionary):
 			continue
 		var wave: Dictionary = wave_variant as Dictionary
-		if str(wave.get("type", "enemy")) == "obstacle":
+		var wave_type: String = str(wave.get("type", "enemy"))
+		if wave_type == "obstacle":
+			continue
+		if wave_type == "path_trial":
+			_add_warmup_path(target, str(wave.get("hazard_asset_override", "")))
+			_add_warmup_path(target, str(wave.get("hazard_start_asset_override", "")))
+			_add_warmup_path(target, str(wave.get("path_asset_override", "")))
+			var defaults: Dictionary = DataManager.get_path_trial_defaults() if DataManager else {}
+			_add_warmup_path(target, str(defaults.get("default_hazard_asset", "")))
+			_add_warmup_path(target, str(defaults.get("default_hazard_start_asset", "")))
+			_add_warmup_path(target, str(defaults.get("default_path_asset", "")))
 			continue
 
 		var enemy_id: String = str(wave.get("enemy_id", ""))

@@ -21,7 +21,8 @@
 	"bubble_content_margin": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
 	"bubble_offset_left": { "x": -245, "y": -180 },
 	"bubble_offset_right": { "x": 245, "y": -180 },
-	"bubble_text_color": "#FFFFFF"
+	"bubble_text_color": "#FFFFFF",
+	"bubble_font_size": 26
   },
   "sequences": [
 	{

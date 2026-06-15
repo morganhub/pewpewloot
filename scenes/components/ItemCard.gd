@@ -171,6 +171,7 @@ func _set_icon(path: String) -> void:
 	
 	if path != "" and ResourceLoader.exists(path):
 		icon_rect.visible = true
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
 		if path.ends_with(".tres") or path.ends_with(".res"):
 			var res = load(path)
@@ -191,6 +192,7 @@ func _set_icon(path: String) -> void:
 				return
 		
 		# Fallback / Normal Texture
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if icon_rect.resized.is_connected(_on_icon_resized):
 			icon_rect.resized.disconnect(_on_icon_resized)
 		icon_rect.texture = load(path)
@@ -249,12 +251,14 @@ func _setup_level_badge(level: int, assets: Dictionary) -> void:
 	level_badge.offset_top = -12 
 	level_badge.offset_bottom = h - 12
 	
+	level_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	level_badge.visible = true
 
 func _setup_slot_indicator(path: String) -> void:
 	if path != "" and ResourceLoader.exists(path):
 		slot_icon.texture = load(path)
 		slot_indicator.visible = true
+		slot_indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
 		# ENFORCE SIZE (Same as Level Badge approx, e.g. 48x48)
 		# Assuming SlotIndicator is Control. 

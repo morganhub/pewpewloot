@@ -135,6 +135,14 @@ size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 16
 text = "Reset viewed stories"
 
+[node name="ResetToLevelOneButton" type="Button" parent="BottomSection" unique_id=2009765401]
+visible = false
+custom_minimum_size = Vector2(300, 46)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 16
+text = "Reset to level 1"
+
 [node name="StartStoryButton" type="Button" parent="BottomSection" unique_id=1220046273]
 visible = false
 custom_minimum_size = Vector2(300, 46)

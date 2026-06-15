@@ -50,7 +50,7 @@
 				"pulsating_size": 1.15,
 				"pulsating_frequency": 1.6,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
+				"asset_anim": "res://assets/missiles/fire_energy.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -76,7 +76,7 @@
 				"pulsating_size": 1.0,
 				"pulsating_frequency": 1.0,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
+				"asset_anim": "res://assets/missiles/orange_energy_burst.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -155,7 +155,7 @@
 				"pulsating_size": 1.01,
 				"pulsating_frequency": 1.4,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/green_energy_burst.tres",
+				"asset_anim": "res://assets/missiles/green_energy.tres",
 				"asset_anim_duration": 0.0,
 				"asset_anim_loop": true
 			},
@@ -233,7 +233,7 @@
 				"pulsating_size": 1.0,
 				"pulsating_frequency": 1.0,
 				"asset": "",
-				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
+				"asset_anim": "res://assets/missiles/orange_energy_burst.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},

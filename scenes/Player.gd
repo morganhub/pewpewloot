@@ -58,7 +58,8 @@ var unique_cd_current: float = 0.0
 # Boosts
 var _fire_rate_boost_timer: float = 0.0
 var _base_fire_rate: float = 0.3
-const MAX_FIRE_RATE: float = 80.0
+const DEFAULT_MAX_FIRE_RATE: float = 80.0
+var _fire_rate_max: float = DEFAULT_MAX_FIRE_RATE
 
 # Shooting and movement state
 var _fire_timer: float = 0.0
@@ -100,6 +101,7 @@ var _debug_has_fired_current_pattern: bool = false
 # --- DEBUG PATTERN ROTATION - END ---
 
 func _ready() -> void:
+	_load_fire_rate_caps()
 	# Top-down movement: avoid carrying platform velocity after leaving moving obstacles.
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	platform_on_leave = CharacterBody2D.PLATFORM_ON_LEAVE_DO_NOTHING
@@ -119,7 +121,7 @@ func _ready() -> void:
 	
 	# --- DEBUG PATTERN ROTATION - START ---
 	if _debug_pattern_rotation_enabled:
-		var all_patterns = DataManager.get_all_missile_patterns()
+		var all_patterns = DataManager.get_all_player_missile_patterns()
 		for pattern in all_patterns:
 			if pattern.has("id"):
 				_debug_pattern_list.append(str(pattern["id"]))
@@ -505,10 +507,19 @@ func _process(delta: float) -> void:
 			modulate = Color.WHITE
 
 func _clamp_fire_rate(value: float) -> float:
-	return clampf(value, 0.01, MAX_FIRE_RATE)
+	return clampf(value, 0.01, _fire_rate_max)
+
+func _load_fire_rate_caps() -> void:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var balance_raw: Variant = game_cfg.get("game_balance", {})
+	var balance: Dictionary = balance_raw if balance_raw is Dictionary else {}
+	_fire_rate_max = maxf(0.01, float(balance.get("fire_rate_max", DEFAULT_MAX_FIRE_RATE)))
 
 func set_can_shoot(state: bool) -> void:
 	_can_shoot = state
+	if not state:
+		# Cancel pending shot cycles immediately when gameplay is gated.
+		_fire_timer = 0.0
 	# Deactivate aura when shooting is disabled
 	if not state:
 		_deactivate_aura()
@@ -1005,7 +1016,7 @@ func _fire() -> void:
 		pattern_data = fire_data.duplicate()
 	else:
 		# Ship default pattern
-		pattern_data = DataManager.get_missile_pattern(missile_pattern_id).duplicate()
+		pattern_data = DataManager.get_player_missile_pattern(missile_pattern_id).duplicate()
 	
 	# --- DEBUG PATTERN ROTATION - START ---
 	if _debug_pattern_rotation_enabled:
@@ -1100,12 +1111,15 @@ func _inject_missile_properties(pattern_data: Dictionary) -> void:
 func _execute_burst_sequence(pattern_data: Dictionary, count: int, interval: float, speed: float, damage: int) -> void:
 	for i in range(count):
 		if not is_instance_valid(self): return
+		if not _can_shoot: return
 		
 		# Spawn one "salvo" (can be multiple projectiles if count > 1 in pattern)
 		_spawn_salvo(pattern_data, speed, damage)
 		
 		if count > 1 and i < count - 1:
 			await get_tree().create_timer(interval).timeout
+			if not _can_shoot:
+				return
 
 func _spawn_salvo(pattern_data: Dictionary, speed: float, damage: int) -> void:
 	var projectile_count: int = int(pattern_data.get("projectile_count", 1))

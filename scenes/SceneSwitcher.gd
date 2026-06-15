@@ -113,6 +113,8 @@ func goto_screen(scene_path: String, with_fade: bool = true) -> void:
 
 		# Cleanup loading layer (Game is now visible with its background)
 		canvas_layer.queue_free()
+		# Ensure loading visuals are fully flushed before post-loading hooks.
+		await get_tree().process_frame
 
 		# Pause + story overlay if needed (after loading screen is gone)
 		if current_screen != null and current_screen.has_method("run_post_loading_story"):
@@ -252,9 +254,9 @@ func _build_menu_prewarm_resource_list() -> Array[String]:
 		if not (world_variant is Dictionary):
 			continue
 		var world: Dictionary = world_variant as Dictionary
-		var theme: Variant = world.get("theme", {})
-		if theme is Dictionary:
-			_collect_resource_paths_recursive(theme as Dictionary, ordered_paths, seen)
+		var _world_theme: Variant = world.get("theme", {})
+		if _world_theme is Dictionary:
+			_collect_resource_paths_recursive(_world_theme as Dictionary, ordered_paths, seen)
 
 	return ordered_paths
 

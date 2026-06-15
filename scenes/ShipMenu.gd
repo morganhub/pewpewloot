@@ -27,6 +27,11 @@ const LEVEL_BACKGROUND_BASE_SPEED := 50.0
 const LEVEL_FAR_LAYER_SPEED_MULTIPLIER := 0.2
 var _item_card_size := Vector2(100, 75)
 var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time)
+var _ship_strip_height: float = 63.0  # Hauteur de la bande sous les cartes (config ou constante)
+var _ship_strip_button_height: float = 63.0  # Hauteur du bouton Sélectionner/Sélectionné (ou cristaux)
+var _ship_strip_margin_top: float = 0.0  # Marge entre la carte et le bouton
+var _ship_strip_margin_bottom: float = 0.0  # Marge sous le bouton (dans la bande)
+var _ship_carousel_fade_done: bool = false  # Fade-in carousel au premier chargement
 
 
 
@@ -83,6 +88,7 @@ var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time
 @onready var popup_delete_btn: Button = %DeleteButton
 
 var _filter_icon_buttons: Dictionary = {} # slot_id -> TextureButton
+var _ship_section_for_fade: CanvasItem = null  # Section vaisseaux pour fade-in au chargement
 
 
 
@@ -179,6 +185,10 @@ func _ready() -> void:
 		footer.back_pressed.connect(_on_back_pressed)
 	if back_button:
 		back_button.visible = false
+		# Libérer l'espace du Header (ligne du bouton retour) quand le bouton est masqué
+		var header_node: Node = content.get_node_or_null("Header")
+		if header_node:
+			header_node.visible = false
 
 	
 	
@@ -345,11 +355,15 @@ func _on_ship_carousel_pointer_down(id: int, global_pos: Vector2) -> void:
 	# Ne pas consommer le clic si on a cliqué sur un bouton de la bande (cristaux ou Sélectionner)
 	for item in _ship_items:
 		var wrapper_node: Variant = item.get("node", null)
-		if wrapper_node is Control and (wrapper_node as Control).get_child_count() >= 2:
-			var strip_btn: Control = (wrapper_node as Control).get_child(1)
-			var r := Rect2(strip_btn.global_position, strip_btn.size)
-			if r.has_point(global_pos):
-				return
+		if wrapper_node is Control:
+			var w: Control = wrapper_node as Control
+			for i in range(1, w.get_child_count()):
+				var c = w.get_child(i)
+				if c is Button:
+					var r := Rect2(c.global_position, c.size)
+					if r.has_point(global_pos):
+						return
+					break
 	_ship_pointer_down = true
 	_ship_pointer_id = id
 	_ship_dragging = false
@@ -396,6 +410,14 @@ func _on_ship_carousel_pointer_up(id: int, global_pos: Vector2) -> void:
 func _initial_layout() -> void:
 	_calculate_layout_metrics()
 	_setup_visuals()
+	# Masquer la section vaisseaux pour éviter le "saut" au chargement, fade-in après recentrage
+	var content_node = $MarginContainer/ScrollContainer/Content
+	var ship_sec = content_node.get_node_or_null("ShipSectionWrapper/ShipSection")
+	if ship_sec == null:
+		ship_sec = content_node.get_node_or_null("ShipSection")
+	if ship_sec is CanvasItem:
+		(ship_sec as CanvasItem).modulate.a = 0.0
+		_ship_section_for_fade = ship_sec as CanvasItem
 	_load_ships()
 	_update_slot_buttons()
 	_update_inventory_grid()
@@ -667,12 +689,12 @@ func _apply_section_background(section_node_name: String, section_cfg: Dictionar
 	var parent = section_node.get_parent()
 	if parent and parent.name == section_node_name + "Wrapper":
 		# Already wrapped, just update style and opacity
-		var sections_cfg_parent: Dictionary = _game_config.get("ship_menu", {})
-		var section_opacity: float = float(sections_cfg_parent.get("sections_background_opacity", 0.8))
-		parent.modulate = Color(1.0, 1.0, 1.0, section_opacity)
-		var wrapper_style = UIStyle.build_texture_stylebox(bg_path, section_cfg, 15)
-		if wrapper_style:
-			parent.add_theme_stylebox_override("panel", wrapper_style)
+		var local_sections_cfg_parent: Dictionary = _game_config.get("ship_menu", {})
+		var local_section_opacity: float = float(local_sections_cfg_parent.get("sections_background_opacity", 0.8))
+		parent.modulate = Color(1.0, 1.0, 1.0, local_section_opacity)
+		var local_wrapper_style = UIStyle.build_texture_stylebox(bg_path, section_cfg, 15)
+		if local_wrapper_style:
+			parent.add_theme_stylebox_override("panel", local_wrapper_style)
 		return
 	
 	var wrapper = PanelContainer.new()
@@ -841,6 +863,18 @@ func _calculate_layout_metrics() -> void:
 		s_height = s_width * ship_ratio
 	
 	_ship_card_size = Vector2(maxf(1.0, s_width), maxf(1.0, s_height))
+	var size_mult: float = float(ship_sel_cfg.get("size_multiplier", 1.0))
+	if size_mult > 0.0:
+		_ship_card_size.x *= size_mult
+		_ship_card_size.y *= size_mult
+	_ship_strip_height = float(ship_sel_cfg.get("strip_height", SHIP_STRIP_HEIGHT))
+	if _ship_strip_height <= 0.0:
+		_ship_strip_height = SHIP_STRIP_HEIGHT
+	_ship_strip_button_height = float(ship_sel_cfg.get("strip_button_height", _ship_strip_height))
+	if _ship_strip_button_height <= 0.0:
+		_ship_strip_button_height = _ship_strip_height
+	_ship_strip_margin_top = maxf(0.0, float(ship_sel_cfg.get("strip_margin_top", 0)))
+	_ship_strip_margin_bottom = maxf(0.0, float(ship_sel_cfg.get("strip_margin_bottom", 0)))
 	
 	# Arrow buttons size from config (ship_selection.arrow_width / arrow_height)
 	var arrow_w: float = maxf(24.0, float(ship_sel_cfg.get("arrow_width", 48)))
@@ -1001,7 +1035,7 @@ func _load_ships(update_center_from_selection: bool = true) -> void:
 			ship_cards_container.visible = false
 
 	# Ship container must have enough height for the cards + strip + margin for button translateY
-	var full_card_h: float = _ship_card_size.y + SHIP_STRIP_HEIGHT + SHIP_STRIP_TRANSLATE_MARGIN
+	var full_card_h: float = _ship_card_size.y + _ship_strip_margin_top + _ship_strip_button_height + _ship_strip_margin_bottom + SHIP_STRIP_TRANSLATE_MARGIN
 	if ship_container:
 		ship_container.custom_minimum_size = Vector2(ship_container.custom_minimum_size.x, full_card_h)
 
@@ -1056,12 +1090,11 @@ func _load_ships(update_center_from_selection: bool = true) -> void:
 			s_name = str(ship_dict.get("name", s_id))
 		var is_unlocked := unlocked_ids.has(s_id)
 		var is_selected := (s_id == selected_ship_id)
-		_create_ship_card(s_id, s_name, is_unlocked, is_selected, ship_dict)
-		var parent_node: Control = _ship_track if _ship_track != null else ship_cards_container
-		var wrapper: Control = parent_node.get_child(parent_node.get_child_count() - 1) as Control
-		wrapper.position = Vector2(i * (_ship_card_size.x + SHIP_TRACK_GAP), 0.0)
-		wrapper.size = Vector2(_ship_card_size.x, full_card_h)
-		_ship_items.append({"node": wrapper, "ship_id": s_id, "data": ship_dict})
+		var wrapper: Control = _create_ship_card(s_id, s_name, is_unlocked, is_selected, ship_dict)
+		if wrapper:
+			wrapper.position = Vector2(i * (_ship_card_size.x + SHIP_TRACK_GAP), 0.0)
+			wrapper.size = Vector2(_ship_card_size.x, full_card_h)
+			_ship_items.append({"node": wrapper, "ship_id": s_id, "data": ship_dict})
 
 	# Track size and offset
 	if _ship_track and total_ships > 0:
@@ -1073,6 +1106,9 @@ func _load_ships(update_center_from_selection: bool = true) -> void:
 			# Laisser le layout du ScrollContainer s'appliquer puis recentrer (comme au clic sur un vaisseau)
 			var t := get_tree().create_timer(0.15)
 			t.timeout.connect(_center_ship_track_on_selection)
+	elif _ship_section_for_fade != null and not _ship_carousel_fade_done:
+		var t := get_tree().create_timer(0.15)
+		t.timeout.connect(_do_carousel_fade_in)
 
 	_previous_selected_ship_id = selected_ship_id
 	_is_initial_load = false
@@ -1109,6 +1145,23 @@ func _center_ship_track_on_selection() -> void:
 	var center_x: float = container_w * 0.5
 	_ship_track_offset = center_x - (float(_current_ship_index) * (_ship_card_size.x + SHIP_TRACK_GAP) + _ship_card_size.x * 0.5)
 	_apply_ship_track_offset()
+	# Fade-in de la section vaisseaux après le premier recentrage (évite le saut visible au chargement)
+	if _ship_section_for_fade != null and not _ship_carousel_fade_done:
+		_ship_carousel_fade_done = true
+		var tw := create_tween()
+		tw.set_ease(Tween.EASE_OUT)
+		tw.set_trans(Tween.TRANS_SINE)
+		tw.tween_property(_ship_section_for_fade, "modulate:a", 1.0, 0.2)
+
+func _do_carousel_fade_in() -> void:
+	# Fade-in même si le track n'a pas été recentré (ex. 0 vaisseaux)
+	if _ship_section_for_fade == null or _ship_carousel_fade_done:
+		return
+	_ship_carousel_fade_done = true
+	var tw := create_tween()
+	tw.set_ease(Tween.EASE_OUT)
+	tw.set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_ship_section_for_fade, "modulate:a", 1.0, 0.2)
 
 func _nearest_ship_index_for_offset(offset: float) -> int:
 	var n: int = _ship_items.size()
@@ -1127,11 +1180,27 @@ func _nearest_ship_index_for_offset(offset: float) -> int:
 func _apply_ship_track_offset() -> void:
 	if _ship_track == null:
 		return
-	var full_h: float = _ship_card_size.y + SHIP_STRIP_HEIGHT + SHIP_STRIP_TRANSLATE_MARGIN
+	var full_h: float = _ship_card_size.y + _ship_strip_margin_top + _ship_strip_button_height + _ship_strip_margin_bottom + SHIP_STRIP_TRANSLATE_MARGIN
 	var y: float = 0.0
 	if ship_container:
 		y = (ship_container.size.y - full_h) * 0.5
 	_ship_track.position = Vector2(_ship_track_offset, y)
+	
+	# Activation différée (lazy loading) des vaisseaux visibles
+	var center_idx := _nearest_ship_index_for_offset(_ship_track_offset)
+	for i in range(_ship_items.size()):
+		if absi(i - center_idx) <= 1:
+			_hydrate_ship_card_if_needed(_ship_items[i])
+
+func _hydrate_ship_card_if_needed(item: Dictionary) -> void:
+	var wrapper := item.get("node", null) as Control
+	if wrapper == null or wrapper.get_child_count() == 0:
+		return
+	var card := wrapper.get_child(0) as Control
+	if not card or not card.has_meta("lazy_loaded") or card.get_meta("lazy_loaded") == true:
+		return
+	card.set_meta("lazy_loaded", true)
+	_do_hydrate_ship_card(card)
 
 func _kill_ship_track_tween() -> void:
 	if _ship_track_tween and _ship_track_tween.is_valid():
@@ -1197,7 +1266,7 @@ func _find_ship_index_at_global_pos(global_pos: Vector2) -> int:
 			return i
 	return -1
 
-func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, is_selected: bool, ship_data: Dictionary) -> void:
+func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, is_selected: bool, ship_data: Dictionary) -> Control:
 	# 1. Le Conteneur Principal
 	var card := PanelContainer.new()
 	card.custom_minimum_size = _ship_card_size
@@ -1207,165 +1276,20 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 	var style_bg := StyleBoxFlat.new()
 	style_bg.bg_color = Color(0, 0, 0, 0)
 	card.add_theme_stylebox_override("panel", style_bg)
+	card.set_meta("lazy_loaded", true)
+	card.set_meta("lazy_ship_id", ship_id)
+	card.set_meta("lazy_is_unlocked", is_unlocked)
+	card.set_meta("lazy_is_selected", is_selected)
+	card.set_meta("lazy_ship_data", ship_data)
 	
-	# 2. Récupération des assets
-	var ship_opts: Dictionary = _game_config.get("ship_options", {})
-	var ship_select_cfg: Dictionary = ship_opts.get("ship_select_button", {}) if ship_opts.get("ship_select_button") is Dictionary else {}
-	var asset_animation: String = str(ship_select_cfg.get("asset_animation", ""))
-	var asset_selected: String = str(ship_select_cfg.get("asset_selected", ""))
-	var asset_unselected: String = str(ship_select_cfg.get("asset_unselected", ""))
-	var anim_duration_cfg: float = maxf(0.0, float(ship_select_cfg.get("asset_animation_duration", ship_select_cfg.get("animation_duration", 0.0))))
-	var anim_loop_cfg: bool = bool(ship_select_cfg.get("asset_animation_loop", false))
-	var anim_w_cfg: float = float(ship_select_cfg.get("animation_width", 0.0))
-	var anim_h_cfg: float = float(ship_select_cfg.get("animation_height", 0.0))
-	
-	# 3. LAYER 1: Background
-	var bg_rect = TextureRect.new()
-	bg_rect.name = "BgTexture"
-	bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	bg_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	
-	if is_selected:
-		# Selected: play animation once, then freeze on the last frame
-		if asset_animation != "" and ResourceLoader.exists(asset_animation):
-			var frames: Resource = load(asset_animation)
-			if frames is SpriteFrames:
-				var anim = AnimatedSprite2D.new()
-				anim.centered = true
-				anim.position = _ship_card_size / 2.0
-				# Scale down to fit card size
-				var frame_data: SpriteFrames = frames as SpriteFrames
-				var first_anim_nm: StringName = _get_first_spriteframes_animation(frame_data)
-				
-				# Determine source size for scaling: use config if present, else texture size
-				var src_size := Vector2.ZERO
-				if anim_w_cfg > 0.0 and anim_h_cfg > 0.0:
-					src_size = Vector2(anim_w_cfg, anim_h_cfg)
-				else:
-					var first_tex: Texture2D = _get_spriteframes_first_frame(frame_data)
-					if first_tex:
-						src_size = first_tex.get_size()
-				
-				if src_size.x > 0 and src_size.y > 0:
-					var fit_scale := minf(_ship_card_size.x / src_size.x, _ship_card_size.y / src_size.y)
-					anim.scale = Vector2(fit_scale, fit_scale)
-				
-				bg_rect.add_child(anim)
-				var selected_anim_name: StringName = &"default"
-				if first_anim_nm != &"":
-					selected_anim_name = first_anim_nm
-				VFXManager.play_sprite_frames(
-					anim,
-					frame_data,
-					selected_anim_name,
-					anim_loop_cfg,
-					anim_duration_cfg
-				)
-		else:
-			# Fallback: use asset_selected PNG if no animation
-			if asset_selected != "" and ResourceLoader.exists(asset_selected):
-				bg_rect.texture = load(asset_selected)
-	else:
-		if asset_unselected != "" and ResourceLoader.exists(asset_unselected):
-			bg_rect.texture = load(asset_unselected)
-	card.add_child(bg_rect)
-	
-	# 4. LAYER 2: Ship Visual (Le fix est ici)
-	# On crée un Control pour "isoler" l'image des contraintes du PanelContainer
-	var icon_wrapper := Control.new()
-	icon_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_wrapper.custom_minimum_size = _ship_card_size
-	icon_wrapper.pivot_offset = _ship_card_size / 2.0
-	card.add_child(icon_wrapper) 
-	
-	var visual: Dictionary = ship_data.get("visual", {})
-	var visual_asset: String = str(visual.get("asset", ""))
-	var visual_anim: String = str(visual.get("asset_anim", ""))
-	var visual_anim_duration: float = maxf(0.0, float(visual.get("asset_anim_duration", 0.0)))
-	var visual_anim_loop: bool = bool(visual.get("asset_anim_loop", true))
-	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
-	var ship_sel_cfg: Dictionary = ship_menu_cfg.get("ship_selection", {}) if ship_menu_cfg.get("ship_selection") is Dictionary else {}
-	var allow_animated: bool = bool(ship_sel_cfg.get("animated", true))
-	
-	var icon_rect := TextureRect.new()
-	icon_rect.name = "ShipIcon"
-	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	
-	icon_wrapper.add_child(icon_rect)
-	
-	var asset_res: Resource = null
-	if visual_asset != "" and ResourceLoader.exists(visual_asset):
-		asset_res = load(visual_asset)
-	
-	var static_texture: Texture2D = null
-	if asset_res is Texture2D:
-		static_texture = asset_res as Texture2D
-	
-	var anim_frames: SpriteFrames = null
-	if asset_res is SpriteFrames:
-		anim_frames = asset_res as SpriteFrames
-	elif visual_anim != "" and ResourceLoader.exists(visual_anim):
-		var anim_res: Resource = load(visual_anim)
-		if anim_res is SpriteFrames:
-			anim_frames = anim_res as SpriteFrames
-	
-	var has_animated_icon := false
-	var first_anim_name: StringName = _get_first_spriteframes_animation(anim_frames)
-	var first_frame_tex: Texture2D = _get_spriteframes_first_frame(anim_frames)
-	
-	if allow_animated and anim_frames != null and first_anim_name != &"":
-		has_animated_icon = true
-		var anim_sprite := AnimatedSprite2D.new()
-		anim_sprite.name = "ShipIconAnim"
-		anim_sprite.centered = true
-		anim_sprite.position = _ship_card_size / 2.0
-		VFXManager.play_sprite_frames(
-			anim_sprite,
-			anim_frames,
-			first_anim_name,
-			visual_anim_loop,
-			visual_anim_duration
-		)
-		if first_frame_tex:
-			var f_size = first_frame_tex.get_size()
-			if f_size.x > 0.0 and f_size.y > 0.0:
-				var fit_scale := minf(_ship_card_size.x / f_size.x, _ship_card_size.y / f_size.y) * 0.8
-				anim_sprite.scale = Vector2(fit_scale, fit_scale)
-		icon_wrapper.add_child(anim_sprite)
-	
-	icon_rect.visible = not has_animated_icon
-	if not has_animated_icon:
-		if static_texture:
-			icon_rect.texture = static_texture
-		elif first_frame_tex:
-			# animated=false: fallback to first frame when no static texture is provided
-			icon_rect.texture = first_frame_tex
-		
-	# 5. Lock overlay for non-unlocked ships
+	# Lock overlay added beforehand
 	if not is_unlocked:
-		icon_wrapper.modulate = Color(0.2, 0.2, 0.2, 1)
-
-		# Read lock config from shared_assets
-		var shared: Dictionary = {}
-		var shared_v: Variant = _game_config.get("shared_assets", {})
-		if shared_v is Dictionary:
-			shared = shared_v as Dictionary
-		var lock_cfg: Dictionary = {}
-		var lock_v: Variant = shared.get("lock", {})
-		if lock_v is Dictionary:
-			lock_cfg = lock_v as Dictionary
-
+		var shared: Dictionary = _game_config.get("shared_assets", {}) if _game_config.get("shared_assets") is Dictionary else {}
+		var lock_cfg: Dictionary = shared.get("lock", {}) if shared.get("lock") is Dictionary else {}
 		var lock_overlay := Control.new()
 		lock_overlay.name = "LockOverlay"
 		lock_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 		lock_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-		# Lock icon only (centered), no dark tint rectangle
 		var lock_w: float = maxf(16.0, float(lock_cfg.get("width", 64)))
 		var lock_h: float = maxf(16.0, float(lock_cfg.get("height", 64)))
 		var lock_asset: String = str(lock_cfg.get("asset", "res://assets/ui/buttons/locked.png"))
@@ -1374,35 +1298,37 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 		lock_tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		lock_tex_rect.custom_minimum_size = Vector2(lock_w, lock_h)
 		lock_tex_rect.size = Vector2(lock_w, lock_h)
-		# Center it
 		lock_tex_rect.set_anchors_preset(Control.PRESET_CENTER)
 		lock_tex_rect.position = Vector2(-lock_w * 0.5, -lock_h * 0.5)
 		lock_tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if ResourceLoader.exists(lock_asset):
 			lock_tex_rect.texture = ResourceLoader.load(lock_asset, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 		lock_overlay.add_child(lock_tex_rect)
-		# Prix et cristaux : affichés dans la bande bleue en dessous, pas sur la carte
 		card.add_child(lock_overlay)
 
 	# 6. Wrapper (carte + bande sous le vaisseau)
 	var parent_node: Control = _ship_track if _ship_track != null else ship_cards_container
 	var wrapper := VBoxContainer.new()
 	wrapper.add_theme_constant_override("separation", 0)
-	wrapper.custom_minimum_size = Vector2(_ship_card_size.x, _ship_card_size.y + SHIP_STRIP_HEIGHT + SHIP_STRIP_TRANSLATE_MARGIN)
+	wrapper.custom_minimum_size = Vector2(_ship_card_size.x, _ship_card_size.y + _ship_strip_margin_top + _ship_strip_button_height + _ship_strip_margin_bottom + SHIP_STRIP_TRANSLATE_MARGIN)
 	wrapper.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wrapper.add_child(card)
 
 	# Bande sous la carte : cristaux (vérouillé) ou bouton Sélectionner / Sélectionné (débloqué)
+	if _ship_strip_margin_top > 0.0:
+		var top_spacer := Control.new()
+		top_spacer.custom_minimum_size = Vector2(_ship_card_size.x, _ship_strip_margin_top)
+		top_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wrapper.add_child(top_spacer)
 	if not is_unlocked:
 		var ship_price: int = int(ship_data.get("crystal_price", 0))
 		var crystal_btn := Button.new()
-		crystal_btn.custom_minimum_size = Vector2(_ship_card_size.x, SHIP_STRIP_HEIGHT)
+		crystal_btn.custom_minimum_size = Vector2(_ship_card_size.x, _ship_strip_button_height)
 		crystal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		crystal_btn.pressed.connect(_on_crystal_strip_pressed.bind(ship_id))
 		crystal_btn.text = ""
 		UIStyle.apply_default_button_style(crystal_btn, "small")
-		# Icône cristaux (max 15px hauteur) + prix
 		var hbox := HBoxContainer.new()
 		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 		hbox.add_theme_constant_override("separation", 6)
@@ -1438,9 +1364,14 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 		hbox.add_child(price_lbl)
 		crystal_btn.add_child(hbox)
 		wrapper.add_child(crystal_btn)
+		if _ship_strip_margin_bottom > 0.0:
+			var bot_spacer := Control.new()
+			bot_spacer.custom_minimum_size = Vector2(_ship_card_size.x, _ship_strip_margin_bottom)
+			bot_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			wrapper.add_child(bot_spacer)
 	else:
 		var strip_btn := Button.new()
-		strip_btn.custom_minimum_size = Vector2(_ship_card_size.x, SHIP_STRIP_HEIGHT)
+		strip_btn.custom_minimum_size = Vector2(_ship_card_size.x, _ship_strip_button_height)
 		if is_selected:
 			strip_btn.text = LocaleManager.translate("ship_menu_selected")
 			strip_btn.disabled = true
@@ -1459,11 +1390,178 @@ func _create_ship_card(ship_id: String, _ship_name: String, is_unlocked: bool, i
 					_on_ship_card_pressed(ship_id)
 			)
 		wrapper.add_child(strip_btn)
+		if _ship_strip_margin_bottom > 0.0:
+			var bot_spacer := Control.new()
+			bot_spacer.custom_minimum_size = Vector2(_ship_card_size.x, _ship_strip_margin_bottom)
+			bot_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			wrapper.add_child(bot_spacer)
 
 	card.set_meta("ship_id", ship_id)
 	card.set_meta("price", int(ship_data.get("crystal_price", 0)))
 	wrapper.set_meta("ship_id", ship_id)
 	parent_node.add_child(wrapper)
+	
+	# Initialize the visual resources immediately
+	_do_hydrate_ship_card(card)
+	
+	return wrapper
+
+func _do_hydrate_ship_card(card: Control) -> void:
+	var _ship_id: String = card.get_meta("lazy_ship_id", "")
+	var is_unlocked: bool = card.get_meta("lazy_is_unlocked", false)
+	var is_selected: bool = card.get_meta("lazy_is_selected", false)
+	var ship_data: Dictionary = card.get_meta("lazy_ship_data", {})
+	
+	var fallback = card.get_node_or_null("Fallback")
+	if fallback:
+		fallback.queue_free()
+
+	# 2. Récupération des assets
+	var ship_opts: Dictionary = _game_config.get("ship_options", {})
+	var ship_select_cfg: Dictionary = ship_opts.get("ship_select_button", {}) if ship_opts.get("ship_select_button") is Dictionary else {}
+	var asset_animation: String = str(ship_select_cfg.get("asset_animation", ""))
+	var asset_selected: String = str(ship_select_cfg.get("asset_selected", ""))
+	var asset_unselected: String = str(ship_select_cfg.get("asset_unselected", ""))
+	var anim_duration_cfg: float = maxf(0.0, float(ship_select_cfg.get("asset_animation_duration", ship_select_cfg.get("animation_duration", 0.0))))
+	var anim_loop_cfg: bool = bool(ship_select_cfg.get("asset_animation_loop", false))
+	var anim_w_cfg: float = float(ship_select_cfg.get("animation_width", 0.0))
+	var anim_h_cfg: float = float(ship_select_cfg.get("animation_height", 0.0))
+	
+	# 3. LAYER 1: Background
+	var bg_rect = TextureRect.new()
+	bg_rect.name = "BgTexture"
+	bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	
+	if is_selected:
+		# Selected: play animation once, then freeze on the last frame
+		if asset_animation != "" and ResourceLoader.exists(asset_animation):
+			var frames: Resource = ResourceLoader.load(asset_animation, "", ResourceLoader.CACHE_MODE_REUSE)
+			if frames is SpriteFrames:
+				var anim = AnimatedSprite2D.new()
+				anim.centered = true
+				anim.position = _ship_card_size / 2.0
+				# Scale down to fit card size
+				var frame_data: SpriteFrames = frames as SpriteFrames
+				var first_anim_nm: StringName = _get_first_spriteframes_animation(frame_data)
+				
+				# Determine source size for scaling: use config if present, else texture size
+				var src_size := Vector2.ZERO
+				if anim_w_cfg > 0.0 and anim_h_cfg > 0.0:
+					src_size = Vector2(anim_w_cfg, anim_h_cfg)
+				else:
+					var first_tex: Texture2D = _get_spriteframes_first_frame(frame_data)
+					if first_tex:
+						src_size = first_tex.get_size()
+				
+				if src_size.x > 0 and src_size.y > 0:
+					var fit_scale := minf(_ship_card_size.x / src_size.x, _ship_card_size.y / src_size.y)
+					anim.scale = Vector2(fit_scale, fit_scale)
+				
+				bg_rect.add_child(anim)
+				var selected_anim_name: StringName = &"default"
+				if first_anim_nm != &"":
+					selected_anim_name = first_anim_nm
+				VFXManager.play_sprite_frames(
+					anim,
+					frame_data,
+					selected_anim_name,
+					anim_loop_cfg,
+					anim_duration_cfg
+				)
+		else:
+			# Fallback: use asset_selected PNG if no animation
+			if asset_selected != "" and ResourceLoader.exists(asset_selected):
+				bg_rect.texture = ResourceLoader.load(asset_selected, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+	else:
+		if asset_unselected != "" and ResourceLoader.exists(asset_unselected):
+			bg_rect.texture = ResourceLoader.load(asset_unselected, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+	card.add_child(bg_rect)
+	
+	# 4. LAYER 2: Ship Visual
+	var icon_wrapper := Control.new()
+	icon_wrapper.name = "IconWrapper"
+	icon_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_wrapper.custom_minimum_size = _ship_card_size
+	icon_wrapper.pivot_offset = _ship_card_size / 2.0
+	card.add_child(icon_wrapper) 
+	
+	var visual: Dictionary = ship_data.get("visual", {})
+	var visual_asset: String = str(visual.get("asset", ""))
+	var visual_anim: String = str(visual.get("asset_anim", ""))
+	var visual_anim_duration: float = maxf(0.0, float(visual.get("asset_anim_duration", 0.0)))
+	var visual_anim_loop: bool = bool(visual.get("asset_anim_loop", true))
+	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {})
+	var ship_sel_cfg: Dictionary = ship_menu_cfg.get("ship_selection", {}) if ship_menu_cfg.get("ship_selection") is Dictionary else {}
+	var allow_animated: bool = bool(ship_sel_cfg.get("animated", true))
+	
+	var icon_rect := TextureRect.new()
+	icon_rect.name = "ShipIcon"
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	icon_wrapper.add_child(icon_rect)
+	
+	var asset_res: Resource = null
+	if visual_asset != "" and ResourceLoader.exists(visual_asset):
+		asset_res = ResourceLoader.load(visual_asset, "", ResourceLoader.CACHE_MODE_REUSE)
+	
+	var static_texture: Texture2D = null
+	if asset_res is Texture2D:
+		static_texture = asset_res as Texture2D
+	
+	var anim_frames: SpriteFrames = null
+	if asset_res is SpriteFrames:
+		anim_frames = asset_res as SpriteFrames
+	elif visual_anim != "" and ResourceLoader.exists(visual_anim):
+		var anim_res: Resource = ResourceLoader.load(visual_anim, "", ResourceLoader.CACHE_MODE_REUSE)
+		if anim_res is SpriteFrames:
+			anim_frames = anim_res as SpriteFrames
+	
+	var has_animated_icon := false
+	var first_anim_name: StringName = _get_first_spriteframes_animation(anim_frames)
+	var first_frame_tex: Texture2D = _get_spriteframes_first_frame(anim_frames)
+	
+	if allow_animated and anim_frames != null and first_anim_name != &"":
+		has_animated_icon = true
+		var anim_sprite := AnimatedSprite2D.new()
+		anim_sprite.name = "ShipIconAnim"
+		anim_sprite.centered = true
+		anim_sprite.position = _ship_card_size / 2.0
+		VFXManager.play_sprite_frames(
+			anim_sprite,
+			anim_frames,
+			first_anim_name,
+			visual_anim_loop,
+			visual_anim_duration
+		)
+		if first_frame_tex:
+			var f_size = first_frame_tex.get_size()
+			if f_size.x > 0.0 and f_size.y > 0.0:
+				var fit_scale := minf(_ship_card_size.x / f_size.x, _ship_card_size.y / f_size.y) * 0.8
+				anim_sprite.scale = Vector2(fit_scale, fit_scale)
+		icon_wrapper.add_child(anim_sprite)
+	
+	icon_rect.visible = not has_animated_icon
+	if not has_animated_icon:
+		if static_texture:
+			icon_rect.texture = static_texture
+		elif first_frame_tex:
+			icon_rect.texture = first_frame_tex
+		
+	# Tint the ship icon if locked
+	if not is_unlocked:
+		icon_wrapper.modulate = Color(0.2, 0.2, 0.2, 1)
+
+	# Ensure LockOverlay stays on top
+	var lock_overlay = card.get_node_or_null("LockOverlay")
+	if lock_overlay:
+		card.move_child(lock_overlay, card.get_child_count() - 1)
+
 
 func _get_first_spriteframes_animation(frames: SpriteFrames) -> StringName:
 	if frames == null:
@@ -1491,27 +1589,24 @@ func _on_ship_card_pressed(ship_id: String) -> void:
 	if ship_id == selected_ship_id:
 		return
 	
-	selected_ship_id = ship_id
-	
 	var unlocked_ids := ProfileManager.get_unlocked_ships()
 	
 	# Si verrouillé, ouvrir le popup de déverrouillage
 	if not unlocked_ids.has(ship_id):
+		selected_ship_id = ship_id
 		_on_ship_unlock_pressed()
 		return
 	
-	# Vaisseau débloqué : on le sélectionne activement
-	ProfileManager.set_active_ship(ship_id)
-	
-	# Re-render pour mettre à jour les visuels
-	_load_ships()
-	_update_ship_info(ship_id)
-	
-	
-	# Mettre à jour les slots et inventaire pour ce vaisseau
-	_update_slot_buttons()
-	_update_inventory_grid()
-	_update_locking_ui(selected_ship_id)
+	# Trouver l'index du vaisseau
+	var target_idx := -1
+	for i in range(_ship_items.size()):
+		if _ship_items[i]["ship_id"] == ship_id:
+			target_idx = i
+			break
+			
+	if target_idx >= 0:
+		ProfileManager.set_active_ship(ship_id)
+		_snap_to_ship_index(target_idx, true, true)
 
 func _show_purchase_overlay(ship_id: String) -> void:
 	var ship_data := DataManager.get_ship(ship_id)
@@ -1689,9 +1784,9 @@ func _on_ship_unlock_pressed() -> void:
 	var price := int(ship.get("crystal_price", 0))
 
 	# Hide the static title from the .tscn to avoid duplication
-	var popup_title: Label = unlock_popup.get_node_or_null("MarginContainer/VBox/Title")
-	if popup_title:
-		popup_title.visible = false
+	var _popup_title_node: Label = unlock_popup.get_node_or_null("MarginContainer/VBox/Title")
+	if _popup_title_node:
+		_popup_title_node.visible = false
 
 	unlock_popup.visible = true
 	unlock_message.text = "Débloquer ce vaisseau pour " + str(price) + " cristaux ?"
@@ -1770,6 +1865,16 @@ func _create_slot_buttons() -> void:
 			var card = ItemCardScene.instantiate()
 			card.custom_minimum_size = _item_card_size
 			card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			
+			# Keep swipe scrolling active even when dragging on equipment cards.
+			# Mirror the touch behavior used for inventory cards.
+			var card_content := card.get_node_or_null("Content")
+			if card_content is Control:
+				card_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var card_button := card.get_node_or_null("Button")
+			if card_button is Control:
+				card_button.mouse_filter = Control.MOUSE_FILTER_PASS
 			
 			var ship_opts: Dictionary = _game_config.get("ship_options", {})
 			var config = {
@@ -1854,17 +1959,21 @@ func _update_inventory_grid() -> void:
 			
 	# Pagination
 	var start_idx := current_page * items_per_page
-	var end_idx: int = int(min(start_idx + items_per_page, filtered.size()))
 	
 	# Mettre à jour le label
 	inventory_label.text = LocaleManager.translate("ship_menu_inventory")
 	
-	# Créer les cartes d'items pour la page courante
-	for i in range(start_idx, end_idx):
-		var item: Dictionary = filtered[i]
-		var card := _create_item_card(item)
-		inventory_grid.add_child(card)
-		inventory_cards.append(card)
+	# Toujours 12 emplacements par page (4×3). Item à l'index ou placeholder (frame_common 0.4).
+	for i in range(items_per_page):
+		var item_idx := start_idx + i
+		if item_idx < filtered.size():
+			var item: Dictionary = filtered[item_idx]
+			var card := _create_item_card(item)
+			inventory_grid.add_child(card)
+			inventory_cards.append(card)
+		else:
+			var placeholder := _create_inventory_placeholder()
+			inventory_grid.add_child(placeholder)
 	
 	_update_page_label()
 	if inventory_grid: _fix_mobile_scroll_recursive(inventory_grid)
@@ -1874,7 +1983,7 @@ func _create_item_card(item: Dictionary) -> Control:
 	var card = ItemCardScene.instantiate()
 	card.custom_minimum_size = _item_card_size
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# Prepare config for ItemCard
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
@@ -1894,7 +2003,7 @@ func _create_item_card(item: Dictionary) -> Control:
 	# Keep swipe scrolling active even when dragging on card content.
 	var card_content := card.get_node_or_null("Content")
 	if card_content is Control:
-		card_content.mouse_filter = Control.MOUSE_FILTER_PASS
+		card_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var card_button := card.get_node_or_null("Button")
 	if card_button is Control:
 		card_button.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1903,6 +2012,20 @@ func _create_item_card(item: Dictionary) -> Control:
 	card.card_pressed.connect(_on_card_pressed)
 	
 	return card
+
+func _create_inventory_placeholder() -> Control:
+	var frame_path: String = str(_game_config.get("rarity_frames", {}).get("common", ""))
+	if frame_path == "" or not ResourceLoader.exists(frame_path):
+		frame_path = "res://assets/ui/frames/frame_common.png"
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = _item_card_size
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxTexture.new()
+	style.texture = load(frame_path)
+	panel.add_theme_stylebox_override("panel", style)
+	panel.modulate = Color(1.0, 1.0, 1.0, 0.4)
+	return panel
 
 func _on_card_pressed(item_id: String, slot_id: String) -> void:
 	# From Inventory -> Not equipped
@@ -3505,6 +3628,11 @@ func _load_game_config() -> void:
 
 func _apply_menu_header_offset() -> void:
 	if margin_container == null:
+		return
+	var ship_cfg: Dictionary = _game_config.get("ship_menu", {}) if _game_config.get("ship_menu") is Dictionary else {}
+	var content_margin_top: Variant = ship_cfg.get("content_margin_top", null)
+	if content_margin_top != null:
+		margin_container.add_theme_constant_override("margin_top", int(content_margin_top))
 		return
 	var h: Variant = _game_config.get("menu_header", {})
 	if h is Dictionary:

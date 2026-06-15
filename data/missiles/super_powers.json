@@ -48,7 +48,7 @@
 				"damage": 58,
 				"despawn_after_sec": 3.5,
 				"color": "#56E0FF",
-				"asset": "res://assets/missiles/blue_energy_burst.tres"
+				"asset": "res://assets/missiles/blue_energy.tres"
 			}
 		},
 		{

@@ -9,10 +9,6 @@ extends Node
 
 const PROJECTILE_SCENE := preload("res://scenes/Projectile.tscn")
 
-const POOL_SIZE_PLAYER: int = 200
-const POOL_SIZE_ENEMY: int = 200
-const ENEMY_POOL_EXPAND_STEP: int = 64
-
 var _player_pool: Array = []
 var _enemy_pool: Array = []
 
@@ -34,21 +30,27 @@ func set_container(container: Node2D) -> void:
 	_projectile_container = container
 
 func _init_pools() -> void:
+	var cfg: Dictionary = {}
+	if DataManager:
+		cfg = DataManager.get_game_config().get("projectile_pools", {})
+	var pool_player: int = int(cfg.get("pool_size_player", 200))
+	var pool_enemy: int = int(cfg.get("pool_size_enemy", 200))
+	pool_player = maxi(1, pool_player)
+	pool_enemy = maxi(1, pool_enemy)
+
 	# Pool joueur
-	for i in range(POOL_SIZE_PLAYER):
+	for i in range(pool_player):
 		var projectile := PROJECTILE_SCENE.instantiate()
 		projectile.is_player_projectile = true
 		projectile.projectile_deactivated.connect(_on_projectile_deactivated)
 		_player_pool.append(projectile)
-	
+
 	# Pool ennemis
-	for i in range(POOL_SIZE_ENEMY):
+	for i in range(pool_enemy):
 		var projectile := PROJECTILE_SCENE.instantiate()
 		projectile.is_player_projectile = false
 		projectile.projectile_deactivated.connect(_on_projectile_deactivated)
 		_enemy_pool.append(projectile)
-	
-	print("[ProjectileManager] Pools created: Player=", POOL_SIZE_PLAYER, ", Enemy=", POOL_SIZE_ENEMY)
 
 func set_enemy_projectile_speed_multiplier(multiplier: float) -> void:
 	_enemy_projectile_speed_multiplier = maxf(0.0, multiplier)
@@ -94,7 +96,9 @@ func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, dam
 
 func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, damage: int, pattern_data: Dictionary = {}) -> void:
 	if _enemy_pool.is_empty():
-		_expand_enemy_pool(ENEMY_POOL_EXPAND_STEP)
+		var cfg: Dictionary = DataManager.get_game_config().get("projectile_pools", {}) if DataManager else {}
+		var expand_step: int = maxi(1, int(cfg.get("enemy_pool_expand_step", 64)))
+		_expand_enemy_pool(expand_step)
 		if _enemy_pool.is_empty():
 			var now_ms: int = Time.get_ticks_msec()
 			if now_ms - _last_enemy_pool_warning_ms > 1000:

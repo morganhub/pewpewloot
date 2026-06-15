@@ -14,7 +14,6 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var language_label: Label = $MarginContainer/VBoxContainer/LanguageSection/LanguageLabel
 @onready var language_dropdown: OptionButton = $MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown
 
-@onready var sound_label: Label = $MarginContainer/VBoxContainer/SoundSection/SoundLabel
 @onready var music_label: Label = $MarginContainer/VBoxContainer/SoundSection/MusicBox/Label
 @onready var music_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/MusicBox/MusicSlider
 @onready var sfx_label: Label = $MarginContainer/VBoxContainer/SoundSection/SFXBox/Label
@@ -23,11 +22,10 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var screenshake_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/ScreenShakeBox/ScreenShakeCheckbox
 @onready var health_values_label: Label = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/Label
 @onready var health_values_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/HealthValuesCheckbox
-@onready var debug_label: Label = $MarginContainer/VBoxContainer/DebugSection/DebugLabel
 @onready var debug_mode_label: Label = $MarginContainer/VBoxContainer/DebugSection/DebugModeBox/Label
 @onready var debug_mode_checkbox: Button = $MarginContainer/VBoxContainer/DebugSection/DebugModeBox/DebugModeCheckbox
 @onready var story_label: Label = $MarginContainer/VBoxContainer/StorySection/StoryLabel
-@onready var reset_stories_button: Button = $MarginContainer/VBoxContainer/StorySection/ResetStoriesBox/ResetStoriesButton
+@onready var reset_stories_button: Button = $MarginContainer/VBoxContainer/StorySection/ResetStoriesButton
 
 var _game_config: Dictionary = {}
 
@@ -38,8 +36,15 @@ var _game_config: Dictionary = {}
 func _ready() -> void:
 	_load_game_config()
 	_setup_background()
+	_setup_fonts()
 	_setup_language_dropdown()
 	_apply_dropdown_style(language_dropdown)
+	# Taille du popup langue = même que le label "Langue"
+	var opts_cfg: Dictionary = _game_config.get("options_menu", {})
+	var content_sz: int = int(opts_cfg.get("title_text_size", 24))
+	var lang_popup: PopupMenu = language_dropdown.get_popup() if language_dropdown else null
+	if lang_popup:
+		lang_popup.add_theme_font_size_override("font_size", content_sz)
 	_setup_audio_sliders()
 	_setup_screenshake_toggle()
 	_setup_health_values_toggle()
@@ -95,6 +100,22 @@ func _setup_background() -> void:
 		if background_rect:
 			background_rect.visible = false
 
+func _setup_fonts() -> void:
+	var cfg: Dictionary = _game_config.get("options_menu", {})
+	var content_font_size: int = int(cfg.get("title_text_size", 24))  # même taille que "Langue" pour tout le contenu
+	if language_label: language_label.add_theme_font_size_override("font_size", content_font_size)
+	if story_label: story_label.add_theme_font_size_override("font_size", content_font_size)
+	if music_label: music_label.add_theme_font_size_override("font_size", content_font_size)
+	if sfx_label: sfx_label.add_theme_font_size_override("font_size", content_font_size)
+	if screenshake_label: screenshake_label.add_theme_font_size_override("font_size", content_font_size)
+	if health_values_label: health_values_label.add_theme_font_size_override("font_size", content_font_size)
+	if debug_mode_label: debug_mode_label.add_theme_font_size_override("font_size", content_font_size)
+	if language_dropdown: language_dropdown.add_theme_font_size_override("font_size", content_font_size)
+	if reset_stories_button: reset_stories_button.add_theme_font_size_override("font_size", content_font_size)
+	if screenshake_checkbox: screenshake_checkbox.add_theme_font_size_override("font_size", content_font_size)
+	if health_values_checkbox: health_values_checkbox.add_theme_font_size_override("font_size", content_font_size)
+	if debug_mode_checkbox: debug_mode_checkbox.add_theme_font_size_override("font_size", content_font_size)
+
 func _setup_language_dropdown() -> void:
 	# Sync dropdown selection with current locale
 	var current_locale := LocaleManager.get_locale()
@@ -129,9 +150,13 @@ func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 
 	var hover_style := StyleBoxFlat.new()
 	hover_style.bg_color = Color(dropdown_cfg.get("highlight_bg_color", "#FFD700"))
-	var item_text := Color(dropdown_cfg.get("item_text_color", "#000000"))
-	var hover_text := Color(dropdown_cfg.get("highlight_text_color", "#000000"))
-
+	# Texte du popup en blanc, taille lisible
+	var item_text_hex: String = str(dropdown_cfg.get("item_text_color", "#ffffff")).strip_edges()
+	var item_text := Color.from_string(item_text_hex, Color.WHITE)
+	var hover_text_hex: String = str(dropdown_cfg.get("highlight_text_color", "#ffffff")).strip_edges()
+	var hover_text := Color.from_string(hover_text_hex, Color.WHITE)
+	var popup_font_sz: int = int(dropdown_cfg.get("popup_font_size", 22))
+	popup.add_theme_font_size_override("font_size", popup_font_sz)
 	popup.add_theme_stylebox_override("panel", popup_style)
 	popup.add_theme_stylebox_override("hover", hover_style)
 	popup.add_theme_color_override("font_color", item_text)
@@ -178,12 +203,10 @@ func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
 	language_label.text = LocaleManager.translate("options_language")
 	
-	if sound_label: sound_label.text = LocaleManager.translate("options_sound")
 	if music_label: music_label.text = LocaleManager.translate("options_music")
 	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
 	if screenshake_label: screenshake_label.text = LocaleManager.translate("options_screenshake")
 	if health_values_label: health_values_label.text = LocaleManager.translate("options_health_bar_values")
-	if debug_label: debug_label.text = LocaleManager.translate("options_debug")
 	if debug_mode_label: debug_mode_label.text = LocaleManager.translate("options_manual_debug_mode")
 	_refresh_toggle_button_text(screenshake_checkbox, screenshake_checkbox.button_pressed if screenshake_checkbox else false)
 	_refresh_toggle_button_text(health_values_checkbox, health_values_checkbox.button_pressed if health_values_checkbox else false)

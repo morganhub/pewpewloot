@@ -1,6 +1,6 @@
 # PewPewLoot - Product & Technical Status
 
-Derniere mise a jour: 14 fevrier 2026  
+Derniere mise a jour: 20 mars 2026  
 Cible: Android (portrait), Godot 4.x, 60 FPS stables
 
 ## 1. Concept du jeu (version propre)
@@ -92,7 +92,7 @@ Changement structurel applique:
 - Le pattern choisi est applique a tous les spawns de la wave en cours.
 - Position de spawn ennemie randomisee sur le haut de l'ecran.
 
-## 6. HUD run: indicateur de vague
+## 6. HUD run: indicateur de vague + UI powers
 Ajout recent:
 - Indicateur sous la barre de shield en haut gauche.
 - Format localise: `Vague X/Y` ou `Wave X/Y`.
@@ -103,7 +103,14 @@ Implementation:
 - Update `X` via signal `wave_started`.
 - Passage a `X=Y` au spawn du boss.
 
-## 7. Robustesse fin de run (bug double popup corrige)
+UI powers (data-driven):
+- Boutons `power` et `unique power` (rayon identique configurable) + cercle de cooldown configurables via `data/game.json` (`gameplay.power_buttons`).
+- Le cercle de cooldown peut etre place sur une couche au-dessus (visuel au-dessus mais interaction preservee).
+
+Popup protocoles (mobile):
+- `LevelSelect`: la selection par tap ne doit pas interrompre le scroll (tap/drag distingues au niveau de la scene, coordonnees globales).
+
+## 7. Robustesse fin de run (bug double popup corrige + invincibilite/overlays)
 Bug corrige:
 - Cas ou le joueur meurt puis un tir tardif tue le boss.
 - Avant: double flux defaite/victoire possible.
@@ -113,6 +120,15 @@ Correctifs en place:
 - A la mort du joueur, boss force invincible.
 - Verrou de fin de session pour eviter tout double declenchement.
 - Si boss meurt apres mort joueur, la victoire est ignoree.
+
+Invincibilite pendant powers:
+- `PowerManager.execute_power()` active l'invincibilite via `Player.set_invincible()` si `invincibility` est true dans `data/missiles/super_powers.json` et `data/missiles/unique_powers.json`.
+
+Z-index/overlays UI:
+- `PauseMenu` et `LootResultScreen` sont des `CanvasLayer` (layer `20`) pour eviter les soucis de rendu au-dessus du HUD.
+
+LootResultScreen UI (post-run):
+- Taille des apercus loot (boss + session) ajustee a la hausse, et section XP simplifiee (suppression de la ligne de pourcentage + reduction des separations).
 
 ## 8. Background/parallaxe (evolution recente)
 Systeme de layers de fond:
@@ -127,11 +143,19 @@ Ajouts recents:
 Resultat:
 - Possibilite de composer des overlays lumineux sans masquer le fond.
 
-## 9. Projectiles (support assets animes stabilise)
-Correction recente:
+## 9. Projectiles (assets animes + trajectoires + pooling)
+Corrections recentes:
 - Support explicite des `.tres` `SpriteFrames` dans `Projectile.gd`.
 - Fonctionne via `asset_anim` et aussi via `asset` quand c'est un `.tres`.
 - Evite les erreurs de type `get_size()` sur ressource non texture.
+
+Trajectoires: fire_cone par distance:
+- Le pattern `fire_cone` bifurque en direction UP apres une distance parcourue (pas uniquement en temps).
+- Parametres pilotés dans `data/skills.json` pour l'id `fire_cone`: `params.cone_bend_start_distance_px`.
+- Fallback dans `Projectile.gd` si le parametre n'est pas present.
+
+Pooling projectiles:
+- `ProjectileManager` lit `data/game.json.projectile_pools` (pool sizes joueur/ennemis + step d'expansion ennemis).
 
 ## 10. Etat metagame (inventaire/progression/economie)
 Ce qui est operationnel:
@@ -140,6 +164,7 @@ Ce qui est operationnel:
 - Raretes/affixes/uniques, upgrade et recycle.
 - Crystal economy + shop.
 - Options globales (audio, langue, screenshake).
+- `StoryOverlay` (bulles de dialogue): `bubble_font_size` pilote par `data/story.json` (`global_settings`).
 
 ## 11. Architecture data-driven (resume)
 Le runtime lit principalement depuis JSON:
@@ -148,19 +173,9 @@ Le runtime lit principalement depuis JSON:
 - boss: `data/bosses.json`
 - patterns move: `data/patterns/move_patterns.json`
 - missiles/patterns missiles: `data/missiles/*.json` et `data/patterns/missile_patterns_*.json`
+- override protocols: `data/override_protocols.json`
 - loot: `data/loot/*.json`
 - config UI/gameplay: `data/game.json`
-
-## 12. Chantiers ouverts (statut reel)
-Points encore a aligner:
-- Progression post-run: `ProfileManager.complete_level(...)` et unlock monde suivant ne sont pas encore branches dans `Game.gd`.
-- Harmonisation des mondes 2-5: les waves y utilisent encore majoritairement `delay` alors que `WaveManager` attend `time`/`interval`.
-- Equilibrage global a poursuivre: vitesses patterns, densite de feu, economy crystals, cadence de loot.
-- QA mobile/perf a finaliser: stress patterns + FX + collisions sur devices Android mid-range.
-
-## 13. Priorites recommandees (prochain sprint)
-1. Brancher la persistance de progression dans `Game.gd` a la victoire boss.
-2. Migrer `world_2..world_5` vers le schema runtime actuel des waves.
-3. Pass d'equilibrage patterns/waves/boss avec logs de run.
-4. Profiling Android et caps perf definitifs.
+- localisation et textes: `data/locales/*.json`
+- narration: `data/story.json` (+ `data/locales/story_*.json`)
 

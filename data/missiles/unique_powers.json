@@ -14,7 +14,7 @@
                 "waves": 5,
                 "wave_delay": 0.5,
                 "color": "#FF5500",
-                "asset_anim": "res://assets/missiles/orange_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/gradient_energy_burst.tres"
             }
         },
         {
@@ -35,7 +35,7 @@
                 "follow_source": true,
                 "track_player_on_activate": true,
                 "aim_player_on_spawn": true,
-                "asset_anim": "res://assets/missiles/blue_energy_burst.tres",
+                "asset_anim": "res://assets/missiles/blue_energy.tres",
                 "asset_anim_loop": true,
                 "telegraph_color": "#7FE7FF",
                 "active_color": "#00D8FF",
@@ -60,7 +60,7 @@
                 "waves": 3,
                 "wave_delay": 0.25,
                 "color": "#7BC96F",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres",
+                "asset_anim": "res://assets/missiles/green_energy.tres",
                 "safe_zones": {
                     "count": 1,
                     "width_degrees": 30
@@ -81,7 +81,7 @@
                 "waves": 2,
                 "wave_delay": 0.3,
                 "color": "#A17444",
-                "asset_anim": "res://assets/missiles/orange_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/gradient_energy_burst.tres"
             }
         },
         {
@@ -98,7 +98,7 @@
                 "waves": 4,
                 "wave_delay": 0.22,
                 "color": "#9BE75A",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/green_energy.tres"
             }
         },
         {
@@ -115,7 +115,7 @@
                 "waves": 3,
                 "wave_delay": 0.3,
                 "color": "#4DBA87",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/green_energy.tres"
             }
         },
         {
@@ -132,7 +132,7 @@
                 "waves": 4,
                 "wave_delay": 0.35,
                 "color": "#7ED957",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/green_energy.tres"
             }
         },
         {
@@ -149,7 +149,7 @@
                 "waves": 3,
                 "wave_delay": 0.28,
                 "color": "#B8E986",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/green_energy.tres"
             }
         },
         {
@@ -166,7 +166,7 @@
                 "waves": 3,
                 "wave_delay": 0.35,
                 "color": "#8B5A2B",
-                "asset_anim": "res://assets/missiles/orange_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/gradient_energy_burst.tres"
             }
         },
         {
@@ -200,7 +200,7 @@
                 "waves": 3,
                 "wave_delay": 0.27,
                 "color": "#9DCE4A",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/green_energy.tres"
             }
         },
         {
@@ -234,7 +234,7 @@
                 "waves": 4,
                 "wave_delay": 0.2,
                 "color": "#3BC9DB",
-                "asset_anim": "res://assets/missiles/blue_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/blue_energy.tres"
             }
         },
         {
@@ -268,7 +268,7 @@
                 "waves": 5,
                 "wave_delay": 0.3,
                 "color": "#1FAF6C",
-                "asset_anim": "res://assets/missiles/green_energy_burst.tres"
+                "asset_anim": "res://assets/missiles/green_energy.tres"
             }
         }
     ]

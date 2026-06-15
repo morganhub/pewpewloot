@@ -27,6 +27,10 @@ var _max_lifetime: float = 20.0
 var is_critical: bool = false
 var _debug_id: int = 0
 var _first_frame: bool = true
+var _fire_pattern_id: String = ""
+var _cone_bend_start_distance_px: float = 100.0
+const CONE_BEND_PATTERN_ID: String = "fire_cone"
+const CONE_BEND_DURATION_SEC: float = 0.7
 
 # New: Acceleration & Explosion
 var _acceleration: float = 0.0
@@ -41,6 +45,7 @@ var _spiral_last_position: Vector2 = Vector2.ZERO
 const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.tscn")
 const SINGULARITY_SCENE: PackedScene = preload("res://scenes/effects/Singularity.tscn")
 const STRONG_RESOURCE_CACHE_MAX: int = 256
+const PLAYER_TOP_DESPAWN_MARGIN_PX: float = 6.0
 static var _strong_resource_cache: Dictionary = {} # path -> Resource
 static var _first_frame_texture_cache: Dictionary = {} # frame_key -> Texture2D
 
@@ -87,6 +92,8 @@ func activate(pos: Vector2, dir: Vector2, spd: float, dmg: int, pattern_data: Di
 	speed = spd
 	damage = dmg
 	_pattern_data = pattern_data
+	_fire_pattern_id = str(pattern_data.get("fire_pattern_id", ""))
+	_cone_bend_start_distance_px = maxf(0.0, float(pattern_data.get("cone_bend_start_distance_px", 100.0)))
 	_time_alive = 0.0
 	_spawn_position = pos
 	_spiral_last_position = pos
@@ -410,6 +417,11 @@ func _process(delta: float) -> void:
 			_move_homing(delta)
 		_:
 			_move_straight(delta)
+
+	# Player projectiles lose all power as soon as they leave the top screen boundary.
+	if is_player_projectile and _is_above_top_screen_limit():
+		deactivate("player_offscreen_top")
+		return
 	
 	# Check hors écran (Marge plus large pour laisser les projectiles "infinis" traverser tout l'espace possible)
 	var viewport_size := get_viewport_rect().size
@@ -427,6 +439,15 @@ func _process(delta: float) -> void:
 # =============================================================================
 
 func _move_straight(delta: float) -> void:
+	# Special case: player fire_cone pattern — start in cone, then bend smoothly upward after X px traveled.
+	if is_player_projectile and _fire_pattern_id == CONE_BEND_PATTERN_ID:
+		var dist_traveled: float = _spawn_position.distance_to(global_position)
+		if dist_traveled >= _cone_bend_start_distance_px:
+			var target_dir: Vector2 = Vector2.UP
+			var t: float = minf(1.0, delta / CONE_BEND_DURATION_SEC)
+			direction = direction.lerp(target_dir, t).normalized()
+			rotation = direction.angle() + PI / 2
+
 	global_position += direction * speed * delta
 
 func _move_sine_wave(delta: float) -> void:
@@ -439,7 +460,7 @@ func _move_sine_wave(delta: float) -> void:
 	
 	global_position += base_move + wave_offset
 
-func _move_spiral(delta: float) -> void:
+func _move_spiral(_delta: float) -> void:
 	var rotation_speed_deg: float = float(_pattern_data.get("rotation_speed", 180.0))
 	var helix_amplitude: float = maxf(0.0, float(_pattern_data.get("helix_amplitude", _pattern_data.get("amplitude", 42.0))))
 	var helix_forward_speed_scale: float = maxf(0.05, float(_pattern_data.get("helix_forward_speed_scale", 1.0)))
@@ -498,6 +519,9 @@ func _on_body_entered(body: Node2D) -> void:
 	
 	# Projectile joueur touche ennemi
 	if is_player_projectile and body.is_in_group("enemies"):
+		if not _is_target_on_screen(body):
+			deactivate("offscreen_target")
+			return
 		if body.has_method("take_damage"):
 			body.take_damage(damage, is_critical)
 		# Apply skill tree on-hit effects
@@ -542,15 +566,27 @@ func _on_body_entered(body: Node2D) -> void:
 		deactivate()
 
 func _spawn_explosion() -> void:
-	if _explosion_data.is_empty():
+	var explosion_cfg: Dictionary = _explosion_data.duplicate(true)
+	if is_player_projectile:
+		explosion_cfg = _apply_player_impact_override(explosion_cfg)
+
+	if explosion_cfg.is_empty():
 		return
 	
-	var size_val: float = float(_explosion_data.get("size", 20))
-	var anim_path: String = str(_explosion_data.get("asset_anim", ""))
-	var anim_duration: float = maxf(0.0, float(_explosion_data.get("asset_anim_duration", 0.0)))
-	var anim_loop: bool = bool(_explosion_data.get("asset_anim_loop", false))
-	var asset_path: String = str(_explosion_data.get("asset", ""))
-	var color_hex: String = str(_explosion_data.get("color", "#FFAA00"))
+	var size_val: float = float(explosion_cfg.get("size", 20))
+	var anim_path: String = str(explosion_cfg.get("asset_anim", ""))
+	var anim_duration: float = maxf(0.0, float(explosion_cfg.get("asset_anim_duration", 0.0)))
+	var anim_loop: bool = bool(explosion_cfg.get("asset_anim_loop", false))
+	var asset_path: String = str(explosion_cfg.get("asset", ""))
+	var color_hex: String = str(explosion_cfg.get("color", "#FFAA00"))
+	var fade_out_duration: float = maxf(0.05, float(explosion_cfg.get("fade_out_duration", 0.3)))
+	var fade_in_duration: float = maxf(0.0, float(explosion_cfg.get("fade_in_duration", 0.0)))
+	var scale_start: float = maxf(0.01, float(explosion_cfg.get("scale_start", 1.0)))
+	var scale_middle: float = maxf(0.01, float(explosion_cfg.get("scale_middle", 1.0)))
+	var scale_end: float = maxf(0.01, float(explosion_cfg.get("scale_end", 1.0)))
+	var scale_middle_ratio: float = clampf(float(explosion_cfg.get("scale_middle_ratio", 0.45)), 0.05, 0.95)
+	var target_width: float = float(explosion_cfg.get("width", -1.0))
+	var target_height: float = float(explosion_cfg.get("height", -1.0))
 	
 	# Priority: asset_anim > asset > geometric (color)
 	VFXManager.spawn_explosion(
@@ -561,17 +597,39 @@ func _spawn_explosion() -> void:
 		asset_path,
 		anim_path,
 		-1.0,
-		0.3,
+		fade_out_duration,
 		anim_duration,
-		anim_loop
+		anim_loop,
+		fade_in_duration,
+		scale_start,
+		scale_middle,
+		scale_end,
+		scale_middle_ratio,
+		target_width,
+		target_height
 	)
 	
 	# Fluid explosion burst
-	var explosion_fluid: String = str(_explosion_data.get("fluid_id", ""))
+	var explosion_fluid: String = str(explosion_cfg.get("fluid_id", ""))
 	if explosion_fluid == "":
 		explosion_fluid = DataManager.get_default_explosion_fluid_id()
 	if explosion_fluid != "":
 		FluidManager.emit_explosion(global_position, explosion_fluid)
+
+func _apply_player_impact_override(base_cfg: Dictionary) -> Dictionary:
+	var explosions_cfg: Dictionary = DataManager.get_explosions_config() if DataManager else {}
+	var override_v: Variant = explosions_cfg.get("player_missile_impact", {})
+	if not (override_v is Dictionary):
+		return base_cfg
+	var override_cfg: Dictionary = override_v as Dictionary
+	if override_cfg.is_empty():
+		return base_cfg
+	var out: Dictionary = base_cfg.duplicate(true)
+	for key in override_cfg.keys():
+		out[str(key)] = override_cfg[key]
+	# Player impact explosions are always one-shot.
+	out["asset_anim_loop"] = false
+	return out
 
 func _on_area_entered(area: Area2D) -> void:
 	# Collision avec les murs (Obstacle Waller)
@@ -829,3 +887,17 @@ func _build_frame_cache_key(frames: SpriteFrames, anim_name: StringName) -> Stri
 	if path == "":
 		path = "rid:" + str(frames.get_rid().get_id())
 	return path + "|" + String(anim_name)
+
+func _world_to_screen(world_position: Vector2) -> Vector2:
+	var canvas_xform: Transform2D = get_viewport().get_canvas_transform()
+	return canvas_xform * world_position
+
+func _is_target_on_screen(target: Node2D) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	var viewport_rect := Rect2(Vector2.ZERO, get_viewport_rect().size)
+	return viewport_rect.has_point(_world_to_screen(target.global_position))
+
+func _is_above_top_screen_limit() -> bool:
+	var screen_pos: Vector2 = _world_to_screen(global_position)
+	return screen_pos.y < -PLAYER_TOP_DESPAWN_MARGIN_PX

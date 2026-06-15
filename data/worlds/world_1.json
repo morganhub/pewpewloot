@@ -13,12 +13,24 @@
 			"elite": "res://assets/enemies/forest/elite.tres"
 		},
 		"bosses": {
-			"boss_atlantis_1": "res://assets/bosses/forest/forest_boss_1.tres",
-			"boss_atlantis_2": "res://assets/bosses/forest/forest_boss_2.tres",
-			"boss_atlantis_3": "res://assets/bosses/forest/forest_boss_3.tres",
-			"boss_atlantis_4": "res://assets/bosses/forest/forest_boss_4.tres",
-			"boss_atlantis_5": "res://assets/bosses/forest/forest_boss_5.tres",
-			"boss_atlantis_final": "res://assets/bosses/forest/forest_boss_final.tres"
+			"boss_forest_1": "res://assets/bosses/forest/boss_1.tres",
+			"boss_forest_1_animation_duration": 2.0,
+			"boss_forest_1_animation_frequency": 8.0,
+			"boss_forest_2": "res://assets/bosses/forest/boss_2.tres",
+			"boss_forest_2_animation_duration": 2.0,
+			"boss_forest_2_animation_frequency": 8.0,
+			"boss_forest_3": "res://assets/bosses/forest/boss_3.tres",
+			"boss_forest_3_animation_duration": 2.0,
+			"boss_forest_3_animation_frequency": 8.0,
+			"boss_forest_4": "res://assets/bosses/forest/boss_4.tres",
+			"boss_forest_4_animation_duration": 2.0,
+			"boss_forest_4_animation_frequency": 8.0,
+			"boss_forest_5": "res://assets/bosses/forest/boss_5.tres",
+			"boss_forest_5_animation_duration": 2.0,
+			"boss_forest_5_animation_frequency": 8.0,
+			"boss_forest_final": "res://assets/bosses/forest/boss_final.tres",
+			"boss_forest_final_animation_duration": 2.0,
+			"boss_forest_final_animation_frequency": 8.0
 		},
 		"obstacles": {
 			"explosives": [
@@ -34,9 +46,13 @@
 		"damage": 1.0,
 		"speed": 1.0
 	},
+	"wave_runtime_defaults": {
+		"force_duration_sec": 20.0,
+		"enemy_max_spawns_per_wave": 220,
+		"enemy_target_interval_sec": 0.37
+	},
 	"theme": {
-		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
-		"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_world.jpg",
+		"background": "res://assets/backgrounds/worlds/forest/level_0.jpg",
 		"music": "res://assets/music/forest/forest_music.ogg",
 		"color_palette": "#2d5a27"
 	},
@@ -46,24 +62,33 @@
 			"id": "world_1_lvl_0",
 			"name": "Lisière",
 			"type": "normal",
-			"duration_sec": 60,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/forest/level_0.jpg",
-				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_0.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/forest/level_0.jpg",
 				"near_layer": []
 			},
 			"waves": [
-				{ 
-					"time": 1.1,
+				{
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 100.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "",
+					"path_asset_override": ""
+				},
+				{
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 25.0,
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
+					"speed": 180,
+					"gap_width": 100,
+					"row_interval": 0.4,
+					"drift_speed": 22,
 					"drift_directions": [
 						"SW",
 						"S",
@@ -71,25 +96,27 @@
 					]
 				},
 				{
-					"time": 12.7,
 					"enemy_id": "fighter",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 18.4,
-					"enemy_id": "swarmer",
-					"count": 20,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 100.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+					"path_asset_override": "res://assets/missiles/blue_energy.tres"
 				},
 				{
-					"time": 26.1,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_large",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 170,
 					"gap_width": 190,
 					"row_interval": 1.2,
@@ -101,70 +128,65 @@
 					]
 				},
 				{
-					"time": 33.9,
 					"enemy_id": "swarmer",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 41.6,
 					"enemy_id": "fighter",
-					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 49.3,
 					"enemy_id": "swarmer",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_forest_1"
+			"boss_id": "boss_forest_1",
+			"score_1star": 2150,
+			"score_2stars": 3500,
+			"score_3stars": 4900
 		},
 		{
 			"index": 1,
 			"id": "world_1_lvl_1",
 			"name": "Sous-bois",
 			"type": "normal",
-			"duration_sec": 80,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/forest/level_1.jpg",
-				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_1.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/forest/level_1.jpg",
 				"near_layer": []
 			},
 			"waves": [
 				{
-					"time": 3.0,
 					"enemy_id": "swarmer",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 10.4,
 					"enemy_id": "fighter",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 17.8,
-					"enemy_id": "swarmer",
-					"count": 12,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 120.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+					"path_asset_override": "res://assets/missiles/blue_energy.tres"
 				},
 				{
-					"time": 25.2,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "rain",
-					"duration": 15.0,
 					"speed": 180,
 					"gap_width": 160,
 					"row_interval": 1.0,
@@ -176,32 +198,24 @@
 					]
 				},
 				{
-					"time": 32.6,
 					"enemy_id": "fighter",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 40.0,
 					"enemy_id": "fighter",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 47.4,
 					"enemy_id": "swarmer",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 54.8,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 110,
 					"gap_width": 220,
 					"row_interval": 2.0,
@@ -213,22 +227,21 @@
 					]
 				},
 				{
-					"time": 62.2,
 					"enemy_id": "tank",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 69.6,
 					"enemy_id": "swarmer",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_forest_2"
+			"boss_id": "boss_forest_2",
+			"score_1star": 3100,
+			"score_2stars": 5100,
+			"score_3stars": 7050
 		},
 		{
 			"index": 2,
@@ -236,41 +249,39 @@
 			"name": "Zone minée",
 			"type": "normal",
 			"story_id": "story_world_1_lvl_2",
-			"duration_sec": 150,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/forest/level_2.jpg",
-				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_2.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/forest/level_2.jpg",
 				"near_layer": []
 			},
 			"waves": [
 				{
-					"time": 3.0,
 					"enemy_id": "fighter",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 10.2,
 					"enemy_id": "tank",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 17.5,
-					"enemy_id": "fighter",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 120.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+					"path_asset_override": "res://assets/missiles/blue_energy.tres"
 				},
 				{
-					"time": 24.7,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 110,
 					"gap_width": 220,
 					"row_interval": 2.0,
@@ -282,32 +293,24 @@
 					]
 				},
 				{
-					"time": 31.9,
 					"enemy_id": "tank",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 39.2,
 					"enemy_id": "swarmer",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 46.4,
 					"enemy_id": "fighter",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 53.6,
 					"type": "obstacle",
 					"obstacle_id": "debris_small",
 					"pattern": "rain",
-					"duration": 15.0,
 					"speed": 200,
 					"gap_width": 150,
 					"row_interval": 0.8,
@@ -319,32 +322,24 @@
 					]
 				},
 				{
-					"time": 60.8,
 					"enemy_id": "tank",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 68.1,
 					"enemy_id": "artillery",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 75.3,
 					"enemy_id": "fighter",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 82.5,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "rain",
-					"duration": 15.0,
 					"speed": 180,
 					"gap_width": 160,
 					"row_interval": 1.0,
@@ -356,56 +351,55 @@
 					]
 				},
 				{
-					"time": 89.8,
 					"enemy_id": "swarmer",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_forest_3"
+			"boss_id": "boss_forest_3",
+			"score_1star": 5350,
+			"score_2stars": 8750,
+			"score_3stars": 12150
 		},
 		{
 			"index": 3,
 			"id": "world_1_lvl_3",
 			"name": "Marécage",
 			"type": "normal",
-			"duration_sec": 120,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/forest/level_3.jpg",
-				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_3.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/forest/level_3.jpg",
 				"near_layer": []
 			},
 			"waves": [
 				{
-					"time": 3.0,
 					"enemy_id": "fighter",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 10.6,
 					"enemy_id": "tank",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 18.2,
-					"enemy_id": "artillery",
-					"count": 12,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 120.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+					"path_asset_override": "res://assets/missiles/blue_energy.tres"
 				},
 				{
-					"time": 25.8,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 110,
 					"gap_width": 220,
 					"row_interval": 2.0,
@@ -417,32 +411,24 @@
 					]
 				},
 				{
-					"time": 33.4,
 					"enemy_id": "elite",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 41.0,
 					"enemy_id": "fighter",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 48.6,
 					"enemy_id": "tank",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 56.2,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 170,
 					"gap_width": 190,
 					"row_interval": 1.2,
@@ -454,32 +440,24 @@
 					]
 				},
 				{
-					"time": 63.8,
 					"enemy_id": "artillery",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 71.4,
 					"enemy_id": "fighter",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 79.0,
 					"enemy_id": "tank",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 86.6,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 170,
 					"gap_width": 190,
 					"row_interval": 1.2,
@@ -491,70 +469,65 @@
 					]
 				},
 				{
-					"time": 94.2,
 					"enemy_id": "swarmer",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 101.8,
 					"enemy_id": "fighter",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 109.4,
 					"enemy_id": "swarmer",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_forest_4"
+			"boss_id": "boss_forest_4",
+			"score_1star": 7200,
+			"score_2stars": 11800,
+			"score_3stars": 16400
 		},
 		{
 			"index": 4,
 			"id": "world_1_lvl_4",
 			"name": "Cœur de la Forêt",
 			"type": "normal",
-			"duration_sec": 140,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/forest/level_4.jpg",
-				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_4.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/forest/level_4.jpg",
 				"near_layer": []
 			},
 			"waves": [
 				{
-					"time": 3.0,
 					"enemy_id": "elite",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 10.4,
 					"enemy_id": "fighter",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 17.9,
-					"enemy_id": "tank",
-					"count": 10,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 120.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+					"path_asset_override": "res://assets/missiles/blue_energy.tres"
 				},
 				{
-					"time": 25.3,
 					"type": "obstacle",
 					"obstacle_id": "debris_small",
 					"pattern": "rain",
-					"duration": 15.0,
 					"speed": 200,
 					"gap_width": 150,
 					"row_interval": 0.8,
@@ -566,32 +539,24 @@
 					]
 				},
 				{
-					"time": 32.8,
 					"enemy_id": "artillery",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 40.2,
 					"enemy_id": "elite",
-					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 47.7,
 					"enemy_id": "fighter",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 55.1,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 170,
 					"gap_width": 190,
 					"row_interval": 1.2,
@@ -603,63 +568,47 @@
 					]
 				},
 				{
-					"time": 62.6,
 					"enemy_id": "tank",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 70.0,
 					"enemy_id": "artillery",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 77.4,
 					"enemy_id": "swarmer",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 84.9,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 150,
 					"gap_width": 200,
 					"row_interval": 1.5
 				},
 				{
-					"time": 92.3,
 					"enemy_id": "elite",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 99.8,
 					"enemy_id": "tank",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 107.2,
 					"enemy_id": "fighter",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 114.7,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 110,
 					"gap_width": 220,
 					"row_interval": 2.0,
@@ -671,63 +620,73 @@
 					]
 				},
 				{
-					"time": 122.1,
 					"enemy_id": "swarmer",
-					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 129.6,
 					"enemy_id": "swarmer",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_forest_5"
+			"boss_id": "boss_forest_5",
+			"score_1star": 10700,
+			"score_2stars": 17500,
+			"score_3stars": 24300
 		},
 		{
 			"index": 5,
 			"id": "world_1_lvl_5",
 			"name": "Le Gardien Sylvestre",
 			"type": "boss",
-			"duration_sec": 160,
 			"backgrounds": {
 				"card": "res://assets/backgrounds/worlds/forest/level_5.jpg",
-				"sphere_texture": "res://assets/backgrounds/worlds/forest/tile_forest_5.jpg",
 				"far_layer": "res://assets/backgrounds/worlds/forest/level_5.jpg",
 				"near_layer": []
 			},
 			"waves": [
 				{
-					"time": 3.0,
 					"enemy_id": "elite",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 10.3,
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 120.0,
+					"warmup_sec": 7.5,
+					"head_length_px": 120.0,
+					"tail_length_px": 120.0,
+					"hazard_asset_override": "",
+					"path_asset_override": ""
+				},
+				{
 					"enemy_id": "tank",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 17.7,
-					"enemy_id": "swarmer",
-					"count": 11,
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "path_trial",
+					"pattern_id": "dna_helix",
+					"speed": 190.0,
+					"tick_damage": 12,
+					"tick_interval_sec": 0.35,
+					"path_width": 120.0,
+					"warmup_sec": 1.0,
+					"head_length_px": 280.0,
+					"tail_length_px": 180.0,
+					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+					"path_asset_override": "res://assets/missiles/blue_energy.tres"
 				},
 				{
-					"time": 25.0,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_small",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 110,
 					"gap_width": 220,
 					"row_interval": 2.0,
@@ -739,32 +698,24 @@
 					]
 				},
 				{
-					"time": 32.3,
 					"enemy_id": "elite",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 39.7,
 					"enemy_id": "artillery",
-					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 47.0,
 					"enemy_id": "fighter",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 54.3,
 					"type": "obstacle",
 					"obstacle_id": "debris_small",
 					"pattern": "rain",
-					"duration": 15.0,
 					"speed": 200,
 					"gap_width": 150,
 					"row_interval": 0.8,
@@ -776,32 +727,24 @@
 					]
 				},
 				{
-					"time": 61.7,
 					"enemy_id": "elite",
-					"count": 12,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 69.0,
 					"enemy_id": "tank",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 76.3,
 					"enemy_id": "swarmer",
-					"count": 15,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 83.7,
 					"type": "obstacle",
 					"obstacle_id": "debris_small",
 					"pattern": "rain",
-					"duration": 15.0,
 					"speed": 200,
 					"gap_width": 150,
 					"row_interval": 0.8,
@@ -813,32 +756,24 @@
 					]
 				},
 				{
-					"time": 91.0,
 					"enemy_id": "swarmer",
-					"count": 10,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 98.3,
 					"enemy_id": "swarmer",
-					"count": 16,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 105.7,
 					"enemy_id": "swarmer",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 113.0,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 170,
 					"gap_width": 190,
 					"row_interval": 1.2,
@@ -850,32 +785,24 @@
 					]
 				},
 				{
-					"time": 120.3,
 					"enemy_id": "elite",
-					"count": 14,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 127.7,
 					"enemy_id": "tank",
-					"count": 13,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 135.0,
 					"enemy_id": "fighter",
-					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"time": 142.3,
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
-					"duration": 15.0,
 					"speed": 170,
 					"gap_width": 190,
 					"row_interval": 1.2,
@@ -887,15 +814,16 @@
 					]
 				},
 				{
-					"time": 149.7,
 					"enemy_id": "swarmer",
-					"count": 11,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
-			"boss_id": "boss_forest_final"
+			"boss_id": "boss_forest_final",
+			"score_1star": 12700,
+			"score_2stars": 20750,
+			"score_3stars": 28850
 		}
 	],
 	"unlock_condition": {

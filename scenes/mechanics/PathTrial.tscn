@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/mechanics/PathTrial.gd" id="1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pathtrial"]
+size = Vector2(720, 1280)
+
+[node name="PathTrial" type="Node2D"]
+script = ExtResource("1")
+
+[node name="HazardVisual" type="Node2D" parent="."]
+z_index = -10
+
+[node name="HazardZone" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HazardZone"]
+shape = SubResource("RectangleShape2D_pathtrial")
+
+[node name="Path2D" type="Path2D" parent="."]
+
+[node name="PathVisual" type="Line2D" parent="."]
+width = 120.0
+default_color = Color(0.75, 1, 0.95, 0.65)
+texture_mode = 1
+
+[node name="SafeZone" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = true
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SafeZone"]
+
+[node name="DamageTickTimer" type="Timer" parent="."]
+wait_time = 0.5
+one_shot = false
+autostart = false

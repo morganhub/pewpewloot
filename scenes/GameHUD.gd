@@ -26,12 +26,14 @@ var wave_label: Label = null
 @onready var boss_name_label: Label = $BossHealthContainer/BossNameLabel
 
 # Special Power Button
+@onready var sp_root: Control = $BottomRight/SpecialBtnControl
 @onready var sp_icon: TextureRect = $BottomRight/SpecialBtnControl/Icon
 @onready var sp_bar: TextureProgressBar = $BottomRight/SpecialBtnControl/CooldownBar
 @onready var sp_btn: TextureButton = $BottomRight/SpecialBtnControl/Button
 @onready var sp_timer_lbl: Label = $BottomRight/SpecialBtnControl/TimerLabel
 
 # Unique Power Button
+@onready var up_root: Control = $BottomRight/UniqueBtnControl
 @onready var up_icon: TextureRect = $BottomRight/UniqueBtnControl/Icon
 @onready var up_bar: TextureProgressBar = $BottomRight/UniqueBtnControl/CooldownBar
 @onready var up_btn: TextureButton = $BottomRight/UniqueBtnControl/Button
@@ -73,6 +75,18 @@ void fragment() {
 }
 """
 
+var _power_button_radius_px: float = 37.0
+var _power_ring_thickness_px: float = 8.0
+var _power_ring_color_ready: Color = Color(0, 1, 0, 1)
+var _power_ring_color_cooldown: Color = Color(0, 0.8, 0, 1)
+var _killstreak_box: PanelContainer = null
+var _killstreak_tier_label: Label = null
+var _killstreak_kills_label: Label = null
+var _killstreak_mult_label: Label = null
+var _killstreak_timer_bar: ProgressBar = null
+var _killstreak_cfg: Dictionary = {}
+var _killstreak_hud_cfg: Dictionary = {}
+
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
@@ -89,6 +103,13 @@ func _ready() -> void:
 		sp_btn.pressed.connect(func(): special_requested.emit())
 	if up_btn:
 		up_btn.pressed.connect(func(): unique_requested.emit())
+	# Masquer les tags "SP"/"UNI" sous les boutons, non utilisés en prod
+	var sp_tag: Label = sp_root.get_node_or_null("Tag") as Label
+	if sp_tag:
+		sp_tag.visible = false
+	var up_tag: Label = up_root.get_node_or_null("Tag") as Label
+	if up_tag:
+		up_tag.visible = false
 	
 	# Style pour le boss (fond noir, arrondi)
 	var sb_bg := StyleBoxFlat.new()
@@ -179,8 +200,18 @@ func _load_assets() -> void:
 	
 	# Burger Icon
 	var burger_path = str(ui_icons.get("burger_menu", ""))
-	if burger_path != "" and ResourceLoader.exists(burger_path) and burger_btn:
-		burger_btn.texture_normal = load(burger_path)
+	var burger_width: float = maxf(1.0, float(ui_icons.get("burger_menu_width", 55.0)))
+	var burger_height: float = maxf(1.0, float(ui_icons.get("burger_menu_height", 55.0)))
+	if burger_btn:
+		burger_btn.custom_minimum_size = Vector2(burger_width, burger_height)
+		burger_btn.size = Vector2(burger_width, burger_height)
+		burger_btn.ignore_texture_size = true
+		burger_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		if burger_path != "" and ResourceLoader.exists(burger_path):
+			var burger_tex: Texture2D = load(burger_path) as Texture2D
+			burger_btn.texture_normal = burger_tex
+			burger_btn.texture_pressed = burger_tex
+			burger_btn.texture_hover = burger_tex
 	
 	# Score styling
 	var score_config: Dictionary = _game_config.get("score", {})
@@ -197,6 +228,101 @@ func _load_assets() -> void:
 	var up_path = str(ui_icons.get("unique_power_placeholder", ""))
 	if up_path != "" and ResourceLoader.exists(up_path) and up_icon:
 		up_icon.texture = load(up_path)
+
+	# Power / Unique button layout & ring style (size, radius, colors)
+	var gameplay_cfg: Dictionary = _game_config.get("gameplay", {}) if _game_config.get("gameplay") is Dictionary else {}
+	var power_cfg: Dictionary = gameplay_cfg.get("power_buttons", {}) if gameplay_cfg.get("power_buttons") is Dictionary else {}
+	_apply_power_button_style(power_cfg)
+
+func _apply_power_button_style(cfg: Dictionary) -> void:
+	if not sp_root or not up_root:
+		return
+
+	# Rayon du bouton (icône / hitbox)
+	var button_radius: float = float(cfg.get("radius_px", _power_button_radius_px))
+	_power_button_radius_px = button_radius
+
+	# Backward compat pour l'anneau de cooldown:
+	# - Ancien: power_buttons.search_ring.{...}
+	# - Nouveau: power_buttons.cooldown_ring.{ radius_px, ... }
+	var ring_raw: Variant = cfg.get("cooldown_ring", cfg.get("search_ring", {}))
+	var ring_cfg: Dictionary = ring_raw if ring_raw is Dictionary else {}
+
+	var ring_radius: float = float(ring_cfg.get("radius_px", button_radius))
+	var ring_layer_above: bool = bool(ring_cfg.get("layer_above", false))
+
+	_power_ring_thickness_px = maxf(2.0, float(ring_cfg.get("thickness_px", _power_ring_thickness_px)))
+	_power_ring_color_ready = _color_or_default(str(ring_cfg.get("color_ready", "#00ff00")), _power_ring_color_ready)
+	_power_ring_color_cooldown = _color_or_default(str(ring_cfg.get("color_cooldown", "#00cc00")), _power_ring_color_cooldown)
+
+	var radius: float = maxf(8.0, ring_radius)
+	var icon_radius: float = maxf(4.0, button_radius - _power_ring_thickness_px)
+
+	# Apply same radius to both power buttons
+	for root in [sp_root, up_root]:
+		if root == null:
+			continue
+		var outer_radius: float = maxf(button_radius, radius)
+		var diameter: float = outer_radius * 2.0
+		root.custom_minimum_size = Vector2(diameter, diameter)
+
+		var icon_node: TextureRect = root.get_node_or_null("Icon") as TextureRect
+		var bar_node: TextureProgressBar = root.get_node_or_null("CooldownBar") as TextureProgressBar
+		var button_node: TextureButton = root.get_node_or_null("Button") as TextureButton
+
+		if icon_node:
+			icon_node.offset_left = -icon_radius
+			icon_node.offset_top = -icon_radius
+			icon_node.offset_right = icon_radius
+			icon_node.offset_bottom = icon_radius
+
+		if bar_node:
+			# Cercle de cooldown centré sur le root, avec rayon contrôlé par ring_radius.
+			bar_node.set_anchors_preset(Control.PRESET_CENTER)
+			var d := radius * 2.0
+			bar_node.offset_left = -radius
+			bar_node.offset_top = -radius
+			bar_node.offset_right = radius
+			bar_node.offset_bottom = radius
+			bar_node.custom_minimum_size = Vector2(d, d)
+			bar_node.size = Vector2(d, d)
+			bar_node.scale = Vector2.ONE
+			# Ne jamais intercepter les clics, même si on passe au-dessus du bouton.
+			bar_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+			# Adapter aussi la texture circulaire interne (GradientTexture2D) au même diamètre,
+			# sinon elle garde sa taille originale (80x80) et ignore le rayon JSON.
+			var tex: Texture2D = bar_node.texture_progress
+			if tex is GradientTexture2D:
+				var grad := tex as GradientTexture2D
+				grad.width = int(d)
+				grad.height = int(d)
+				# Utiliser thickness_px pour contrôler visuellement l'épaisseur de l'anneau.
+				# On reconfigure le Gradient radial: zone transparente au centre, bande colorée d'épaisseur proportionnelle.
+				var g: Gradient = grad.gradient
+				if g:
+					var thickness_ratio: float = clampf(_power_ring_thickness_px / max(radius, 1.0), 0.01, 0.99)
+					var inner_edge: float = clampf(1.0 - thickness_ratio, 0.0, 0.99)
+					# On force 3 points: centre transparent jusqu'à inner_edge, puis bande colorée, puis re-fondu vers transparent.
+					if g.get_point_count() < 3:
+						g.set_points(3)
+					g.set_offset(0, inner_edge)
+					g.set_color(0, Color(0, 0, 0, 0))
+					g.set_offset(1, clampf(inner_edge + thickness_ratio * 0.5, inner_edge, 0.995))
+					g.set_color(1, _power_ring_color_ready)
+					g.set_offset(2, 1.0)
+					g.set_color(2, Color(0, 0, 0, 0))
+
+			# Gestion du layering: si layer_above=true, on place le cooldown au-dessus du bouton.
+			if ring_layer_above and button_node:
+				var top_index: int = root.get_child_count() - 1
+				root.move_child(bar_node, top_index)
+			elif not ring_layer_above:
+				# Assurer que le bouton reste cliquable au-dessus si souhaité.
+				root.move_child(bar_node, 0)
+
+		if button_node:
+			button_node.custom_minimum_size = Vector2(diameter, diameter)
 
 func _setup_boss_debug_ui() -> void:
 	_boss_debug_label = Label.new()
@@ -714,6 +840,7 @@ func _setup_shield_bar() -> void:
 
 	_apply_bar_frame_overlay(shield_bar, shield_cfg)
 	_setup_wave_label(top_left, shield_bar)
+	_setup_killstreak_ui(top_left)
 	_refresh_health_bar_value_visibility()
 
 func _clear_shield_fill_reveal() -> void:
@@ -911,6 +1038,111 @@ func _setup_wave_label(top_left: Control, bar_ref: Control) -> void:
 	else:
 		_apply_label_text_style_from_config(wave_label, wave_cfg, 18, "#F2F2F2")
 		_apply_label_background_from_config(wave_label, wave_cfg, "WaveBg")
+
+func _setup_killstreak_ui(top_left: VBoxContainer) -> void:
+	var scoring_cfg: Dictionary = DataManager.get_game_data().get("scoring", {})
+	_killstreak_cfg = scoring_cfg.get("killstreak_system", {}) if scoring_cfg.get("killstreak_system") is Dictionary else {}
+	_killstreak_hud_cfg = _killstreak_cfg.get("hud", {}) if _killstreak_cfg.get("hud") is Dictionary else {}
+	if not bool(_killstreak_cfg.get("enabled", true)):
+		return
+
+	_killstreak_box = PanelContainer.new()
+	_killstreak_box.name = "KillstreakBox"
+	_killstreak_box.visible = false
+	_killstreak_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.05, 0.07, 0.11, 0.72)
+	panel_style.corner_radius_top_left = 8
+	panel_style.corner_radius_top_right = 8
+	panel_style.corner_radius_bottom_left = 8
+	panel_style.corner_radius_bottom_right = 8
+	_killstreak_box.add_theme_stylebox_override("panel", panel_style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	_killstreak_box.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+	margin.add_child(vbox)
+
+	_killstreak_tier_label = Label.new()
+	_killstreak_tier_label.text = "STREAK"
+	_killstreak_tier_label.add_theme_font_size_override("font_size", 18)
+	vbox.add_child(_killstreak_tier_label)
+
+	_killstreak_kills_label = Label.new()
+	_killstreak_kills_label.text = "0 KILLS"
+	_killstreak_kills_label.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(_killstreak_kills_label)
+
+	_killstreak_mult_label = Label.new()
+	_killstreak_mult_label.text = "x1.0"
+	_killstreak_mult_label.add_theme_font_size_override("font_size", 20)
+	_killstreak_mult_label.add_theme_color_override("font_color", Color.html("#FFD35A"))
+	vbox.add_child(_killstreak_mult_label)
+
+	_killstreak_timer_bar = ProgressBar.new()
+	_killstreak_timer_bar.min_value = 0.0
+	_killstreak_timer_bar.max_value = 1.0
+	_killstreak_timer_bar.value = 1.0
+	_killstreak_timer_bar.show_percentage = false
+	_killstreak_timer_bar.custom_minimum_size = Vector2(
+		maxf(80.0, float(_killstreak_hud_cfg.get("bar_width", 220.0))),
+		maxf(6.0, float(_killstreak_hud_cfg.get("bar_height", 12.0)))
+	)
+	var kb_fill := StyleBoxFlat.new()
+	kb_fill.bg_color = _color_or_default(str(_killstreak_hud_cfg.get("normal_color", "#8FD3FF")), Color(0.56, 0.83, 1.0))
+	var kb_bg := StyleBoxFlat.new()
+	kb_bg.bg_color = Color(0.08, 0.1, 0.16, 0.8)
+	_killstreak_timer_bar.add_theme_stylebox_override("fill", kb_fill)
+	_killstreak_timer_bar.add_theme_stylebox_override("background", kb_bg)
+	vbox.add_child(_killstreak_timer_bar)
+
+	top_left.add_child(_killstreak_box)
+
+func set_killstreak_state(state: Dictionary) -> void:
+	if _killstreak_box == null:
+		return
+	var active: bool = bool(state.get("active", false))
+	_killstreak_box.visible = active
+	if not active:
+		return
+	var tier_key: String = str(state.get("tier_label_key", "killstreak_tier_base"))
+	var tier_text: String = LocaleManager.translate(tier_key)
+	if tier_text == tier_key:
+		tier_text = "STREAK"
+	_killstreak_tier_label.text = tier_text.to_upper()
+	_killstreak_kills_label.text = "%d KILLS" % int(state.get("kill_count", 0))
+	_killstreak_mult_label.text = "x%.1f" % float(state.get("multiplier", 1.0))
+	var ratio: float = clampf(float(state.get("time_ratio", 0.0)), 0.0, 1.0)
+	_killstreak_timer_bar.value = ratio
+	var is_warning: bool = bool(state.get("warning", false))
+	var fill_box: StyleBoxFlat = _killstreak_timer_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if fill_box != null:
+		fill_box.bg_color = _color_or_default(
+			str(_killstreak_hud_cfg.get("critical_color" if is_warning else "normal_color", "#8FD3FF")),
+			Color.html("#FF5A5A" if is_warning else "#8FD3FF")
+		)
+
+func show_killstreak_end(end_bonus_score: int, _final_kills: int) -> void:
+	if _killstreak_box == null:
+		return
+	_killstreak_box.visible = true
+	_killstreak_tier_label.text = "STREAK OVER"
+	_killstreak_kills_label.text = ""
+	_killstreak_mult_label.text = "+%d" % maxi(0, end_bonus_score)
+	_killstreak_timer_bar.value = 0.0
+	var tw: Tween = create_tween()
+	tw.tween_interval(0.9)
+	tw.tween_callback(func() -> void:
+		if _killstreak_box:
+			_killstreak_box.visible = false
+	)
 
 func configure_wave_counter(total_waves: int) -> void:
 	_wave_total = maxi(0, total_waves)

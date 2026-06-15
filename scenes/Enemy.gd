@@ -74,6 +74,7 @@ var fire_rate: float = 2.0
 var _fire_timer: float = 0.0
 var _missile_pattern_data: Dictionary = {}
 var _missile_data_cache: Dictionary = {}
+const DEFAULT_MAX_FIRE_RATE: float = 80.0
 
 # Shared ability: mine spawner (minefreak)
 const MINE_SCENE = preload("res://scenes/objects/Mine.tscn")
@@ -120,6 +121,10 @@ var _health_bar_background_style: StyleBoxFlat = null
 var _health_bar_color_high: Color = Color.GREEN
 var _health_bar_color_mid: Color = Color.YELLOW
 var _health_bar_color_low: Color = Color.RED
+var _wave_end_exiting: bool = false
+var _wave_end_exit_velocity: Vector2 = Vector2.ZERO
+var _wave_end_exit_timer: float = 0.0
+var _wave_end_exit_duration: float = 1.6
 
 # TODO: Remplacer par Sprite2D
 # @onready var sprite: Sprite2D = $Sprite2D
@@ -156,9 +161,9 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	# Missile pattern
 	missile_pattern_id = str(enemy_data.get("missile_pattern_id", "single_straight"))
 	missile_id = str(enemy_data.get("missile_id", "missile_default"))
-	_missile_pattern_data = DataManager.get_missile_pattern(missile_pattern_id)
+	_missile_pattern_data = DataManager.get_enemy_missile_pattern(missile_pattern_id)
 	_missile_data_cache = DataManager.get_missile(missile_id)
-	fire_rate = float(enemy_data.get("fire_rate", 2.0))
+	fire_rate = _clamp_fire_interval(float(enemy_data.get("fire_rate", 2.0)))
 	_fluid_id = str(enemy_data.get("fluid_id", ""))
 	var t_data_bound_usec: int = 0
 	if DEBUG_SETUP_COST_LOG:
@@ -369,8 +374,7 @@ func _setup_health_bar() -> void:
 	health_bar.show_percentage = false
 	_configure_enemy_health_bar_styles(hp_bar_cfg)
 	_update_health_bar_color()
-	# N'afficher la barre que si déjà touché (PV < max)
-	health_bar.visible = (current_hp < max_hp)
+	_sync_health_bar_visibility()
 
 func apply_stat_multipliers(stats: Dictionary) -> void:
 	var hp_mult = float(stats.get("hp_mult", 1.0))
@@ -379,6 +383,7 @@ func apply_stat_multipliers(stats: Dictionary) -> void:
 		current_hp = max_hp
 		health_bar.max_value = max_hp
 		health_bar.value = current_hp
+		_sync_health_bar_visibility()
 		
 	var spd_mult = float(stats.get("speed_mult", 1.0))
 	if spd_mult != 1.0:
@@ -415,6 +420,20 @@ func set_health_bar_frame(path: String) -> void:
 # =============================================================================
 
 func _process(delta: float) -> void:
+	if _wave_end_exiting:
+		_wave_end_exit_timer += delta
+		global_position += _wave_end_exit_velocity * delta
+		var vp_rect := get_viewport_rect().size
+		var far_offscreen: bool = (
+			global_position.x < -OFFSCREEN_MARGIN
+			or global_position.x > vp_rect.x + OFFSCREEN_MARGIN
+			or global_position.y < -OFFSCREEN_MARGIN
+			or global_position.y > vp_rect.y + OFFSCREEN_MARGIN
+		)
+		if far_offscreen or _wave_end_exit_timer >= _wave_end_exit_duration:
+			queue_free()
+		return
+
 	_process_status_effects(delta)
 	_update_movement(delta)
 	
@@ -448,6 +467,20 @@ func _process(delta: float) -> void:
 		if _move_time > 2.0:
 			queue_free()
 			return
+
+func start_wave_end_flyoff(direction: Vector2, speed: float, duration: float = 1.6) -> void:
+	if _wave_end_exiting:
+		return
+	_wave_end_exiting = true
+	_wave_end_exit_timer = 0.0
+	_wave_end_exit_duration = maxf(0.2, duration)
+	var dir: Vector2 = direction.normalized()
+	if dir == Vector2.ZERO:
+		dir = Vector2.UP
+	_wave_end_exit_velocity = dir * maxf(10.0, speed)
+	# Stop combat interactions during graceful wave exit.
+	collision_layer = 0
+	collision_mask = 0
 
 func _update_wave_firing(delta: float) -> void:
 	_wave_timer += delta
@@ -593,7 +626,7 @@ func _load_curve_resource(resource_path: String) -> Curve2D:
 		push_warning("[Enemy] Resource is not a Curve2D: " + resource_path)
 	return null
 
-func _load_cached_resource(path: String, debug_label: String = "") -> Resource:
+func _load_cached_resource(path: String, _debug_label: String = "") -> Resource:
 	if path == "":
 		return null
 	if _strong_resource_cache.has(path):
@@ -1236,7 +1269,17 @@ func _update_shooting(delta: float) -> void:
 	
 	if _fire_timer <= 0:
 		_fire()
-		_fire_timer = fire_rate
+		_fire_timer = _clamp_fire_interval(fire_rate)
+
+func _clamp_fire_interval(interval_sec: float) -> float:
+	return maxf(_get_min_fire_interval(), interval_sec)
+
+func _get_min_fire_interval() -> float:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var balance_raw: Variant = game_cfg.get("game_balance", {})
+	var balance: Dictionary = balance_raw if balance_raw is Dictionary else {}
+	var max_rate: float = maxf(0.01, float(balance.get("fire_rate_max", DEFAULT_MAX_FIRE_RATE)))
+	return 1.0 / max_rate
 
 var _current_wave: int = 0
 var _wave_timer: float = 0.0
@@ -1264,7 +1307,7 @@ func _fire_single_wave() -> void:
 
 	var projectile_count: int = int(_missile_pattern_data.get("projectile_count", 1))
 	var spread_angle: float = float(_missile_pattern_data.get("spread_angle", 0))
-	var trajectory := str(_missile_pattern_data.get("trajectory", "straight"))
+	var _trajectory := str(_missile_pattern_data.get("trajectory", "straight"))
 	var speed: float = float(_missile_pattern_data.get("speed", 200))
 	var base_damage: int = int(_missile_pattern_data.get("damage", 10))
 	var damage: int = int(base_damage * _stat_multiplier)
@@ -1628,8 +1671,8 @@ func take_damage(amount: int, is_critical: bool = false) -> void:
 	current_hp -= effective_amount
 	current_hp = maxi(0, current_hp)
 	
-	health_bar.visible = true
 	health_bar.value = current_hp
+	_sync_health_bar_visibility()
 	_update_health_bar_color()
 	
 	# Play SFX (Enemy Hit)
@@ -1666,22 +1709,64 @@ func die() -> void:
 	var on_death_anim: String = ""
 	var on_death_anim_duration: float = 0.0
 	var on_death_anim_loop: bool = false
+	var fade_out_duration: float = 0.3
+	var fade_in_duration: float = 0.0
+	var scale_start: float = 1.0
+	var scale_middle: float = 1.0
+	var scale_end: float = 1.0
+	var scale_middle_ratio: float = 0.45
+	var target_width: float = -1.0
+	var target_height: float = -1.0
 	if "death_asset" in self: on_death_asset = get("death_asset")
 	if "death_anim" in self: on_death_anim = get("death_anim")
 	if "death_anim_duration" in self: on_death_anim_duration = float(get("death_anim_duration"))
 	if "death_anim_loop" in self: on_death_anim_loop = bool(get("death_anim_loop"))
+	var death_size: float = 25.0
+	var death_color: Color = shape_visual.color
+
+	var explosions_cfg: Dictionary = DataManager.get_explosions_config() if DataManager else {}
+	var enemy_expl_v: Variant = explosions_cfg.get("enemy_death", {})
+	if enemy_expl_v is Dictionary:
+		var enemy_expl: Dictionary = enemy_expl_v as Dictionary
+		death_size = float(enemy_expl.get("size", death_size))
+		death_color = Color(str(enemy_expl.get("color", "#FFAA00")))
+		fade_out_duration = maxf(0.05, float(enemy_expl.get("fade_out_duration", fade_out_duration)))
+		fade_in_duration = maxf(0.0, float(enemy_expl.get("fade_in_duration", fade_in_duration)))
+		scale_start = maxf(0.01, float(enemy_expl.get("scale_start", scale_start)))
+		scale_middle = maxf(0.01, float(enemy_expl.get("scale_middle", scale_middle)))
+		scale_end = maxf(0.01, float(enemy_expl.get("scale_end", scale_end)))
+		scale_middle_ratio = clampf(float(enemy_expl.get("scale_middle_ratio", scale_middle_ratio)), 0.05, 0.95)
+		target_width = float(enemy_expl.get("width", target_width))
+		target_height = float(enemy_expl.get("height", target_height))
+		if on_death_asset == "":
+			on_death_asset = str(enemy_expl.get("asset", ""))
+		if on_death_anim == "":
+			on_death_anim = str(enemy_expl.get("asset_anim", ""))
+		if on_death_anim_duration <= 0.0:
+			on_death_anim_duration = maxf(0.0, float(enemy_expl.get("asset_anim_duration", 0.0)))
+		on_death_anim_loop = bool(enemy_expl.get("asset_anim_loop", false))
+
+	# Enemy death explosion is always one-shot.
+	on_death_anim_loop = false
 	
 	VFXManager.spawn_explosion(
 		global_position,
-		25,
-		shape_visual.color,
+		death_size,
+		death_color,
 		get_parent(),
 		on_death_asset,
 		on_death_anim,
 		-1.0,
-		0.3,
+		fade_out_duration,
 		on_death_anim_duration,
-		on_death_anim_loop
+		on_death_anim_loop,
+		fade_in_duration,
+		scale_start,
+		scale_middle,
+		scale_end,
+		scale_middle_ratio,
+		target_width,
+		target_height
 	)
 	VFXManager.screen_shake(3, 0.2)
 	
@@ -1701,7 +1786,7 @@ func _roll_enemy_drop(drop_multiplier: float) -> Dictionary:
 	if not bool(rules.get("enabled", true)):
 		return {}
 
-	var global_scale: float = maxf(0.0, float(rules.get("global_chance_scale", 1.0)))
+	var _global_scale: float = maxf(0.0, float(rules.get("global_chance_scale", 1.0)))
 	var equipment_scale: float = maxf(0.0, float(rules.get("equipment_chance_scale", 0.5)))
 	var powerup_scale: float = maxf(0.0, float(rules.get("powerup_chance_scale", 1.0)))
 
@@ -1713,9 +1798,9 @@ func _roll_enemy_drop(drop_multiplier: float) -> Dictionary:
 	var equipment_drop_chance: float = 0.0
 	var powerup_drop_chance: float = 0.0
 	if can_drop_equipment:
-		equipment_drop_chance = clampf(loot_chance * equipment_scale * global_scale * drop_multiplier, 0.0, 1.0)
+		equipment_drop_chance = clampf(loot_chance * equipment_scale * _global_scale * drop_multiplier, 0.0, 1.0)
 	if can_drop_powerup:
-		powerup_drop_chance = clampf(loot_chance * powerup_scale * global_scale * drop_multiplier, 0.0, 1.0)
+		powerup_drop_chance = clampf(loot_chance * powerup_scale * _global_scale * drop_multiplier, 0.0, 1.0)
 
 	var total_chance: float = equipment_drop_chance + powerup_drop_chance
 	if total_chance <= 0.0:
@@ -1868,6 +1953,11 @@ func _update_health_bar_color() -> void:
 		# Fallback in case style setup was skipped for any reason.
 		health_bar.modulate = target_fill_color
 
+func _sync_health_bar_visibility() -> void:
+	if health_bar == null:
+		return
+	health_bar.visible = current_hp < max_hp
+
 func _configure_enemy_health_bar_styles(cfg: Dictionary) -> void:
 	if not health_bar:
 		return
@@ -1998,8 +2088,8 @@ func _process_status_effects(delta: float) -> void:
 			var tick_dmg := int(result["damage"])
 			current_hp -= tick_dmg
 			current_hp = maxi(0, current_hp)
-			health_bar.visible = true
 			health_bar.value = current_hp
+			_sync_health_bar_visibility()
 			_update_health_bar_color()
 			if current_hp <= 0:
 				die()

@@ -27,6 +27,7 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var change_profile_button: Button = $BottomSection/ChangeProfileButton
 @onready var unlock_all_button: Button = $BottomSection/UnlockAllButton
 @onready var reset_viewed_stories_button: Button = $BottomSection/ResetViewedStoriesButton
+@onready var reset_to_level_one_button: Button = $BottomSection/ResetToLevelOneButton
 @onready var start_story_button: Button = $BottomSection/StartStoryButton
 
 var _game_config: Dictionary = {}
@@ -66,6 +67,10 @@ func _ready() -> void:
 		reset_viewed_stories_button.visible = ProfileManager.is_debug_mode_enabled()
 		if reset_viewed_stories_button.visible:
 			reset_viewed_stories_button.pressed.connect(_on_reset_viewed_stories_pressed)
+	if reset_to_level_one_button:
+		reset_to_level_one_button.visible = ProfileManager.is_debug_mode_enabled()
+		if reset_to_level_one_button.visible:
+			reset_to_level_one_button.pressed.connect(_on_reset_to_level_one_pressed)
 	if start_story_button:
 		start_story_button.visible = ProfileManager.is_debug_mode_enabled()
 		if start_story_button.visible:
@@ -247,6 +252,7 @@ func _setup_buttons() -> void:
 	_setup_single_button(change_profile_button, _merge_button_cfg(shared_cfg, buttons_config.get("change_profile", {})), "home_change_profile_short")
 	UIStyle.apply_button_shadow(unlock_all_button, "small")
 	UIStyle.apply_button_shadow(reset_viewed_stories_button, "small")
+	UIStyle.apply_button_shadow(reset_to_level_one_button, "small")
 	UIStyle.apply_button_shadow(start_story_button, "small")
 
 func _extract_shared_button_cfg(buttons_config: Dictionary) -> Dictionary:
@@ -288,13 +294,13 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 	for child in button.get_children():
 		if child.name == "BgAnim": child.queue_free()
 	
-	var has_visual_bg: bool = false
+	var _has_visual_bg: bool = false
 	
 	# 1. GESTION ASSET ANIMÉ (Priorité 1)
 	if asset_anim != "" and ResourceLoader.exists(asset_anim):
 		var frames: Resource = load(asset_anim)
 		if frames is SpriteFrames:
-			has_visual_bg = true
+			_has_visual_bg = true
 			# Style transparent pour le bouton (plus de cadre gris)
 			var style_empty = StyleBoxEmpty.new()
 			_apply_style_override(button, style_empty)
@@ -328,7 +334,7 @@ func _setup_single_button(button: Button, config: Dictionary, translation_key: S
 	elif asset_path != "" and ResourceLoader.exists(asset_path):
 		var style := UIStyle.build_texture_stylebox(asset_path, config, 10)
 		if style:
-			has_visual_bg = true
+			_has_visual_bg = true
 			_apply_style_override(button, style)
 	
 	# 3. TEXTE
@@ -451,6 +457,18 @@ func _on_reset_viewed_stories_pressed() -> void:
 	await get_tree().create_timer(1.0).timeout
 	reset_viewed_stories_button.disabled = false
 	UIStyle.set_button_shadow_text(reset_viewed_stories_button, "Reset viewed stories")
+
+func _on_reset_to_level_one_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	if reset_to_level_one_button == null:
+		return
+	ProfileManager.reset_player_level_progress()
+	reset_to_level_one_button.disabled = true
+	UIStyle.set_button_shadow_text(reset_to_level_one_button, "Level 1!")
+	await get_tree().create_timer(1.0).timeout
+	reset_to_level_one_button.disabled = false
+	UIStyle.set_button_shadow_text(reset_to_level_one_button, "Reset to level 1")
 
 func _on_start_story_pressed() -> void:
 	if not ProfileManager.is_debug_mode_enabled():

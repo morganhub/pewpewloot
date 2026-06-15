@@ -6,6 +6,8 @@ signal upgrade_requested(item_id: String)
 signal recycle_requested(item_id: String)
 signal equip_requested(item_id: String, slot_id: String)
 signal unequip_requested(item_id: String, slot_id: String)
+@warning_ignore("UNUSED_SIGNAL")
+signal delete_requested(item_id: String)
 
 @onready var icon_rect = %Icon 
 @onready var name_label = %NameLabel

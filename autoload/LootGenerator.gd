@@ -99,10 +99,7 @@ func _load_loot_table() -> void:
 	# Prefer uniques from DataManager (data/loot/uniques.json) over embedded config.
 	_refresh_unique_items_cache()
 	
-	print("[LootGenerator] Loaded. Rarities: ", _rarity_config.keys().size(), 
-		  " | Affix categories: ", _affixes_data.keys().size(),
-		  " | Uniques: ", _unique_items.size(),
-		  " | BossQualityBonus: ", _boss_loot_quality_bonus)
+	pass
 
 func _refresh_unique_items_cache() -> void:
 	if DataManager:
