@@ -153,6 +153,7 @@ func play(story_id: String, debug_mode: bool = false) -> void:
 
 func _show_debug_header() -> void:
 	_clear_debug_ui()
+	var story_overlay_cfg: Dictionary = DataManager.get_game_config().get("story_overlay", {}) if DataManager.get_game_config().get("story_overlay") is Dictionary else {}
 	var seq_id: String = str(_story_data.get("id", ""))
 	var world: String = str(_story_data.get("world", "-"))
 	var level_v: Variant = _story_data.get("level", null)
@@ -170,7 +171,7 @@ func _show_debug_header() -> void:
 	
 	var label := Label.new()
 	label.text = line
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", int(story_overlay_cfg.get("debug_header_font_size", 18)))
 	label.add_theme_color_override("font_color", Color.WHITE)
 	panel.add_child(label)
 	
@@ -187,9 +188,10 @@ func _show_debug_header() -> void:
 	_debug_header = panel
 
 func _show_debug_next_and_wait() -> void:
+	var story_overlay_cfg: Dictionary = DataManager.get_game_config().get("story_overlay", {}) if DataManager.get_game_config().get("story_overlay") is Dictionary else {}
 	var btn := Button.new()
 	btn.text = "Next"
-	btn.add_theme_font_size_override("font_size", 24)
+	btn.add_theme_font_size_override("font_size", int(story_overlay_cfg.get("debug_next_button_font_size", 24)))
 	btn.custom_minimum_size = Vector2(160, 56)
 	container.add_child(btn)
 	UIStyle.apply_default_button_style(btn, "medium")

@@ -20,8 +20,20 @@ const BOSS_SCENE: PackedScene = preload("res://scenes/Boss.tscn")
 const TOXIC_POOL_SCENE: PackedScene = preload("res://scenes/effects/ToxicPool.tscn")
 const KILLSTREAK_MANAGER_SCRIPT: Script = preload("res://autoload/KillstreakManager.gd")
 const BONUS_CRYSTAL_SCENE: PackedScene = preload("res://scenes/pickups/BonusCrystal.tscn")
+const FIRE_PATTERN_DROP_SCENE: PackedScene = preload("res://scenes/pickups/FirePatternDrop.tscn")
 const LOOT_DROP_SCENE: PackedScene = preload("res://scenes/LootDrop.tscn")
 const PATH_TRIAL_SCENE: PackedScene = preload("res://scenes/mechanics/PathTrial.tscn")
+const GATE_RUNNER_SCENE: PackedScene = preload("res://scenes/mechanics/GateRunnerManager.tscn")
+const PONG_SCENE: PackedScene = preload("res://scenes/mechanics/PongManager.tscn")
+const BREAKOUT_SCENE: PackedScene = preload("res://scenes/mechanics/BreakoutManager.tscn")
+const BALL_LAUNCHER_SCENE: PackedScene = preload("res://scenes/mechanics/BallLauncherManager.tscn")
+const VERTICAL_CLIMB_SCENE: PackedScene = preload("res://scenes/mechanics/VerticalClimbManager.tscn")
+const ABSORB_SCENE: PackedScene = preload("res://scenes/mechanics/AbsorbManager.tscn")
+const LANE_RUNNER_SCENE: PackedScene = preload("res://scenes/mechanics/LaneRunnerManager.tscn")
+const SLICE_RUSH_SCENE: PackedScene = preload("res://scenes/mechanics/SliceRushManager.tscn")
+const MATCH3_SCENE: PackedScene = preload("res://scenes/mechanics/Match3Manager.tscn")
+const GRAVITY_HOLE_SCENE: PackedScene = preload("res://scenes/mechanics/GravityHoleManager.tscn")
+const STAR_DRIFT_SCENE: PackedScene = preload("res://scenes/mechanics/StarDriftManager.tscn")
 const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/obstacles/ObstacleExplosive.tscn",
 	"res://scenes/obstacles/ObstaclePusher.tscn",
@@ -36,7 +48,20 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/effects/IceShards.tscn",
 	"res://scenes/effects/VacuumRadius.tscn",
 	"res://scenes/pickups/BonusCrystal.tscn",
+	"res://scenes/pickups/FirePatternDrop.tscn",
 	"res://scenes/mechanics/PathTrial.tscn",
+	"res://scenes/mechanics/GateRunnerManager.tscn",
+	"res://scenes/mechanics/MathGate.tscn",
+	"res://scenes/mechanics/PongManager.tscn",
+	"res://scenes/mechanics/BreakoutManager.tscn",
+	"res://scenes/mechanics/BallLauncherManager.tscn",
+	"res://scenes/mechanics/VerticalClimbManager.tscn",
+	"res://scenes/mechanics/AbsorbManager.tscn",
+	"res://scenes/mechanics/LaneRunnerManager.tscn",
+	"res://scenes/mechanics/SliceRushManager.tscn",
+	"res://scenes/mechanics/Match3Manager.tscn",
+	"res://scenes/mechanics/GravityHoleManager.tscn",
+	"res://scenes/mechanics/StarDriftManager.tscn",
 	"res://scenes/Projectile.tscn",
 	"res://scenes/abilities/objects/Wall.tscn",
 	"res://scenes/abilities/WallSpawner.gd",
@@ -87,6 +112,14 @@ var _end_screen_context_action: String = "level_select"
 const END_SCREEN_ACTION_LEVEL_SELECT := "level_select"
 const END_SCREEN_ACTION_NEXT_LEVEL := "next_level"
 const END_SCREEN_ACTION_WORLD_SELECT := "world_select"
+const END_SCREEN_ACTION_FREE_MODE_SELECT := "free_mode_select"
+
+# Mode libre : un wave_type en boucle infinie (App.free_mode_active). Le niveau
+# joué est synthétique (index réservé, injecté dans DataManager._levels).
+const FREE_MODE_LEVEL_INDEX: int = 99
+var _free_mode_session: bool = false
+var _free_mode_wave_type: String = ""
+var _free_mode_splash_shown: bool = false
 
 var current_level_index: int = 0 # Défini par LevelSelect ou WorldSelect
 var current_world_id: String = "world_1" # Par défaut, peut être change par WorldSelect
@@ -147,12 +180,63 @@ var _override_emp_vignette_strength: float = 0.72
 var _override_emp_vignette_radius: float = 0.58
 var _override_emp_vignette_color: Color = Color(0.0, 0.0, 0.0, 1.0)
 var _overlay_rect: ColorRect = null
+
+# Temporary wave background override (gravity_hole "dimension" swap): a second
+# scrolling container above the base one, alpha-faded in/out. Game-owned so it
+# survives any manager failure mode and dies with the scene.
+var _wave_bg_container: Node2D = null
+var _wave_bg_tween: Tween = null
+var _wave_bg_active: bool = false
+var _wave_bg_path: String = ""
 var _killstreak_manager: Node = null
 var _killstreak_cfg: Dictionary = {}
 var _bonus_crystals_cfg: Dictionary = {}
 var _killstreak_warning_active: bool = false
 var _active_bonus_crystals: Array[Node] = []
+var _fire_pattern_drops_cfg: Dictionary = {}
+var _active_fire_pattern_drops: Array[Node] = []
+var _fire_pattern_drop_count: int = 0
 var _active_path_trials: Array[Node] = []
+var _active_gate_runners: Array[Node] = []
+# True while a gate_runner wave is running: the player does not fire, so fire
+# pattern drops and power-ups (shield/rapid fire) are suppressed.
+var _gate_runner_wave_active: bool = false
+var _active_pong_managers: Array[Node] = []
+# True while a pong wave is running: same drop suppression as gate_runner.
+var _pong_wave_active: bool = false
+var _active_breakout_managers: Array[Node] = []
+# True while a breakout wave is running: same drop suppression as gate_runner.
+var _breakout_wave_active: bool = false
+var _active_ball_launcher_managers: Array[Node] = []
+# True while a ball_launcher wave is running: same drop suppression.
+var _ball_launcher_wave_active: bool = false
+var _active_climb_managers: Array[Node] = []
+# True while a vertical_climb wave is running: same drop suppression.
+var _climb_wave_active: bool = false
+var _active_absorb_managers: Array[Node] = []
+# True while an absorb wave is running: same drop suppression.
+var _absorb_wave_active: bool = false
+var _active_lane_runner_managers: Array[Node] = []
+# True while a lane_runner wave is running: same drop suppression.
+var _lane_runner_wave_active: bool = false
+var _active_slice_rush_managers: Array[Node] = []
+# True while a slice_rush wave is running: same drop suppression.
+var _slice_rush_wave_active: bool = false
+var _active_match3_managers: Array[Node] = []
+# True while a match3 wave is running: same drop suppression.
+var _match3_wave_active: bool = false
+var _active_gravity_hole_managers: Array[Node] = []
+# True while a gravity_hole wave is running: same drop suppression.
+var _gravity_hole_wave_active: bool = false
+var _active_star_drift_managers: Array[Node] = []
+# True while a star_drift wave is running: same drop suppression.
+var _star_drift_wave_active: bool = false
+# Asteroid_split wave state: config cached at wave start (split handling reads
+# it on every asteroid kill), plus a hard cap counter (mobile perf).
+var _asteroid_field_cfg: Dictionary = {}
+var _asteroid_field_wave: Dictionary = {}
+var _asteroid_field_base_speed: float = 120.0
+var _active_asteroid_count: int = 0
 var _wave_splash_cfg: Dictionary = {
 	"enabled": true,
 	"color": "#FFFFFF",
@@ -169,6 +253,14 @@ var _wave_splash_sub_label: Label = null
 var _wave_splash_tween: Tween = null
 var _wave_splash_warning_tween: Tween = null
 var _run_bootstrap_done: bool = false
+var _performance_cfg: Dictionary = {}
+var _dev_runtime_tuning_reload: bool = false
+var _warmup_runtime_support_enabled: bool = true
+var _warmup_runtime_nodes_enabled: bool = true
+var _warmup_collect_external_json_enabled: bool = true
+var _log_hitches_enabled: bool = false
+var _log_level_warmup_enabled: bool = false
+var _log_runtime_enemy_prewarm_enabled: bool = false
 
 func track_loot(item: Dictionary) -> void:
 	session_loot.append(item)
@@ -181,6 +273,17 @@ func _ready() -> void:
 	# Load session data
 	current_world_id = App.current_world_id
 	current_level_index = App.current_level_index
+	_free_mode_session = App.free_mode_active and str(App.free_mode_wave_type) != ""
+	if _free_mode_session:
+		_free_mode_wave_type = str(App.free_mode_wave_type)
+		# Registered BEFORE any get_level_data read (background, wave counter,
+		# prewarm, end screen) so the whole pipeline sees a coherent level.
+		_register_free_mode_level()
+		current_level_index = FREE_MODE_LEVEL_INDEX
+		App.current_level_index = FREE_MODE_LEVEL_INDEX
+		# Historique du mode : une run lancée = une partie jouée.
+		if ProfileManager and ProfileManager.has_method("increment_free_mode_plays"):
+			ProfileManager.increment_free_mode_plays(_free_mode_wave_type)
 	print("[Game] Ready. Level: ", current_world_id, " | Index: ", current_level_index)
 	_load_gameplay_config()
 	_setup_scoring_system()
@@ -220,6 +323,49 @@ func _ready() -> void:
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		player.set_can_shoot(false)
 
+## Niveau synthétique du mode libre : nom localisé du mode, background = tuile
+## du mode, une vague placeholder (WaveManager régénère la vraie vague scalée
+## dans setup()/à chaque boucle), aucun seuil d'étoiles.
+func _register_free_mode_level() -> void:
+	var mode_cfg: Dictionary = DataManager.get_freemode_mode_config(_free_mode_wave_type)
+	# Fond du niveau : pioché au hasard dans wave_types.json > <type> >
+	# level_backgrounds[] (plusieurs fonds possibles par type) ; fallback =
+	# tile_background du mode (freemode.json).
+	var bg_path: String = str(mode_cfg.get("tile_background", ""))
+	var type_cfg: Dictionary = DataManager.get_wave_type_config(_free_mode_wave_type)
+	var bgs_v: Variant = type_cfg.get("level_backgrounds", [])
+	if bgs_v is Array and not (bgs_v as Array).is_empty():
+		var bgs: Array = bgs_v as Array
+		var picked: String = str(bgs[randi() % bgs.size()])
+		if picked != "":
+			bg_path = picked
+	var level_id: String = current_world_id + "_lvl_" + str(FREE_MODE_LEVEL_INDEX)
+	DataManager.register_synthetic_level(level_id, {
+		"index": FREE_MODE_LEVEL_INDEX,
+		"id": level_id,
+		"name": LocaleManager.translate("game_wave_" + _free_mode_wave_type),
+		"type": "normal",
+		"backgrounds": {"far_layer": bg_path, "near_layer": []},
+		"waves": [{"type": _free_mode_wave_type}],
+		"score_1star": 0,
+		"score_2stars": 0,
+		"score_3stars": 0
+	})
+
+func _update_free_mode_level_label(level: int) -> void:
+	if hud and hud.has_method("set_wave_label_override"):
+		hud.call("set_wave_label_override", LocaleManager.translate("free_mode_level", {"level": str(level)}))
+
+func _on_free_mode_level_changed(level: int) -> void:
+	_update_free_mode_level_label(level)
+	# Modes "continuous" (ex. pong) : la difficulté du manager en place est
+	# re-scalée sans le recréer (pas de réengagement de balle/état).
+	if wave_manager and is_instance_valid(wave_manager) and wave_manager.has_method("build_free_mode_wave"):
+		var scaled_wave: Dictionary = wave_manager.call("build_free_mode_wave", level)
+		for node in get_tree().get_nodes_in_group("runtime_hazards"):
+			if is_instance_valid(node) and node.has_method("update_free_mode_config"):
+				node.call("update_free_mode_config", scaled_wave)
+
 func run_post_loading_story() -> void:
 	if _run_bootstrap_done:
 		return
@@ -240,12 +386,28 @@ func run_post_loading_story() -> void:
 	await _play_level_story_if_needed()
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		player.set_can_shoot(true)
+	# Waves only start now: setup() ran behind the loading screen and queuing
+	# wave 1 earlier made it play hidden (enemy waves) or get cleared/skipped
+	# by _clean_start_of_run_state (manager waves).
+	if wave_manager and is_instance_valid(wave_manager) and wave_manager.has_method("start_waves"):
+		wave_manager.call("start_waves")
 
 func _clean_start_of_run_state() -> void:
 	# Hard cleanup so the level always starts from a clean visual/combat state.
 	if ProjectileManager:
 		ProjectileManager.clear_all_projectiles()
 	_clear_bonus_crystals()
+	_clear_fire_pattern_drops()
+	_clear_gate_runners()
+	_clear_pong_managers()
+	_clear_breakout_managers()
+	_clear_ball_launcher_managers()
+	_clear_climb_managers()
+	_clear_absorb_managers()
+	_clear_lane_runner_managers()
+	_clear_slice_rush_managers()
+	_clear_match3_managers()
+	_clear_gravity_hole_managers()
 
 func _play_level_story_if_needed() -> bool:
 	var stories: Array = DataManager.get_stories_for_trigger_start(current_world_id, current_level_index)
@@ -265,13 +427,15 @@ func _play_level_story_if_needed() -> bool:
 
 func _load_gameplay_config() -> void:
 	var game_cfg: Dictionary = DataManager.get_game_config()
+	_load_performance_config(game_cfg)
 	# Prefer fresh disk read so tuning in game.json is reflected without full app restart.
-	if FileAccess.file_exists("res://data/game.json"):
+	if _dev_runtime_tuning_reload and FileAccess.file_exists("res://data/game.json"):
 		var f := FileAccess.open("res://data/game.json", FileAccess.READ)
 		if f:
 			var json := JSON.new()
 			if json.parse(f.get_as_text()) == OK and json.data is Dictionary:
 				game_cfg = json.data as Dictionary
+				_load_performance_config(game_cfg)
 			f.close()
 	var gameplay_cfg: Variant = game_cfg.get("gameplay", {})
 	if not (gameplay_cfg is Dictionary):
@@ -296,9 +460,22 @@ func _load_gameplay_config() -> void:
 	if wave_splash_cfg_v is Dictionary:
 		_wave_splash_cfg.merge(wave_splash_cfg_v as Dictionary, true)
 
+func _load_performance_config(game_cfg: Dictionary) -> void:
+	var perf_v: Variant = game_cfg.get("performance", {})
+	_performance_cfg = (perf_v as Dictionary).duplicate(true) if perf_v is Dictionary else {}
+	var debug_build: bool = OS.is_debug_build()
+	_dev_runtime_tuning_reload = debug_build and bool(_performance_cfg.get("dev_runtime_tuning_reload", false))
+	_warmup_runtime_support_enabled = bool(_performance_cfg.get("warmup_runtime_support", true))
+	_warmup_runtime_nodes_enabled = bool(_performance_cfg.get("warmup_runtime_nodes", true))
+	_warmup_collect_external_json_enabled = debug_build and bool(_performance_cfg.get("warmup_collect_external_json", false))
+	_log_hitches_enabled = debug_build and bool(_performance_cfg.get("log_hitches", false))
+	_log_level_warmup_enabled = debug_build and bool(_performance_cfg.get("log_level_warmup", false))
+	_log_runtime_enemy_prewarm_enabled = debug_build and bool(_performance_cfg.get("log_runtime_enemy_prewarm", false))
+
 func _setup_scoring_system() -> void:
 	_killstreak_cfg = DataManager.get_killstreak_config()
 	_bonus_crystals_cfg = DataManager.get_bonus_crystals_config()
+	_fire_pattern_drops_cfg = DataManager.get_fire_pattern_drops_config()
 	_killstreak_warning_active = false
 
 	if _killstreak_manager and is_instance_valid(_killstreak_manager):
@@ -416,6 +593,12 @@ func _try_spawn_bonus_crystal(at_pos: Vector2, is_boss: bool, is_elite: bool) ->
 	if randf() > chance:
 		return
 
+	_spawn_bonus_crystal_at(at_pos)
+
+## Spawns a bonus crystal (chosen by weighted type) at a position, no chance roll.
+func _spawn_bonus_crystal_at(at_pos: Vector2, extra: Dictionary = {}) -> void:
+	if _bonus_crystals_cfg.is_empty() or not bool(_bonus_crystals_cfg.get("enabled", false)):
+		return
 	var crystal_type: Dictionary = _pick_bonus_crystal_type()
 	if crystal_type.is_empty():
 		return
@@ -431,6 +614,9 @@ func _try_spawn_bonus_crystal(at_pos: Vector2, is_boss: bool, is_elite: bool) ->
 	var default_asset: String = str(_bonus_crystals_cfg.get("default_asset", ""))
 	if str(spawn_data.get("asset", "")).strip_edges() == "" and default_asset != "":
 		spawn_data["asset"] = default_asset
+	# Per-call overrides (e.g. slice_rush forced magnet toward the locked ship).
+	for extra_key in extra.keys():
+		spawn_data[extra_key] = extra[extra_key]
 
 	var crystal_area: Area2D = crystal_node as Area2D
 	if crystal_area:
@@ -444,6 +630,66 @@ func _try_spawn_bonus_crystal(at_pos: Vector2, is_boss: bool, is_elite: bool) ->
 		)
 		if crystal_area.has_method("setup"):
 			crystal_area.call("setup", spawn_data, player)
+
+## Boosted crystal reward for gate_runner waves (called by GateRunnerManager when
+## a swarm drone is dodged). Uses the gate_runner config drop chance.
+func spawn_gate_runner_crystal(at_pos: Vector2) -> void:
+	if _bonus_crystals_cfg.is_empty() or not bool(_bonus_crystals_cfg.get("enabled", false)):
+		return
+	var gr_cfg: Dictionary = DataManager.get_gate_runner_config() if DataManager else {}
+	var chance: float = clampf(float(gr_cfg.get("dodge_crystal_chance", 0.3)), 0.0, 1.0)
+	if chance <= 0.0 or randf() > chance:
+		return
+	_spawn_bonus_crystal_at(at_pos)
+
+## Guaranteed reward crystals raining from the top of the screen at random X
+## (pong points, breakout wall cleared...).
+func spawn_reward_crystals_from_top(count: int) -> void:
+	if _bonus_crystals_cfg.is_empty() or not bool(_bonus_crystals_cfg.get("enabled", false)):
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	for i in range(maxi(0, count)):
+		var x: float = randf_range(viewport_size.x * 0.1, viewport_size.x * 0.9)
+		var y: float = -30.0 - randf_range(0.0, 80.0)
+		_spawn_bonus_crystal_at(Vector2(x, y))
+
+## Guaranteed single reward crystal at a specific position (breakout bricks...).
+## `extra` merges per-call overrides into the crystal spawn data (optional).
+func spawn_reward_crystal_at(at_pos: Vector2, extra: Dictionary = {}) -> void:
+	if _bonus_crystals_cfg.is_empty() or not bool(_bonus_crystals_cfg.get("enabled", false)):
+		return
+	_spawn_bonus_crystal_at(at_pos, extra)
+
+## Kept for compatibility: pong points delegate to the generic top rain.
+func spawn_pong_reward_crystals(count: int) -> void:
+	spawn_reward_crystals_from_top(count)
+
+## Guaranteed equipment drop at a position (slice_rush cuts...). Bypasses the
+## per-wave kill-drop cap on purpose: mechanic waves budget their own drops.
+## quality_mult > 10 forbids common/uncommon rarities (LootGenerator weights).
+## `extra_item_fields` merges into the item dict (e.g. auto_collect_delay_sec).
+func spawn_reward_equipment_at(at_pos: Vector2, quality_mult: float, extra_item_fields: Dictionary = {}) -> void:
+	var item: LootItem = LootGenerator.generate_loot(current_level_index + 1, "", "", quality_mult)
+	if item == null:
+		return
+	var item_data: Dictionary = item.to_dict()
+	for key in extra_item_fields.keys():
+		item_data[key] = extra_item_fields[key]
+	var drop: Node = LOOT_DROP_SCENE.instantiate()
+	if drop == null:
+		return
+	game_layer.add_child(drop)
+	if drop.has_method("setup"):
+		drop.call("setup", item_data, at_pos)
+
+## Public score entry for the mechanic waves (lane_runner collectibles...):
+## adds run score and shows the floating "+N" at the pickup position.
+func add_wave_bonus_score(points: int, at_pos: Vector2) -> void:
+	var delta: int = maxi(0, points)
+	if delta <= 0:
+		return
+	_add_run_score(delta)
+	VFXManager.spawn_floating_text(at_pos, "+%d" % delta, Color(1.0, 0.87, 0.45), hud_container)
 
 func _on_bonus_crystal_collected(data: Dictionary) -> void:
 	var crystal_type: String = str(data.get("type", ""))
@@ -471,14 +717,96 @@ func _clear_bonus_crystals() -> void:
 		node.queue_free()
 	_active_bonus_crystals.clear()
 
+func _try_spawn_fire_pattern_drop(at_pos: Vector2) -> void:
+	# No shooting during the mechanic waves: a fire-pattern drop would be useless.
+	if _gate_runner_wave_active or _pong_wave_active or _breakout_wave_active \
+		or _ball_launcher_wave_active \
+		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
+		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
+		or _star_drift_wave_active:
+		return
+	if _fire_pattern_drops_cfg.is_empty() or not bool(_fire_pattern_drops_cfg.get("enabled", false)):
+		return
+	# Per-level drop cap (0 or negative means unlimited).
+	var max_drops: int = int(_fire_pattern_drops_cfg.get("max_drops_per_level", 1))
+	if max_drops > 0 and _fire_pattern_drop_count >= max_drops:
+		return
+
+	# Eligible patterns: unlocked-only when require_rank_one_unlocked is true.
+	var require_rank_one: bool = bool(_fire_pattern_drops_cfg.get("require_rank_one_unlocked", true))
+	var eligible: Array = SkillManager.get_eligible_fire_pattern_drops(require_rank_one)
+	if eligible.is_empty():
+		return
+
+	var chance: float = clampf(float(_fire_pattern_drops_cfg.get("drop_chance", 0.05)), 0.0, 1.0)
+	if randf() > chance:
+		return
+
+	var pattern_id: String = str(eligible[randi() % eligible.size()])
+	var patterns_cfg: Dictionary = _fire_pattern_drops_cfg.get("patterns", {}) if _fire_pattern_drops_cfg.get("patterns") is Dictionary else {}
+	var pattern_entry: Dictionary = patterns_cfg.get(pattern_id, {}) if patterns_cfg.get(pattern_id) is Dictionary else {}
+
+	var drop_node: Node = FIRE_PATTERN_DROP_SCENE.instantiate()
+	if drop_node == null:
+		return
+	var spawn_data: Dictionary = {
+		"pattern_id": pattern_id,
+		"asset": str(pattern_entry.get("asset", "")),
+		"despawn_time_sec": float(_fire_pattern_drops_cfg.get("despawn_time_sec", 8.0)),
+		"pickup_radius": float(_fire_pattern_drops_cfg.get("pickup_radius", 28.0)),
+		"magnet_speed": float(_fire_pattern_drops_cfg.get("magnet_speed", 420.0)),
+		"size_px": float(_fire_pattern_drops_cfg.get("size_px", 56.0)),
+		"fall_speed_px_sec": float(_fire_pattern_drops_cfg.get("fall_speed_px_sec", 220.0))
+	}
+
+	var drop_area: Area2D = drop_node as Area2D
+	if drop_area:
+		drop_area.global_position = at_pos + Vector2(0.0, float(_fire_pattern_drops_cfg.get("spawn_offset_y", 10.0)))
+		game_layer.add_child(drop_area)
+		_active_fire_pattern_drops.append(drop_area)
+		_fire_pattern_drop_count += 1
+		if drop_area.has_signal("collected"):
+			drop_area.collected.connect(_on_fire_pattern_drop_collected)
+		drop_area.tree_exiting.connect(func() -> void:
+			_active_fire_pattern_drops.erase(drop_area)
+		)
+		if drop_area.has_method("setup"):
+			drop_area.call("setup", spawn_data, player)
+
+func _on_fire_pattern_drop_collected(pattern_id: String) -> void:
+	if pattern_id == "" or not is_instance_valid(player):
+		return
+	if player.has_method("set_active_fire_pattern"):
+		player.call("set_active_fire_pattern", pattern_id)
+	var label: String = LocaleManager.translate("skills.skill." + pattern_id + ".title")
+	if label == "skills.skill." + pattern_id + ".title":
+		label = pattern_id
+	VFXManager.spawn_floating_text(
+		player.global_position,
+		"%s: %s" % [LocaleManager.translate("fire_drop_picked"), label],
+		Color(1.0, 0.55, 0.35),
+		hud_container
+	)
+
+func _clear_fire_pattern_drops() -> void:
+	for i in range(_active_fire_pattern_drops.size() - 1, -1, -1):
+		var node: Node = _active_fire_pattern_drops[i]
+		if node == null or not is_instance_valid(node):
+			_active_fire_pattern_drops.remove_at(i)
+			continue
+		node.queue_free()
+	_active_fire_pattern_drops.clear()
+
 func _clear_path_trials() -> void:
 	for i in range(_active_path_trials.size() - 1, -1, -1):
 		var node: Node = _active_path_trials[i]
 		if node == null or not is_instance_valid(node):
 			_active_path_trials.remove_at(i)
 			continue
-		node.queue_free()
-	_active_path_trials.clear()
+		if node.has_method("finish_with_fade"):
+			node.call("finish_with_fade")
+		else:
+			node.queue_free()
 
 func _build_default_loot_drop_rules() -> Dictionary:
 	return {
@@ -571,10 +899,6 @@ func _load_override_protocol_state() -> void:
 	if _has_override_protocol("ablative_armor"):
 		var armor_cfg: Dictionary = _get_override_protocol_settings("ablative_armor")
 		_override_enemy_hp_multiplier *= maxf(0.01, float(armor_cfg.get("enemy_hp_multiplier", 1.3)))
-	if _has_override_protocol("critical_malfunction"):
-		var malfunction_cfg: Dictionary = _get_override_protocol_settings("critical_malfunction")
-		_override_player_start_hp = maxi(1, int(malfunction_cfg.get("player_start_hp", 1)))
-		_override_force_one_hp = _override_player_start_hp <= 1
 	if _has_override_protocol("nanite_suppression"):
 		var nanite_cfg: Dictionary = _get_override_protocol_settings("nanite_suppression")
 		_override_player_heal_multiplier = clampf(float(nanite_cfg.get("heal_multiplier", _override_ui_settings.get("nanite_heal_multiplier", 0.5))), 0.0, 1.0)
@@ -768,27 +1092,28 @@ func _setup_background() -> void:
 	var far_speed: float = float(bg_scroll_cfg.get("far_speed", 10.0))
 	var mid_speed: float = float(bg_scroll_cfg.get("mid_speed", 50.0))
 	var near_speed: float = float(bg_scroll_cfg.get("near_speed", 125.0))
+	var tile_height_viewport_multiplier: float = maxf(0.01, float(bg_scroll_cfg.get("tile_height_viewport_multiplier", 1.5)))
 	
 	print("[Game] Loading background for ", level_id)
 
 	# 1. FAR LAYER (0.2x)
 	var far_path: String = str(bgs.get("far_layer", ""))
 	if far_path != "":
-		_create_layer(bg_container, far_path, far_speed, viewport_size, false)
+		_create_layer(bg_container, far_path, far_speed, viewport_size, false, 1.0, tile_height_viewport_multiplier)
 	
 	# 2. MID LAYER (1.0x, PNG Alpha, Random/Tiling)
 	var mid_layers := _flatten_layer_entries(bgs.get("mid_layer", []), 1.0)
 	for mid_entry in mid_layers:
 		var mid_path: String = str(mid_entry.get("path", ""))
 		var mid_opacity: float = float(mid_entry.get("opacity", 1.0))
-		_create_layer(bg_container, mid_path, mid_speed, viewport_size, true, mid_opacity)
+		_create_layer(bg_container, mid_path, mid_speed, viewport_size, true, mid_opacity, tile_height_viewport_multiplier)
 	
 	# 3. NEAR LAYER (2.5x, PNG Alpha, Fast/Blur)
 	var near_layers := _flatten_layer_entries(bgs.get("near_layer", []), 1.0)
 	for near_entry in near_layers:
 		var near_path: String = str(near_entry.get("path", ""))
 		var near_opacity: float = float(near_entry.get("opacity", 1.0))
-		_create_layer(bg_container, near_path, near_speed, viewport_size, true, near_opacity)
+		_create_layer(bg_container, near_path, near_speed, viewport_size, true, near_opacity, tile_height_viewport_multiplier)
 
 	# 4. OVERLAY — full rect color layer on top of backgrounds (improves ship visibility)
 	# Taille basée sur le viewport RÉEL (runtime) pour couvrir tout l'écran sur mobile (design_size fixe laissait 5–8% en haut/bas).
@@ -819,7 +1144,8 @@ func _create_layer(
 	speed: float,
 	viewport_size: Vector2,
 	use_add_blend: bool,
-	opacity: float = 1.0
+	opacity: float = 1.0,
+	tile_height_viewport_multiplier: float = 1.0
 ) -> void:
 	if path == "": return
 	
@@ -834,7 +1160,7 @@ func _create_layer(
 	if layer_resource:
 		var layer: Node = SCROLLING_LAYER_SCRIPT.new()
 		parent.add_child(layer)
-		layer.call("setup", layer_resource, speed, viewport_size, use_add_blend)
+		layer.call("setup", layer_resource, speed, viewport_size, use_add_blend, tile_height_viewport_multiplier)
 		if layer is CanvasItem:
 			(layer as CanvasItem).modulate.a = clampf(opacity, 0.0, 1.0)
 	else:
@@ -863,6 +1189,73 @@ func _flatten_layer_entries(data: Variant, default_opacity: float = 1.0) -> Arra
 			})
 	return result
 
+# =============================================================================
+# WAVE BACKGROUND OVERRIDE (temporary dimension swap, e.g. gravity_hole)
+# =============================================================================
+
+## Fades a temporary background above the level one. z = -90: above the base
+## layers (-100) but below _overlay_rect (effective z ~0, which keeps tinting
+## the wave background too) and below all gameplay. The base container keeps
+## scrolling underneath — hiding it is forbidden (it owns _overlay_rect).
+## Idempotent: same path re-tweens the alpha only; a new path rebuilds.
+func begin_wave_background_override(bg_path: String, fade_sec: float, scroll_speed: float = 14.0) -> void:
+	if bg_path == "" or not ResourceLoader.exists(bg_path):
+		push_warning("[Game] wave background override missing asset: " + bg_path)
+		return
+	if _wave_bg_tween and _wave_bg_tween.is_valid():
+		_wave_bg_tween.kill()
+	_wave_bg_tween = null
+	if _wave_bg_container != null and is_instance_valid(_wave_bg_container) and _wave_bg_path != bg_path:
+		_wave_bg_container.queue_free()
+		_wave_bg_container = null
+	if _wave_bg_container == null or not is_instance_valid(_wave_bg_container):
+		_wave_bg_container = Node2D.new()
+		_wave_bg_container.name = "WaveBackgroundContainer"
+		_wave_bg_container.z_index = -90
+		add_child(_wave_bg_container)
+		move_child(_wave_bg_container, 1) # right after BackgroundContainer
+		var bg_scroll_cfg: Dictionary = {}
+		var gameplay_v: Variant = DataManager.get_game_config().get("gameplay", {}) if DataManager else {}
+		if gameplay_v is Dictionary:
+			var scroll_v: Variant = (gameplay_v as Dictionary).get("background_scroll", {})
+			if scroll_v is Dictionary:
+				bg_scroll_cfg = scroll_v as Dictionary
+		var tile_mult: float = maxf(0.01, float(bg_scroll_cfg.get("tile_height_viewport_multiplier", 1.5)))
+		_create_layer(_wave_bg_container, bg_path, scroll_speed, _get_design_viewport_size(), false, 1.0, tile_mult)
+		_wave_bg_container.modulate.a = 0.0
+	_wave_bg_path = bg_path
+	_wave_bg_active = true
+	if fade_sec <= 0.0:
+		_wave_bg_container.modulate.a = 1.0
+		return
+	_wave_bg_tween = create_tween()
+	_wave_bg_tween.tween_property(_wave_bg_container, "modulate:a", 1.0, fade_sec)
+
+## Fades the override out and frees it. Safe to call twice / while fading in.
+func end_wave_background_override(fade_sec: float) -> void:
+	if not _wave_bg_active:
+		return
+	_wave_bg_active = false
+	_wave_bg_path = ""
+	if _wave_bg_tween and _wave_bg_tween.is_valid():
+		_wave_bg_tween.kill()
+	_wave_bg_tween = null
+	var container: Node2D = _wave_bg_container
+	_wave_bg_container = null
+	if container == null or not is_instance_valid(container):
+		return
+	if fade_sec <= 0.0:
+		container.queue_free()
+		return
+	# Bound to the container (NOT _wave_bg_tween): a later begin() kills
+	# _wave_bg_tween and must not be able to strand a half-faded container.
+	var out_tween: Tween = container.create_tween()
+	out_tween.tween_property(container, "modulate:a", 0.0, fade_sec)
+	out_tween.tween_callback(container.queue_free)
+
+func is_wave_background_override_active() -> bool:
+	return _wave_bg_active
+
 func _get_design_viewport_size() -> Vector2:
 	var w: int = int(ProjectSettings.get_setting("display/window/size/viewport_width", 720))
 	var h: int = int(ProjectSettings.get_setting("display/window/size/viewport_height", 1280))
@@ -890,7 +1283,7 @@ func _process(delta: float) -> void:
 # func _update_background(delta: float) -> void: ... DELETED
 
 func _debug_log_frame_hitch(delta: float) -> void:
-	if not DEBUG_PERF_HITCH_LOG:
+	if not DEBUG_PERF_HITCH_LOG or not _log_hitches_enabled:
 		return
 
 	var delta_ms: float = delta * 1000.0
@@ -1150,15 +1543,49 @@ func _start_enemy_spawner() -> void:
 	wave_manager.spawn_obstacle.connect(_on_wave_obstacle_spawn)
 	if wave_manager.has_signal("spawn_path_trial"):
 		wave_manager.spawn_path_trial.connect(_on_wave_path_trial_spawn)
+	if wave_manager.has_signal("spawn_gate_runner"):
+		wave_manager.spawn_gate_runner.connect(_on_wave_gate_runner_spawn)
+	if wave_manager.has_signal("spawn_pong"):
+		wave_manager.spawn_pong.connect(_on_wave_pong_spawn)
+	if wave_manager.has_signal("spawn_breakout"):
+		wave_manager.spawn_breakout.connect(_on_wave_breakout_spawn)
+	if wave_manager.has_signal("spawn_ball_launcher"):
+		wave_manager.spawn_ball_launcher.connect(_on_wave_ball_launcher_spawn)
+	if wave_manager.has_signal("spawn_vertical_climb"):
+		wave_manager.spawn_vertical_climb.connect(_on_wave_vertical_climb_spawn)
+	if wave_manager.has_signal("spawn_absorb"):
+		wave_manager.spawn_absorb.connect(_on_wave_absorb_spawn)
+	if wave_manager.has_signal("spawn_lane_runner"):
+		wave_manager.spawn_lane_runner.connect(_on_wave_lane_runner_spawn)
+	if wave_manager.has_signal("spawn_slice_rush"):
+		wave_manager.spawn_slice_rush.connect(_on_wave_slice_rush_spawn)
+	if wave_manager.has_signal("spawn_match3"):
+		wave_manager.spawn_match3.connect(_on_wave_match3_spawn)
+	if wave_manager.has_signal("spawn_gravity_hole"):
+		wave_manager.spawn_gravity_hole.connect(_on_wave_gravity_hole_spawn)
+	if wave_manager.has_signal("spawn_star_drift"):
+		wave_manager.spawn_star_drift.connect(_on_wave_star_drift_spawn)
+	if wave_manager.has_signal("spawn_asteroid_field"):
+		wave_manager.spawn_asteroid_field.connect(_on_wave_asteroid_field_spawn)
 	wave_manager.level_completed.connect(_on_level_completed)
 	wave_manager.wave_started.connect(_on_wave_started)
 	wave_manager.story_check_before_wave.connect(_on_story_check_before_wave)
-	
+	if wave_manager.has_method("set_performance_config"):
+		wave_manager.call("set_performance_config", _performance_cfg)
+	# Mode libre : à armer AVANT setup() pour que la première vague soit déjà
+	# la vague régénérée du level 1 (et non le placeholder du niveau synthétique).
+	if _free_mode_session:
+		if wave_manager.has_method("set_free_mode"):
+			wave_manager.call("set_free_mode", _free_mode_wave_type, DataManager.get_freemode_config())
+		if wave_manager.has_signal("free_mode_level_changed"):
+			wave_manager.free_mode_level_changed.connect(_on_free_mode_level_changed)
+
 	# Démarrer le niveau actuel
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)
 	_prime_runtime_enemy_spawn_costs(level_id)
 	_prewarm_level_spawn_assets(level_id)
-	_prewarm_runtime_support_assets()
+	if _warmup_runtime_support_enabled:
+		_prewarm_runtime_support_assets()
 	_configure_wave_counter(level_id)
 	_reset_wave_powerup_drop_counters()
 	wave_manager.setup(level_id, current_world_id)
@@ -1206,7 +1633,7 @@ func _prime_runtime_enemy_spawn_costs(level_id: String) -> void:
 
 	host.queue_free()
 
-	if DEBUG_RUNTIME_ENEMY_PREWARM_LOG:
+	if DEBUG_RUNTIME_ENEMY_PREWARM_LOG and _log_runtime_enemy_prewarm_enabled:
 		var elapsed_ms: float = float(Time.get_ticks_usec() - t0_usec) / 1000.0
 		print(
 			"[Game] Runtime enemy warmup done in ",
@@ -1306,6 +1733,8 @@ func _prewarm_level_spawn_assets(level_id: String) -> void:
 		_warmup_resource_path(str((boss_overrides as Dictionary).get(boss_id, "")))
 
 func _prewarm_runtime_support_assets() -> void:
+	if not _warmup_runtime_support_enabled:
+		return
 	var runtime_paths: Dictionary = {}
 	for path_variant in RUNTIME_WARMUP_PATHS:
 		var path: String = str(path_variant)
@@ -1315,10 +1744,11 @@ func _prewarm_runtime_support_assets() -> void:
 	_collect_runtime_support_paths(runtime_paths)
 	for path_variant in runtime_paths.keys():
 		_warmup_resource_path(str(path_variant))
-	_warmup_runtime_support_nodes(runtime_paths)
-	_prewarm_runtime_pickup_nodes()
-	_prewarm_runtime_path_trial_nodes()
-	_prewarm_runtime_explosion_nodes()
+	if _warmup_runtime_nodes_enabled:
+		_warmup_runtime_support_nodes(runtime_paths)
+		_prewarm_runtime_pickup_nodes()
+		_prewarm_runtime_path_trial_nodes()
+		_prewarm_runtime_explosion_nodes()
 
 func _prewarm_runtime_path_trial_nodes() -> void:
 	if PATH_TRIAL_SCENE == null:
@@ -1423,9 +1853,6 @@ func _is_runtime_warmup_path(path: String) -> bool:
 	return false
 
 func _collect_runtime_support_paths(target: Dictionary) -> void:
-	var modifiers_data: Variant = _load_json_file("res://data/enemy_modifiers.json")
-	_collect_resource_paths_recursive(modifiers_data, target)
-
 	_collect_current_level_wave_assets(target)
 	_collect_resource_paths_recursive(DataManager.get_skills_config(), target)
 	_collect_resource_paths_recursive(DataManager.get_game_config(), target)
@@ -1437,6 +1864,12 @@ func _collect_runtime_support_paths(target: Dictionary) -> void:
 	_collect_resource_paths_recursive(_world_skin_overrides, target)
 	_collect_resource_paths_recursive(DataManager.get_override_protocols_config(), target)
 	_collect_resource_paths_recursive(DataManager.get_all_obstacles(), target)
+
+	if not _warmup_collect_external_json_enabled:
+		return
+
+	var modifiers_data: Variant = _load_json_file("res://data/enemy_modifiers.json")
+	_collect_resource_paths_recursive(modifiers_data, target)
 	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/missiles.json"), target)
 
 	_collect_resource_paths_recursive(_load_json_file("res://data/missiles/super_powers.json"), target)
@@ -1610,20 +2043,31 @@ func _warmup_resource_path(path: String) -> void:
 		return
 	var was_cached: bool = ResourceLoader.has_cached(path)
 	var loaded: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
-	if DEBUG_LEVEL_WARMUP_LOG:
+	if DEBUG_LEVEL_WARMUP_LOG and _log_level_warmup_enabled:
 		if loaded:
 			print("[Game] Warmup ", ("reused " if was_cached else "loaded "), path)
 		else:
 			print("[Game] Warmup failed ", path)
 
 func _configure_wave_counter(level_id: String) -> void:
+	# Mode libre : pas de compteur "X / Y" (boucle infinie) — le label affiche
+	# le "Niveau N" de difficulté à la place.
+	if _free_mode_session:
+		_wave_total_with_boss = 0
+		if hud and hud.has_method("configure_wave_counter"):
+			hud.call("configure_wave_counter", 0)
+		# Pas de bouclier récoltable en mode libre : barre masquée pour la run.
+		if hud and hud.has_method("set_shield_bar_hidden"):
+			hud.call("set_shield_bar_hidden", true)
+		_update_free_mode_level_label(1)
+		return
 	var level_data: Dictionary = DataManager.get_level_data(level_id)
 	var waves_count: int = _get_level_wave_count(level_data)
 	var boss_count: int = _extract_boss_sequence_ids(level_data).size()
 	if boss_count <= 0 and str(level_data.get("boss_id", "")) != "":
 		boss_count = 1
 	_wave_total_with_boss = waves_count + boss_count
-	
+
 	if hud and hud.has_method("configure_wave_counter"):
 		hud.call("configure_wave_counter", _wave_total_with_boss)
 
@@ -1726,28 +2170,56 @@ func _skip_to_next_debug_boss() -> void:
 func _on_wave_started(wave_index: int) -> void:
 	_reset_wave_powerup_drop_counters()
 	_clear_path_trials()
-	var is_danger_wave: bool = _is_danger_wave_index(wave_index)
+	# Clearing gate runners also restores the ship (HP clamp + scale reset) when
+	# leaving a gate_runner wave for the next one.
+	_clear_gate_runners()
+	# Same for pong/breakout/ball_launcher/climb/absorb/lane_runner/slice_rush:
+	# restores the ship (shape + free X/Y).
+	_clear_pong_managers()
+	_clear_breakout_managers()
+	_clear_ball_launcher_managers()
+	_clear_climb_managers()
+	_clear_absorb_managers()
+	_clear_lane_runner_managers()
+	_clear_slice_rush_managers()
+	_clear_match3_managers()
+	_clear_gravity_hole_managers()
+	_clear_star_drift_managers()
+	var wave_type: String = _get_wave_type_at_index(wave_index)
+	# Déblocage mode libre : tout type rencontré en mode Histoire est marqué
+	# sur le profil (jamais pendant une run libre).
+	if not _free_mode_session and ProfileManager and ProfileManager.has_method("mark_wave_type_encountered"):
+		ProfileManager.mark_wave_type_encountered(wave_type)
+	var disable_shooting: bool = wave_type == "path_trial" or wave_type == "gate_runner" \
+		or wave_type == "pong" or wave_type == "breakout" or wave_type == "ball_launcher" \
+		or wave_type == "vertical_climb" \
+		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
+		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift"
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
-		# Disable only for level wave path_trial; re-enable on next normal wave.
-		player.set_can_shoot(not is_danger_wave)
+		# Disable shooting for the paddle/pilotage mechanics; re-enable otherwise.
+		player.set_can_shoot(not disable_shooting)
 	var current_wave: int = wave_index + 1
-	_show_wave_start_splash(current_wave, is_danger_wave)
+	# Mode libre : le splash n'est joué qu'à la toute première itération (les
+	# boucles suivantes doivent être invisibles pour le joueur).
+	if not _free_mode_session or not _free_mode_splash_shown:
+		_free_mode_splash_shown = true
+		_show_wave_start_splash(current_wave, wave_type)
 	if hud and hud.has_method("update_wave_counter"):
 		hud.call("update_wave_counter", current_wave)
 
-func _is_danger_wave_index(wave_index: int) -> bool:
+func _get_wave_type_at_index(wave_index: int) -> String:
 	var level_id := current_world_id + "_lvl_" + str(current_level_index)
 	var level_data: Dictionary = DataManager.get_level_data(level_id)
 	var waves_v: Variant = level_data.get("waves", [])
 	if not (waves_v is Array):
-		return false
+		return "enemy"
 	var waves: Array = waves_v as Array
 	if wave_index < 0 or wave_index >= waves.size():
-		return false
+		return "enemy"
 	var wave_v: Variant = waves[wave_index]
 	if not (wave_v is Dictionary):
-		return false
-	return str((wave_v as Dictionary).get("type", "enemy")) == "path_trial"
+		return "enemy"
+	return str((wave_v as Dictionary).get("type", "enemy"))
 
 func _ensure_wave_splash_label() -> void:
 	if _wave_splash_label and is_instance_valid(_wave_splash_label):
@@ -1776,9 +2248,50 @@ func _ensure_wave_splash_label() -> void:
 	_wave_splash_sub_label.modulate.a = 0.0
 	hud_container.add_child(_wave_splash_sub_label)
 
-func _show_wave_start_splash(wave_number: int, is_danger_wave: bool = false) -> void:
+# Wave-type sub-title shown below the "Wave X" toast. Fallback texts are used
+# when the "game_wave_<type>" locale key is missing; plain enemy waves
+# (empty/unknown type) show no sub-title at all.
+const WAVE_TYPE_SPLASH_FALLBACKS: Dictionary = {
+	"path_trial": "Danger Zone",
+	"gate_runner": "GATE RUNNER",
+	"pong": "PONG",
+	"breakout": "Breakout",
+	"ball_launcher": "Ball Launcher",
+	"vertical_climb": "Engine Failure",
+	"absorb": "Absorption",
+	"lane_runner": "Lane Runner",
+	"slice_rush": "Slice Rush",
+	"match3": "Match 3",
+	"gravity_hole": "Gravity Field",
+	"star_drift": "Star Drift",
+	"obstacle": "Asteroid Field",
+	"asteroid_split": "Splitting Asteroids",
+	"swarm": "Swarm",
+	"tank": "Heavy Armor",
+	"artillery": "Artillery Barrage"
+}
+const WAVE_TYPE_SPLASH_COLORS: Dictionary = {
+	"path_trial": "#FF3B3B",
+	"gate_runner": "#3FBF6A",
+	"pong": "#8FD3FF",
+	"breakout": "#FFB56B",
+	"ball_launcher": "#5BB8FF",
+	"vertical_climb": "#FF8C42",
+	"absorb": "#7BE0A3",
+	"lane_runner": "#F2E45B",
+	"slice_rush": "#FF6BD5",
+	"match3": "#C77DFF",
+	"gravity_hole": "#9A7BFF",
+	"star_drift": "#9AF6FF",
+	"asteroid_split": "#C9A66B"
+}
+const WAVE_TYPE_SPLASH_DEFAULT_COLOR: String = "#FFD56B"
+
+func _show_wave_start_splash(wave_number: int, wave_type: String = "") -> void:
 	if not bool(_wave_splash_cfg.get("enabled", true)):
 		return
+	if wave_type == "gate_runner":
+		_show_gate_runner_splash_asset()
 	_ensure_wave_splash_label()
 	if _wave_splash_label == null or not is_instance_valid(_wave_splash_label):
 		return
@@ -1792,14 +2305,19 @@ func _show_wave_start_splash(wave_number: int, is_danger_wave: bool = false) -> 
 	# Scale around exact center of screen so the zoom never drifts.
 	_wave_splash_label.pivot_offset = _wave_splash_label.size * 0.5
 
+	var show_sub_label: bool = WAVE_TYPE_SPLASH_FALLBACKS.has(wave_type)
 	if _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
-		var danger_text: String = LocaleManager.translate("game_danger_zone")
-		if danger_text == "" or danger_text == "game_danger_zone":
-			danger_text = "Zone de danger"
-		_wave_splash_sub_label.visible = is_danger_wave
-		_wave_splash_sub_label.text = danger_text
+		var sub_text: String = ""
+		var sub_color: Color = Color(str(WAVE_TYPE_SPLASH_COLORS.get(wave_type, WAVE_TYPE_SPLASH_DEFAULT_COLOR)))
+		if show_sub_label:
+			var sub_key: String = "game_wave_" + wave_type
+			sub_text = LocaleManager.translate(sub_key)
+			if sub_text == "" or sub_text == sub_key:
+				sub_text = str(WAVE_TYPE_SPLASH_FALLBACKS.get(wave_type, ""))
+		_wave_splash_sub_label.visible = show_sub_label
+		_wave_splash_sub_label.text = sub_text
 		_wave_splash_sub_label.add_theme_font_size_override("font_size", maxi(10, int(_wave_splash_cfg.get("font_size", 92) * 0.42)))
-		_wave_splash_sub_label.add_theme_color_override("font_color", Color("#FF3B3B"))
+		_wave_splash_sub_label.add_theme_color_override("font_color", sub_color)
 		_wave_splash_sub_label.position = Vector2(
 			0.0,
 			float(_wave_splash_cfg.get("font_size", 92) * 0.52) + maxf(0.0, float(_wave_splash_cfg.get("warning_margin_top", 30.0)))
@@ -1830,7 +2348,7 @@ func _show_wave_start_splash(wave_number: int, is_danger_wave: bool = false) -> 
 	_wave_splash_tween.tween_property(_wave_splash_label, "scale", Vector2.ONE * peak_scale, first_leg).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_wave_splash_tween.tween_property(_wave_splash_label, "scale", Vector2.ONE * end_scale, second_leg).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_wave_splash_tween.parallel().tween_property(_wave_splash_label, "modulate:a", 0.0, total_duration + 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	if is_danger_wave and _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
+	if show_sub_label and _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
 		var warning_delay: float = maxf(0.0, float(_wave_splash_cfg.get("warning_delay_sec", 0.4)))
 		_wave_splash_warning_tween = create_tween()
 		_wave_splash_warning_tween.tween_interval(warning_delay)
@@ -1838,6 +2356,49 @@ func _show_wave_start_splash(wave_number: int, is_danger_wave: bool = false) -> 
 		_wave_splash_warning_tween.parallel().tween_property(_wave_splash_sub_label, "scale", Vector2.ONE * peak_scale, warning_first_leg).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_wave_splash_warning_tween.tween_property(_wave_splash_sub_label, "scale", Vector2.ONE * end_scale, warning_second_leg).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		_wave_splash_warning_tween.parallel().tween_property(_wave_splash_sub_label, "modulate:a", 0.0, warning_duration + 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _show_gate_runner_splash_asset() -> void:
+	var gr_cfg: Dictionary = DataManager.get_gate_runner_config() if DataManager else {}
+	var asset_path: String = str(gr_cfg.get("splash_asset_path", "")).strip_edges()
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+	var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res == null:
+		return
+
+	var holder := Control.new()
+	holder.name = "GateRunnerSplashAsset"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hud_container.add_child(holder)
+
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var center: Vector2 = viewport_size * 0.5
+
+	var visual: Node2D = null
+	if res is SpriteFrames:
+		var anim := AnimatedSprite2D.new()
+		VFXManager.play_sprite_frames(anim, res as SpriteFrames, &"default", true, 0.0)
+		visual = anim
+	elif res is Texture2D:
+		var sprite := Sprite2D.new()
+		sprite.texture = res as Texture2D
+		visual = sprite
+	if visual == null:
+		holder.queue_free()
+		return
+	visual.position = center
+	holder.add_child(visual)
+
+	holder.modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(holder, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(1.1)
+	tween.tween_property(holder, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.finished.connect(func() -> void:
+		if is_instance_valid(holder):
+			holder.queue_free()
+	)
 
 func _on_story_check_before_wave(wave_index: int) -> void:
 	var wave_one_based: int = wave_index + 1
@@ -1874,11 +2435,20 @@ func _reset_wave_powerup_drop_counters() -> void:
 	_wave_powerup_drop_counts["shield"] = 0
 	_wave_powerup_drop_counts["fire_rate"] = 0
 	_wave_equipment_drop_count = 0
+	_fire_pattern_drop_count = 0
 
 func get_loot_drop_rules() -> Dictionary:
 	return _loot_drop_rules.duplicate(true)
 
 func can_spawn_powerup_drop(effect: String) -> bool:
+	# During the no-shoot mechanic waves, shield / rapid fire power-ups make
+	# no sense and are suppressed.
+	if _gate_runner_wave_active or _pong_wave_active or _breakout_wave_active \
+		or _ball_launcher_wave_active \
+		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
+		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
+		or _star_drift_wave_active:
+		return false
 	var normalized: String = effect.strip_edges().to_lower()
 	if not bool(_loot_drop_rules.get("allow_powerups", true)):
 		return false
@@ -1948,6 +2518,8 @@ func _on_wave_enemy_spawn(enemy_data: Dictionary, spawn_pos: Vector2) -> void:
 	
 	# Connecter le signal de mort
 	enemy.enemy_died.connect(_on_enemy_died)
+	if wave_manager and wave_manager.has_method("track_enemy_node"):
+		wave_manager.call("track_enemy_node", enemy)
 
 	if DEBUG_SPAWN_PIPELINE_LOG:
 		var t_end_usec: int = Time.get_ticks_usec()
@@ -2003,6 +2575,8 @@ func _on_wave_obstacle_spawn(obstacle_data: Dictionary, positions: Array, speed:
 			obstacle.global_position = pos as Vector2
 			game_layer.add_child(obstacle)
 			obstacle.setup(per_obstacle_data, speed)
+			if wave_manager and wave_manager.has_method("track_obstacle_node"):
+				wave_manager.call("track_obstacle_node", obstacle)
 			
 			# Connecter le signal de destruction si destructible
 			if obstacle.has_signal("obstacle_destroyed"):
@@ -2025,6 +2599,521 @@ func _on_wave_path_trial_spawn(config: Dictionary) -> void:
 	)
 	if trial.has_method("setup"):
 		trial.call("setup", config)
+
+func _on_wave_gate_runner_spawn(config: Dictionary) -> void:
+	if GATE_RUNNER_SCENE == null:
+		return
+	var node: Node = GATE_RUNNER_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_gate_runner_wave_active = true
+	game_layer.add_child(manager)
+	_active_gate_runners.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_gate_runners.erase(manager)
+	)
+	# End the wave as soon as the scripted content is over and no drone remains,
+	# so there is no idle period before the next wave.
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_gate_runner_finished"):
+				wave_manager.call("notify_gate_runner_finished")
+		)
+	# Inject the world-level enemy skin overrides so swarm drones use the
+	# correct world skin instead of the default placeholder visual.
+	var payload: Dictionary = config.duplicate(true)
+	var enemy_skins_v: Variant = _world_skin_overrides.get("enemies", {})
+	payload["_enemy_skins"] = (enemy_skins_v as Dictionary).duplicate(true) if enemy_skins_v is Dictionary else {}
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_gate_runners() -> void:
+	_gate_runner_wave_active = false
+	for i in range(_active_gate_runners.size() - 1, -1, -1):
+		var node: Node = _active_gate_runners[i]
+		if node == null or not is_instance_valid(node):
+			_active_gate_runners.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_gate_runners.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_gate_runner"):
+		player.call("end_gate_runner")
+	if hud and hud.has_method("set_hp_bar_hidden"):
+		hud.call("set_hp_bar_hidden", false)
+
+func _on_wave_pong_spawn(config: Dictionary) -> void:
+	if PONG_SCENE == null:
+		return
+	var node: Node = PONG_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_pong_wave_active = true
+	game_layer.add_child(manager)
+	_active_pong_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_pong_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_pong_finished"):
+				wave_manager.call("notify_pong_finished")
+		)
+	# Inject the world-level enemy skin overrides so the enemy paddle uses the
+	# correct world visual instead of the default one.
+	var payload: Dictionary = config.duplicate(true)
+	var enemy_skins_v: Variant = _world_skin_overrides.get("enemies", {})
+	payload["_enemy_skins"] = (enemy_skins_v as Dictionary).duplicate(true) if enemy_skins_v is Dictionary else {}
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_pong_managers() -> void:
+	_pong_wave_active = false
+	for i in range(_active_pong_managers.size() - 1, -1, -1):
+		var node: Node = _active_pong_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_pong_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_pong_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_pong"):
+		player.call("end_pong")
+
+func _on_wave_breakout_spawn(config: Dictionary) -> void:
+	if BREAKOUT_SCENE == null:
+		return
+	var node: Node = BREAKOUT_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_breakout_wave_active = true
+	game_layer.add_child(manager)
+	_active_breakout_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_breakout_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_breakout_finished"):
+				wave_manager.call("notify_breakout_finished")
+		)
+	if manager.has_method("setup"):
+		manager.call("setup", config.duplicate(true), player, hud)
+
+func _clear_breakout_managers() -> void:
+	_breakout_wave_active = false
+	for i in range(_active_breakout_managers.size() - 1, -1, -1):
+		var node: Node = _active_breakout_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_breakout_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_breakout_managers.clear()
+	# Defensive restore: breakout reuses the pong paddle mode.
+	if is_instance_valid(player) and player.has_method("end_pong"):
+		player.call("end_pong")
+
+func _on_wave_ball_launcher_spawn(config: Dictionary) -> void:
+	if BALL_LAUNCHER_SCENE == null:
+		return
+	var node: Node = BALL_LAUNCHER_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_ball_launcher_wave_active = true
+	game_layer.add_child(manager)
+	_active_ball_launcher_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_ball_launcher_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_ball_launcher_finished"):
+				wave_manager.call("notify_ball_launcher_finished")
+		)
+	if manager.has_method("setup"):
+		manager.call("setup", config.duplicate(true), player, hud)
+
+func _clear_ball_launcher_managers() -> void:
+	_ball_launcher_wave_active = false
+	for i in range(_active_ball_launcher_managers.size() - 1, -1, -1):
+		var node: Node = _active_ball_launcher_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_ball_launcher_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_ball_launcher_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_ball_launcher"):
+		player.call("end_ball_launcher")
+	if hud and is_instance_valid(hud):
+		if hud.has_method("set_power_buttons_suppressed"):
+			hud.call("set_power_buttons_suppressed", false)
+		if hud.has_method("set_joystick_visual_enabled"):
+			hud.call("set_joystick_visual_enabled", true)
+
+func _on_wave_vertical_climb_spawn(config: Dictionary) -> void:
+	if VERTICAL_CLIMB_SCENE == null:
+		return
+	var node: Node = VERTICAL_CLIMB_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_climb_wave_active = true
+	game_layer.add_child(manager)
+	_active_climb_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_climb_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_vertical_climb_finished"):
+				wave_manager.call("notify_vertical_climb_finished")
+		)
+	if manager.has_method("setup"):
+		manager.call("setup", config.duplicate(true), player, hud)
+
+func _clear_climb_managers() -> void:
+	_climb_wave_active = false
+	for i in range(_active_climb_managers.size() - 1, -1, -1):
+		var node: Node = _active_climb_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_climb_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_climb_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_climb"):
+		player.call("end_climb")
+
+func _on_wave_absorb_spawn(config: Dictionary) -> void:
+	if ABSORB_SCENE == null:
+		return
+	var node: Node = ABSORB_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_absorb_wave_active = true
+	game_layer.add_child(manager)
+	_active_absorb_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_absorb_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_absorb_finished"):
+				wave_manager.call("notify_absorb_finished")
+		)
+	# Inject the world-level enemy skin overrides so prey ships use the
+	# correct world visual.
+	var payload: Dictionary = config.duplicate(true)
+	var enemy_skins_v: Variant = _world_skin_overrides.get("enemies", {})
+	payload["_enemy_skins"] = (enemy_skins_v as Dictionary).duplicate(true) if enemy_skins_v is Dictionary else {}
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_absorb_managers() -> void:
+	_absorb_wave_active = false
+	for i in range(_active_absorb_managers.size() - 1, -1, -1):
+		var node: Node = _active_absorb_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_absorb_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_absorb_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_absorb"):
+		player.call("end_absorb")
+
+func _on_wave_lane_runner_spawn(config: Dictionary) -> void:
+	if LANE_RUNNER_SCENE == null:
+		return
+	var node: Node = LANE_RUNNER_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_lane_runner_wave_active = true
+	game_layer.add_child(manager)
+	_active_lane_runner_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_lane_runner_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_lane_runner_finished"):
+				wave_manager.call("notify_lane_runner_finished")
+		)
+	# Inject the world-level obstacle skins so the walls can use the world's
+	# explosive obstacle visuals when the wave declares no wall_assets.
+	var payload: Dictionary = config.duplicate(true)
+	var obstacle_skins: Array = []
+	var obs_overrides_v: Variant = _world_skin_overrides.get("obstacles", {})
+	if obs_overrides_v is Dictionary:
+		var explosives_v: Variant = (obs_overrides_v as Dictionary).get("explosives", [])
+		if explosives_v is Array:
+			obstacle_skins = (explosives_v as Array).duplicate()
+	payload["_obstacle_skins"] = obstacle_skins
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_lane_runner_managers() -> void:
+	_lane_runner_wave_active = false
+	for i in range(_active_lane_runner_managers.size() - 1, -1, -1):
+		var node: Node = _active_lane_runner_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_lane_runner_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_lane_runner_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_lane_runner"):
+		player.call("end_lane_runner")
+
+func _on_wave_slice_rush_spawn(config: Dictionary) -> void:
+	if SLICE_RUSH_SCENE == null:
+		return
+	var node: Node = SLICE_RUSH_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_slice_rush_wave_active = true
+	game_layer.add_child(manager)
+	_active_slice_rush_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_slice_rush_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_slice_rush_finished"):
+				wave_manager.call("notify_slice_rush_finished")
+		)
+	# Inject the world-level obstacle skins so sliceable objects can use the
+	# world's explosive obstacle visuals when a type declares no assets.
+	var payload: Dictionary = config.duplicate(true)
+	var obstacle_skins: Array = []
+	var obs_overrides_v: Variant = _world_skin_overrides.get("obstacles", {})
+	if obs_overrides_v is Dictionary:
+		var explosives_v: Variant = (obs_overrides_v as Dictionary).get("explosives", [])
+		if explosives_v is Array:
+			obstacle_skins = (explosives_v as Array).duplicate()
+	payload["_obstacle_skins"] = obstacle_skins
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_slice_rush_managers() -> void:
+	_slice_rush_wave_active = false
+	for i in range(_active_slice_rush_managers.size() - 1, -1, -1):
+		var node: Node = _active_slice_rush_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_slice_rush_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_slice_rush_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_slice_rush"):
+		player.call("end_slice_rush")
+	if hud and is_instance_valid(hud):
+		if hud.has_method("set_power_buttons_suppressed"):
+			hud.call("set_power_buttons_suppressed", false)
+		if hud.has_method("set_joystick_visual_enabled"):
+			hud.call("set_joystick_visual_enabled", true)
+
+func _on_wave_match3_spawn(config: Dictionary) -> void:
+	if MATCH3_SCENE == null:
+		return
+	var node: Node = MATCH3_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_match3_wave_active = true
+	game_layer.add_child(manager)
+	_active_match3_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_match3_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_match3_finished"):
+				wave_manager.call("notify_match3_finished")
+		)
+	if manager.has_method("setup"):
+		manager.call("setup", config.duplicate(true), player, hud)
+
+func _clear_match3_managers() -> void:
+	_match3_wave_active = false
+	for i in range(_active_match3_managers.size() - 1, -1, -1):
+		var node: Node = _active_match3_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_match3_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_match3_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_match3"):
+		player.call("end_match3")
+	if hud and is_instance_valid(hud):
+		if hud.has_method("set_power_buttons_suppressed"):
+			hud.call("set_power_buttons_suppressed", false)
+		if hud.has_method("set_joystick_visual_enabled"):
+			hud.call("set_joystick_visual_enabled", true)
+
+func _on_wave_gravity_hole_spawn(config: Dictionary) -> void:
+	if GRAVITY_HOLE_SCENE == null:
+		return
+	var node: Node = GRAVITY_HOLE_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_gravity_hole_wave_active = true
+	game_layer.add_child(manager)
+	_active_gravity_hole_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_gravity_hole_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_gravity_hole_finished"):
+				wave_manager.call("notify_gravity_hole_finished")
+		)
+	# Inject the world-level obstacle skins so props can use the world's
+	# explosive obstacle visuals when a prop type declares no assets.
+	var payload: Dictionary = config.duplicate(true)
+	var obstacle_skins: Array = []
+	var obs_overrides_v: Variant = _world_skin_overrides.get("obstacles", {})
+	if obs_overrides_v is Dictionary:
+		var explosives_v: Variant = (obs_overrides_v as Dictionary).get("explosives", [])
+		if explosives_v is Array:
+			obstacle_skins = (explosives_v as Array).duplicate()
+	payload["_obstacle_skins"] = obstacle_skins
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_gravity_hole_managers() -> void:
+	_gravity_hole_wave_active = false
+	for i in range(_active_gravity_hole_managers.size() - 1, -1, -1):
+		var node: Node = _active_gravity_hole_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_gravity_hole_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_gravity_hole_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_gravity_hole"):
+		player.call("end_gravity_hole")
+	end_wave_background_override(0.0)
+
+func _on_wave_star_drift_spawn(config: Dictionary) -> void:
+	if STAR_DRIFT_SCENE == null:
+		return
+	var node: Node = STAR_DRIFT_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_star_drift_wave_active = true
+	game_layer.add_child(manager)
+	_active_star_drift_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_star_drift_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_star_drift_finished"):
+				wave_manager.call("notify_star_drift_finished")
+		)
+	# Inject the world-level obstacle skins so the meteors can use the world's
+	# explosive obstacle visuals when a hazard type declares no assets.
+	var payload: Dictionary = config.duplicate(true)
+	var obstacle_skins: Array = []
+	var obs_overrides_v: Variant = _world_skin_overrides.get("obstacles", {})
+	if obs_overrides_v is Dictionary:
+		var explosives_v: Variant = (obs_overrides_v as Dictionary).get("explosives", [])
+		if explosives_v is Array:
+			obstacle_skins = (explosives_v as Array).duplicate()
+	payload["_obstacle_skins"] = obstacle_skins
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
+
+func _clear_star_drift_managers() -> void:
+	_star_drift_wave_active = false
+	for i in range(_active_star_drift_managers.size() - 1, -1, -1):
+		var node: Node = _active_star_drift_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_star_drift_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_star_drift_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_star_drift"):
+		player.call("end_star_drift")
 
 func _randomize_obstacle_dimensions(data: Dictionary) -> void:
 	var shape: String = str(data.get("shape", "rectangle"))
@@ -2066,11 +3155,140 @@ func _pick_random_sprite(data: Dictionary) -> void:
 			data["sprite_path"] = ""
 	# Si c'est déjà un String, on le laisse tel quel (compatibilité)
 
-func _on_obstacle_destroyed(_obstacle: Node2D) -> void:
+func _on_obstacle_destroyed(obstacle: Node2D) -> void:
+	if obstacle != null and is_instance_valid(obstacle) and obstacle.has_meta("asteroid_tier"):
+		_on_asteroid_destroyed(obstacle)
+		return
 	# Score bonus pour destruction d'obstacles
 	_add_run_score(5)
 
+# =============================================================================
+# ASTEROID SPLIT WAVE
+# =============================================================================
+
+## Spawns the whole asteroid field at once, staggered vertically above the
+## screen: rocks enter progressively with zero per-frame scheduling cost, and
+## the standard obstacle tracking ends the wave when everything is cleared.
+func _on_wave_asteroid_field_spawn(config: Dictionary) -> void:
+	_asteroid_field_cfg = DataManager.get_wave_type_config("asteroid_split") if DataManager else {}
+	_asteroid_field_wave = config.duplicate(true)
+	_asteroid_field_base_speed = maxf(20.0, float(config.get("speed", _asteroid_field_cfg.get("fall_speed_px_sec_default", 120.0))))
+	var count: int = maxi(1, int(config.get("count", _asteroid_field_cfg.get("initial_count_default", 5))))
+	var stagger: float = maxf(60.0, float(config.get("spawn_stagger_px", _asteroid_field_cfg.get("spawn_stagger_px_default", 240.0))))
+	var viewport_size: Vector2 = get_viewport_rect().size
+	for i in range(count):
+		var x: float = randf_range(viewport_size.x * 0.12, viewport_size.x * 0.88)
+		var y: float = -80.0 - float(i) * stagger - randf_range(0.0, stagger * 0.35)
+		_spawn_asteroid(0, Vector2(x, y), _asteroid_field_base_speed, randf_range(-14.0, 14.0))
+
+## Spawns one asteroid of the given tier through the standard destructible
+## obstacle pipeline (projectile damage, wave-clear tracking, cached visuals).
+func _spawn_asteroid(tier_idx: int, pos: Vector2, vertical_speed: float, drift_x: float) -> void:
+	var tiers_v: Variant = _asteroid_field_cfg.get("tiers", [])
+	if not (tiers_v is Array):
+		return
+	var tiers: Array = tiers_v as Array
+	if tier_idx < 0 or tier_idx >= tiers.size() or not (tiers[tier_idx] is Dictionary):
+		return
+	var max_active: int = maxi(4, int(_asteroid_field_cfg.get("max_active_asteroids", 26)))
+	if _active_asteroid_count >= max_active:
+		return
+	var tier: Dictionary = tiers[tier_idx] as Dictionary
+	var hp_mult: float = maxf(0.1, float(_asteroid_field_wave.get("hp_multiplier", 1.0)))
+	var radius: float = maxf(8.0, float(tier.get("size_px", 80.0)) * 0.5 * randf_range(0.88, 1.12))
+	var data: Dictionary = {
+		"id": "asteroid_split_t" + str(tier_idx),
+		"type": "explosive",
+		"shape": "circle",
+		"radius": radius,
+		"sprite_path": _pick_asteroid_sprite(),
+		"damage": maxi(1, int(tier.get("damage", 20))),
+		"is_destructible": true,
+		"hp": maxi(1, int(ceil(float(tier.get("hp", 20)) * hp_mult))),
+		"_drift_vector": [drift_x, 0.0]
+	}
+	var node: Node = OBSTACLE_EXPLOSIVE_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var asteroid: Node2D = node as Node2D
+	asteroid.global_position = pos
+	game_layer.add_child(asteroid)
+	if asteroid.has_method("setup"):
+		asteroid.call("setup", data, maxf(20.0, vertical_speed))
+	asteroid.set_meta("asteroid_tier", tier_idx)
+	_active_asteroid_count += 1
+	asteroid.tree_exiting.connect(_on_asteroid_tree_exiting, CONNECT_ONE_SHOT)
+	if wave_manager and wave_manager.has_method("track_obstacle_node"):
+		wave_manager.call("track_obstacle_node", asteroid)
+	if asteroid.has_signal("obstacle_destroyed"):
+		asteroid.obstacle_destroyed.connect(_on_obstacle_destroyed)
+
+func _on_asteroid_tree_exiting() -> void:
+	_active_asteroid_count = maxi(0, _active_asteroid_count - 1)
+
+## Asset priority: per-wave "assets" override > world obstacle explosives skin
+## > wave-type default assets (wave_types.json) > obstacles.json asteroid.
+func _pick_asteroid_sprite() -> String:
+	var wave_assets_v: Variant = _asteroid_field_wave.get("assets", [])
+	if wave_assets_v is Array and not (wave_assets_v as Array).is_empty():
+		var wave_arr: Array = wave_assets_v as Array
+		return str(wave_arr[randi() % wave_arr.size()])
+	var obs_overrides_v: Variant = _world_skin_overrides.get("obstacles", {})
+	if obs_overrides_v is Dictionary:
+		var explosives_v: Variant = (obs_overrides_v as Dictionary).get("explosives", [])
+		if explosives_v is Array and not (explosives_v as Array).is_empty():
+			var skin_arr: Array = explosives_v as Array
+			return str(skin_arr[randi() % skin_arr.size()])
+	var cfg_assets_v: Variant = _asteroid_field_cfg.get("assets", [])
+	if cfg_assets_v is Array and not (cfg_assets_v as Array).is_empty():
+		var cfg_arr: Array = cfg_assets_v as Array
+		return str(cfg_arr[randi() % cfg_arr.size()])
+	var fallback_obstacle: Dictionary = DataManager.get_obstacle("asteroid_medium") if DataManager else {}
+	var fb_v: Variant = fallback_obstacle.get("sprite_path", "")
+	if fb_v is Array and not (fb_v as Array).is_empty():
+		return str((fb_v as Array)[0])
+	return str(fb_v) if fb_v is String else ""
+
+## Asteroid kill: award the tier score, then split into smaller/faster chunks
+## on divergent cone trajectories; the final tier can drop a bonus crystal.
+func _on_asteroid_destroyed(asteroid: Node2D) -> void:
+	var tier_idx: int = int(asteroid.get_meta("asteroid_tier"))
+	var tiers_v: Variant = _asteroid_field_cfg.get("tiers", [])
+	var tiers: Array = (tiers_v as Array) if tiers_v is Array else []
+	var tier: Dictionary = {}
+	if tier_idx >= 0 and tier_idx < tiers.size() and tiers[tier_idx] is Dictionary:
+		tier = tiers[tier_idx] as Dictionary
+	_add_run_score(maxi(1, int(tier.get("score", 5))))
+	var split_count: int = maxi(0, int(tier.get("split_count", 0)))
+	var next_idx: int = tier_idx + 1
+	if split_count > 0 and next_idx < tiers.size() and tiers[next_idx] is Dictionary:
+		var next_tier: Dictionary = tiers[next_idx] as Dictionary
+		var cone: float = deg_to_rad(clampf(float(_asteroid_field_cfg.get("split_cone_deg", 70.0)), 10.0, 160.0))
+		var speed_jitter: float = clampf(float(_asteroid_field_cfg.get("child_speed_jitter", 0.15)), 0.0, 0.6)
+		var child_base_speed: float = _asteroid_field_base_speed * maxf(0.1, float(next_tier.get("speed_multiplier", 1.0)))
+		var origin: Vector2 = asteroid.global_position
+		for i in range(split_count):
+			# Children spread evenly across the cone (centered on straight down);
+			# the speed splits into scroll (vertical) + free drift (horizontal).
+			var t_norm: float = ((float(i) + 0.5) / float(split_count)) - 0.5
+			var angle: float = t_norm * cone + randf_range(-0.08, 0.08)
+			var child_speed: float = child_base_speed * (1.0 + randf_range(-speed_jitter, speed_jitter))
+			var offset: Vector2 = Vector2(sin(angle), 0.0) * 14.0
+			_spawn_asteroid(next_idx, origin + offset, child_speed * cos(angle), child_speed * sin(angle))
+	elif randf() <= clampf(float(_asteroid_field_cfg.get("crystal_chance_final_tier", 0.25)), 0.0, 1.0):
+		_spawn_bonus_crystal_at(asteroid.global_position)
+
 func _on_level_completed() -> void:
+	_clear_gate_runners()
+	_clear_pong_managers()
+	_clear_breakout_managers()
+	_clear_ball_launcher_managers()
+	_clear_climb_managers()
+	_clear_absorb_managers()
+	_clear_lane_runner_managers()
+	_clear_slice_rush_managers()
+	_clear_match3_managers()
+	_clear_gravity_hole_managers()
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		# Ensure boss phase is never blocked by prior path_trial wave gating.
 		player.set_can_shoot(true)
@@ -2098,6 +3316,7 @@ func _on_enemy_died(enemy: CharacterBody2D) -> void:
 		_killstreak_manager.call("on_enemy_killed", 1)
 	_award_scaled_score(int(enemy.score))
 	_try_spawn_bonus_crystal(enemy.global_position, false, _is_enemy_elite(enemy))
+	_try_spawn_fire_pattern_drop(enemy.global_position)
 
 	if _override_enable_volatile_reactors:
 		_try_trigger_volatile_reactor(enemy)
@@ -2404,24 +3623,37 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 			"score_3stars": int(level_cfg.get("score_3stars", 0))
 		}
 	if ProfileManager:
-		if ProfileManager.has_method("get_level_best_score"):
-			score_best_before = int(ProfileManager.call("get_level_best_score", current_world_id, level_key))
-		if ProfileManager.has_method("save_level_score") and session_score > 0:
-			var save_result: Variant = ProfileManager.call("save_level_score", current_world_id, level_key, session_score)
-			if save_result is Dictionary:
-				score_best_after = int((save_result as Dictionary).get("best_score", score_best_before))
-				score_stars_after = int((save_result as Dictionary).get("stars", 0))
+		if _free_mode_session:
+			# Mode libre : le record du mode se valide TOUJOURS (mort comprise),
+			# stocké par wave_type et non par niveau ; pas d'étoiles.
+			score_best_before = int(ProfileManager.get_free_mode_best_score(_free_mode_wave_type))
+			var free_save: Dictionary = ProfileManager.save_free_mode_score(_free_mode_wave_type, session_score)
+			score_best_after = int(free_save.get("best_score", score_best_before))
+			level_score_thresholds = {}
 		else:
-			score_best_after = score_best_before
-			if ProfileManager.has_method("get_level_stars"):
-				score_stars_after = int(ProfileManager.call("get_level_stars", current_world_id, level_key))
+			if ProfileManager.has_method("get_level_best_score"):
+				score_best_before = int(ProfileManager.call("get_level_best_score", current_world_id, level_key))
+			if is_victory and ProfileManager.has_method("save_level_score") and session_score > 0:
+				var save_result: Variant = ProfileManager.call("save_level_score", current_world_id, level_key, session_score)
+				if save_result is Dictionary:
+					score_best_after = int((save_result as Dictionary).get("best_score", score_best_before))
+					score_stars_after = int((save_result as Dictionary).get("stars", 0))
+			else:
+				score_best_after = score_best_before
+				if ProfileManager.has_method("get_level_stars"):
+					score_stars_after = int(ProfileManager.call("get_level_stars", current_world_id, level_key))
 	var xp_mult: float = _resolve_session_xp_multiplier()
-	var effective_session_xp: int = int(round(float(session_score) * xp_mult * _override_reward_multiplier))
-	if session_score > 0:
+	var xp_per_score: float = DataManager.get_xp_per_score_ratio()
+	var world_xp_mult: float = DataManager.get_world_xp_multiplier(current_world_id)
+	var effective_session_xp: int = int(round(float(session_score) * xp_per_score * world_xp_mult * xp_mult * _override_reward_multiplier))
+	# Mode libre : la run se termine presque toujours par la mort — l'XP du
+	# score est accordée quand même (c'est l'issue normale du mode).
+	var grant_session_rewards: bool = is_victory or _free_mode_session
+	if grant_session_rewards and session_score > 0:
 		ProfileManager.gain_xp(effective_session_xp)
 	var xp_after := ProfileManager.get_player_xp()
 	var level_after := ProfileManager.get_player_level()
-	var xp_gained := effective_session_xp
+	var xp_gained := effective_session_xp if grant_session_rewards else 0
 	var _levels_gained := level_after - level_before
 	var crystals_gained: int = _compute_override_crystal_reward(is_victory)
 	if crystals_gained > 0:
@@ -2481,7 +3713,7 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 		# Pass XP data for display
 		if loot_screen.has_method("set_xp_data"):
 			loot_screen.set_xp_data(xp_gained, xp_before, xp_after, level_before, level_after)
-		if loot_screen.has_method("set_score_data"):
+		if (is_victory or _free_mode_session) and loot_screen.has_method("set_score_data"):
 			loot_screen.set_score_data(session_score, score_best_before, score_best_after, score_stars_after, level_score_thresholds)
 		loot_screen.finished.connect(_return_to_home)
 		loot_screen.restart_requested.connect(_on_restart_requested)
@@ -2530,6 +3762,11 @@ func _has_next_world(world_id: String) -> bool:
 	return false
 
 func _resolve_end_screen_navigation(is_victory: bool) -> Dictionary:
+	if _free_mode_session:
+		return {
+			"action": END_SCREEN_ACTION_FREE_MODE_SELECT,
+			"label": LocaleManager.translate("free_mode_title")
+		}
 	if not is_victory:
 		return {
 			"action": END_SCREEN_ACTION_LEVEL_SELECT,
@@ -2555,8 +3792,21 @@ func _on_end_screen_context_requested() -> void:
 			_on_next_level_requested()
 		END_SCREEN_ACTION_WORLD_SELECT:
 			_on_world_select_requested()
+		END_SCREEN_ACTION_FREE_MODE_SELECT:
+			_on_free_mode_select_requested()
 		_:
 			_on_level_select_requested()
+
+func _on_free_mode_select_requested() -> void:
+	App.play_menu_music()
+	get_tree().paused = false
+	App.free_mode_active = false
+	App.free_mode_wave_type = ""
+	ProjectileManager.clear_all_projectiles()
+	_clear_path_trials()
+	var switcher := get_tree().current_scene
+	if switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/FreeModeSelect.tscn")
 
 func _return_to_home() -> void:
 	App.play_menu_music()
@@ -2579,6 +3829,7 @@ func _show_pause_menu() -> void:
 
 func _on_restart_requested() -> void:
 	print("[Game] Restart requested for Level: ", current_world_id, " | Index: ", current_level_index)
+	_save_free_mode_score_on_exit()
 	get_tree().paused = false
 	
 	ProjectileManager.clear_all_projectiles()
@@ -2594,10 +3845,23 @@ func _on_restart_requested() -> void:
 		# Fallback classique
 		get_tree().reload_current_scene()
 
+## Quitter en cours de run (pause) = fin de run valide en mode libre : le
+## record est sauvé même sans mort — indispensable pour les modes sans vecteur
+## de mort (ex. match3).
+func _save_free_mode_score_on_exit() -> void:
+	if not _free_mode_session or _end_session_started:
+		return
+	if session_score > 0:
+		ProfileManager.save_free_mode_score(_free_mode_wave_type, session_score)
+
 func _on_level_select_requested() -> void:
+	if _free_mode_session:
+		_save_free_mode_score_on_exit()
+		_on_free_mode_select_requested()
+		return
 	App.play_menu_music()
 	get_tree().paused = false
-	
+
 	ProjectileManager.clear_all_projectiles()
 	_clear_path_trials()
 	
@@ -2642,6 +3906,7 @@ func _on_world_select_requested() -> void:
 		switcher.goto_screen("res://scenes/WorldSelect.tscn")
 
 func _on_quit_requested() -> void:
+	_save_free_mode_score_on_exit()
 	_return_to_home()
 
 func _stop_all_timers() -> void:

@@ -30,8 +30,11 @@ func _ready() -> void:
 	
 	# Initialiser les volumes
 	sync_volumes()
-	
+
 	call_deferred("_init_music")
+	# Pre-decode the gameplay SFX at boot so the first hit/shot of a session
+	# never pays the stream load on a gameplay frame.
+	call_deferred("_precache_sfx_from_config")
 
 func _setup_audio_buses() -> void:
 	if AudioServer.get_bus_index("Music") == -1:
@@ -141,6 +144,28 @@ func _on_music_finished() -> void:
 const MAX_SFX_PLAYERS: int = 24
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _sfx_stream_cache: Dictionary = {}
+
+## Walks game.json > gameplay.sfx and pre-loads every "res://" stream found,
+## so no SFX is decoded for the first time during gameplay.
+func _precache_sfx_from_config() -> void:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var gameplay_v: Variant = game_cfg.get("gameplay", {})
+	if gameplay_v is Dictionary:
+		_precache_sfx_recursive((gameplay_v as Dictionary).get("sfx", {}))
+
+func _precache_sfx_recursive(value: Variant) -> void:
+	if value is Dictionary:
+		for key in (value as Dictionary):
+			_precache_sfx_recursive((value as Dictionary)[key])
+	elif value is Array:
+		for item in (value as Array):
+			_precache_sfx_recursive(item)
+	elif value is String:
+		var path: String = value as String
+		if path.begins_with("res://") and not _sfx_stream_cache.has(path) and ResourceLoader.exists(path):
+			var loaded: Resource = load(path)
+			if loaded is AudioStream:
+				_sfx_stream_cache[path] = loaded
 
 func play_sfx(path: String, pitch_rng: float = 0.0) -> void:
 	if path == "" or not ResourceLoader.exists(path):

@@ -77,12 +77,12 @@ func _update_visuals() -> void:
 		visual,
 		_visual_asset_anim,
 		_visual_size,
-		Color(0.85, 0.7, 1.0, 0.6),
+		Color.WHITE,
 		_visual_asset_anim_duration,
 		_visual_asset_anim_loop
 	):
 		return
-	if _try_add_static_visual(visual, _visual_asset, _visual_size, Color(0.85, 0.7, 1.0, 0.55)):
+	if _try_add_static_visual(visual, _visual_asset, _visual_size, Color.WHITE):
 		return
 
 	var ring := Polygon2D.new()

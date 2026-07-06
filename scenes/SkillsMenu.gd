@@ -27,6 +27,7 @@ var _title_label: Label
 
 var _active_tab: String = "magic"
 const TAB_IDS: Array[String] = ["magic", "utility", "pew_pew"]
+const HEADER_BLOCK_SPACING_PX: int = 15  # gap supplementaire entre points/xp/tabs/skills
 const BRANCH_TO_BLOCK := {
 	"frozen": "cryo",
 	"poison": "toxin",
@@ -79,6 +80,29 @@ func _default_font_size() -> int:
 func _default_title_font_size() -> int:
 	return int(_skills_menu_cfg.get("default_title_font_size", 28))
 
+# Cale un espace vertical (Control vide) dans un VBoxContainer pour
+# isoler les blocs du header (points / xp / tabs / skills).
+func _add_header_spacer(parent: VBoxContainer, height_px: int) -> void:
+	if parent == null or height_px <= 0:
+		return
+	var spacer := Control.new()
+	spacer.name = "Spacer"
+	spacer.custom_minimum_size = Vector2(0, float(height_px))
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(spacer)
+
+func _secondary_font_size(key: String, fallback: int) -> int:
+	var cfg_v: Variant = _skills_menu_cfg.get("secondary_text", {})
+	if cfg_v is Dictionary:
+		return int((cfg_v as Dictionary).get(key, fallback))
+	return fallback
+
+func _respec_font_size(key: String, fallback: int) -> int:
+	var cfg_v: Variant = _skills_menu_cfg.get("respec_popup", {})
+	if cfg_v is Dictionary:
+		return int((cfg_v as Dictionary).get(key, fallback))
+	return fallback
+
 func _build_ui() -> void:
 	# Root layout
 	anchor_right = 1.0
@@ -126,7 +150,10 @@ func _build_ui() -> void:
 	if back_asset != "" and ResourceLoader.exists(back_asset):
 		_back_button.texture_normal = load(back_asset)
 	_back_button.pressed.connect(_on_back_pressed)
-	_back_button.visible = false
+	# Bouton masque visuellement mais conserve sa place 75x75 dans le layout
+	# pour rester symetrique avec le right_spacer et centrer le titre.
+	_back_button.modulate.a = 0.0
+	_back_button.disabled = true
 	title_row.add_child(_back_button)
 
 	_title_label = Label.new()
@@ -182,6 +209,8 @@ func _build_ui() -> void:
 	_skill_points_label.add_theme_color_override("font_color", _to_color(points_cfg.get("text_color", "#FFD56B"), Color(1.0, 0.84, 0.42)))
 	points_panel.add_child(_skill_points_label)
 
+	_add_header_spacer(_header, HEADER_BLOCK_SPACING_PX)
+
 	# XP Progress bar
 	_xp_bar = ProgressBar.new()
 	_xp_bar.name = "XPBar"
@@ -226,6 +255,8 @@ func _build_ui() -> void:
 	xp_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_xp_bar.add_child(xp_text)
 
+	_add_header_spacer(_main_vbox, HEADER_BLOCK_SPACING_PX)
+
 	# --- Tab Buttons ---
 	_tab_container = HBoxContainer.new()
 	_tab_container.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -240,6 +271,8 @@ func _build_ui() -> void:
 		btn.pressed.connect(_on_tab_pressed.bind(tab_id))
 		_tab_container.add_child(btn)
 
+	_add_header_spacer(_main_vbox, HEADER_BLOCK_SPACING_PX)
+
 	# --- Scroll Content ---
 	_scroll_container = ScrollContainer.new()
 	_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -248,7 +281,8 @@ func _build_ui() -> void:
 
 	_skill_grid = VBoxContainer.new()
 	_skill_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_skill_grid.add_theme_constant_override("separation", 12)
+	var block_margin := int(_get_config_dict(["skills"], {}).get("vertical_margin", 12))
+	_skill_grid.add_theme_constant_override("separation", block_margin)
 	_scroll_container.add_child(_skill_grid)
 
 	# --- Info Label ---
@@ -505,7 +539,7 @@ func _build_skill_tree() -> void:
 		var empty_label := Label.new()
 		empty_label.text = _translate("skills.menu.empty", {}, "Aucune competence disponible")
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty_label.add_theme_font_size_override("font_size", 19)
+		empty_label.add_theme_font_size_override("font_size", _secondary_font_size("empty_font_size", 19))
 		_skill_grid.add_child(empty_label)
 		return
 
@@ -514,7 +548,7 @@ func _build_skill_tree() -> void:
 		var invalid_label := Label.new()
 		invalid_label.text = _translate("skills.menu.invalid_format", {}, "Format de donnees invalide")
 		invalid_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		invalid_label.add_theme_font_size_override("font_size", 19)
+		invalid_label.add_theme_font_size_override("font_size", _secondary_font_size("invalid_font_size", 19))
 		_skill_grid.add_child(invalid_label)
 		return
 
@@ -548,7 +582,9 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 	var header_icon := str(title_cfg.get("icon_asset", ""))
 	if header_icon == "":
 		header_icon = str(branch_data.get("icon", ""))
-	_add_icon_texture(header, header_icon, 30, 30)
+	var header_icon_w := int(title_cfg.get("icon_width", 30))
+	var header_icon_h := int(title_cfg.get("icon_height", 30))
+	_add_icon_texture(header, header_icon, header_icon_w, header_icon_h)
 
 	var title_label := Label.new()
 	title_label.text = _branch_name(branch_id)
@@ -558,9 +594,9 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 
 	var levels_raw: Variant = branch_data.get("levels", [])
 	if levels_raw is Array:
-		# For fire_patterns branch: add "Ship Default" special entry at top
+		# For fire_patterns branch: explain that patterns are now obtained as in-run drops.
 		if branch_id == "fire_patterns":
-			_build_fire_default_node(branch_vbox, block_cfg, branch_color)
+			_build_fire_drop_hint(branch_vbox, block_cfg)
 		for node_data in levels_raw:
 			if node_data is Dictionary:
 				_build_skill_node(node_data as Dictionary, branch_vbox, branch_id, branch_data, block_cfg, branch_color)
@@ -573,7 +609,7 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 		var req_label := Label.new()
 		req_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		req_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		req_label.add_theme_font_size_override("font_size", 14)
+		req_label.add_theme_font_size_override("font_size", _secondary_font_size("requirement_font_size", 14))
 		if spent >= unlock_req:
 			req_label.add_theme_color_override("font_color", Color(0.74, 0.98, 0.74, 0.95))
 		else:
@@ -585,19 +621,15 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 		)
 		branch_vbox.add_child(req_label)
 
-## Builds the special "Ship Default" node at the top of the fire_patterns branch.
-func _build_fire_default_node(parent: VBoxContainer, block_cfg: Dictionary, branch_color: Color) -> void:
-	var equipped_id := ProfileManager.get_equipped_fire_pattern()
-	var is_equipped := (equipped_id == "fire_ship_default")
-
+## Builds an informational hint at the top of the fire_patterns branch:
+## fire patterns are no longer equipped here, they drop in missions.
+func _build_fire_drop_hint(parent: VBoxContainer, block_cfg: Dictionary) -> void:
 	var skills_cfg := _get_config_dict(["skills", "blocks", str(BRANCH_TO_BLOCK.get("fire_patterns", "fire")), "skills"], {})
 	var base_text_color := _to_color(skills_cfg.get("text_color", "#D8DCE6"), Color(0.85, 0.86, 0.9))
-	var icon_size := int(skills_cfg.get("skill_icon_size", 30))
-	var title_size := int(skills_cfg.get("title_text_size", 19))
-	var desc_size := int(skills_cfg.get("description_text_size", 14))
+	var global_cfg := _get_config_dict(["skills"], {})
+	var desc_size := int(skills_cfg.get("description_text_size", global_cfg.get("global_description_text_size", 17)))
 
 	var node_panel := PanelContainer.new()
-	node_panel.custom_minimum_size = Vector2(0, 74)
 	parent.add_child(node_panel)
 
 	var node_style := StyleBoxFlat.new()
@@ -609,79 +641,21 @@ func _build_fire_default_node(parent: VBoxContainer, block_cfg: Dictionary, bran
 	node_style.content_margin_right = 12
 	node_style.content_margin_top = 8
 	node_style.content_margin_bottom = 8
-
 	var block_bg := _to_color(block_cfg.get("background", "#1A1F31"), Color(0.1, 0.12, 0.19))
-	if is_equipped:
-		node_style.bg_color = block_bg.lerp(Color("#FFD700"), 0.15)
-		node_style.border_color = Color("#FFD700")
-		node_style.border_width_left = 3
-		node_style.border_width_right = 3
-		node_style.border_width_top = 3
-		node_style.border_width_bottom = 3
-	else:
-		node_style.bg_color = block_bg.lerp(branch_color, 0.26)
-		node_style.border_color = branch_color
-		node_style.border_width_left = 2
-		node_style.border_width_right = 2
-		node_style.border_width_top = 2
-		node_style.border_width_bottom = 2
+	node_style.bg_color = block_bg
 	node_panel.add_theme_stylebox_override("panel", node_style)
 
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 12)
-	node_panel.add_child(hbox)
-
-	# Use branch icon (same as other skill nodes)
-	var icon_added := _add_icon_texture(hbox, "res://assets/ui/skills/branch_fire.png", icon_size, icon_size)
-	if not icon_added:
-		var icon_label := Label.new()
-		icon_label.text = "🚀"
-		icon_label.add_theme_font_size_override("font_size", icon_size)
-		icon_label.add_theme_color_override("font_color", branch_color)
-		hbox.add_child(icon_label)
-
-	var text_col := VBoxContainer.new()
-	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_col.add_theme_constant_override("separation", 2)
-	hbox.add_child(text_col)
-
-	var title_label := Label.new()
-	title_label.text = _translate("skills.skill.fire_ship_default.title", {}, "Tir du vaisseau")
-	title_label.add_theme_font_size_override("font_size", title_size)
-	title_label.add_theme_color_override("font_color", Color.WHITE)
-	text_col.add_child(title_label)
-
-	var desc_label := Label.new()
-	desc_label.text = _translate("skills.skill.fire_ship_default.description", {}, "Utilise le tir natif du vaisseau.")
-	desc_label.add_theme_font_size_override("font_size", desc_size)
-	desc_label.add_theme_color_override("font_color", base_text_color.lerp(Color(0.58, 0.58, 0.62), 0.35))
-	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text_col.add_child(desc_label)
-
-	var right_col := VBoxContainer.new()
-	right_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.add_child(right_col)
-
-	var equip_btn := Button.new()
-	equip_btn.name = "EquipBtn_fire_ship_default"
-	equip_btn.custom_minimum_size = Vector2(120, 38)
-	equip_btn.add_theme_font_size_override("font_size", 14)
-	if is_equipped:
-		equip_btn.text = _translate("skills.menu.button.equipped", {}, "Equipe")
-		equip_btn.disabled = true
-		equip_btn.add_theme_color_override("font_color", Color("#FFD700"))
-	else:
-		equip_btn.text = _translate("skills.menu.button.equip", {}, "Equiper")
-		equip_btn.pressed.connect(_on_equip_fire_pattern.bind("fire_ship_default"))
-		var equip_texture := _load_texture_from_path("res://assets/ui/buttons/btn_equip.png")
-		if equip_texture:
-			var equip_style := StyleBoxTexture.new()
-			equip_style.texture = equip_texture
-			equip_btn.add_theme_stylebox_override("normal", equip_style)
-			equip_btn.add_theme_stylebox_override("hover", equip_style)
-			equip_btn.add_theme_stylebox_override("pressed", equip_style)
-	right_col.add_child(equip_btn)
-	UIStyle.apply_button_shadow(equip_btn, "small")
+	var hint_label := Label.new()
+	hint_label.text = _translate(
+		"skills.menu.fire_patterns.drop_hint",
+		{},
+		"Les tirs s'obtiennent en ramassant un drop pendant une mission. Ameliorez-les ici pour les rendre plus puissants."
+	)
+	hint_label.add_theme_font_size_override("font_size", desc_size)
+	hint_label.add_theme_color_override("font_color", base_text_color)
+	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	node_panel.add_child(hint_label)
 
 func _build_skill_node(
 	node_data: Dictionary,
@@ -704,14 +678,20 @@ func _build_skill_node(
 	)
 	var max_rank := int(node_data.get("max_rank", 1))
 	var current_rank := ProfileManager.get_skill_rank(skill_id)
+	var has_next_rank := current_rank < max_rank
+	var upgrade_cost := ProfileManager.get_skill_upgrade_cost(skill_id, current_rank + 1)
 	var is_unlocked := current_rank > 0
 	var can_unlock := SkillManager.can_unlock_skill(skill_id)
 
 	var skills_cfg := _get_config_dict(["skills", "blocks", str(BRANCH_TO_BLOCK.get(branch_id, branch_id)), "skills"], {})
 	var base_text_color := _to_color(skills_cfg.get("text_color", "#D8DCE6"), Color(0.85, 0.86, 0.9))
-	var icon_size := int(skills_cfg.get("skill_icon_size", 30))
-	var title_size := int(skills_cfg.get("title_text_size", 19))
-	var desc_size := int(skills_cfg.get("description_text_size", 14))
+	var global_cfg := _get_config_dict(["skills"], {})
+	var def_icon_w := int(global_cfg.get("global_skill_icon_width", 65))
+	var def_icon_h := int(global_cfg.get("global_skill_icon_height", 65))
+	var icon_w := int(skills_cfg.get("skill_icon_width", skills_cfg.get("skill_icon_size", def_icon_w)))
+	var icon_h := int(skills_cfg.get("skill_icon_height", skills_cfg.get("skill_icon_size", def_icon_h)))
+	var title_size := int(skills_cfg.get("title_text_size", global_cfg.get("global_title_text_size", 22)))
+	var desc_size := int(skills_cfg.get("description_text_size", global_cfg.get("global_description_text_size", 17)))
 
 	var node_panel := PanelContainer.new()
 	node_panel.custom_minimum_size = Vector2(0, 74)
@@ -757,25 +737,13 @@ func _build_skill_node(
 	node_panel.add_child(hbox)
 
 	var icon_added := false
-	if not can_unlock and not is_unlocked:
-		var locked_cfg := _get_config_dict(["skills", "blocks", str(BRANCH_TO_BLOCK.get(branch_id, branch_id)), "locked_icon"], {})
-		var lock_asset := str(locked_cfg.get("asset", ""))
-		var lock_w := int(locked_cfg.get("width", icon_size))
-		var lock_h := int(locked_cfg.get("height", icon_size))
-		icon_added = _add_icon_texture(hbox, lock_asset, lock_w, lock_h)
+	var skill_icon_asset := str(node_data.get("icon", ""))
+	if skill_icon_asset == "":
+		skill_icon_asset = str(branch_data.get("icon", ""))
+	if skill_icon_asset == "":
+		skill_icon_asset = str(block_cfg.get("title", {}).get("icon_asset", ""))
+	icon_added = _add_icon_texture(hbox, skill_icon_asset, icon_w, icon_h)
 
-	if not icon_added:
-		var skill_icon_asset := str(node_data.get("icon", ""))
-		if skill_icon_asset == "":
-			skill_icon_asset = str(branch_data.get("icon", ""))
-		icon_added = _add_icon_texture(hbox, skill_icon_asset, icon_size, icon_size)
-
-	if not icon_added:
-		var icon_label := Label.new()
-		icon_label.text = "•"
-		icon_label.add_theme_font_size_override("font_size", icon_size)
-		icon_label.add_theme_color_override("font_color", branch_color)
-		hbox.add_child(icon_label)
 
 	var text_col := VBoxContainer.new()
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -800,31 +768,46 @@ func _build_skill_node(
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_col.add_child(desc_label)
 
+	# Colonne droite: rank (optionnel) + bouton d'etat (lock/unlock/purchased) + cout
+	# Le cout est rendu SOUS le bouton d'etat pour liberer de la place au titre + description.
 	var right_col := VBoxContainer.new()
 	right_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	right_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	right_col.add_theme_constant_override("separation", 4)
 	hbox.add_child(right_col)
 
 	if max_rank > 1:
 		var rank_label := Label.new()
 		rank_label.text = str(current_rank) + "/" + str(max_rank)
-		rank_label.add_theme_font_size_override("font_size", 15)
+		rank_label.add_theme_font_size_override("font_size", _secondary_font_size("rank_font_size", 15))
 		rank_label.add_theme_color_override("font_color", branch_color)
 		rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		right_col.add_child(rank_label)
 
 	var unlock_btn := Button.new()
 	unlock_btn.name = "UnlockBtn_" + skill_id
-	unlock_btn.custom_minimum_size = Vector2(120, 38)
-	unlock_btn.add_theme_font_size_override("font_size", 14)
+	unlock_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	unlock_btn.add_theme_font_size_override("font_size", _secondary_font_size("action_button_font_size", 14))
 	var button_state := "locked"
 
 	if is_unlocked and (max_rank <= 1 or current_rank >= max_rank):
-		button_state = "acquired"
-		unlock_btn.text = _translate("skills.menu.button.acquired", {}, "Acquis")
+		button_state = "purchased"
+		unlock_btn.text = _translate("skills.menu.button.purchased", {}, "Achete")
 		unlock_btn.disabled = true
 	elif can_unlock:
 		button_state = "unlocked"
-		unlock_btn.text = _translate("skills.menu.button.activate", {}, "Activer")
+		if is_unlocked:
+			unlock_btn.text = _translate(
+				"skills.menu.button.upgrade_cost",
+				{"cost": upgrade_cost},
+				"Ameliorer (" + str(upgrade_cost) + ")"
+			)
+		else:
+			unlock_btn.text = _translate(
+				"skills.menu.button.activate_cost",
+				{"cost": upgrade_cost},
+				"Activer (" + str(upgrade_cost) + ")"
+			)
 		unlock_btn.pressed.connect(_on_skill_pressed.bind(skill_id))
 	else:
 		button_state = "locked"
@@ -834,44 +817,30 @@ func _build_skill_node(
 	if _apply_skill_state_button_asset(unlock_btn, button_state):
 		unlock_btn.text = ""
 
-	hbox.add_child(unlock_btn)
+	right_col.add_child(unlock_btn)
 	if not unlock_btn.text.is_empty():
 		UIStyle.apply_button_shadow(unlock_btn, "small")
 	_skill_nodes[skill_id] = unlock_btn
 
-	# --- Fire Pattern: Equip Button ---
-	var skill_type := str(node_data.get("type", ""))
-	if skill_type == "fire_pattern" and is_unlocked:
-		var equipped_id := ProfileManager.get_equipped_fire_pattern()
-		var is_equipped := (equipped_id == skill_id)
-		var equip_btn := Button.new()
-		equip_btn.name = "EquipBtn_" + skill_id
-		equip_btn.custom_minimum_size = Vector2(120, 38)
-		equip_btn.add_theme_font_size_override("font_size", 14)
-		if is_equipped:
-			equip_btn.text = _translate("skills.menu.button.equipped", {}, "Equipe")
-			equip_btn.disabled = true
-			equip_btn.add_theme_color_override("font_color", Color("#FFD700"))
+	var cost_label := Label.new()
+	if has_next_rank:
+		cost_label.text = _translate(
+			"skills.menu.cost.next",
+			{"cost": upgrade_cost},
+			"Cout: " + str(upgrade_cost)
+		)
+		var has_enough_points := ProfileManager.get_skill_points() >= upgrade_cost
+		if has_enough_points:
+			cost_label.add_theme_color_override("font_color", branch_color.lerp(Color.WHITE, 0.28))
 		else:
-			equip_btn.text = _translate("skills.menu.button.equip", {}, "Equiper")
-			equip_btn.pressed.connect(_on_equip_fire_pattern.bind(skill_id))
-		# Try to apply equip button asset
-		var equip_texture := _load_texture_from_path("res://assets/ui/buttons/btn_equip.png")
-		if equip_texture and not is_equipped:
-			var equip_style := StyleBoxTexture.new()
-			equip_style.texture = equip_texture
-			equip_btn.add_theme_stylebox_override("normal", equip_style)
-			equip_btn.add_theme_stylebox_override("hover", equip_style)
-			equip_btn.add_theme_stylebox_override("pressed", equip_style)
-		hbox.add_child(equip_btn)
-		UIStyle.apply_button_shadow(equip_btn, "small")
-		# Golden border for equipped skill
-		if is_equipped:
-			node_style.border_color = Color("#FFD700")
-			node_style.border_width_left = 3
-			node_style.border_width_right = 3
-			node_style.border_width_top = 3
-			node_style.border_width_bottom = 3
+			cost_label.add_theme_color_override("font_color", Color("#FF6A5E"))
+	else:
+		cost_label.text = _translate("skills.menu.cost.max", {}, "MAX")
+		cost_label.add_theme_color_override("font_color", Color("#FFD700"))
+	cost_label.add_theme_font_size_override("font_size", _secondary_font_size("cost_font_size", 13))
+	cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_col.add_child(cost_label)
 
 func _add_icon_texture(parent: Control, asset_path: String, width: int, height: int) -> bool:
 	var texture := _load_texture_from_path(asset_path)
@@ -882,38 +851,116 @@ func _add_icon_texture(parent: Control, asset_path: String, width: int, height: 
 	icon.custom_minimum_size = Vector2(max(width, 1), max(height, 1))
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	parent.add_child(icon)
 	return true
 
 func _apply_skill_state_button_asset(button: Button, state: String) -> bool:
 	var state_key := state
-	# Reuse unlocked visuals for acquired state if no dedicated variant exists.
-	if state_key == "acquired":
-		state_key = "unlocked"
+	# Reuse unlocked visuals for purchased state if no dedicated variant exists.
+	if state_key == "purchased":
+		# Verification si la clef "purchased" existe vraiment dans la config
+		var test_cfg := _get_config_dict(["skills", "state_buttons", state_key], {})
+		if str(test_cfg.get("asset", "")) == "":
+			state_key = "unlocked"
 	var cfg := _get_config_dict(["skills", "state_buttons", state_key], {})
 	var asset_path := str(cfg.get("asset", ""))
-	var texture := _load_texture_from_path(asset_path)
-	if texture == null:
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
 		return false
 
-	var width := int(cfg.get("width", int(button.custom_minimum_size.x)))
-	var height := int(cfg.get("height", int(button.custom_minimum_size.y)))
+	var resource = load(asset_path)
+
+	var global_cfg := _get_config_dict(["skills"], {})
+	var def_state_w := int(global_cfg.get("global_state_button_width", int(button.custom_minimum_size.x)))
+	var def_state_h := int(global_cfg.get("global_state_button_height", int(button.custom_minimum_size.y)))
+	var width := int(cfg.get("width", def_state_w))
+	var height := int(cfg.get("height", def_state_h))
 	button.custom_minimum_size = Vector2(maxi(1, width), maxi(1, height))
-	button.add_theme_font_size_override("font_size", 1)
+	button.add_theme_font_size_override("font_size", _secondary_font_size("state_hidden_font_size", 1))
 	button.add_theme_color_override("font_color", Color(0, 0, 0, 0))
 	button.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
 	button.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
 	button.add_theme_color_override("font_focus_color", Color(0, 0, 0, 0))
 	button.add_theme_color_override("font_disabled_color", Color(0, 0, 0, 0))
 
-	var style := StyleBoxTexture.new()
-	style.texture = texture
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_stylebox_override("hover", style)
-	button.add_theme_stylebox_override("pressed", style)
-	button.add_theme_stylebox_override("focus", style)
-	button.add_theme_stylebox_override("disabled", style)
-	return true
+	# Nettoyage d'un potentiel ancien AnimatedSprite2D
+	var old_anim := button.get_node_or_null("StateAnim")
+	if old_anim:
+		old_anim.queue_free()
+
+	if resource is Texture2D:
+		# TextureRect en enfant du bouton pour ne pas déformer
+		var img_rect := TextureRect.new()
+		img_rect.name = "StateImg"
+		img_rect.texture = resource
+		img_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		img_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		img_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		img_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(img_rect)
+
+		button.custom_minimum_size = Vector2(width, height)
+		button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var empty_style := StyleBoxEmpty.new()
+		button.add_theme_stylebox_override("normal", empty_style)
+		button.add_theme_stylebox_override("hover", empty_style)
+		button.add_theme_stylebox_override("pressed", empty_style)
+		button.add_theme_stylebox_override("focus", empty_style)
+		button.add_theme_stylebox_override("disabled", empty_style)
+		return true
+	elif resource is SpriteFrames:
+		var anim := AnimatedSprite2D.new()
+		anim.name = "StateAnim"
+		anim.sprite_frames = resource
+		anim.position = Vector2(width / 2.0, height / 2.0)
+		var anim_list := anim.sprite_frames.get_animation_names()
+		if anim_list.size() > 0:
+			var anim_name = str(anim_list[0])
+			anim.animation = anim_name
+			anim.frame = 0
+			anim.stop()
+
+			var frame_tex: Texture2D = anim.sprite_frames.get_frame_texture(anim_name, 0)
+			if frame_tex:
+				var tex_size := frame_tex.get_size()
+				if tex_size.x > 0 and tex_size.y > 0:
+					anim.scale = Vector2(float(width) / tex_size.x, float(height) / tex_size.y)
+
+			var timer := Timer.new()
+			timer.name = "AnimTimer"
+			timer.one_shot = true
+			timer.wait_time = randf_range(10.0, 20.0)
+
+			timer.timeout.connect(func():
+				anim.play(anim_name)
+			)
+			anim.animation_looped.connect(func():
+				anim.stop()
+				anim.frame = 0
+				timer.wait_time = randf_range(10.0, 20.0)
+				timer.start()
+			)
+			anim.animation_finished.connect(func():
+				if not anim.is_playing():
+					timer.wait_time = randf_range(10.0, 20.0)
+					timer.start()
+			)
+			anim.add_child(timer)
+			timer.start()
+
+		button.add_child(anim)
+
+		# Style transparent pour que le bouton capture les clics sans overlay visible
+		var empty_style := StyleBoxEmpty.new()
+		button.add_theme_stylebox_override("normal", empty_style)
+		button.add_theme_stylebox_override("hover", empty_style)
+		button.add_theme_stylebox_override("pressed", empty_style)
+		button.add_theme_stylebox_override("focus", empty_style)
+		button.add_theme_stylebox_override("disabled", empty_style)
+		return true
+
+	return false
 
 # =============================================================================
 # EVENTS
@@ -925,14 +972,6 @@ func _on_tab_pressed(tab_id: String) -> void:
 
 func _on_skill_pressed(skill_id: String) -> void:
 	var success := ProfileManager.spend_skill_point(skill_id)
-	if success:
-		AudioManager.play_sfx("res://assets/sfx/ui_confirm.wav", 0.0)
-		_refresh_display()
-	else:
-		AudioManager.play_sfx("res://assets/sfx/ui_deny.wav", 0.0)
-
-func _on_equip_fire_pattern(pattern_id: String) -> void:
-	var success := ProfileManager.set_equipped_fire_pattern(pattern_id)
 	if success:
 		AudioManager.play_sfx("res://assets/sfx/ui_confirm.wav", 0.0)
 		_refresh_display()
@@ -1000,7 +1039,7 @@ func _show_respec_confirm(cost: int) -> void:
 		"Reinitialiser toutes les competences ? Cout: " + str(cost)
 	)
 	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	msg.add_theme_font_size_override("font_size", 18)
+	msg.add_theme_font_size_override("font_size", _respec_font_size("message_font_size", 18))
 	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(msg)
 
@@ -1012,7 +1051,7 @@ func _show_respec_confirm(cost: int) -> void:
 	var confirm := Button.new()
 	confirm.text = _translate("skills.menu.respec.confirm_button", {}, "Confirmer")
 	confirm.custom_minimum_size = Vector2(160, 45)
-	confirm.add_theme_font_size_override("font_size", 16)
+	confirm.add_theme_font_size_override("font_size", _respec_font_size("button_font_size", 16))
 	confirm.pressed.connect(func():
 		ProfileManager.respec_skills()
 		_popup.queue_free()
@@ -1025,7 +1064,7 @@ func _show_respec_confirm(cost: int) -> void:
 	var cancel := Button.new()
 	cancel.text = _translate("skills.menu.respec.cancel_button", {}, "Annuler")
 	cancel.custom_minimum_size = Vector2(160, 45)
-	cancel.add_theme_font_size_override("font_size", 16)
+	cancel.add_theme_font_size_override("font_size", _respec_font_size("button_font_size", 16))
 	cancel.pressed.connect(func():
 		_popup.queue_free()
 		_popup = null

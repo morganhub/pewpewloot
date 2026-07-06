@@ -39,6 +39,10 @@ var wave_label: Label = null
 @onready var up_btn: TextureButton = $BottomRight/UniqueBtnControl/Button
 @onready var up_timer_lbl: Label = $BottomRight/UniqueBtnControl/TimerLabel
 
+# True while a mechanic wave hides the power buttons (their TextureButtons
+# swallow touches near the bottom of the screen — slice zone).
+var _power_buttons_suppressed: bool = false
+
 # State
 var _score: int = 0
 var _player: Node2D = null
@@ -325,12 +329,13 @@ func _apply_power_button_style(cfg: Dictionary) -> void:
 			button_node.custom_minimum_size = Vector2(diameter, diameter)
 
 func _setup_boss_debug_ui() -> void:
+	var hud_cfg: Dictionary = _game_config.get("game_hud", {}) if _game_config.get("game_hud") is Dictionary else {}
 	_boss_debug_label = Label.new()
 	_boss_debug_label.name = "BossDebugLabel"
 	_boss_debug_label.visible = false
 	_boss_debug_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_boss_debug_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_boss_debug_label.add_theme_font_size_override("font_size", 14)
+	_boss_debug_label.add_theme_font_size_override("font_size", int(hud_cfg.get("boss_debug_font_size", 14)))
 	_boss_debug_label.add_theme_color_override("font_color", Color(0.92, 0.95, 1.0, 1.0))
 	_boss_debug_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	_boss_debug_label.add_theme_constant_override("outline_size", 3)
@@ -431,7 +436,7 @@ func _process(_delta: float) -> void:
 		if "unique_power_id" in _player:
 			var has_up: bool = str(_player.unique_power_id) != ""
 			if up_btn and up_btn.get_parent():
-				up_btn.get_parent().visible = has_up
+				up_btn.get_parent().visible = has_up and not _power_buttons_suppressed
 				if not has_up:
 					return # Skip update
 		
@@ -440,6 +445,7 @@ func _process(_delta: float) -> void:
 		_update_power_button(up_bar, up_btn, up_timer_lbl, up_icon, current, max_cd)
 
 func _setup_inventory_full_warning_ui() -> void:
+	var hud_cfg: Dictionary = _game_config.get("game_hud", {}) if _game_config.get("game_hud") is Dictionary else {}
 	var warning_label := Label.new()
 	warning_label.name = "InventoryFullWarning"
 	warning_label.visible = false
@@ -447,7 +453,7 @@ func _setup_inventory_full_warning_ui() -> void:
 	warning_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	warning_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	warning_label.add_theme_font_size_override("font_size", 16)
+	warning_label.add_theme_font_size_override("font_size", int(hud_cfg.get("inventory_warning_font_size", 16)))
 	warning_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.25, 1.0))
 	warning_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
 	warning_label.add_theme_constant_override("outline_size", 3)
@@ -539,6 +545,7 @@ func _update_power_button(bar: TextureProgressBar, btn: TextureButton, lbl: Labe
 # =============================================================================
 
 var virtual_joystick: Control = null
+var _joystick_show_visual_cfg: bool = false
 
 func _setup_virtual_joystick() -> void:
 	var joystick_script = load("res://scenes/ui/VirtualJoystick.gd")
@@ -548,10 +555,29 @@ func _setup_virtual_joystick() -> void:
 		virtual_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
 		virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var mobile_controls_cfg: Dictionary = _game_config.get("mobile_controls", {})
+		_joystick_show_visual_cfg = bool(mobile_controls_cfg.get("show_virtual_joystick_visual", false))
 		if _object_has_property(virtual_joystick, "show_visual"):
-			virtual_joystick.set("show_visual", bool(mobile_controls_cfg.get("show_virtual_joystick_visual", false)))
+			virtual_joystick.set("show_visual", _joystick_show_visual_cfg)
 		add_child(virtual_joystick)
 		move_child(virtual_joystick, get_child_count() - 1)
+
+## Hides/restores the power buttons during mechanic waves where their touch
+## zones conflict with the gameplay input (e.g. slice_rush finger slices).
+func set_power_buttons_suppressed(suppressed: bool) -> void:
+	_power_buttons_suppressed = suppressed
+	if sp_root and is_instance_valid(sp_root):
+		sp_root.visible = not suppressed
+	if up_root and is_instance_valid(up_root):
+		up_root.visible = not suppressed
+
+## Hides/restores the virtual joystick circles (the joystick keeps tracking;
+## only the visual is muted — the ship is frozen by its wave mode anyway).
+func set_joystick_visual_enabled(enabled: bool) -> void:
+	if virtual_joystick == null or not is_instance_valid(virtual_joystick):
+		return
+	if _object_has_property(virtual_joystick, "show_visual"):
+		virtual_joystick.set("show_visual", enabled and _joystick_show_visual_cfg)
+		virtual_joystick.queue_redraw()
 
 func get_joystick_output() -> Vector2:
 	if virtual_joystick and virtual_joystick.has_method("get_output"):
@@ -567,6 +593,16 @@ func is_joystick_active() -> bool:
 	if virtual_joystick and virtual_joystick.has_method("is_active"):
 		return virtual_joystick.is_active()
 	return false
+
+func is_touching() -> bool:
+	if virtual_joystick and virtual_joystick.has_method("is_touching"):
+		return virtual_joystick.is_touching()
+	return false
+
+func get_finger_screen_position() -> Vector2:
+	if virtual_joystick and virtual_joystick.has_method("get_finger_screen_position"):
+		return virtual_joystick.get_finger_screen_position()
+	return Vector2.INF
 
 func is_on_mobile() -> bool:
 	if virtual_joystick and virtual_joystick.has_method("is_mobile"):
@@ -644,6 +680,23 @@ func update_player_hp(p_current_hp: int, max_hp: int) -> void:
 			hp_bar.modulate = Color.YELLOW
 		else:
 			hp_bar.modulate = Color.RED
+
+## Hides/shows the normal HP bar (used during gate_runner waves where the HP
+## resource is displayed directly on the player's ship).
+func set_hp_bar_hidden(hidden: bool) -> void:
+	if hp_bar and is_instance_valid(hp_bar):
+		hp_bar.visible = not hidden
+	if hp_label and is_instance_valid(hp_label):
+		hp_label.visible = false if hidden else hp_label.visible
+
+## Hides the shield bar for the whole run (free mode: no shield pickups exist
+## there). The flag wins over the "always visible" refreshes.
+var _shield_bar_hidden: bool = false
+
+func set_shield_bar_hidden(hidden: bool) -> void:
+	_shield_bar_hidden = hidden
+	if shield_bar and is_instance_valid(shield_bar):
+		shield_bar.visible = not hidden
 
 func set_player_max_hp(max_hp: int) -> void:
 	if hp_bar:
@@ -828,7 +881,7 @@ func _setup_shield_bar() -> void:
 		var idx = hp_bar.get_index()
 		top_left.move_child(shield_bar, idx + 1)
 	
-	shield_bar.visible = true # ALWAYS VISIBLE
+	shield_bar.visible = not _shield_bar_hidden # ALWAYS VISIBLE (sauf mode libre)
 	if fill_render_mode == "reveal_mask":
 		var reveal_fill_tex: Texture2D = _build_texture2d_from_asset(
 			fill_asset,
@@ -1033,7 +1086,8 @@ func _setup_wave_label(top_left: Control, bar_ref: Control) -> void:
 
 	var wave_cfg: Dictionary = _game_config.get("wave_counter", {})
 	if wave_cfg.is_empty():
-		wave_label.add_theme_font_size_override("font_size", 18)
+		var hud_cfg: Dictionary = _game_config.get("game_hud", {}) if _game_config.get("game_hud") is Dictionary else {}
+		wave_label.add_theme_font_size_override("font_size", int(hud_cfg.get("wave_fallback_font_size", 18)))
 		wave_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95, 1.0))
 	else:
 		_apply_label_text_style_from_config(wave_label, wave_cfg, 18, "#F2F2F2")
@@ -1045,6 +1099,8 @@ func _setup_killstreak_ui(top_left: VBoxContainer) -> void:
 	_killstreak_hud_cfg = _killstreak_cfg.get("hud", {}) if _killstreak_cfg.get("hud") is Dictionary else {}
 	if not bool(_killstreak_cfg.get("enabled", true)):
 		return
+	var hud_cfg: Dictionary = _game_config.get("game_hud", {}) if _game_config.get("game_hud") is Dictionary else {}
+	var killstreak_text_cfg: Dictionary = hud_cfg.get("killstreak", {}) if hud_cfg.get("killstreak") is Dictionary else {}
 
 	_killstreak_box = PanelContainer.new()
 	_killstreak_box.name = "KillstreakBox"
@@ -1072,17 +1128,17 @@ func _setup_killstreak_ui(top_left: VBoxContainer) -> void:
 
 	_killstreak_tier_label = Label.new()
 	_killstreak_tier_label.text = "STREAK"
-	_killstreak_tier_label.add_theme_font_size_override("font_size", 18)
+	_killstreak_tier_label.add_theme_font_size_override("font_size", int(killstreak_text_cfg.get("tier_font_size", 18)))
 	vbox.add_child(_killstreak_tier_label)
 
 	_killstreak_kills_label = Label.new()
 	_killstreak_kills_label.text = "0 KILLS"
-	_killstreak_kills_label.add_theme_font_size_override("font_size", 16)
+	_killstreak_kills_label.add_theme_font_size_override("font_size", int(killstreak_text_cfg.get("kills_font_size", 16)))
 	vbox.add_child(_killstreak_kills_label)
 
 	_killstreak_mult_label = Label.new()
 	_killstreak_mult_label.text = "x1.0"
-	_killstreak_mult_label.add_theme_font_size_override("font_size", 20)
+	_killstreak_mult_label.add_theme_font_size_override("font_size", int(killstreak_text_cfg.get("multiplier_font_size", 20)))
 	_killstreak_mult_label.add_theme_color_override("font_color", Color.html("#FFD35A"))
 	vbox.add_child(_killstreak_mult_label)
 
@@ -1153,13 +1209,25 @@ func update_wave_counter(current_wave: int) -> void:
 	_wave_current = maxi(0, current_wave)
 	_refresh_wave_label()
 
+# Free-mode "Level N" readout: reuses the wave label slot/style but bypasses
+# the X/Y counter refresh while an override text is active.
+var _wave_label_override: String = ""
+
+func set_wave_label_override(text: String) -> void:
+	_wave_label_override = text
+	_refresh_wave_label()
+
 func _refresh_wave_label() -> void:
 	if not wave_label:
+		return
+	if _wave_label_override != "":
+		wave_label.visible = true
+		wave_label.text = _wave_label_override
 		return
 	if _wave_total <= 0:
 		wave_label.visible = false
 		return
-	
+
 	var clamped_current: int = clampi(_wave_current, 0, _wave_total)
 	var display_current: int = maxi(1, clamped_current)
 	wave_label.visible = true
@@ -1167,8 +1235,8 @@ func _refresh_wave_label() -> void:
 
 func _on_shield_changed(current: float, max_val: float) -> void:
 	if not shield_bar: return
-	
-	shield_bar.visible = true # Always visible
+
+	shield_bar.visible = not _shield_bar_hidden # Always visible (sauf mode libre)
 	shield_bar.max_value = max_val
 	shield_bar.value = current
 	var shield_percent: float = float(current) / float(max_val) if max_val > 0.0 else 0.0

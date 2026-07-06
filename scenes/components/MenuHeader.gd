@@ -442,8 +442,8 @@ func _build_ui() -> void:
 
 	_xp_track_panel.resized.connect(_update_xp_fill_size)
 
-	# --- Protocols block: icône à gauche (z-index au-dessus), seul le nombre dans le rectangle ---
-	var protocols_cfg: Dictionary = _cfg.get("protocols", {})
+	# --- Stars block: icône à gauche (z-index au-dessus), seul le nombre dans le rectangle ---
+	var protocols_cfg: Dictionary = _cfg.get("stars", {})
 	var protocols_asset: String = _resolve_asset(str(protocols_cfg.get("asset", "")))
 	var proto_icon_sz: int = int(protocols_cfg.get("icon_size", 32))
 	var proto_icon_sz_clamped: int = mini(proto_icon_sz, height_px)
@@ -487,34 +487,30 @@ func _build_ui() -> void:
 	protocols_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	protocols_panel.set_offsets_preset(Control.PRESET_FULL_RECT)
 	protocols_panel.clip_contents = true
-	protocols_panel.add_child(_protocols_label)
+	var stars_inner := MarginContainer.new()
+	stars_inner.add_theme_constant_override("margin_left", int(protocols_cfg.get("text_margin_left", cm_l)))
+	stars_inner.add_theme_constant_override("margin_right", int(protocols_cfg.get("text_margin_right", cm_r)))
+	stars_inner.add_theme_constant_override("margin_top", cm_t)
+	stars_inner.add_theme_constant_override("margin_bottom", cm_b)
+	stars_inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stars_inner.add_child(_protocols_label)
+	protocols_panel.add_child(stars_inner)
 	protocols_rect_wrapper.add_child(protocols_panel)
 
 	# --- Crystals block: enfant normal du right_cell HBox (alignment=END le pousse à droite) ---
 	var crystals_cfg: Dictionary = _cfg.get("crystals", {})
 	var crystal_icon_sz: int = int(crystals_cfg.get("icon_size", 28))
 	var crystal_icon_sz_clamped: int = mini(crystal_icon_sz, height_px)
-	var crystal_panel_min_w: int = crystal_icon_sz_clamped + cm_l + cm_r + 80
 
-	_crystals_panel = Button.new()
-	_crystals_panel.name = "CrystalsPanel"
-	_crystals_panel.flat = true
-	_crystals_panel.focus_mode = Control.FOCUS_NONE
-	_crystals_panel.custom_minimum_size.x = crystal_panel_min_w
-	_crystals_panel.custom_minimum_size.y = rect_height
-	_crystals_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var empty_style := StyleBoxEmpty.new()
-	_crystals_panel.add_theme_stylebox_override("normal", empty_style)
-	_crystals_panel.add_theme_stylebox_override("hover", empty_style)
-	_crystals_panel.add_theme_stylebox_override("pressed", empty_style)
-	_crystals_panel.add_theme_stylebox_override("disabled", empty_style)
-	_crystals_panel.pressed.connect(_on_crystals_pressed)
-	right_cell.add_child(_crystals_panel)
+	var crystals_container := MarginContainer.new()
+	crystals_container.name = "CrystalsContainer"
+	crystals_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	right_cell.add_child(crystals_container)
 
 	var crystals_inner_hbox := HBoxContainer.new()
 	crystals_inner_hbox.add_theme_constant_override("separation", -icon_overlap)
 	crystals_inner_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	_crystals_panel.add_child(crystals_inner_hbox)
+	crystals_container.add_child(crystals_inner_hbox)
 
 	_crystal_icon = TextureRect.new()
 	_crystal_icon.custom_minimum_size = Vector2(crystal_icon_sz_clamped, crystal_icon_sz_clamped)
@@ -529,28 +525,22 @@ func _build_ui() -> void:
 			_crystal_icon.texture = tex
 	crystals_inner_hbox.add_child(_crystal_icon)
 
-	var crystal_rect_wrapper := Control.new()
-	crystal_rect_wrapper.name = "CrystalRectWrapper"
-	crystal_rect_wrapper.custom_minimum_size.y = rect_height
-	crystal_rect_wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crystal_rect_wrapper.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	crystal_rect_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	crystals_inner_hbox.add_child(crystal_rect_wrapper)
-
 	var crystal_number_panel := PanelContainer.new()
 	crystal_number_panel.name = "CrystalNumberPanel"
 	crystal_number_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	crystal_number_panel.custom_minimum_size.y = rect_height
+	crystal_number_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	crystal_number_panel.add_theme_stylebox_override("panel", _rect_style_no_border.duplicate())
-	crystal_number_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	crystal_number_panel.set_offsets_preset(Control.PRESET_FULL_RECT)
 	crystal_number_panel.clip_contents = true
+
 	var crystals_inner := MarginContainer.new()
-	crystals_inner.add_theme_constant_override("margin_left", cm_l)
-	crystals_inner.add_theme_constant_override("margin_right", cm_r)
+	crystals_inner.add_theme_constant_override("margin_left", int(crystals_cfg.get("text_margin_left", cm_l)))
+	crystals_inner.add_theme_constant_override("margin_right", int(crystals_cfg.get("text_margin_right", cm_r)))
 	crystals_inner.add_theme_constant_override("margin_top", cm_t)
 	crystals_inner.add_theme_constant_override("margin_bottom", cm_b)
 	crystals_inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	crystal_number_panel.add_child(crystals_inner)
+
 	_crystal_label = Label.new()
 	_crystal_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crystal_label.horizontal_alignment = _parse_h_align(align_h)
@@ -558,7 +548,20 @@ func _build_ui() -> void:
 	_crystal_label.add_theme_color_override("font_color", Color.from_string(str(crystals_cfg.get("text_color", "#ffffff")), Color.WHITE))
 	_crystal_label.add_theme_font_size_override("font_size", int(crystals_cfg.get("font_size", 18)))
 	crystals_inner.add_child(_crystal_label)
-	crystal_rect_wrapper.add_child(crystal_number_panel)
+
+	crystals_inner_hbox.add_child(crystal_number_panel)
+
+	_crystals_panel = Button.new()
+	_crystals_panel.name = "CrystalsPanel"
+	_crystals_panel.flat = true
+	_crystals_panel.focus_mode = Control.FOCUS_NONE
+	var empty_style := StyleBoxEmpty.new()
+	_crystals_panel.add_theme_stylebox_override("normal", empty_style)
+	_crystals_panel.add_theme_stylebox_override("hover", empty_style)
+	_crystals_panel.add_theme_stylebox_override("pressed", empty_style)
+	_crystals_panel.add_theme_stylebox_override("disabled", empty_style)
+	_crystals_panel.pressed.connect(_on_crystals_pressed)
+	crystals_container.add_child(_crystals_panel)
 
 	# Level label on top of level icon (level number, centré dans le symbole selon icon_size)
 	var level_center := CenterContainer.new()
@@ -710,11 +713,25 @@ func _update_values() -> void:
 		_xp_label.text = str(xp_current) + "/" + _format_compact_number(xp_max, locale)
 	_xp_bar_ratio = ratio
 
-	var protocols_count: int = ProfileManager.get_levels_cleared_with_max_override() if ProfileManager else 0
-	var protocols_max: int = ProfileManager.get_max_levels_override() if ProfileManager else 10
-	var format_str: String = str(_cfg.get("protocols", {}).get("format", "{count}/{max}"))
+	var stars_count: int = 0
+	var stars_max: int = 0
+	if App and App.has_method("get_worlds") and ProfileManager and ProfileManager.has_method("get_level_stars"):
+		for wv in App.get_worlds():
+			if wv is Dictionary:
+				var wid: String = str((wv as Dictionary).get("id", ""))
+				if wid == "": continue
+				var levels_v: Variant = wv.get("levels", [])
+				var levels: Array = levels_v if levels_v is Array else []
+				stars_max += levels.size() * 3
+				for lvl in levels:
+					if lvl is Dictionary:
+						var lid: String = str((lvl as Dictionary).get("id", ""))
+						if lid == "": lid = wid + "_lvl_" + str((lvl as Dictionary).get("index", 0))
+						stars_count += ProfileManager.get_level_stars(wid, lid)
+
+	var format_str: String = str(_cfg.get("stars", {}).get("format", "{count}/{max}"))
 	if is_instance_valid(_protocols_label):
-		_protocols_label.text = format_str.replace("{count}", str(protocols_count)).replace("{max}", str(protocols_max))
+		_protocols_label.text = format_str.replace("{count}", str(stars_count)).replace("{max}", str(stars_max))
 
 	var crystals: int = ProfileManager.get_crystals() if ProfileManager else 0
 	if is_instance_valid(_crystal_label):

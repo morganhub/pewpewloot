@@ -1,728 +1,789 @@
 {
-	"id": "world_4",
-	"name": "Fournaise",
-	"description": "Un monde volcanique en perpétuelle éruption où la lave coule sans fin entre les roches ardentes.",
-	"order": 4,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-			"fighter": "res://assets/enemies/atlantis/fighter.tres",
-			"tank": "res://assets/enemies/atlantis/tank.tres",
-			"artillery": "res://assets/enemies/atlantis/artillery.tres",
-			"elite": "res://assets/enemies/atlantis/elite.tres"
-		},
-		"bosses": {
-			"boss_lava_1": "res://assets/bosses/lava/boss_1.png",
-			"boss_lava_1_animation_duration": 2.0,
-			"boss_lava_1_animation_frequency": 8.0,
-			"boss_lava_2": "res://assets/bosses/lava/boss_2.png",
-			"boss_lava_2_animation_duration": 2.0,
-			"boss_lava_2_animation_frequency": 8.0,
-			"boss_lava_3": "res://assets/bosses/lava/boss_3.png",
-			"boss_lava_3_animation_duration": 2.0,
-			"boss_lava_3_animation_frequency": 8.0,
-			"boss_lava_4": "res://assets/bosses/lava/boss_4.png",
-			"boss_lava_4_animation_duration": 2.0,
-			"boss_lava_4_animation_frequency": 8.0,
-			"boss_lava_5": "res://assets/bosses/lava/boss_5.png",
-			"boss_lava_5_animation_duration": 2.0,
-			"boss_lava_5_animation_frequency": 8.0,
-			"boss_lava_final": "res://assets/bosses/lava/boss_final.tres",
-			"boss_lava_final_animation_duration": 2.0,
-			"boss_lava_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/lava/obstacle_explosive_1.png",
-				"res://assets/obstacles/lava/obstacle_explosive_2.png",
-				"res://assets/obstacles/lava/obstacle_explosive_3.png",
-				"res://assets/obstacles/lava/obstacle_explosive_4.png",
-				"res://assets/obstacles/lava/obstacle_explosive_5.png",
-				"res://assets/obstacles/lava/obstacle_explosive_6.png",
-				"res://assets/obstacles/lava/obstacle_explosive_7.png"
-			]
-		}
-	},
-	"multipliers": {
-		"hp": 4.0,
-		"damage": 3.0,
-		"speed": 1.1
-	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/acceleration.ogg",
-		"color_palette": "#8b2500"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_4_lvl_0",
-			"name": "Coulée de Lave",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/lava/world_lava_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/lava/world_lava_0.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_lava_1",
-			"score_1star": 2100,
-			"score_2stars": 3450,
-			"score_3stars": 4800
-		},
-		{
-			"index": 1,
-			"id": "world_4_lvl_1",
-			"name": "Cratère Fumant",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/lava/world_lava_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/lava/world_lava_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_lava_2",
-			"score_1star": 2300,
-			"score_2stars": 3800,
-			"score_3stars": 5300
-		},
-		{
-			"index": 2,
-			"id": "world_4_lvl_2",
-			"name": "Cavernes Ardentes",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/lava/world_lava_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/lava/world_lava_2.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "slalom",
-					"speed": 110,
-					"gap_width": 220,
-					"row_interval": 2.0,
-					"drift_speed": 12,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_lava_3",
-			"score_1star": 3350,
-			"score_2stars": 5500,
-			"score_3stars": 7650
-		},
-		{
-			"index": 3,
-			"id": "world_4_lvl_3",
-			"name": "Forge Éternelle",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/lava/world_lava_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/lava/world_lava_3.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_lava_4",
-			"score_1star": 2800,
-			"score_2stars": 4550,
-			"score_3stars": 6350
-		},
-		{
-			"index": 4,
-			"id": "world_4_lvl_4",
-			"name": "Cœur du Volcan",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/lava/world_lava_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/lava/world_lava_4.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.0,
-					"drift_speed": 15,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "slalom",
-					"speed": 110,
-					"gap_width": 220,
-					"row_interval": 2.0,
-					"drift_speed": 12,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_lava_5",
-			"score_1star": 4800,
-			"score_2stars": 7800,
-			"score_3stars": 10850
-		},
-		{
-			"index": 5,
-			"id": "world_4_lvl_5",
-			"name": "L'Élémentaire",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/lava/world_lava_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/lava/world_lava_5.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.0,
-					"drift_speed": 15,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_lava_final",
-			"score_1star": 6150,
-			"score_2stars": 10100,
-			"score_3stars": 14000
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_3"
-	}
+  "id": "world_4",
+  "name": "Fournaise",
+  "description": "Un monde volcanique en perpétuelle éruption où la lave coule sans fin entre les roches ardentes.",
+  "order": 4,
+  "skin_overrides": {
+    "enemies": {
+      "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+      "fighter": "res://assets/enemies/atlantis/fighter.tres",
+      "tank": "res://assets/enemies/atlantis/tank.tres",
+      "artillery": "res://assets/enemies/atlantis/artillery.tres",
+      "elite": "res://assets/enemies/atlantis/elite.tres"
+    },
+    "bosses": {
+      "boss_lava_1": "res://assets/bosses/lava/boss_1.png",
+      "boss_lava_1_animation_duration": 2.0,
+      "boss_lava_1_animation_frequency": 8.0,
+      "boss_lava_2": "res://assets/bosses/lava/boss_2.png",
+      "boss_lava_2_animation_duration": 2.0,
+      "boss_lava_2_animation_frequency": 8.0,
+      "boss_lava_3": "res://assets/bosses/lava/boss_3.png",
+      "boss_lava_3_animation_duration": 2.0,
+      "boss_lava_3_animation_frequency": 8.0,
+      "boss_lava_4": "res://assets/bosses/lava/boss_4.png",
+      "boss_lava_4_animation_duration": 2.0,
+      "boss_lava_4_animation_frequency": 8.0,
+      "boss_lava_5": "res://assets/bosses/lava/boss_5.png",
+      "boss_lava_5_animation_duration": 2.0,
+      "boss_lava_5_animation_frequency": 8.0,
+      "boss_lava_final": "res://assets/bosses/lava/boss_final.tres",
+      "boss_lava_final_animation_duration": 2.0,
+      "boss_lava_final_animation_frequency": 8.0
+    },
+    "obstacles": {
+      "explosives": [
+        "res://assets/obstacles/lava/obstacle_explosive_1.png",
+        "res://assets/obstacles/lava/obstacle_explosive_2.png",
+        "res://assets/obstacles/lava/obstacle_explosive_3.png",
+        "res://assets/obstacles/lava/obstacle_explosive_4.png",
+        "res://assets/obstacles/lava/obstacle_explosive_5.png",
+        "res://assets/obstacles/lava/obstacle_explosive_6.png",
+        "res://assets/obstacles/lava/obstacle_explosive_7.png"
+      ]
+    }
+  },
+  "multipliers": {
+    "hp": 4.0,
+    "damage": 3.0,
+    "speed": 1.1
+  },
+  "wave_runtime_defaults": {
+    "artillery_count": 18,
+    "artillery_rows": 3,
+    "artillery_spawn_interval_sec": 0.08,
+    "artillery_fire_rate_sec": 2.9
+  },
+  "theme": {
+    "background": "",
+    "music": "res://assets/music/acceleration.ogg",
+    "color_palette": "#8b2500"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "id": "world_4_lvl_0",
+      "name": "Coulée de Lave",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/lava/world_lava_0.png",
+        "far_layer": "res://assets/backgrounds/worlds/lava/world_lava_0.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_lava_1",
+      "score_1star": 2100,
+      "score_2stars": 3450,
+      "score_3stars": 4800,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.4
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 210.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": "world_4_lvl_1",
+      "name": "Cratère Fumant",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/lava/world_lava_1.png",
+        "far_layer": "res://assets/backgrounds/worlds/lava/world_lava_1.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_lava_2",
+      "score_1star": 2300,
+      "score_2stars": 3800,
+      "score_3stars": 5300,
+      "waves": [
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.4
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 240.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 1.5
+        },
+        {
+          "type": "breakout",
+          "duration": 45,
+          "rows": 5,
+          "cols": 6,
+          "row_hp": [2, 2, 1, 1, 1],
+          "ball_speed_px_sec": 460,
+          "damage_percent_per_ball_lost": 0.15
+        },
+        {
+          "type": "swarm",
+          "enemy_id": "swarmer",
+          "count": 53,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "world_4_lvl_2",
+      "name": "Cavernes Ardentes",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/lava/world_lava_2.png",
+        "far_layer": "res://assets/backgrounds/worlds/lava/world_lava_2.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_lava_3",
+      "score_1star": 3350,
+      "score_2stars": 5500,
+      "score_3stars": 7650,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.4
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 210.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 470,
+          "enemy_paddle_speed_px_sec": 370,
+          "enemy_reaction_interval_sec": 0.32,
+          "enemy_aim_error_px": 42,
+          "crystals_per_point": 4
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "slalom",
+          "speed": 110,
+          "gap_width": 220,
+          "row_interval": 2.0,
+          "drift_speed": 12,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "world_4_lvl_3",
+      "name": "Forge Éternelle",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/lava/world_lava_3.png",
+        "far_layer": "res://assets/backgrounds/worlds/lava/world_lava_3.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_lava_4",
+      "score_1star": 2800,
+      "score_2stars": 4550,
+      "score_3stars": 6350,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.4
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 260.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "absorb",
+          "duration": 30,
+          "spawn_interval_sec": 1.55,
+          "descent_speed_px_sec": 115,
+          "shuffle_window": 3,
+          "final_mass_margin": 0.7
+        },
+        {
+          "type": "lane_runner",
+          "duration": 35,
+          "wall_speed_px_sec_start": 420,
+          "wall_speed_px_sec_end": 640,
+          "row_interval_sec_start": 1.5,
+          "row_interval_sec_end": 0.95,
+          "double_wall_chance": 0.4,
+          "reward_multiplier": 1.5
+        },
+        {
+          "type": "slice_rush",
+          "duration": 30,
+          "bomb_chance": 0.16,
+          "burst_pause_sec_min": 0.6,
+          "burst_pause_sec_max": 1.3,
+          "reward_multiplier": 1.3
+        },
+        {
+          "type": "match3",
+          "duration": 45,
+          "special_chance": 0.09,
+          "crystal_chance": 0.05
+        },
+        {
+          "type": "gravity_hole",
+          "duration": 40,
+          "prop_weights": { "debris_small": 55, "wreck_medium": 32, "titan_large": 13 },
+          "reward_multiplier": 1.3
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 250,
+          "gap_width": 130,
+          "row_interval": 0.6,
+          "drift_speed": 25,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "id": "world_4_lvl_4",
+      "name": "Cœur du Volcan",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/lava/world_lava_4.png",
+        "far_layer": "res://assets/backgrounds/worlds/lava/world_lava_4.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_lava_5",
+      "score_1star": 4800,
+      "score_2stars": 7800,
+      "score_3stars": 10850,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.4
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 240.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.0,
+          "drift_speed": 15,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "slalom",
+          "speed": 110,
+          "gap_width": 220,
+          "row_interval": 2.0,
+          "drift_speed": 12,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 470,
+          "enemy_paddle_speed_px_sec": 370,
+          "enemy_reaction_interval_sec": 0.32,
+          "enemy_aim_error_px": 42,
+          "crystals_per_point": 4
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "id": "world_4_lvl_5",
+      "name": "L'Élémentaire",
+      "type": "boss",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/lava/world_lava_5.png",
+        "far_layer": "res://assets/backgrounds/worlds/lava/world_lava_5.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_lava_final",
+      "score_1star": 6150,
+      "score_2stars": 10100,
+      "score_3stars": 14000,
+      "waves": [
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.4
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 280.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.0,
+          "drift_speed": 15,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 250,
+          "gap_width": 130,
+          "row_interval": 0.6,
+          "drift_speed": 25,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    }
+  ],
+  "unlock_condition": {
+    "type": "world_clear",
+    "world_id": "world_3"
+  }
 }

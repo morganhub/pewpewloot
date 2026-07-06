@@ -159,6 +159,21 @@
 			"description": "Rafale de 6 projectiles en cône serré"
 		},
 		{
+			"id": "artillery_barrage",
+			"name": "Barrage d'artillerie",
+			"projectile_count": 1,
+			"spread_angle": 0,
+			"trajectory": "straight",
+			"speed": 340,
+			"damage": 16,
+			"size": 12,
+			"color": "#FFB347",
+			"can_flip": true,
+			"aim_target": false,
+			"spawn_strategy": "shooter",
+			"description": "Projectile lourd tiré tout droit vers le bas"
+		},
+		{
 			"id": "cone_forward",
 			"name": "Cône avant",
 			"projectile_count": 7,

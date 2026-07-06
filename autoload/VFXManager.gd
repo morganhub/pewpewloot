@@ -121,7 +121,7 @@ func play_sprite_frames(
 	anim_sprite.frame = 0
 	anim_sprite.modulate.a = 1.0
 
-	if not loop and duration > 0.0:
+	if duration > 0.0:
 		var natural_duration: float = get_animation_duration(playback_frames, anim_name)
 		if natural_duration > 0.0:
 			anim_sprite.speed_scale = natural_duration / duration
@@ -488,19 +488,53 @@ func spawn_impact(pos: Vector2, size: float, container: Node) -> void:
 # FLOATING TEXT
 # =============================================================================
 
+# Floating texts are pooled: dense play (crystal rains, killstreaks) would
+# otherwise allocate a Label + theme override per event on gameplay frames.
+const FLOATING_LABEL_POOL_MAX: int = 24
+var _floating_label_pool: Array[Label] = []
+
 func spawn_floating_text(pos: Vector2, text: String, color: Color, container: Node) -> void:
-	var label := Label.new()
+	if container == null or not is_instance_valid(container):
+		return
+	var label: Label = null
+	while label == null and not _floating_label_pool.is_empty():
+		# is_instance_valid FIRST: pooled labels can be freed instances from a
+		# previous run (their HUD parent was freed on scene change) and even the
+		# 'is' operator raises on a freed instance.
+		var candidate: Variant = _floating_label_pool.pop_back()
+		if is_instance_valid(candidate) and candidate is Label:
+			label = candidate as Label
+	if label == null:
+		label = Label.new()
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.add_theme_font_size_override("font_size", 16)
 	label.text = text
 	label.modulate = color
+	if label.get_parent() != container:
+		if label.get_parent():
+			label.get_parent().remove_child(label)
+		container.add_child(label)
+	label.visible = true
 	label.global_position = pos + Vector2(-20, -20) # Centrer approximativement
-	label.add_theme_font_size_override("font_size", 16)
-	container.add_child(label)
-	
+
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "global_position:y", label.global_position.y - 40, 0.6)
 	tween.tween_property(label, "modulate:a", 0.0, 0.6)
-	tween.chain().tween_callback(label.queue_free)
+	tween.chain().tween_callback(_release_floating_label.bind(label))
+
+func _release_floating_label(label_v: Variant) -> void:
+	# Variant signature + is_instance_valid FIRST: the tween lives on this
+	# autoload and can outlive the label (scene change mid-animation) — both a
+	# typed Label param and the 'is' operator raise on a freed instance.
+	if not is_instance_valid(label_v) or not (label_v is Label):
+		return
+	var label: Label = label_v as Label
+	label.visible = false
+	if _floating_label_pool.size() < FLOATING_LABEL_POOL_MAX:
+		_floating_label_pool.append(label)
+	else:
+		label.queue_free()
 
 # =============================================================================
 # UTILITY

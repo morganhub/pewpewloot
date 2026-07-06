@@ -25,29 +25,6 @@
 	"bubble_font_size": 26
   },
   "sequences": [
-	{
-		"id": "w1_intro",
-		"world": "world_1",
-		"wave": "start",
-		"dialogues": [
-		  {
-			"speaker_asset": "res://assets/characters/commander.jpg",
-			"side": "right",
-			"text_keys": ["story_w1_intro_1", "story_w1_intro_2", "story_w1_intro_3"]
-		  },
-		  {
-			"speaker_asset": "res://assets/characters/pilot.jpg",
-			"side": "left",
-			"text_keys": ["story_w1_intro_4"]
-		  },
-		  {
-			"speaker_asset": "res://assets/characters/commander.jpg",
-			"side": "right",
-			"text_keys": ["story_w1_intro_5", "story_w1_intro_6"]
-		  }
-		]
-	  },
-  
 	  {
 		"id": "w1_l1",
 		"world": "world_1",

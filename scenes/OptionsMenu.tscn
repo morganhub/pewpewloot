@@ -115,6 +115,30 @@ popup/item_0/id = 0
 popup/item_1/text = "English"
 popup/item_1/id = 1
 
+[node name="ControlSection" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 15
+alignment = 0
+
+[node name="ControlLabel" type="Label" parent="MarginContainer/VBoxContainer/ControlSection"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Contrôles"
+vertical_alignment = 1
+
+[node name="ControlDropdown" type="OptionButton" parent="MarginContainer/VBoxContainer/ControlSection"]
+custom_minimum_size = Vector2(280, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+selected = 0
+item_count = 2
+popup/item_0/text = "Stick virtuel"
+popup/item_0/id = 0
+popup/item_1/text = "Suivi du doigt"
+popup/item_1/id = 1
+
 [node name="SoundSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=981572249]
 layout_mode = 2
 theme_override_constants/separation = 15

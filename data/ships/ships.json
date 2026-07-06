@@ -1,158 +1,157 @@
 {
 	"ships": [
 		{
-			"id": "ship_car",
+			"id": "furnace",
 			"crystal_price": 0,
-			"name": "The Car",
-			"description": "High power, slow missiles. Paint attack.",
-			"type": "car",
+			"name": "Furnace",
+			"description": "Starter heavy ship with slow movement, low cadence and heavy missiles.",
+			"type": "heavy",
 			"stats": {
 				"max_hp": 350,
-				"move_speed": 180,
-				"power": 150,
-				"fire_rate": 2.5,
-				"crit_chance": 7,
-				"dodge_chance": 2,
-				"missile_speed_pct": 40,
-				"special_cd": 20.0,
-				"special_damage": 50
+				"move_speed": 150,
+				"power": 300,
+				"fire_rate": 1.4,
+				"crit_chance": 5,
+				"dodge_chance": 1,
+				"missile_speed_pct": 65,
+				"special_cd": 28.0,
+				"special_damage": 180
 			},
 			"visual": {
-				"color": "#FF4444",
+				"color": "#FF6A2A",
 				"shape": "rectangle",
 				"asset": "",
-				"asset_anim": "res://assets/ships/countryman.tres",
-				"asset_anim_duration": 0.0,
-				"asset_anim_loop": true
-			},
-			"missile_id": "missile_car",
-			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_paint_sweep",
-			"fluid_id": ""
-		},
-		{
-			"id": "swordwing",
-			"aliases": [
-				"ship_swordwing"
-			],
-			"crystal_price": 600,
-			"name": "Swordwing",
-			"description": "Balanced, fast missiles. Looping attack.",
-			"type": "plane",
-			"stats": {
-				"max_hp": 150,
-				"move_speed": 220,
-				"power": 50,
-				"fire_rate": 2.3,
-				"crit_chance": 10,
-				"dodge_chance": 10,
-				"missile_speed_pct": 100,
-				"special_cd": 10.0,
-				"special_damage": 75
-			},
-			"visual": {
-				"color": "#4444FF",
-				"shape": "triangle",
-				"asset": "",
-				"asset_anim": "res://assets/enemies/swordwing.tres",
-				"asset_anim_duration": 2.0,
-				"asset_anim_loop": true
-			},
-			"missile_id": "missile_car",
-			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_barrel_roll",
-			"fluid_id": ""
-		},
-		{
-			"id": "beetmech",
-			"crystal_price": 1200,
-			"name": "BeetMech",
-			"description": "Balanced. Cone burst attack.",
-			"type": "mech",
-			"stats": {
-				"max_hp": 320,
-				"move_speed": 200,
-				"power": 150,
-				"fire_rate": 2.4,
-				"crit_chance": 10,
-				"dodge_chance": 5,
-				"missile_speed_pct": 80,
-				"special_cd": 30.0,
-				"special_damage": 100
-			},
-			"visual": {
-				"color": "#AA44FF",
-				"shape": "circle",
-				"asset": "",
-				"asset_anim": "res://assets/ships/beetMech.tres",
-				"asset_anim_duration": 0.0,
+				"asset_anim": "res://assets/ships/furnace.tres",
+				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_witch_circle",
+			"special_power_id": "power_furnace_nova",
 			"fluid_id": ""
 		},
 		{
-			"id": "ship_supercar",
-			"crystal_price": 10,
-			"name": "Ecraseur",
-			"description": "Low power, very fast missiles. Homing attack.",
-			"type": "supercar",
+			"id": "greyhound",
+			"crystal_price": 600,
+			"name": "Greyhound",
+			"description": "Ultra-fast interceptor with very high cadence and evasive specials.",
+			"type": "interceptor",
 			"stats": {
-				"max_hp": 380,
-				"move_speed": 250,
-				"power": 20,
-				"fire_rate": 2.5,
-				"crit_chance": 10,
-				"dodge_chance": 2,
-				"missile_speed_pct": 150,
-				"special_cd": 10.0,
-				"special_damage": 30
+				"max_hp": 500,
+				"move_speed": 285,
+				"power": 373,
+				"fire_rate": 4.2,
+				"crit_chance": 12,
+				"dodge_chance": 18,
+				"missile_speed_pct": 160,
+				"special_cd": 9.0,
+				"special_damage": 60
 			},
 			"visual": {
-				"color": "#FFFF44",
-				"shape": "diamond",
-				"asset": "res://assets/ships/ecraseur.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
+				"color": "#9AA8B8",
+				"shape": "triangle",
+				"asset": "",
+				"asset_anim": "res://assets/ships/greyhound.tres",
+				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true
 			},
-			"missile_id": "missile_car",
-			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_paint_sweep"
+			"missile_id": "missile_homing",
+			"missile_pattern_id": "double_straight",
+			"special_power_id": "power_greyhound_roll",
+			"fluid_id": ""
 		},
 		{
-			"id": "ship_supercarB",
-			"crystal_price": 10,
-			"name": "Bacd",
-			"description": "Low power, very fast missiles. Homing attack.",
-			"type": "supercar",
+			"id": "sting",
+			"crystal_price": 900,
+			"name": "Sting",
+			"description": "Precision striker with high crit and low cadence, built around lethal specials.",
+			"type": "striker",
 			"stats": {
-				"max_hp": 80,
-				"move_speed": 250,
-				"power": 20,
-				"fire_rate": 2.5,
-				"crit_chance": 10,
-				"dodge_chance": 2,
-				"missile_speed_pct": 150,
-				"special_cd": 10.0,
-				"special_damage": 30
+				"max_hp": 650,
+				"move_speed": 225,
+				"power": 445,
+				"fire_rate": 1.8,
+				"crit_chance": 28,
+				"dodge_chance": 7,
+				"missile_speed_pct": 130,
+				"special_cd": 16.0,
+				"special_damage": 220
 			},
 			"visual": {
-				"color": "#FFFF44",
+				"color": "#E8C347",
 				"shape": "diamond",
-				"asset": "res://assets/ships/ecraseur.png",
-				"asset_anim": "",
-				"asset_anim_duration": 0.0,
+				"asset": "",
+				"asset_anim": "res://assets/ships/sting.tres",
+				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true
 			},
-			"missile_id": "missile_car",
-			"missile_pattern_id": "single_straight",
-			"special_power_id": "power_barrel_roll"
+			"missile_id": "missile_wave",
+			"missile_pattern_id": "triple_spread",
+			"special_power_id": "power_sting_lancer",
+			"fluid_id": ""
+		},
+		{
+			"id": "tossy",
+			"crystal_price": 1200,
+			"name": "Tossy",
+			"description": "Chaotic swarm ship with the highest cadence and frequent barrages.",
+			"type": "skirmisher",
+			"stats": {
+				"max_hp": 800,
+				"move_speed": 205,
+				"power": 518,
+				"fire_rate": 5.0,
+				"crit_chance": 8,
+				"dodge_chance": 10,
+				"missile_speed_pct": 95,
+				"special_cd": 11.0,
+				"special_damage": 90
+			},
+			"visual": {
+				"color": "#B86DFF",
+				"shape": "circle",
+				"asset": "",
+				"asset_anim": "res://assets/ships/tossy.tres",
+				"asset_anim_duration": 4.0,
+				"asset_anim_loop": true
+			},
+			"missile_id": "missile_poison",
+			"missile_pattern_id": "burst_5",
+			"special_power_id": "power_tossy_barrage",
+			"fluid_id": ""
+		},
+		{
+			"id": "wave",
+			"crystal_price": 1500,
+			"name": "Wave",
+			"description": "Advanced control fighter with broad coverage, stable defenses and layered spiral specials.",
+			"type": "wave",
+			"stats": {
+				"max_hp": 950,
+				"move_speed": 190,
+				"power": 590,
+				"fire_rate": 2.3,
+				"crit_chance": 9,
+				"dodge_chance": 5,
+				"missile_speed_pct": 90,
+				"special_cd": 20.0,
+				"special_damage": 140
+			},
+			"visual": {
+				"color": "#44C8FF",
+				"shape": "hexagon",
+				"asset": "",
+				"asset_anim": "res://assets/ships/wave.tres",
+				"asset_anim_duration": 4.0,
+				"asset_anim_loop": true
+			},
+			"missile_id": "missile_ice",
+			"missile_pattern_id": "wave_shot",
+			"special_power_id": "power_wave_resonance",
+			"fluid_id": ""
 		}
 	],
 	"default_unlocked": [
-		"ship_car"
+		"furnace"
 	]
 }

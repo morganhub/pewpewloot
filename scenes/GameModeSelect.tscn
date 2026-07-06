@@ -1,0 +1,52 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/GameModeSelect.gd" id="1_gmsel"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuHeader.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://scenes/components/MenuFooter.tscn" id="3_footer"]
+
+[node name="GameModeSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_gmsel")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MenuHeader" parent="." instance=ExtResource("2_header")]
+layout_mode = 1
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 700.0
+offset_bottom = 130.0
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CardList" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 140.0
+offset_right = 700.0
+offset_bottom = 1200.0
+theme_override_constants/separation = 20
+
+[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5

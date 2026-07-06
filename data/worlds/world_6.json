@@ -1,685 +1,783 @@
 {
-	"id": "world_6",
-	"name": "Nécropole",
-	"description": "Une cité morte hantée par les ombres d'un empire déchu, où les murs murmurent encore.",
-	"order": 6,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-			"fighter": "res://assets/enemies/atlantis/fighter.tres",
-			"tank": "res://assets/enemies/atlantis/tank.tres",
-			"artillery": "res://assets/enemies/atlantis/artillery.tres",
-			"elite": "res://assets/enemies/atlantis/elite.tres"
-		},
-		"bosses": {
-			"boss_necro_1": "res://assets/bosses/necropolis/boss_1.png",
-			"boss_necro_1_animation_duration": 2.0,
-			"boss_necro_1_animation_frequency": 8.0,
-			"boss_necro_2": "res://assets/bosses/necropolis/boss_2.png",
-			"boss_necro_2_animation_duration": 2.0,
-			"boss_necro_2_animation_frequency": 8.0,
-			"boss_necro_3": "res://assets/bosses/necropolis/boss_3.png",
-			"boss_necro_3_animation_duration": 2.0,
-			"boss_necro_3_animation_frequency": 8.0,
-			"boss_necro_4": "res://assets/bosses/necropolis/boss_4.png",
-			"boss_necro_4_animation_duration": 2.0,
-			"boss_necro_4_animation_frequency": 8.0,
-			"boss_necro_5": "res://assets/bosses/necropolis/boss_5.png",
-			"boss_necro_5_animation_duration": 2.0,
-			"boss_necro_5_animation_frequency": 8.0,
-			"boss_necro_final": "res://assets/bosses/necropolis/boss_final.tres",
-			"boss_necro_final_animation_duration": 2.0,
-			"boss_necro_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/necropolis/obstacle_explosive_1.png",
-				"res://assets/obstacles/necropolis/obstacle_explosive_2.png",
-				"res://assets/obstacles/necropolis/obstacle_explosive_3.png",
-				"res://assets/obstacles/necropolis/obstacle_explosive_4.png",
-				"res://assets/obstacles/necropolis/obstacle_explosive_5.png",
-				"res://assets/obstacles/necropolis/obstacle_explosive_6.png"
-			]
-		}
-	},
-	"multipliers": {
-		"hp": 8.5,
-		"damage": 5.5,
-		"speed": 1.1
-	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/starlight.ogg",
-		"color_palette": "#2c1e3f"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_6_lvl_0",
-			"name": "Portail des Morts",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_0.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_necro_1",
-			"score_1star": 1800,
-			"score_2stars": 3000,
-			"score_3stars": 4150
-		},
-		{
-			"index": 1,
-			"id": "world_6_lvl_1",
-			"name": "Catacombes",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_necro_2",
-			"score_1star": 3250,
-			"score_2stars": 5300,
-			"score_3stars": 7350
-		},
-		{
-			"index": 2,
-			"id": "world_6_lvl_2",
-			"name": "Crypte Royale",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_2.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_necro_3",
-			"score_1star": 3450,
-			"score_2stars": 5650,
-			"score_3stars": 7850
-		},
-		{
-			"index": 3,
-			"id": "world_6_lvl_3",
-			"name": "Salle du Trône",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_3.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_necro_4",
-			"score_1star": 3650,
-			"score_2stars": 5950,
-			"score_3stars": 8300
-		},
-		{
-			"index": 4,
-			"id": "world_6_lvl_4",
-			"name": "Autel des Ombres",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_4.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_necro_5",
-			"score_1star": 5150,
-			"score_2stars": 8400,
-			"score_3stars": 11650
-		},
-		{
-			"index": 5,
-			"id": "world_6_lvl_5",
-			"name": "Le Nécromancien",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/necropolis/world_necro_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_5.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_necro_final",
-			"score_1star": 4650,
-			"score_2stars": 7650,
-			"score_3stars": 10600
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_5"
-	}
+  "id": "world_6",
+  "name": "Nécropole",
+  "description": "Une cité morte hantée par les ombres d'un empire déchu, où les murs murmurent encore.",
+  "order": 6,
+  "skin_overrides": {
+    "enemies": {
+      "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+      "fighter": "res://assets/enemies/atlantis/fighter.tres",
+      "tank": "res://assets/enemies/atlantis/tank.tres",
+      "artillery": "res://assets/enemies/atlantis/artillery.tres",
+      "elite": "res://assets/enemies/atlantis/elite.tres"
+    },
+    "bosses": {
+      "boss_necro_1": "res://assets/bosses/necropolis/boss_1.png",
+      "boss_necro_1_animation_duration": 2.0,
+      "boss_necro_1_animation_frequency": 8.0,
+      "boss_necro_2": "res://assets/bosses/necropolis/boss_2.png",
+      "boss_necro_2_animation_duration": 2.0,
+      "boss_necro_2_animation_frequency": 8.0,
+      "boss_necro_3": "res://assets/bosses/necropolis/boss_3.png",
+      "boss_necro_3_animation_duration": 2.0,
+      "boss_necro_3_animation_frequency": 8.0,
+      "boss_necro_4": "res://assets/bosses/necropolis/boss_4.png",
+      "boss_necro_4_animation_duration": 2.0,
+      "boss_necro_4_animation_frequency": 8.0,
+      "boss_necro_5": "res://assets/bosses/necropolis/boss_5.png",
+      "boss_necro_5_animation_duration": 2.0,
+      "boss_necro_5_animation_frequency": 8.0,
+      "boss_necro_final": "res://assets/bosses/necropolis/boss_final.tres",
+      "boss_necro_final_animation_duration": 2.0,
+      "boss_necro_final_animation_frequency": 8.0
+    },
+    "obstacles": {
+      "explosives": [
+        "res://assets/obstacles/necropolis/obstacle_explosive_1.png",
+        "res://assets/obstacles/necropolis/obstacle_explosive_2.png",
+        "res://assets/obstacles/necropolis/obstacle_explosive_3.png",
+        "res://assets/obstacles/necropolis/obstacle_explosive_4.png",
+        "res://assets/obstacles/necropolis/obstacle_explosive_5.png",
+        "res://assets/obstacles/necropolis/obstacle_explosive_6.png"
+      ]
+    }
+  },
+  "multipliers": {
+    "hp": 8.5,
+    "damage": 5.5,
+    "speed": 1.1
+  },
+  "wave_runtime_defaults": {
+    "artillery_count": 18,
+    "artillery_rows": 3,
+    "artillery_spawn_interval_sec": 0.08,
+    "artillery_fire_rate_sec": 2.5
+  },
+  "theme": {
+    "background": "",
+    "music": "res://assets/music/starlight.ogg",
+    "color_palette": "#2c1e3f"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "id": "world_6_lvl_0",
+      "name": "Portail des Morts",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/necropolis/world_necro_0.png",
+        "far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_0.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_necro_1",
+      "score_1star": 1800,
+      "score_2stars": 3000,
+      "score_3stars": 4150,
+      "waves": [
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.5
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 230.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": "world_6_lvl_1",
+      "name": "Catacombes",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/necropolis/world_necro_1.png",
+        "far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_1.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_necro_2",
+      "score_1star": 3250,
+      "score_2stars": 5300,
+      "score_3stars": 7350,
+      "waves": [
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.5
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 260.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 530,
+          "enemy_paddle_speed_px_sec": 435,
+          "enemy_reaction_interval_sec": 0.24,
+          "enemy_aim_error_px": 30,
+          "crystals_per_point": 4
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "swarm",
+          "enemy_id": "swarmer",
+          "count": 56,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "world_6_lvl_2",
+      "name": "Crypte Royale",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/necropolis/world_necro_2.png",
+        "far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_2.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_necro_3",
+      "score_1star": 3450,
+      "score_2stars": 5650,
+      "score_3stars": 7850,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.5
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 230.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "breakout",
+          "duration": 45,
+          "rows": 5,
+          "cols": 6,
+          "row_hp": [3, 2, 2, 1, 1],
+          "ball_speed_px_sec": 500,
+          "damage_percent_per_ball_lost": 0.18
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "world_6_lvl_3",
+      "name": "Salle du Trône",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/necropolis/world_necro_3.png",
+        "far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_3.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_necro_4",
+      "score_1star": 3650,
+      "score_2stars": 5950,
+      "score_3stars": 8300,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 250,
+          "gap_width": 130,
+          "row_interval": 0.6,
+          "drift_speed": 25,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.5
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 280.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "absorb",
+          "duration": 30,
+          "spawn_interval_sec": 1.4,
+          "descent_speed_px_sec": 125,
+          "shuffle_window": 3,
+          "final_mass_margin": 0.75
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "artillery",
+          "enemy_id": "artillery",
+          "count": 6,
+          "rows": 2,
+          "spawn_interval_sec": 0.08,
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "id": "world_6_lvl_4",
+      "name": "Autel des Ombres",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/necropolis/world_necro_4.png",
+        "far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_4.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_necro_5",
+      "score_1star": 5150,
+      "score_2stars": 8400,
+      "score_3stars": 11650,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.5
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 260.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "ball_launcher",
+          "duration": 60,
+          "ball_count_start": 4,
+          "row_hp_base": 4,
+          "row_hp_growth_per_turn": 1.3,
+          "row_fill_ratio_min": 0.5,
+          "row_fill_ratio_max": 0.8,
+          "token_chance": 0.2,
+          "damage_percent_per_row_crossed": 0.18,
+          "reward_multiplier": 1.5
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 530,
+          "enemy_paddle_speed_px_sec": 435,
+          "enemy_reaction_interval_sec": 0.24,
+          "enemy_aim_error_px": 30,
+          "crystals_per_point": 4
+        },
+        {
+          "type": "star_drift",
+          "duration": 55,
+          "scroll_speed_px_sec_start": 260,
+          "scroll_speed_px_sec_end": 470,
+          "hazard_interval_sec_start": 1.5,
+          "hazard_interval_sec_end": 0.8,
+          "hazard_types": [
+            {
+              "id": "meteor",
+              "behavior": "meteor",
+              "assets": [],
+              "use_world_obstacles": true,
+              "weight": 55.0,
+              "size_px_min": 58.0,
+              "size_px_max": 126.0,
+              "tint": "#FFFFFF",
+              "collision_radius_px": 36.0,
+              "speed_multiplier": 1.15,
+              "drift_x_px_sec_max": 85.0,
+              "wobble_amplitude_px": 30.0,
+              "wobble_frequency_hz": 0.55,
+              "spin_deg_sec_max": 90.0,
+              "damage_percent": 0.12
+            },
+            {
+              "id": "black_hole",
+              "behavior": "black_hole",
+              "assets": ["res://assets/modifiers/graviton.tres"],
+              "weight": 45.0,
+              "size_px_min": 96.0,
+              "size_px_max": 150.0,
+              "tint": "#B48CFF",
+              "collision_radius_px": 32.0,
+              "speed_multiplier": 0.8,
+              "pull_radius_px": 200.0,
+              "pull_strength_px_sec": 260.0,
+              "spin_deg_sec_max": 40.0,
+              "damage_percent": 0.15
+            }
+          ],
+          "reward_multiplier": 1.35
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "id": "world_6_lvl_5",
+      "name": "Le Nécromancien",
+      "type": "boss",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/necropolis/world_necro_5.png",
+        "far_layer": "res://assets/backgrounds/worlds/necropolis/world_necro_5.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_necro_final",
+      "score_1star": 4650,
+      "score_2stars": 7650,
+      "score_3stars": 10600,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.5
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 300.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 250,
+          "gap_width": 130,
+          "row_interval": 0.6,
+          "drift_speed": 25,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        }
+      ]
+    }
+  ],
+  "unlock_condition": {
+    "type": "world_clear",
+    "world_id": "world_5"
+  }
 }

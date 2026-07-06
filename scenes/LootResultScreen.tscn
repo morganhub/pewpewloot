@@ -122,7 +122,7 @@ horizontal_alignment = 1
 
 [node name="InventoryHBox" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer" unique_id=1926974066]
 layout_mode = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 10
 alignment = 1
 
 [node name="PrevButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/InventoryHBox" unique_id=999590287]
@@ -133,9 +133,9 @@ text = "<"
 
 [node name="ItemsGrid" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/InventoryHBox" unique_id=1083273812]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(300, 80)
+custom_minimum_size = Vector2(340, 108)
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="NextButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/InventoryHBox" unique_id=476662037]

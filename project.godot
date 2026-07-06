@@ -44,7 +44,6 @@ window/size/window_height_override=800
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
-window/display/window_per_pixel_transparency=true
 window/size/window/size/initial_position_type=0
 window/size/window/size/initial_screen=0
 window/size/window/size/initial_position=Vector2(0, 0)

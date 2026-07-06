@@ -1,715 +1,823 @@
 {
-	"id": "world_8",
-	"name": "Ruche Alien",
-	"description": "Un organisme vivant géant dont les parois pulsent d'une énergie biologique extraterrestre.",
-	"order": 8,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-			"fighter": "res://assets/enemies/atlantis/fighter.tres",
-			"tank": "res://assets/enemies/atlantis/tank.tres",
-			"artillery": "res://assets/enemies/atlantis/artillery.tres",
-			"elite": "res://assets/enemies/atlantis/elite.tres"
-		},
-		"bosses": {
-			"boss_alien_1": "res://assets/bosses/alien/boss_1.png",
-			"boss_alien_1_animation_duration": 2.0,
-			"boss_alien_1_animation_frequency": 8.0,
-			"boss_alien_2": "res://assets/bosses/alien/boss_2.png",
-			"boss_alien_2_animation_duration": 2.0,
-			"boss_alien_2_animation_frequency": 8.0,
-			"boss_alien_3": "res://assets/bosses/alien/boss_3.png",
-			"boss_alien_3_animation_duration": 2.0,
-			"boss_alien_3_animation_frequency": 8.0,
-			"boss_alien_4": "res://assets/bosses/alien/boss_4.png",
-			"boss_alien_4_animation_duration": 2.0,
-			"boss_alien_4_animation_frequency": 8.0,
-			"boss_alien_5": "res://assets/bosses/alien/boss_5.png",
-			"boss_alien_5_animation_duration": 2.0,
-			"boss_alien_5_animation_frequency": 8.0,
-			"boss_alien_final": "res://assets/bosses/alien/boss_final.tres",
-			"boss_alien_final_animation_duration": 2.0,
-			"boss_alien_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/alien/obstacle_explosive_1.png",
-				"res://assets/obstacles/alien/obstacle_explosive_2.png",
-				"res://assets/obstacles/alien/obstacle_explosive_3.png",
-				"res://assets/obstacles/alien/obstacle_explosive_4.png",
-				"res://assets/obstacles/alien/obstacle_explosive_5.png",
-				"res://assets/obstacles/alien/obstacle_explosive_6.png"
-			]
-		}
+  "id": "world_8",
+  "name": "Ruche Alien",
+  "description": "Un organisme vivant géant dont les parois pulsent d'une énergie biologique extraterrestre.",
+  "order": 8,
+  "skin_overrides": {
+	"enemies": {
+	  "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+	  "fighter": "res://assets/enemies/atlantis/fighter.tres",
+	  "tank": "res://assets/enemies/atlantis/tank.tres",
+	  "artillery": "res://assets/enemies/atlantis/artillery.tres",
+	  "elite": "res://assets/enemies/atlantis/elite.tres"
 	},
-	"multipliers": {
-		"hp": 15.0,
-		"damage": 10.0,
-		"speed": 1.1
+	"bosses": {
+	  "boss_alien_1": "res://assets/bosses/alien/boss_1.png",
+	  "boss_alien_1_animation_duration": 2.0,
+	  "boss_alien_1_animation_frequency": 8.0,
+	  "boss_alien_2": "res://assets/bosses/alien/boss_2.png",
+	  "boss_alien_2_animation_duration": 2.0,
+	  "boss_alien_2_animation_frequency": 8.0,
+	  "boss_alien_3": "res://assets/bosses/alien/boss_3.png",
+	  "boss_alien_3_animation_duration": 2.0,
+	  "boss_alien_3_animation_frequency": 8.0,
+	  "boss_alien_4": "res://assets/bosses/alien/boss_4.png",
+	  "boss_alien_4_animation_duration": 2.0,
+	  "boss_alien_4_animation_frequency": 8.0,
+	  "boss_alien_5": "res://assets/bosses/alien/boss_5.png",
+	  "boss_alien_5_animation_duration": 2.0,
+	  "boss_alien_5_animation_frequency": 8.0,
+	  "boss_alien_final": "res://assets/bosses/alien/boss_final.tres",
+	  "boss_alien_final_animation_duration": 2.0,
+	  "boss_alien_final_animation_frequency": 8.0
 	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/neon.ogg",
-		"color_palette": "#1a4d1a"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_8_lvl_0",
-			"name": "Membrane Externe",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/alien/world_bio_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_0.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_alien_1",
-			"score_1star": 2750,
-			"score_2stars": 4450,
-			"score_3stars": 6200
-		},
-		{
-			"index": 1,
-			"id": "world_8_lvl_1",
-			"name": "Canaux Organiques",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/alien/world_bio_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_alien_2",
-			"score_1star": 2200,
-			"score_2stars": 3600,
-			"score_3stars": 5000
-		},
-		{
-			"index": 2,
-			"id": "world_8_lvl_2",
-			"name": "Chambre d'Incubation",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/alien/world_bio_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_2.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_alien_3",
-			"score_1star": 3300,
-			"score_2stars": 5350,
-			"score_3stars": 7450
-		},
-		{
-			"index": 3,
-			"id": "world_8_lvl_3",
-			"name": "Réseau Neural",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/alien/world_bio_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_3.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_alien_4",
-			"score_1star": 4650,
-			"score_2stars": 7600,
-			"score_3stars": 10550
-		},
-		{
-			"index": 4,
-			"id": "world_8_lvl_4",
-			"name": "Noyau Vital",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/alien/world_bio_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_4.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_alien_5",
-			"score_1star": 4400,
-			"score_2stars": 7250,
-			"score_3stars": 10050
-		},
-		{
-			"index": 5,
-			"id": "world_8_lvl_5",
-			"name": "La Reine",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/alien/world_bio_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_5.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_alien_final",
-			"score_1star": 4550,
-			"score_2stars": 7450,
-			"score_3stars": 10400
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_7"
+	"obstacles": {
+	  "explosives": [
+		"res://assets/obstacles/alien/obstacle_explosive_1.png",
+		"res://assets/obstacles/alien/obstacle_explosive_2.png",
+		"res://assets/obstacles/alien/obstacle_explosive_3.png",
+		"res://assets/obstacles/alien/obstacle_explosive_4.png",
+		"res://assets/obstacles/alien/obstacle_explosive_5.png",
+        "res://assets/obstacles/alien/obstacle_explosive_6.png"
+	  ]
 	}
+  },
+  "multipliers": {
+	"hp": 15.0,
+	"damage": 10.0,
+	"speed": 1.1
+  },
+  "wave_runtime_defaults": {
+	"artillery_count": 18,
+	"artillery_rows": 3,
+	"artillery_spawn_interval_sec": 0.08,
+	"artillery_fire_rate_sec": 2.1
+  },
+  "theme": {
+	"background": "",
+	"music": "res://assets/music/neon.ogg",
+	"color_palette": "#1a4d1a"
+  },
+  "levels": [
+	{
+	  "index": 0,
+	  "id": "world_8_lvl_0",
+	  "name": "Membrane Externe",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/alien/world_bio_0.png",
+		"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_0.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_alien_1",
+	  "score_1star": 2750,
+	  "score_2stars": 4450,
+	  "score_3stars": 6200,
+	  "waves": [
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "interval": 3.33,
+		  "hp_multiplier": 1.6
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 250.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "swarm",
+		  "enemy_id": "swarmer",
+		  "count": 59,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "type": "pong",
+		  "duration": 30,
+		  "ball_speed_px_sec": 600,
+		  "enemy_paddle_speed_px_sec": 510,
+		  "enemy_reaction_interval_sec": 0.16,
+		  "enemy_aim_error_px": 16,
+		  "crystals_per_point": 5
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 1,
+	  "id": "world_8_lvl_1",
+	  "name": "Canaux Organiques",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/alien/world_bio_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_alien_2",
+	  "score_1star": 2200,
+	  "score_2stars": 3600,
+	  "score_3stars": 5000,
+	  "waves": [
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "tank",
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "interval": 3.33,
+		  "hp_multiplier": 1.6
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 280.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "absorb",
+		  "duration": 30,
+		  "spawn_interval_sec": 1.3,
+		  "descent_speed_px_sec": 140,
+		  "shuffle_window": 4,
+		  "final_mass_margin": 0.8
+		},
+		{
+		  "type": "lane_runner",
+		  "duration": 38,
+		  "wall_speed_px_sec_start": 480,
+		  "wall_speed_px_sec_end": 760,
+		  "row_interval_sec_start": 1.3,
+		  "row_interval_sec_end": 0.8,
+		  "double_wall_chance": 0.55,
+		  "reward_multiplier": 2.0
+		},
+		{
+		  "type": "slice_rush",
+		  "duration": 32,
+		  "burst_size_min": 3,
+		  "burst_size_max": 5,
+		  "bomb_chance": 0.2,
+		  "launch_speed_min_px_sec": 1550,
+		  "launch_speed_max_px_sec": 1850,
+		  "max_active_objects": 14,
+		  "reward_multiplier": 1.6
+		},
+		{
+		  "type": "match3",
+		  "duration": 50,
+		  "tile_type_count": 6,
+		  "special_chance": 0.13,
+		  "cascade_score_multiplier": 0.6,
+		  "equipment_drop_chance": 0.014
+		},
+		{
+		  "type": "gravity_hole",
+		  "duration": 45,
+		  "max_active_props": 22,
+		  "drift_speed_max_px_sec": 90,
+		  "prop_weights": { "debris_small": 40, "wreck_medium": 38, "titan_large": 22 },
+		  "oversize_contact_damage_percent": 0.15,
+		  "oversize_mass_loss_flat": 10,
+		  "final_core_efficiency_ratio": 0.65,
+		  "reward_multiplier": 2.0
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 2,
+	  "id": "world_8_lvl_2",
+	  "name": "Chambre d'Incubation",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/alien/world_bio_2.png",
+		"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_2.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_alien_3",
+	  "score_1star": 3300,
+	  "score_2stars": 5350,
+	  "score_3stars": 7450,
+	  "waves": [
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.6
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 250.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 2.0
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "slalom",
+		  "speed": 70,
+		  "gap_width": 300,
+		  "row_interval": 3.0,
+		  "drift_speed": 5,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 3,
+	  "id": "world_8_lvl_3",
+	  "name": "Réseau Neural",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/alien/world_bio_3.png",
+		"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_3.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_alien_4",
+	  "score_1star": 4650,
+	  "score_2stars": 7600,
+	  "score_3stars": 10550,
+	  "waves": [
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.6
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 300.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 180,
+		  "gap_width": 160,
+		  "row_interval": 1.5
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "breakout",
+		  "duration": 45,
+		  "rows": 6,
+		  "cols": 7,
+		  "row_hp": [3, 3, 2, 2, 1, 1],
+		  "ball_speed_px_sec": 540,
+		  "damage_percent_per_ball_lost": 0.2
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 180,
+		  "gap_width": 160,
+		  "row_interval": 1.5
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 4,
+	  "id": "world_8_lvl_4",
+	  "name": "Noyau Vital",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/alien/world_bio_4.png",
+		"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_4.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_alien_5",
+	  "score_1star": 4400,
+	  "score_2stars": 7250,
+	  "score_3stars": 10050,
+	  "waves": [
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.6
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 280.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 180,
+		  "gap_width": 160,
+		  "row_interval": 1.5
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "pong",
+		  "duration": 30,
+		  "ball_speed_px_sec": 600,
+		  "enemy_paddle_speed_px_sec": 510,
+		  "enemy_reaction_interval_sec": 0.16,
+		  "enemy_aim_error_px": 16,
+		  "crystals_per_point": 5
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 1.5
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		}
+	  ]
+	},
+	{
+	  "index": 5,
+	  "id": "world_8_lvl_5",
+	  "name": "La Reine",
+	  "type": "boss",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/alien/world_bio_5.png",
+		"far_layer": "res://assets/backgrounds/worlds/alien/world_bio_5.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_alien_final",
+	  "score_1star": 4550,
+	  "score_2stars": 7450,
+	  "score_3stars": 10400,
+	  "waves": [
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 180,
+		  "gap_width": 160,
+		  "row_interval": 1.5
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.6
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 320.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "slalom",
+		  "speed": 70,
+		  "gap_width": 300,
+		  "row_interval": 3.0,
+		  "drift_speed": 5,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	}
+  ],
+  "unlock_condition": {
+	"type": "world_clear",
+	"world_id": "world_7"
+  }
 }

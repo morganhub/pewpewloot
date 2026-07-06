@@ -601,3 +601,35 @@ static func _resolve_button_texture(asset_path: String) -> Texture2D:
 			return null
 		return frames.get_frame_texture(anim, 0)
 	return null
+
+const GREYSCALE_SHADER_CODE := """
+shader_type canvas_item;
+
+uniform float saturation : hint_range(0.0, 1.0) = 0.0;
+uniform float brightness : hint_range(0.0, 1.0) = 1.0;
+
+void fragment() {
+	vec4 c = texture(TEXTURE, UV) * COLOR;
+	float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	c.rgb = mix(vec3(g), c.rgb, saturation) * brightness;
+	COLOR = c;
+}
+"""
+
+## Applies (or removes) a desaturated/greyscale look on a CanvasItem to signal a
+## disabled/locked state while keeping the artwork readable. Pass enabled=false
+## to restore the normal colors (only removes a greyscale material it added).
+static func set_greyscale(ci: CanvasItem, enabled: bool, brightness: float = 0.7) -> void:
+	if not is_instance_valid(ci):
+		return
+	if not enabled:
+		var current: ShaderMaterial = ci.material as ShaderMaterial
+		if current != null and current.shader != null and current.shader.code == GREYSCALE_SHADER_CODE:
+			ci.material = null
+		return
+	var mat := ShaderMaterial.new()
+	mat.shader = Shader.new()
+	mat.shader.code = GREYSCALE_SHADER_CODE
+	mat.set_shader_parameter("saturation", 0.0)
+	mat.set_shader_parameter("brightness", clampf(brightness, 0.0, 1.0))
+	ci.material = mat

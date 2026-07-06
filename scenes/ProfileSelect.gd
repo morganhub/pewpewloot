@@ -9,16 +9,17 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 # =============================================================================
 
 @onready var background_rect: TextureRect = $Background
+@onready var title_label: Label = $CenterContainer/MainPanel/TitleLabel
+@onready var list_label: Label = $CenterContainer/MainPanel/ProfileListContainer/ListLabel
 @onready var profile_list: ItemList = $CenterContainer/MainPanel/ProfileListContainer/ProfileList
 @onready var create_button: Button = $CenterContainer/MainPanel/ButtonsContainer/CreateButton
 @onready var delete_button: Button = $CenterContainer/MainPanel/ButtonsContainer/DeleteButton
 @onready var back_button: TextureButton = $CenterContainer/MainPanel/HeaderContainer/BackButton
 
 @onready var create_popup: PanelContainer = $CreatePopup
+@onready var popup_title: Label = $CreatePopup/MarginContainer/PopupContent/PopupTitle
 @onready var popup_name_label: Label = $CreatePopup/MarginContainer/PopupContent/NameLabel
 @onready var popup_name_input: LineEdit = $CreatePopup/MarginContainer/PopupContent/NameInput
-@onready var popup_portrait_label: Label = $CreatePopup/MarginContainer/PopupContent/PortraitLabel
-@onready var popup_portrait_option: OptionButton = $CreatePopup/MarginContainer/PopupContent/PortraitOption
 @onready var popup_validate: Button = $CreatePopup/MarginContainer/PopupContent/ButtonsRow/ValidateButton
 @onready var popup_cancel: Button = $CreatePopup/MarginContainer/PopupContent/ButtonsRow/CancelButton
 
@@ -46,23 +47,20 @@ func _ready() -> void:
 	popup_validate.pressed.connect(_on_popup_validate_pressed)
 	popup_cancel.pressed.connect(_on_popup_cancel_pressed)
 	
-	# Portrait choices (placeholder)
-	popup_portrait_option.clear()
-	for i in range(6):
-		popup_portrait_option.add_item("Portrait " + str(i + 1), i)
-	_apply_dropdown_style(popup_portrait_option)
-	
 	create_popup.visible = false
 	_refresh_list()
 
 	UIStyle.apply_default_button_style(create_button, "medium")
 	UIStyle.apply_default_button_style(delete_button, "medium")
-	UIStyle.apply_default_button_style(popup_validate, "medium")
+	var val_cfg := UIStyle.get_validation_config()
+	UIStyle.apply_validation_to_button(popup_validate, val_cfg, "medium")
 	UIStyle.apply_default_button_style(popup_cancel, "medium")
 	UIStyle.apply_button_shadow(create_button, "medium")
 	UIStyle.apply_button_shadow(delete_button, "medium")
 	UIStyle.apply_button_shadow(popup_validate, "medium")
 	UIStyle.apply_button_shadow(popup_cancel, "medium")
+	_apply_typography()
+	_apply_translations()
 
 func _load_game_config() -> void:
 	if DataManager:
@@ -103,36 +101,59 @@ func _apply_popup_style() -> void:
 	if back_button:
 		back_button.visible = false
 
-func _apply_dropdown_style(opt_btn: OptionButton) -> void:
-	if not opt_btn:
-		return
+func _get_profile_select_config() -> Dictionary:
+	var screens_v: Variant = _game_config.get("screens", {})
+	if screens_v is Dictionary:
+		var screen_cfg_v: Variant = (screens_v as Dictionary).get("profile_select", {})
+		if screen_cfg_v is Dictionary:
+			return screen_cfg_v as Dictionary
+	var root_v: Variant = _game_config.get("profile_select", {})
+	return root_v if root_v is Dictionary else {}
 
-	var dropdown_cfg: Dictionary = _game_config.get("ui_dropdown", {})
-	var popup: PopupMenu = opt_btn.get_popup()
-	if not popup:
-		return
+func _apply_typography() -> void:
+	var cfg := _get_profile_select_config()
+	if title_label:
+		title_label.add_theme_font_size_override("font_size", int(cfg.get("title_font_size", 36)))
+	if list_label:
+		list_label.add_theme_font_size_override("font_size", int(cfg.get("list_label_font_size", 20)))
+	if profile_list:
+		profile_list.add_theme_font_size_override("font_size", int(cfg.get("profile_list_font_size", 20)))
+	var button_font_size: int = int(cfg.get("button_font_size", 22))
+	if create_button:
+		create_button.add_theme_font_size_override("font_size", button_font_size)
+	if delete_button:
+		delete_button.add_theme_font_size_override("font_size", button_font_size)
+	if popup_title:
+		popup_title.add_theme_font_size_override("font_size", int(cfg.get("popup_title_font_size", 24)))
+	if popup_name_label:
+		popup_name_label.add_theme_font_size_override("font_size", int(cfg.get("popup_label_font_size", 18)))
+	if popup_name_input:
+		popup_name_input.add_theme_font_size_override("font_size", int(cfg.get("popup_input_font_size", 18)))
+	var popup_button_font_size: int = int(cfg.get("popup_button_font_size", 18))
+	if popup_validate:
+		popup_validate.add_theme_font_size_override("font_size", popup_button_font_size)
+	if popup_cancel:
+		popup_cancel.add_theme_font_size_override("font_size", popup_button_font_size)
 
-	for i in range(popup.item_count):
-		popup.set_item_as_checkable(i, false)
-
-	var item_bg_asset: String = str(dropdown_cfg.get("item_bg_asset", ""))
-	var popup_style: StyleBox = StyleBoxFlat.new()
-	var tex_style := UIStyle.build_texture_stylebox(item_bg_asset, dropdown_cfg, 10)
-	if tex_style:
-		popup_style = tex_style
-	else:
-		var flat := popup_style as StyleBoxFlat
-		flat.bg_color = Color(0.1, 0.1, 0.1, 0.95)
-
-	var hover_style := StyleBoxFlat.new()
-	hover_style.bg_color = Color(dropdown_cfg.get("highlight_bg_color", "#FFD700"))
-	var item_text := Color(dropdown_cfg.get("item_text_color", "#000000"))
-	var hover_text := Color(dropdown_cfg.get("highlight_text_color", "#000000"))
-
-	popup.add_theme_stylebox_override("panel", popup_style)
-	popup.add_theme_stylebox_override("hover", hover_style)
-	popup.add_theme_color_override("font_color", item_text)
-	popup.add_theme_color_override("font_hover_color", hover_text)
+func _apply_translations() -> void:
+	if title_label:
+		title_label.text = LocaleManager.translate("profile_select_title")
+	if list_label:
+		list_label.text = LocaleManager.translate("profile_select_choose")
+	if create_button:
+		create_button.text = LocaleManager.translate("profile_select_create")
+	if delete_button:
+		delete_button.text = LocaleManager.translate("profile_select_delete")
+	if popup_title:
+		popup_title.text = LocaleManager.translate("profile_select_create_title")
+	if popup_name_label:
+		popup_name_label.text = LocaleManager.translate("profile_select_name_label")
+	if popup_name_input:
+		popup_name_input.placeholder_text = LocaleManager.translate("profile_select_name_hint")
+	if popup_validate:
+		popup_validate.text = LocaleManager.translate("profile_select_validate")
+	if popup_cancel:
+		popup_cancel.text = LocaleManager.translate("profile_select_back")
 
 func _refresh_list() -> void:
 	profile_list.clear()
@@ -165,9 +186,7 @@ func _on_profile_activated(index: int) -> void:
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
 
 func _on_create_pressed() -> void:
-	# Show popup
-	popup_name_input.text = ""
-	popup_portrait_option.select(0)
+	popup_name_input.text = ProfileManager.get_suggested_player_display_name()
 	create_popup.visible = true
 	popup_name_input.grab_focus()
 
@@ -176,8 +195,7 @@ func _on_popup_validate_pressed() -> void:
 	if raw_name.length() < 2:
 		return
 
-	var portrait_id := popup_portrait_option.get_selected_id()
-	ProfileManager.create_profile(raw_name, portrait_id)
+	ProfileManager.create_profile(raw_name)
 	
 	create_popup.visible = false
 	_refresh_list()
@@ -192,10 +210,8 @@ func _on_delete_pressed() -> void:
 	_refresh_list()
 
 func _on_back_pressed() -> void:
-	if ProfileManager.active_profile_id != "":
-		# Retour à l'accueil
-		var switcher := get_tree().current_scene
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
 	else:
-		# Quitter le jeu
 		get_tree().quit()

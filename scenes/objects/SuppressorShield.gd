@@ -158,7 +158,7 @@ func _break_shield() -> void:
 	if _shield_visual and _shield_visual.has_method("collapse"):
 		_shield_visual.call("collapse")
 	
-	await get_tree().create_timer(COLLAPSE_DURATION_SEC).timeout
+	await get_tree().create_timer(COLLAPSE_DURATION_SEC, false).timeout
 	queue_free()
 
 func _play_deflect_sfx() -> void:

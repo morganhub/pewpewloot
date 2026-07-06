@@ -1,1668 +1,4119 @@
 {
-  "projectile_pools": {
-	"pool_size_player": 400,
-	"pool_size_enemy": 200,
-	"enemy_pool_expand_step": 64
-  },
-  "buttons": {
-	"pressed_offset_y": 4,
-	"default_style": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "text_color": "#FFFFFF",
-	  "min_width": 220,
-	  "min_height": 56,
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 14,
-		"right": 14,
-		"top": 10,
-		"bottom": 10
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch"
+	"projectile_pools": {
+		"pool_size_player": 400,
+		"pool_size_enemy": 200,
+		"enemy_pool_expand_step": 64
 	},
-	"font_presets": {
-	  "small": {
-		"font_size": 18,
-		"letter_spacing": 0
-	  },
-	  "medium": {
-		"font_size": 26,
-		"letter_spacing": 0
-	  },
-	  "large": {
-		"font_size": 30,
-		"letter_spacing": 1
-	  }
-	},
-	"shadow": {
-	  "small": {
-		"shadow_color": "#000000",
-		"shadow_offset_x": 1,
-		"shadow_offset_y": 1,
-		"shadow_outline_size": 0
-	  },
-	  "medium": {
-		"shadow_color": "#000000",
-		"shadow_offset_x": 2,
-		"shadow_offset_y": 2,
-		"shadow_outline_size": 0
-	  },
-	  "large": {
-		"shadow_color": "#000000",
-		"shadow_offset_x": 3,
-		"shadow_offset_y": 3,
-		"shadow_outline_size": 0
-	  }
-	},
-	"validation": {
-	  "text_color": "#ffffff",
-	  "letter_spacing": 0,
-	  "asset": "res://assets/ui/button_validation.png",
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 14,
-		"right": 14,
-		"top": 10,
-		"bottom": 10
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch",
-	  "draw_center": true
-	},
-	"cancellation": {
-	  "text_color": "#ffffff",
-	  "letter_spacing": 0,
-	  "asset": "res://assets/ui/button_cancellation.png",
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 14,
-		"right": 14,
-		"top": 10,
-		"bottom": 10
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch",
-	  "draw_center": true
-	},
-	"highlight": {
-	  "text_color": "#ffffff",
-	  "letter_spacing": 0,
-	  "label_template": "Compétences (+%d)",
-	  "asset": "res://assets/ui/button_highlight.png",
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 14,
-		"right": 14,
-		"top": 10,
-		"bottom": 10
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch",
-	  "draw_center": true,
-	  "glow_color": "#FFD86B",
-	  "glow_thickness": 6.0,
-	  "glow_intensity": 1.25,
-	  "pulse_frequency": 1.6,
-	  "pulse_amplitude": 0.22
-	}
-  },
-  "game_balance": {
-	"fire_rate_from_items_factor": 0.3,
-	"fire_rate_max": 5.0
-  },
-  "score_parameters": {
-	"font_color_normal": "#FFFFFF",
-	"font_color_record": "#FFD700",
-	"font_size_score": 24,
-	"star_empty_asset": "res://assets/ui/stars/star_off.png",
-	"star_filled_asset": "res://assets/ui/stars/star_on.png",
-	"star_size": {
-	  "x": 64,
-	  "y": 64
-	}
-  },
-  "default_explosion": {
-	"fluid_id": ""
-  },
-  "path_trial_defaults": {
-	"default_tick_damage": 10,
-	"default_tick_interval_sec": 0.5,
-	"default_hazard_start_asset": "res://assets/hazards/pathtrial_start.png",
-	"default_hazard_asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_1.png",
-	"force_default_hazard_asset": true,
-	"default_path_asset": "res://assets/hazards/pathtrial_path.png",
-	"force_default_path_asset": true,
-	"default_path_asset_scale": 1.0,
-	"path_width": 120.0,
-	"path_margin_top": 20.0,
-	"path_margin_left": 20.0,
-	"path_margin_right": 20.0,
-	"path_margin_bottom": 20.0,
-	"hazard_scroll_speed_px_sec": 45.0,
-	"hazard_overlay_opacity": 0.35,
-	"warning_frame_width": 5.0,
-	"warning_frame_color": "#FF3030",
-	"warning_frame_pulse": true,
-	"warning_frame_pulse_size": 20.0,
-	"damage_frame_pulse_size": 60.0,
-	"hazard_fade_duration_sec": 0.25,
-	"path_speed_ramp_sec": 0.35,
-	"start_delay_sec": 7.5,
-	"warmup_sec": 1.5,
-	"head_length_px": 120.0,
-	"tail_length_px": 120.0
-  },
-  "explosions": {
-	"player_missile_impact": {
-	  "asset": "",
-	  "asset_anim": "res://assets/vfx/mine_explosion.tres",
-	  "asset_anim_duration": 0.18,
-	  "asset_anim_loop": false,
-	  "size": 16.0,
-	  "width": -1.0,
-	  "height": -1.0,
-	  "color": "#FFE07A",
-	  "fade_in_duration": 0.05,
-	  "fade_out_duration": 0.10,
-	  "scale_start": 0.72,
-	  "scale_middle": 1.35,
-	  "scale_end": 0.92,
-	  "scale_middle_ratio": 0.42
-	},
-	"enemy_death": {
-	  "asset": "",
-	  "asset_anim": "res://assets/vfx/boss_explosion.tres",
-	  "asset_anim_duration": 0.26,
-	  "asset_anim_loop": false,
-	  "size": 28.0,
-	  "width": -1.0,
-	  "height": -1.0,
-	  "color": "#FFB35C",
-	  "fade_in_duration": 0.05,
-	  "fade_out_duration": 0.12,
-	  "scale_start": 0.90,
-	  "scale_middle": 1.18,
-	  "scale_end": 1.00,
-	  "scale_middle_ratio": 0.40
-	},
-	"boss_death": {
-	  "asset": "",
-	  "asset_anim": "res://assets/vfx/boss_explosion.tres",
-	  "asset_anim_duration": 2,
-	  "asset_anim_loop": false,
-	  "size_multiplier": 2.8,
-	  "size_min": 90.0,
-	  "width": 70,
-	  "height": 70,
-	  "color": "#FFC368",
-	  "fade_in_duration": 0.06,
-	  "fade_out_duration": 0.16,
-	  "scale_start": 0.52,
-	  "scale_middle": 0.8,
-	  "scale_end": 1.03,
-	  "scale_middle_ratio": 0.45
-	}
-  },
-  "shared_assets": {
-	"crystal_icon": {
-	  "asset": "res://assets/ui/icons/crystal.tres",
-	  "animation_repeat_seconds": 6,
-	  "animation_type": "loop",
-	  "animation_duration": 2
-	},
-	"lock": {
-	  "asset": "res://assets/ui/icons/locked.png",
-	  "width": 64,
-	  "height": 64,
-	  "text_color": "#FFFFFF",
-	  "text_size": 16
-	}
-  },
-  "menu_header": {
-	"height_px": 135,
-	"margin_left": 20,
-	"margin_right": 20,
-	"margin_top": 25,
-	"margin_bottom": 40,
-	"bottom_gradient_height_px": 20,
-	"default_background_color": "",
-	"default_background_opacity": 0.85,
-	"homescreen_background_color": "",
-	"homescreen_background_opacity": 1,
-	"shipmenu_background_color": "#1a1a2e",
-	"shipmenu_background_opacity": 0.85,
-	"world_select_background_color": "",
-	"world_select_background_opacity": 0.85,
-	"level_select_background_color": "",
-	"level_select_background_opacity": 0.85,
-	"skillsmenu_background_color": "",
-	"skillsmenu_background_opacity": 0.85,
-	"optionsmenu_background_color": "",
-	"optionsmenu_background_opacity": 0.85,
-	"shopmenu_background_color": "",
-	"shopmenu_background_opacity": 0.85,
-	"profileselect_background_color": "",
-	"profileselect_background_opacity": 0.85,
-	"pausemenu_background_color": "",
-	"pausemenu_background_opacity": 0.85,
-	"lootresultscreen_background_color": "",
-	"lootresultscreen_background_opacity": 0.85,
-	"rectangle": {
-	  "height": 36,
-	  "border_radius": 16,
-	  "background_color": "#1a1a2e",
-	  "background_opacity": 0.5,
-	  "border_color": "#000000",
-	  "border_width": 0,
-	  "content_margin_left": 12,
-	  "content_margin_right": 12,
-	  "content_margin_top": 0,
-	  "content_margin_bottom": 0,
-	  "content_align_h": "center",
-	  "content_align_v": "center",
-	  "icon_overlap_px": -2
-	},
-	"level": {
-	  "asset": "res://assets/ui/icons/trophy.png",
-	  "icon_size": 70,
-	  "text_color": "#ffffff",
-	  "font_size": 30
-	},
-	"xp_bar": {
-	  "bar_min_width": 60,
-	  "width": 80,
-	  "fill_color": "#146be0",
-	  "track_color": "#2d2d44",
-	  "border_color": "#cccccc",
-	  "border_width": 2,
-	  "text_color": "#ffffff",
-	  "text_margin_left": 8,
-	  "text_margin_right": 8,
-	  "font_size": 25
-	},
-	"protocols": {
-	  "asset": "res://assets/ui/icons/trophy.png",
-	  "icon_size": 38,
-	  "text_color": "#ffffff",
-	  "font_size": 28,
-	  "format": "{count}/{max}",
-	  "center_offset_x": -40
-	},
-	"crystals": {
-	  "icon_asset": "shared:crystal_icon",
-	  "icon_size": 38,
-	  "text_color": "#ffffff",
-	  "font_size": 28,
-	  "panel_padding": 8
-	},
-	"spacing_between_blocks": 16
-  },
-  "menu_footer": {
-	"height_px": 95,
-	"margin_left": 25,
-	"margin_right": 20,
-	"margin_bottom": 0,
-	"background_asset": "res://assets/backgrounds/menus/footer_background.png",
-	"background_opacity": 1,
-	"border_top_height": 5,
-	"border_top_color": "#4a17a0",
-	"back_button": {
-	  "asset": "res://assets/ui/button_back.png",
-	  "width": 72,
-	  "height": 72,
-	  "icon_size": 36
-	}
-  },
-  "main_menu": {
-	"background": "res://assets/ui/main_menu_bg.jpg",
-	"background_anim": "",
-	"music": "res://assets/music/neon.ogg",
-	"logo": "res://assets/logo/pewpewloot_final.png",
-	"logo_anim": "",
-	"logo_anim_duration": 2.0,
-	"logo_anim_loop": false,
-	"logo_width_pct": 0.4,
-	"logo_height_pct": 0.3
-  },
-  "reward_screen": {
-	"background": "res://assets/ui/reward_bg.png",
-	"button_equip": "res://assets/ui/button.png",
-	"button_destroy": "res://assets/ui/button.png"
-  },
-  "rarity_frames": {
-	"common": "res://assets/ui/frames/frame_common.png",
-	"uncommon": "res://assets/ui/frames/frame_uncommon.png",
-	"rare": "res://assets/ui/frames/frame_rare.png",
-	"epic": "res://assets/ui/frames/frame_epic.png",
-	"legendary": "res://assets/ui/frames/frame_legendary.png",
-	"unique": "res://assets/ui/frames/frame_gold.png"
-  },
-  "rarity_colors": {
-	"common": "#AAAAAA",
-	"uncommon": "#1EFF00",
-	"rare": "#0070FF",
-	"epic": "#A335EE",
-	"legendary": "#FF8000",
-	"unique": "#FFD700"
-  },
-  "rarity_highlight": "res://assets/frames/rarity/rarity_selected.png",
-  "rarity_filter_assets": {
-	"all": "res://assets/frames/rarity/all.png",
-	"common": "res://assets/frames/rarity/common.png",
-	"uncommon": "res://assets/frames/rarity/uncommon.png",
-	"rare": "res://assets/frames/rarity/rare.png",
-	"epic": "res://assets/frames/rarity/epic.png",
-	"legendary": "res://assets/frames/rarity/legendary.png",
-	"unique": "res://assets/frames/rarity/unique.png"
-  },
-  "ship_menu": {
-	"background": "res://assets/backgrounds/menus/ship_background.jpg",
-	"background_scroll": false,
-	"default_font_size": 20,
-	"recycle_all": "res://assets/ui/icons/crystal.png",
-	"sections_background_opacity": 0.95,
-	"content_margin_top": 115,
-	"ship_selection": {
-	  "width": 165,
-	  "height": 165,
-	  "size_multiplier": 1.5,
-	  "strip_height": 95,
-	  "strip_button_height": 56,
-	  "strip_margin_top": 10,
-	  "strip_margin_bottom": 0,
-	  "animated": false,
-	  "arrow_width": 48,
-	  "arrow_height": 48
-	},
-	"sections": {
-	  "ship_selection": {
-		"background": "res://assets/backgrounds/menus/shipmenu_ships.png",
-		"nine_slice": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
-		},
-		"content_margin": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
+	"progression": {
+		"xp_curve_base": 14000,
+		"xp_curve_exponent": 0.85,
+		"xp_per_score_ratio": 0.5,
+		"max_player_level": 60,
+		"world_xp_multipliers": {
+			"world_1": 1.0,
+			"world_2": 1.4,
+			"world_3": 2.0,
+			"world_4": 2.8,
+			"world_5": 3.8,
+			"world_6": 5.0,
+			"world_7": 6.5,
+			"world_8": 8.5,
+			"world_9": 11.0
 		}
-	  },
-	  "equipment": {
-		"background": "res://assets/backgrounds/menus/shipmenu_equipment.png",
-		"nine_slice": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
-		},
-		"content_margin": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
-		}
-	  },
-	  "inventory": {
-		"background": "res://assets/backgrounds/menus/shipmenu_inventory.png",
-		"nine_slice": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
-		},
-		"content_margin": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
-		}
-	  },
-	  "powers": {
-		"background": "res://assets/backgrounds/menus/shipmenu_powers.png",
-		"nine_slice": {
-		  "left": 15,
-		  "right": 15,
-		  "top": 15,
-		  "bottom": 15
-		},
-		"content_margin": {
-		  "left": 0,
-		  "right": 0,
-		  "top": 15,
-		  "bottom": 15
-		}
-	  }
 	},
-	"title": {
-	  "font_size": 40,
-	  "letter_spacing": 2,
-	  "text_color": "#FFFFFF"
+	"performance": {
+		"dev_runtime_tuning_reload": true,
+		"warmup_runtime_support": true,
+		"warmup_runtime_nodes": true,
+		"warmup_collect_external_json": true,
+		"log_hitches": false,
+		"log_level_warmup": false,
+		"log_runtime_enemy_prewarm": false,
+		"log_wave_resource_warmup": false
 	},
-	"ship_details": {
-	  "buttons": {
-		"font_size": 18,
-		"text_color": "#FFFFFF",
-		"upgrade": {
-		  "width": 140,
-		  "height": 50,
-		  "asset": "res://assets/ui/buttons/button_gold.png"
+	"buttons": {
+		"pressed_offset_y": 4,
+		"default_style": {
+			"asset": "res://assets/ui/button_regular.png",
+			"text_color": "#FFFFFF",
+			"min_width": 220,
+			"min_height": 56,
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
+		},
+		"font_presets": {
+			"small": {
+				"font_size": 18,
+				"letter_spacing": 0
+			},
+			"medium": {
+				"font_size": 26,
+				"letter_spacing": 0
+			},
+			"large": {
+				"font_size": 30,
+				"letter_spacing": 1
+			}
+		},
+		"shadow": {
+			"small": {
+				"shadow_color": "#000000",
+				"shadow_offset_x": 1,
+				"shadow_offset_y": 1,
+				"shadow_outline_size": 0
+			},
+			"medium": {
+				"shadow_color": "#000000",
+				"shadow_offset_x": 2,
+				"shadow_offset_y": 2,
+				"shadow_outline_size": 0
+			},
+			"large": {
+				"shadow_color": "#000000",
+				"shadow_offset_x": 3,
+				"shadow_offset_y": 3,
+				"shadow_outline_size": 0
+			}
+		},
+		"validation": {
+			"text_color": "#ffffff",
+			"letter_spacing": 0,
+			"asset": "res://assets/ui/button_validation.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch",
+			"draw_center": true
+		},
+		"cancellation": {
+			"text_color": "#ffffff",
+			"letter_spacing": 0,
+			"asset": "res://assets/ui/button_cancellation.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch",
+			"draw_center": true
+		},
+		"highlight": {
+			"text_color": "#ffffff",
+			"letter_spacing": 0,
+			"label_template": "Compétences (+%d)",
+			"asset": "res://assets/ui/button_highlight.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch",
+			"draw_center": true,
+			"glow_color": "#FFD86B",
+			"glow_thickness": 6.0,
+			"glow_intensity": 1.25,
+			"pulse_frequency": 1.6,
+			"pulse_amplitude": 0.22
+		}
+	},
+	"game_balance": {
+		"fire_rate_from_items_factor": 0.3,
+		"fire_rate_max": 5.0
+	},
+	"score_parameters": {
+		"font_color_normal": "#FFFFFF",
+		"font_color_record": "#FFD700",
+		"font_size_score": 24,
+		"font_size_record": 17,
+		"star_empty_asset": "res://assets/ui/stars/star_off.png",
+		"star_filled_asset": "res://assets/ui/stars/star_on.png",
+		"star_size": {
+			"x": 64,
+			"y": 64
+		}
+	},
+	"game_hud": {
+		"boss_debug_font_size": 14,
+		"boss_name_font_size": 24,
+		"boss_phase_font_size": 16,
+		"inventory_warning_font_size": 16,
+		"wave_fallback_font_size": 18,
+		"killstreak": {
+			"tier_font_size": 18,
+			"kills_font_size": 16,
+			"multiplier_font_size": 20
+		}
+	},
+	"default_explosion": {
+		"fluid_id": ""
+	},
+	"path_trial_defaults": {
+		"default_tick_damage": 10,
+		"default_tick_interval_sec": 0.5,
+		"default_hazard_start_asset": "res://assets/hazards/pathtrial_start.tres",
+		"default_hazard_asset": "res://assets/backgrounds/worlds/alien/layer_2_alien_1.png",
+		"force_default_hazard_asset": true,
+		"default_path_asset": "res://assets/hazards/pathtrial_path.jpg",
+		"force_default_path_asset": true,
+		"default_path_asset_scale": 1.0,
+		"path_width": 120.0,
+		"path_margin_top": 20.0,
+		"path_margin_left": 20.0,
+		"path_margin_right": 20.0,
+		"path_margin_bottom": 20.0,
+		"hazard_scroll_speed_px_sec": 45.0,
+		"hazard_overlay_opacity": 0.65,
+		"warning_frame_width": 5.0,
+		"warning_frame_color": "#FF3030",
+		"warning_frame_pulse": true,
+		"warning_frame_pulse_size": 10.0,
+		"damage_frame_pulse_size": 60.0,
+		"hazard_fade_duration_sec": 0.25,
+		"path_speed_ramp_sec": 0.35,
+		"start_delay_sec": 5.5,
+		"warmup_sec": 1.5,
+		"head_length_px": 120.0,
+		"tail_length_px": 120.0
+	},
+	"explosions": {
+		"player_missile_impact": {
+			"asset": "",
+			"asset_anim": "res://assets/vfx/mine_explosion.tres",
+			"asset_anim_duration": 0.18,
+			"asset_anim_loop": false,
+			"size": 16.0,
+			"width": -1.0,
+			"height": -1.0,
+			"color": "#FFE07A",
+			"fade_in_duration": 0.05,
+			"fade_out_duration": 0.1,
+			"scale_start": 0.72,
+			"scale_middle": 1.35,
+			"scale_end": 0.92,
+			"scale_middle_ratio": 0.42
+		},
+		"enemy_death": {
+			"asset": "",
+			"asset_anim": "res://assets/vfx/boss_explosion.tres",
+			"asset_anim_duration": 0.26,
+			"asset_anim_loop": false,
+			"size": 28.0,
+			"width": -1.0,
+			"height": -1.0,
+			"color": "#FFB35C",
+			"fade_in_duration": 0.05,
+			"fade_out_duration": 0.12,
+			"scale_start": 0.9,
+			"scale_middle": 1.18,
+			"scale_end": 1.0,
+			"scale_middle_ratio": 0.4
+		},
+		"boss_death": {
+			"asset": "",
+			"asset_anim": "res://assets/vfx/boss_explosion.tres",
+			"asset_anim_duration": 2,
+			"asset_anim_loop": false,
+			"size_multiplier": 2.8,
+			"size_min": 90.0,
+			"width": 70,
+			"height": 70,
+			"color": "#FFC368",
+			"fade_in_duration": 0.06,
+			"fade_out_duration": 0.16,
+			"scale_start": 0.52,
+			"scale_middle": 0.8,
+			"scale_end": 1.03,
+			"scale_middle_ratio": 0.45
+		}
+	},
+	"shared_assets": {
+		"crystal_icon": {
+			"asset": "res://assets/ui/icons/crystal.tres",
+			"animation_repeat_seconds": 6,
+			"animation_type": "loop",
+			"animation_duration": 2
+		},
+		"lock": {
+			"asset": "res://assets/ui/icons/locked.png",
+			"width": 64,
+			"height": 64,
+			"text_color": "#FFFFFF",
+			"text_size": 16
+		}
+	},
+	"menu_header": {
+		"height_px": 135,
+		"margin_left": 20,
+		"margin_right": 20,
+		"margin_top": 25,
+		"margin_bottom": 40,
+		"bottom_gradient_height_px": 20,
+		"default_background_color": "",
+		"default_background_opacity": 0.85,
+		"homescreen_background_color": "",
+		"homescreen_background_opacity": 1,
+		"shipmenu_background_color": "#1a1a2e",
+		"shipmenu_background_opacity": 0.85,
+		"world_select_background_color": "",
+		"world_select_background_opacity": 0.85,
+		"level_select_background_color": "",
+		"level_select_background_opacity": 0.85,
+		"skillsmenu_background_color": "",
+		"skillsmenu_background_opacity": 0.85,
+		"optionsmenu_background_color": "",
+		"optionsmenu_background_opacity": 0.85,
+		"shopmenu_background_color": "",
+		"shopmenu_background_opacity": 0.85,
+		"profileselect_background_color": "",
+		"profileselect_background_opacity": 0.85,
+		"pausemenu_background_color": "",
+		"pausemenu_background_opacity": 0.85,
+		"lootresultscreen_background_color": "",
+		"lootresultscreen_background_opacity": 0.85,
+		"rectangle": {
+			"height": 36,
+			"border_radius": 16,
+			"background_color": "#1a1a2e",
+			"background_opacity": 0.5,
+			"border_color": "#000000",
+			"border_width": 0,
+			"content_margin_left": 12,
+			"content_margin_right": 12,
+			"content_margin_top": 0,
+			"content_margin_bottom": 0,
+			"content_align_h": "center",
+			"content_align_v": "center",
+			"icon_overlap_px": -2
+		},
+		"level": {
+			"asset": "res://assets/ui/icons/trophy.png",
+			"icon_size": 70,
+			"text_color": "#ffffff",
+			"font_size": 30
+		},
+		"xp_bar": {
+			"bar_min_width": 60,
+			"width": 80,
+			"fill_color": "#146be0",
+			"track_color": "#2d2d44",
+			"border_color": "#cccccc",
+			"border_width": 2,
+			"text_color": "#ffffff",
+			"text_margin_left": 8,
+			"text_margin_right": 8,
+			"font_size": 25
+		},
+		"stars": {
+			"asset": "res://assets/ui/stars/star_on.png",
+			"icon_size": 46,
+			"text_color": "#ffffff",
+			"font_size": 32,
+			"format": "{count}/{max}",
+			"center_offset_x": -40,
+			"text_margin_left": 8,
+			"text_margin_right": 8
+		},
+		"crystals": {
+			"icon_asset": "shared:crystal_icon",
+			"icon_size": 46,
+			"text_color": "#ffffff",
+			"font_size": 32,
+			"panel_padding": 8,
+			"text_margin_left": 8,
+			"text_margin_right": 8
+		},
+		"spacing_between_blocks": 16
+	},
+	"menu_footer": {
+		"height_px": 95,
+		"margin_left": 25,
+		"margin_right": 20,
+		"margin_bottom": 0,
+		"background_asset": "res://assets/backgrounds/menus/footer_background.png",
+		"background_opacity": 1,
+		"border_top_height": 5,
+		"border_top_color": "#4a17a0",
+		"back_button": {
+			"asset": "res://assets/ui/button_back.png",
+			"width": 72,
+			"height": 72,
+			"icon_size": 36
+		}
+	},
+	"main_menu": {
+		"background": "res://assets/ui/main_menu_bg.jpg",
+		"background_anim": "",
+		"music": "res://assets/music/neon.ogg",
+		"logo": "res://assets/logo/pewpewloot_final.png",
+		"logo_anim": "",
+		"logo_anim_duration": 2.0,
+		"logo_anim_loop": false,
+		"logo_width_pct": 0.4,
+		"logo_height_pct": 0.3
+	},
+	"reward_screen": {
+		"background": "res://assets/ui/reward_bg.png",
+		"button_equip": "res://assets/ui/button.png",
+		"button_destroy": "res://assets/ui/button.png"
+	},
+	"loot_result": {
+		"item_name_font_size": 28,
+		"item_type_font_size": 18,
+		"session_title_font_size": 14,
+		"stat_row_font_size": 18,
+		"xp_gained_font_size": 18,
+		"xp_levelup_font_size": 16
+	},
+	"rarity_frames": {
+		"common": "res://assets/ui/frames/frame_common.png",
+		"uncommon": "res://assets/ui/frames/frame_uncommon.png",
+		"rare": "res://assets/ui/frames/frame_rare.png",
+		"epic": "res://assets/ui/frames/frame_epic.png",
+		"legendary": "res://assets/ui/frames/frame_legendary.png",
+		"unique": "res://assets/ui/frames/frame_gold.png"
+	},
+	"rarity_colors": {
+		"common": "#AAAAAA",
+		"uncommon": "#1EFF00",
+		"rare": "#0070FF",
+		"epic": "#A335EE",
+		"legendary": "#FF8000",
+		"unique": "#FFD700"
+	},
+	"rarity_highlight": "res://assets/frames/rarity/rarity_selected.png",
+	"rarity_filter_assets": {
+		"all": "res://assets/frames/rarity/all.png",
+		"common": "res://assets/frames/rarity/common.png",
+		"uncommon": "res://assets/frames/rarity/uncommon.png",
+		"rare": "res://assets/frames/rarity/rare.png",
+		"epic": "res://assets/frames/rarity/epic.png",
+		"legendary": "res://assets/frames/rarity/legendary.png",
+		"unique": "res://assets/frames/rarity/unique.png"
+	},
+	"ship_menu": {
+		"background": "res://assets/backgrounds/menus/ship_background.jpg",
+		"background_scroll": false,
+		"default_font_size": 20,
+		"recycle_all": "res://assets/ui/icons/crystal.png",
+		"sections_background_opacity": 0.95,
+		"content_margin_top": 115,
+		"star_rating": {
+			"max_stars": 6,
+			"weights": {
+				"power": 1.0,
+				"max_hp": 0.2,
+				"missile_damage": 0.5,
+				"special_damage": 0.5,
+				"crit_chance": 2.0,
+				"crit_damage": 0.3,
+				"missile_speed_pct": 0.1,
+				"dodge_chance": 1.0,
+				"shield_capacity": 0.2
+			},
+			"thresholds": [
+				0,
+				220,
+				440,
+				660,
+				880,
+				1100
+			]
+		},
+		"ship_grid": {
+			"columns": 4,
+			"card_width": 130,
+			"card_height": 130,
+			"card_gap": 10,
+			"star_size": 16,
+			"lock_font_size": 36,
+			"star_color_filled": "#FFD54A",
+			"star_color_empty": "#3A4252"
+		},
+		"shop_price_font_size": 20,
+		"upgrade_result_font_size": 28,
+		"ship_selection": {
+			"width": 165,
+			"height": 165,
+			"size_multiplier": 1.5,
+			"strip_height": 95,
+			"strip_button_height": 56,
+			"strip_margin_top": 10,
+			"strip_margin_bottom": 0,
+			"animated": false,
+			"arrow_width": 48,
+			"arrow_height": 48
+		},
+		"sections": {
+			"ship_selection": {
+				"background": "res://assets/backgrounds/menus/shipmenu_ships.png",
+				"nine_slice": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				},
+				"content_margin": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				}
+			},
+			"equipment": {
+				"background": "res://assets/backgrounds/menus/shipmenu_equipment.png",
+				"nine_slice": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				},
+				"content_margin": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				}
+			},
+			"inventory": {
+				"background": "res://assets/backgrounds/menus/shipmenu_inventory.png",
+				"nine_slice": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				},
+				"content_margin": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				}
+			},
+			"powers": {
+				"background": "res://assets/backgrounds/menus/shipmenu_powers.png",
+				"nine_slice": {
+					"left": 15,
+					"right": 15,
+					"top": 15,
+					"bottom": 15
+				},
+				"content_margin": {
+					"left": 0,
+					"right": 0,
+					"top": 15,
+					"bottom": 15
+				}
+			}
+		},
+		"title": {
+			"font_size": 40,
+			"letter_spacing": 2,
+			"text_color": "#FFFFFF"
+		},
+		"ship_details": {
+			"total_power_font_size": 24,
+			"stats_font_size": 22,
+			"header_column_gap": 20,
+			"preview_column_width": 190,
+			"preview_column_height": 170,
+			"stats_scroll_padding_right": 15,
+			"background": {
+				"asset": "res://assets/ui/popup_background.png",
+				"opacity": 1.0,
+				"nine_slice": {
+					"left": 28,
+					"right": 28,
+					"top": 28,
+					"bottom": 28
+				},
+				"content_margin": {
+					"left": 35,
+					"right": 35,
+					"top": 35,
+					"bottom": 35
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch"
+			},
+			"buttons": {
+				"font_size": 18,
+				"text_color": "#FFFFFF",
+				"select": {
+					"width": 160,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/button_blue.png"
+				},
+				"upgrade": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/button_gold.png"
+				},
+				"recycle": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/button_green.png"
+				},
+				"close": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/button_red.png"
+				},
+				"equip": {
+					"width": 140,
+					"height": 50,
+					"asset": "res://assets/ui/buttons/button_blue.png"
+				}
+			}
+		},
+		"stats_max_values": {
+			"power": 4000,
+			"max_hp": 3000,
+			"move_speed": 1000,
+			"fire_rate": 20,
+			"missile_speed_pct": 300,
+			"missile_damage": 300,
+			"crit_chance": 50,
+			"crit_damage": 300,
+			"dodge_chance": 30,
+			"damage_reduction": 75,
+			"special_damage": 4000,
+			"special_cd": 20,
+			"shield_capacity": 2000,
+			"shield_regen": 200,
+			"loot_radius": 500,
+			"luck": 200,
+			"xp_multiplier": 200
+		},
+		"stat_icons": {
+			"power": "res://assets/ui/icons/power.png",
+			"level": "res://assets/ui/icons/trophy.png",
+			"crystals": "shared:crystal_icon",
+			"shop": "res://assets/ui/cart.png",
+			"hp": "res://assets/ui/icons/heart.png",
+			"speed": "res://assets/ui/icons/speed.png",
+			"missile": "res://assets/ui/icons/missile.png",
+			"crit_chance": "res://assets/ui/icons/crit.png",
+			"dodge_chance": "res://assets/ui/icons/dodge.png",
+			"fire_rate": "res://assets/ui/icons/missile.png",
+			"missile_speed_pct": "res://assets/ui/icons/missile.png",
+			"missile_damage": "res://assets/ui/icons/missile.png",
+			"crit_damage": "res://assets/ui/icons/crit.png",
+			"special_cd": "res://assets/ui/icons/special.png",
+			"special_damage": "res://assets/ui/icons/special.png",
+			"damage_reduction": "res://assets/ui/icons/hp.png",
+			"shield_capacity": "res://assets/ui/icons/shield.png",
+			"shield_regen": "res://assets/ui/icons/shield.png",
+			"loot_radius": "res://assets/ui/icons/all.png",
+			"luck": "res://assets/ui/icons/crit.png",
+			"xp_multiplier": "res://assets/ui/icons/trophy.png"
+		},
+		"stat_colors": {
+			"power": "#501dc5",
+			"level": "#501dc5",
+			"crystals": "#501dc5",
+			"hp": "#501dc5",
+			"speed": "#501dc5",
+			"missile": "#501dc5",
+			"crit_chance": "#501dc5",
+			"dodge_chance": "#501dc5"
+		},
+		"upgrade_anim_decent": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_anim_decent_duration": 3.0,
+		"upgrade_anim_decent_loop": false,
+		"upgrade_anim_great": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_anim_great_duration": 3.0,
+		"upgrade_anim_great_loop": false,
+		"upgrade_anim_perfect": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_anim_perfect_duration": 3.0,
+		"upgrade_anim_perfect_loop": false,
+		"upgrade_craft_anim": "res://assets/ui/popup_upgrade.tres",
+		"upgrade_craft_anim_duration": 0.0,
+		"upgrade_craft_anim_loop": true,
+		"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
+		"upgrade_sound": "res://assets/sfx/upgrade_success.ogg",
+		"ship_stats": {
+			"power": {
+				"icon_asset": "res://assets/ui/icons/power.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"level": {
+				"icon_asset": "res://assets/ui/icons/level.png",
+				"icon_height": 30,
+				"icon_width": 30,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"crystals": {
+				"icon_asset": "shared:crystal_icon",
+				"icon_height": 30,
+				"icon_width": 30,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0
+			},
+			"shop": {
+				"icon_asset": "res://assets/ui/cart.tres",
+				"icon_anim_duration": 1.0,
+				"icon_anim_loop": false,
+				"icon_height": 40,
+				"icon_width": 40,
+				"font_size": 22,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 10
+			},
+			"hp": {
+				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"max_hp": {
+				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"speed": {
+				"icon_asset": "res://assets/ui/icons/speed.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"move_speed": {
+				"icon_asset": "res://assets/ui/icons/speed.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"missile": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"crit_chance": {
+				"icon_asset": "res://assets/ui/icons/crit.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"crit_damage": {
+				"icon_asset": "res://assets/ui/icons/crit.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"dodge_chance": {
+				"icon_asset": "res://assets/ui/icons/dodge.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"fire_rate": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"missile_speed_pct": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"missile_damage": {
+				"icon_asset": "res://assets/ui/icons/missile.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"damage_reduction": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"special_cd": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"special_damage": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"shield_capacity": {
+				"icon_asset": "res://assets/ui/icons/shield.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"shield_regen": {
+				"icon_asset": "res://assets/ui/icons/shield.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"loot_radius": {
+				"icon_asset": "res://assets/ui/icons/all.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"luck": {
+				"icon_asset": "res://assets/ui/icons/crit.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"xp_multiplier": {
+				"icon_asset": "res://assets/ui/icons/trophy.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			},
+			"special": {
+				"icon_asset": "res://assets/ui/icons/special.png",
+				"icon_height": 24,
+				"icon_width": 24,
+				"font_size": 20,
+				"font_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"animation_repeat_seconds": 0
+			}
+		}
+	},
+	"options_menu": {
+		"background": "res://assets/ui/main_menu_bg.jpg",
+		"default_font_size": 24,
+		"title_text_size": 30,
+		"screen_title_text_size": 32
+	},
+	"profile_select": {
+		"title_font_size": 36,
+		"list_label_font_size": 20,
+		"profile_list_font_size": 20,
+		"button_font_size": 22,
+		"popup_title_font_size": 24,
+		"popup_label_font_size": 18,
+		"popup_input_font_size": 18,
+		"popup_button_font_size": 18
+	},
+	"world_select": {
+		"screen_title_size": 36,
+		"world_title_size": 32,
+		"world_star_count_size": 42,
+		"locked_popup_message_size": 22,
+		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+		"locked_asset": "res://assets/ui/buttons/locked.png",
+		"locked_opacity": 0.35,
+		"card_frame_asset": "res://assets/ui/popup_background.png",
+		"card_frame_margin": {
+			"top": 4,
+			"right": 8,
+			"bottom": 4,
+			"left": 8
+		},
+		"card_content_margin": {
+			"top": 12,
+			"bottom": 12,
+			"left": 12,
+			"right": 12
+		},
+		"card_height": 80,
+		"card_corner_radius": 12,
+		"overlay_opacity": 0.7,
+		"hover_translate_y": 4
+	},
+	"level_select": {
+		"screen_title_size": 36,
+		"level_title_size": 32,
+		"locked_popup_message_size": 22,
+		"global_best_text_size": 15,
+		"card_frame_asset": "res://assets/ui/popup_background.png",
+		"card_frame_margin": {
+			"top": 4,
+			"right": 4,
+			"bottom": 4,
+			"left": 4
+		},
+		"card_content_margin": {
+			"top": 12,
+			"bottom": 12,
+			"left": 6,
+			"right": 6
+		},
+		"card_height": 80,
+		"card_corner_radius": 12,
+		"overlay_opacity": 0.7,
+		"hover_translate_y": 4,
+		"details_panel_bg": "res://assets/ui/popup_background.png",
+		"details_nine_slice": {
+			"left": 18,
+			"right": 18,
+			"top": 18,
+			"bottom": 18
+		},
+		"details_content_margin": {
+			"left": 14,
+			"right": 14,
+			"top": 10,
+			"bottom": 10
+		},
+		"details_best_score_text_size": 36,
+		"details_best_score_text_color": "#FFFFFF",
+		"details_best_score_value_color": "#FFFFFF",
+		"details_threshold_text_size": 24,
+		"details_threshold_text_color": "#D9D9D9",
+		"details_threshold_earned_color": "#FFD94D",
+		"details_star_size": 32,
+		"details_spacing_score_to_stars": 15,
+		"details_spacing_stars_to_buttons": 15
+	},
+	"protocol_settings": {
+		"text_size": 20,
+		"title_size": 24,
+		"popup_title_size": 36,
+		"summary_size": 18,
+		"popup_background": {
+			"asset": "res://assets/ui/velours_background.png",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 10,
+				"right": 10,
+				"top": 16,
+				"bottom": 10
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
+		}
+	},
+	"popups": {
+		"margin": 35,
+		"background": {
+			"asset": "res://assets/ui/popup_background.png",
+			"text_color": "#FFFFFF",
+			"letter_spacing": 0,
+			"font_size": 24,
+			"nine_slice": {
+				"left": 28,
+				"right": 28,
+				"top": 28,
+				"bottom": 28
+			},
+			"content_margin": {
+				"left": 35,
+				"right": 35,
+				"top": 35,
+				"bottom": 35
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
+		},
+		"button": {
+			"asset": "res://assets/ui/button_regular.png",
+			"text_color": "#FFFFFF",
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 12,
+				"right": 12,
+				"top": 8,
+				"bottom": 8
+			},
+			"stretch_horizontal": "stretch",
+			"stretch_vertical": "stretch"
 		},
 		"recycle": {
-		  "width": 140,
-		  "height": 50,
-		  "asset": "res://assets/ui/buttons/button_green.png"
-		},
-		"close": {
-		  "width": 140,
-		  "height": 50,
-		  "asset": "res://assets/ui/buttons/button_red.png"
-		},
-		"equip": {
-		  "width": 140,
-		  "height": 50,
-		  "asset": "res://assets/ui/buttons/button_blue.png"
+			"font_size": 16
 		}
-	  }
 	},
-	"stats_max_values": {
-	  "power": 4000,
-	  "max_hp": 3000,
-	  "move_speed": 1000,
-	  "fire_rate": 20,
-	  "missile_speed_pct": 300,
-	  "missile_damage": 300,
-	  "crit_chance": 50,
-	  "crit_damage": 300,
-	  "dodge_chance": 30,
-	  "damage_reduction": 75,
-	  "special_damage": 4000,
-	  "special_cd": 20,
-	  "shield_capacity": 2000,
-	  "shield_regen": 200,
-	  "loot_radius": 500,
-	  "luck": 200,
-	  "xp_multiplier": 200
+	"pauseMenu": {
+		"panel_width": 500,
+		"panel_height": 360,
+		"panel_margin": 24,
+		"separation": 24,
+		"title_font_size": 38,
+		"button_font_size": 22,
+		"button_min_width": 350,
+		"button_min_height": 70,
+		"button_max_width": 500,
+		"countdown_font_size": 240
 	},
-	"stat_icons": {
-	  "power": "res://assets/ui/icons/power.png",
-	  "level": "res://assets/ui/icons/trophy.png",
-	  "crystals": "shared:crystal_icon",
-	  "shop": "res://assets/ui/cart.png",
-	  "hp": "res://assets/ui/icons/heart.png",
-	  "speed": "res://assets/ui/icons/speed.png",
-	  "missile": "res://assets/ui/icons/missile.png",
-	  "crit_chance": "res://assets/ui/icons/crit.png",
-	  "dodge_chance": "res://assets/ui/icons/dodge.png",
-	  "fire_rate": "res://assets/ui/icons/missile.png",
-	  "missile_speed_pct": "res://assets/ui/icons/missile.png",
-	  "missile_damage": "res://assets/ui/icons/missile.png",
-	  "crit_damage": "res://assets/ui/icons/crit.png",
-	  "special_cd": "res://assets/ui/icons/special.png",
-	  "special_damage": "res://assets/ui/icons/special.png",
-	  "damage_reduction": "res://assets/ui/icons/hp.png",
-	  "shield_capacity": "res://assets/ui/icons/shield.png",
-	  "shield_regen": "res://assets/ui/icons/shield.png",
-	  "loot_radius": "res://assets/ui/icons/all.png",
-	  "luck": "res://assets/ui/icons/crit.png",
-	  "xp_multiplier": "res://assets/ui/icons/trophy.png"
+	"ship_options": {
+		"ship_select_button": {
+			"asset_animation": "res://assets/ui/ship_select_background_selected.tres",
+			"asset_animation_duration": 1.5,
+			"asset_animation_loop": false,
+			"asset_selected": "res://assets/ui/ship_select_background_selected.png",
+			"asset_unselected": "res://assets/ui/ship_select_background.png",
+			"animation_duration": 1.5,
+			"animation_width": 323,
+			"animation_height": 328,
+			"static_width": 165,
+			"static_height": 165,
+			"text_color": "#000000",
+			"font_size": 24,
+			"letter_spacing": 2
+		},
+		"power_button": {
+			"asset": "res://assets/ui/fire_power.png",
+			"text_color": "#ffffff",
+			"font_size": 30,
+			"letter_spacing": 2
+		},
+		"unique_power_button": {
+			"asset": "res://assets/ui/frost_power.png",
+			"text_color": "#ffffff",
+			"font_size": 30,
+			"letter_spacing": 2
+		},
+		"equipment_button": {
+			"asset": "res://assets/ui/frames/frame_common.png",
+			"text_color": "#ffffff",
+			"font_size": 30,
+			"letter_spacing": 2
+		},
+		"inventory_button": {
+			"asset": "res://assets/ui/frame_empty.png",
+			"text_color": "#000000",
+			"font_size": 30,
+			"letter_spacing": 2
+		},
+		"slot_icons": {
+			"all": "res://assets/ui/icons/all.png",
+			"reactor": "res://assets/ui/icons/reactor.png",
+			"engine": "res://assets/ui/icons/engine.png",
+			"armor": "res://assets/ui/icons/armor.png",
+			"shield": "res://assets/ui/icons/shield.png",
+			"missiles": "res://assets/ui/icons/missile.png",
+			"targeting": "res://assets/ui/icons/targeting.png",
+			"utility": "res://assets/ui/icons/utility.png",
+			"primary": "res://assets/ui/icons/primary.png"
+		},
+		"item_placeholders": {
+			"reactor": "res://assets/items/engine.png",
+			"engine": "res://assets/items/engine.png",
+			"armor": "res://assets/items/engine.png",
+			"shield": "res://assets/items/engine.png",
+			"missiles": "res://assets/items/engine.png",
+			"targeting": "res://assets/items/engine.png",
+			"utility": "res://assets/items/engine.png",
+			"primary": "res://assets/items/engine.png"
+		},
+		"level_indicator_assets": {
+			"1-2": "res://assets/ui/frame_level_bronze.png",
+			"3-5": "res://assets/ui/frame_level_silver.png",
+			"6-8": "res://assets/ui/frame_level_gold.png",
+			"9": "res://assets/ui/frame_level_diamond.png",
+			"text_color": "#FFFFFF",
+			"font_size": 26,
+			"width": 40,
+			"height": 40
+		},
+		"stats_number_font_size": 22
 	},
-	"stat_colors": {
-	  "power": "#501dc5",
-	  "level": "#501dc5",
-	  "crystals": "#501dc5",
-	  "hp": "#501dc5",
-	  "speed": "#501dc5",
-	  "missile": "#501dc5",
-	  "crit_chance": "#501dc5",
-	  "dodge_chance": "#501dc5"
-	},
-	"upgrade_anim_decent": "res://assets/ui/popup_upgrade.tres",
-	"upgrade_anim_decent_duration": 3.0,
-	"upgrade_anim_decent_loop": false,
-	"upgrade_anim_great": "res://assets/ui/popup_upgrade.tres",
-	"upgrade_anim_great_duration": 3.0,
-	"upgrade_anim_great_loop": false,
-	"upgrade_anim_perfect": "res://assets/ui/popup_upgrade.tres",
-	"upgrade_anim_perfect_duration": 3.0,
-	"upgrade_anim_perfect_loop": false,
-	"upgrade_craft_anim": "res://assets/ui/popup_upgrade.tres",
-	"upgrade_craft_anim_duration": 0.0,
-	"upgrade_craft_anim_loop": true,
-	"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
-	"upgrade_sound": "res://assets/sfx/upgrade_success.ogg",
-	"ship_stats": {
-	  "power": {
-		"icon_asset": "res://assets/ui/icons/power.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 22,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "level": {
-		"icon_asset": "res://assets/ui/icons/level.png",
-		"icon_height": 30,
-		"icon_width": 30,
-		"font_size": 22,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "crystals": {
-		"icon_asset": "shared:crystal_icon",
-		"icon_height": 30,
-		"icon_width": 30,
-		"font_size": 22,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0
-	  },
-	  "shop": {
-		"icon_asset": "res://assets/ui/cart.tres",
-		"icon_anim_duration": 1.0,
-		"icon_anim_loop": false,
-		"icon_height": 40,
-		"icon_width": 40,
-		"font_size": 22,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 10
-	  },
-	  "hp": {
-		"icon_asset": "res://assets/ui/icons/hp.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "max_hp": {
-		"icon_asset": "res://assets/ui/icons/hp.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "speed": {
-		"icon_asset": "res://assets/ui/icons/speed.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "move_speed": {
-		"icon_asset": "res://assets/ui/icons/speed.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "missile": {
-		"icon_asset": "res://assets/ui/icons/missile.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "crit_chance": {
-		"icon_asset": "res://assets/ui/icons/crit.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "crit_damage": {
-		"icon_asset": "res://assets/ui/icons/crit.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "dodge_chance": {
-		"icon_asset": "res://assets/ui/icons/dodge.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "fire_rate": {
-		"icon_asset": "res://assets/ui/icons/missile.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "missile_speed_pct": {
-		"icon_asset": "res://assets/ui/icons/missile.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "missile_damage": {
-		"icon_asset": "res://assets/ui/icons/missile.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "damage_reduction": {
-		"icon_asset": "res://assets/ui/icons/special.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "special_cd": {
-		"icon_asset": "res://assets/ui/icons/special.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "special_damage": {
-		"icon_asset": "res://assets/ui/icons/special.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "shield_capacity": {
-		"icon_asset": "res://assets/ui/icons/shield.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "shield_regen": {
-		"icon_asset": "res://assets/ui/icons/shield.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "loot_radius": {
-		"icon_asset": "res://assets/ui/icons/all.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "luck": {
-		"icon_asset": "res://assets/ui/icons/crit.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "xp_multiplier": {
-		"icon_asset": "res://assets/ui/icons/trophy.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  },
-	  "special": {
-		"icon_asset": "res://assets/ui/icons/special.png",
-		"icon_height": 24,
-		"icon_width": 24,
-		"font_size": 20,
-		"font_color": "#FFFFFF",
-		"letter_spacing": 0,
-		"animation_repeat_seconds": 0
-	  }
-	}
-  },
-  "options_menu": {
-	"background": "res://assets/ui/main_menu_bg.jpg",
-	"default_font_size": 24,
-	"title_text_size": 30
-  },
-  "world_select": {
-	"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
-	"locked_asset": "res://assets/ui/buttons/locked.png",
-	"locked_opacity": 0.35,
-	"card_frame_asset": "res://assets/ui/velours_background.png",
-	"card_frame_margin": {
-	  "top": 10,
-	  "right": 10,
-	  "bottom": 10,
-	  "left": 10
-	},
-	"card_content_margin": {
-	  "top": 20,
-	  "bottom": 20,
-	  "left": 0,
-	  "right": 0
-	},
-	"card_height": 80,
-	"card_corner_radius": 12,
-	"overlay_opacity": 0.70,
-	"hover_translate_y": 4
-  },
-  "level_select": {
-	"card_frame_asset": "res://assets/ui/velours_background.png",
-	"card_frame_margin": {
-	  "top": 10,
-	  "right": 10,
-	  "bottom": 10,
-	  "left": 10
-	},
-	"card_content_margin": {
-	  "top": 20,
-	  "bottom": 20,
-	  "left": 0,
-	  "right": 0
-	},
-	"card_height": 80,
-	"card_corner_radius": 12,
-	"overlay_opacity": 0.70,
-	"hover_translate_y": 4,
-	"details_panel_bg": "res://assets/ui/popup_background.png",
-	"details_nine_slice": {
-	  "left": 18,
-	  "right": 18,
-	  "top": 18,
-	  "bottom": 18
-	},
-	"details_content_margin": {
-	  "left": 14,
-	  "right": 14,
-	  "top": 10,
-	  "bottom": 10
-	}
-  },
-  "protocol_settings": {
-	"text_size": 20,
-	"title_size": 24,
-	"popup_title_size": 36,
-	"summary_size": 18,
-	"popup_background": {
-	  "asset": "res://assets/ui/velours_background.png",
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 10,
-		"right": 10,
-		"top": 16,
-		"bottom": 10
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch"
-	}
-  },
-  "popups": {
-	"margin": 35,
-	"background": {
-	  "asset": "res://assets/ui/popup_background.png",
-	  "text_color": "#FFFFFF",
-	  "letter_spacing": 0,
-	  "font_size": 24,
-	  "nine_slice": {
-		"left": 28,
-		"right": 28,
-		"top": 28,
-		"bottom": 28
-	  },
-	  "content_margin": {
-		"left": 35,
-		"right": 35,
-		"top": 35,
-		"bottom": 35
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch"
-	},
-	"button": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "text_color": "#FFFFFF",
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 12,
-		"right": 12,
-		"top": 8,
-		"bottom": 8
-	  },
-	  "stretch_horizontal": "stretch",
-	  "stretch_vertical": "stretch"
-	},
-	"recycle": {
-	  "font_size": 16
-	}
-  },
-  "pauseMenu": {
-	"panel_width": 500,
-	"panel_height": 360,
-	"panel_margin": 24,
-	"separation": 24,
-	"title_font_size": 38,
-	"button_font_size": 22,
-	"button_min_width": 350,
-	"button_min_height": 70,
-	"button_max_width": 500
-  },
-  "ship_options": {
-	"ship_select_button": {
-	  "asset_animation": "res://assets/ui/ship_select_background_selected.tres",
-	  "asset_animation_duration": 1.5,
-	  "asset_animation_loop": false,
-	  "asset_selected": "res://assets/ui/ship_select_background_selected.png",
-	  "asset_unselected": "res://assets/ui/ship_select_background.png",
-	  "animation_duration": 1.5,
-	  "animation_width": 323,
-	  "animation_height": 328,
-	  "static_width": 165,
-	  "static_height": 165,
-	  "text_color": "#000000",
-	  "font_size": 24,
-	  "letter_spacing": 2
-	},
-	"power_button": {
-	  "asset": "res://assets/ui/fire_power.png",
-	  "text_color": "#ffffff",
-	  "font_size": 30,
-	  "letter_spacing": 2
-	},
-	"unique_power_button": {
-	  "asset": "res://assets/ui/frost_power.png",
-	  "text_color": "#ffffff",
-	  "font_size": 30,
-	  "letter_spacing": 2
-	},
-	"equipment_button": {
-	  "asset": "res://assets/ui/frames/frame_common.png",
-	  "text_color": "#ffffff",
-	  "font_size": 30,
-	  "letter_spacing": 2
-	},
-	"inventory_button": {
-	  "asset": "res://assets/ui/frame_empty.png",
-	  "text_color": "#000000",
-	  "font_size": 30,
-	  "letter_spacing": 2
-	},
-	"slot_icons": {
-	  "all": "res://assets/ui/icons/all.png",
-	  "reactor": "res://assets/ui/icons/reactor.png",
-	  "engine": "res://assets/ui/icons/engine.png",
-	  "armor": "res://assets/ui/icons/armor.png",
-	  "shield": "res://assets/ui/icons/shield.png",
-	  "missiles": "res://assets/ui/icons/missile.png",
-	  "targeting": "res://assets/ui/icons/targeting.png",
-	  "utility": "res://assets/ui/icons/utility.png",
-	  "primary": "res://assets/ui/icons/primary.png"
-	},
-	"item_placeholders": {
-	  "reactor": "res://assets/items/engine.png",
-	  "engine": "res://assets/items/engine.png",
-	  "armor": "res://assets/items/engine.png",
-	  "shield": "res://assets/items/engine.png",
-	  "missiles": "res://assets/items/engine.png",
-	  "targeting": "res://assets/items/engine.png",
-	  "utility": "res://assets/items/engine.png",
-	  "primary": "res://assets/items/engine.png"
-	},
-	"level_indicator_assets": {
-	  "1-2": "res://assets/ui/frame_level_bronze.png",
-	  "3-5": "res://assets/ui/frame_level_silver.png",
-	  "6-8": "res://assets/ui/frame_level_gold.png",
-	  "9": "res://assets/ui/frame_level_diamond.png",
-	  "text_color": "#FFFFFF",
-	  "font_size": 26,
-	  "width": 40,
-	  "height": 40
-	},
-	"stats_number_font_size": 22
-  },
-  "ui_dropdown": {
-	"item_bg_asset": "res://assets/ui/popup_background.png",
-	"item_text_color": "#ffffff",
-	"highlight_bg_color": "#FFD700",
-	"highlight_text_color": "#ffffff",
-	"popup_font_size": 22,
-	"nine_slice": {
-	  "left": 20,
-	  "right": 20,
-	  "top": 20,
-	  "bottom": 20
-	},
-	"content_margin": {
-	  "left": 10,
-	  "right": 10,
-	  "top": 8,
-	  "bottom": 8
-	}
-  },
-  "ui_icons": {
-	"burger_menu": "res://assets/ui/burger_menu.png",
-	"burger_menu_width": 55,
-	"burger_menu_height": 55,
-	"super_power_placeholder": "res://assets/ui/fire_power.png",
-	"unique_power_placeholder": "res://assets/ui/frost_power.png",
-	"back_button": "res://assets/ui/button_back.png",
-	"close_button": "res://assets/ui/close_icon.png",
-	"sort_asc": "res://assets/ui/sort_asc.png",
-	"sort_desc": "res://assets/ui/sort_desc.png",
-	"shop_icon": "res://assets/ui/shop_icon.png",
-	"arrow_left": "res://assets/ui/arrow_left.png",
-	"arrow_right": "res://assets/ui/arrow_right.png"
-  },
-  "shop_menu": {
-	"background": "res://assets/ui/main_menu_bg.jpg",
-	"button": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "text_color": "#FFFFFF",
-	  "font_size": 18,
-	  "letter_spacing": 0,
-	  "nine_slice": {
-		"left": 18,
-		"right": 18,
-		"top": 18,
-		"bottom": 18
-	  },
-	  "content_margin": {
-		"left": 12,
-		"right": 12,
-		"top": 8,
-		"bottom": 8
-	  }
-	},
-	"packs": [
-	  {
-		"id": "pack_small",
-		"crystals": 100,
-		"price_usd": 0.99
-	  },
-	  {
-		"id": "pack_medium",
-		"crystals": 500,
-		"price_usd": 3.99
-	  },
-	  {
-		"id": "pack_large",
-		"crystals": 1200,
-		"price_usd": 7.99
-	  },
-	  {
-		"id": "pack_mega",
-		"crystals": 3000,
-		"price_usd": 14.99
-	  }
-	]
-  },
-  "home_buttons": {
-	"default_text_size": 24,
-	"default_nine_slice": {
-	  "left": 18,
-	  "right": 18,
-	  "top": 18,
-	  "bottom": 18
-	},
-	"default_content_margin": {
-	  "left": 14,
-	  "right": 14,
-	  "top": 10,
-	  "bottom": 10
-	},
-	"default_stretch_horizontal": "stretch",
-	"default_stretch_vertical": "stretch",
-	"play": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "asset_anim": "",
-	  "show_text": true,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "letter_spacing": 1
-	},
-	"ship": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "asset_anim": "",
-	  "show_text": true,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "letter_spacing": 1
-	},
-	"options": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "asset_anim": "",
-	  "show_text": true,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "letter_spacing": 1
-	},
-	"quit": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "asset_anim": "",
-	  "show_text": true,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "letter_spacing": 1
-	},
-	"skills": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "asset_anim": "",
-	  "show_text": true,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "letter_spacing": 1
-	},
-	"change_profile": {
-	  "asset": "res://assets/ui/button_regular.png",
-	  "asset_anim": "",
-	  "show_text": true,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "letter_spacing": 2
-	}
-  },
-  "default_card_colors": [
-	"#3a4f6f",
-	"#6f3a4f",
-	"#4f6f3a",
-	"#6f5a3a",
-	"#3a6f6f",
-    "#6f4f3a"
-  ],
-  "score": {
-	"text_size": 20,
-	"text_color": "#FFFFFF",
-	"outline_size": 2,
-	"outline_color": "#000000",
-	"text_align_h": "center",
-	"text_align_v": "center",
-	"asset": "res://assets/ui/score_bg.png",
-	"asset_min_width": 260,
-	"asset_min_height": 64,
-	"asset_width": 260,
-	"asset_height": 64,
-	"fixed_size": true,
-	"asset_stretch_mode": "keep_aspect_centered",
-	"asset_clip_contents": true
-  },
-  "wave_counter": {
-	"text_size": 18,
-	"text_color": "#FFFFFF",
-	"outline_size": 2,
-	"outline_color": "#000000",
-	"text_align_h": "center",
-	"text_align_v": "center",
-	"asset": "res://assets/ui/wave_bg.png",
-	"asset_min_width": 80,
-	"asset_min_height": 80,
-	"asset_width": 80,
-	"asset_height": 80,
-	"fixed_size": true,
-	"asset_stretch_mode": "keep_aspect_centered",
-	"asset_clip_contents": true
-  },
-  "loading_screen": {
-	"background": "res://assets/ui/main_menu_bg.jpg",
-	"show_label": false,
-	"show_spinner": false,
-	"overlay_color": "#000000",
-	"overlay_alpha": 0.5,
-	"progress_bar": {
-	  "width_ratio": 0.62,
-	  "min_width": 300,
-	  "max_width": 980,
-	  "height": 34,
-	  "anchor_y": 0.84,
-	  "show_percentage": false,
-	  "background_color": "#1A1F2A",
-	  "fill_color": "#6FD7FF",
-	  "border_color": "#FFFFFF",
-	  "fill_border_color": "#B9F0FF",
-	  "border_width": 2,
-	  "corner_radius": 12,
-	  "fill_corner_radius": 11
-	}
-  },
-  "gameplay": {
-	"end_session": {
-	  "post_battle_delay_seconds": 1.5
-	},
-	"boss_spawn": {
-	  "top_margin_px": 188.0,
-	  "entry_duration_sec": 0.55
-	},
-	"wave_splash": {
-	  "enabled": true,
-	  "color": "#FFFFFF",
-	  "font_size": 92,
-	  "zoom_start": 0.0,
-	  "zoom_end": 1.0,
-	  "animation_duration_sec": 1.35,
-	  "warning_duration_sec": 2.1,
-	  "warning_delay_sec": 0.4,
-	  "warning_margin_top": 30.0
-	},
-	"background_scroll": {
-	  "far_speed": 20.0,
-	  "mid_speed": 50.0,
-	  "near_speed": 125.0,
-	  "overlay": {
-		"color": "#000000",
-		"opacity": 0.5
-	  }
-	},
-	"power_buttons": {
-	  "radius_px": 80,
-	  "cooldown_ring": {
-		"radius_px": 45,
-		"thickness_px": 26,
-		"color_ready": "#13aa13",
-		"color_cooldown": "#d66102",
-		"layer_above": true
-	  }
-	},
-	"bars": {
-	  "height": 60,
-	  "text_color": "#FFFFFF",
-	  "text_size": 24,
-	  "hp": {
-		"asset": "",
-		"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
-		"background_asset_duration": 0.0,
-		"background_asset_loop": true,
-		"fill_asset": "res://assets/ui/bars/hp_fill.png",
-		"fill_asset_duration": 0.0,
-		"fill_asset_loop": true,
-		"fill_render_mode": "reveal_mask",
-		"fill_mode": "tile_fit",
-		"fill_mode_vertical": "stretch",
-		"fill_margin_left": 0,
-		"fill_margin_right": 0,
-		"fill_margin_top": 0,
-		"fill_margin_bottom": 0,
-		"frame_asset": "",
-		"frame_asset_duration": 0.0,
-		"frame_asset_loop": true
-	  },
-	  "shield": {
-		"asset": "",
-		"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
-		"background_asset_duration": 0.0,
-		"background_asset_loop": true,
-		"fill_asset": "res://assets/ui/bars/shield_bar.png",
-		"fill_asset_duration": 0.0,
-		"fill_asset_loop": true,
-		"fill_render_mode": "reveal_mask",
-		"fill_mode": "tile_fit",
-		"fill_mode_vertical": "stretch",
-		"fill_margin_left": 0,
-		"fill_margin_right": 0,
-		"fill_margin_top": 0,
-		"fill_margin_bottom": 0,
-		"frame_asset": "",
-		"frame_asset_duration": 0.0,
-		"frame_asset_loop": true
-	  }
-	},
-	"enemy_health_bar": {
-	  "width": 44,
-	  "height": 8,
-	  "offset_x": -22,
-	  "offset_y": -32,
-	  "outline_px": 1,
-	  "outline_color": "#000000",
-	  "background_color": "#66000000",
-	  "corner_radius": 1,
-	  "color_high": "#1CFF00",
-	  "color_mid": "#FFE100",
-	  "color_low": "#FF3D3D"
-	},
-	"loot_drops": {
-	  "enabled": true,
-	  "allow_equipment": true,
-	  "allow_powerups": true,
-	  "global_chance_scale": 0.7,
-	  "equipment_chance_scale": 0.45,
-	  "powerup_chance_scale": 0.55,
-	  "max_shield_per_wave": 1,
-	  "max_rapid_fire_per_wave": 1,
-	  "shield_weight": 1.0,
-	  "rapid_fire_weight": 1.0,
-	  "highlight": {
-		"enabled": true,
-		"highlight_opacity": 1.0,
-		"asset": "res://assets/vfx/power_upswirl.tres",
-		"asset_anim_duration": 2.0,
-		"asset_anim_loop": true,
-		"width": -1.0,
-		"height": -1.0,
-		"width_multiplier": 1,
-		"height_multiplier": 1,
-		"offset_y": 0.0,
-		"fallback_aura_enabled": true,
-		"fallback_color": "#9FE8FF88",
-		"pulse_enabled": true,
-		"pulse_scale": 1,
-		"pulse_duration": 0
-	  }
-	},
-	"power_ups": {
-	  "drift_enabled": true,
-	  "drift_speed": 6,
-	  "shield": {
-		"asset": "res://assets/ui/icons/shield.png",
-		"width": 70,
-		"height": 70,
-		"shield_absorb": 100,
-		"shield_diameter": 750,
-		"visual": {
-		  "color_shield": "#150be2",
-		  "color_brightness_shield": 15.0,
-		  "intensity_shield": 3.0,
-		  "glow_strength": 0.5,
-		  "glow_enabled": true,
-		  "active_static": true,
-		  "frequency_static": 80.0,
-		  "speed_static": 0.1
+	"ui_dropdown": {
+		"item_bg_asset": "res://assets/ui/popup_background.png",
+		"item_text_color": "#ffffff",
+		"highlight_bg_color": "#FFD700",
+		"highlight_text_color": "#ffffff",
+		"popup_font_size": 22,
+		"nine_slice": {
+			"left": 20,
+			"right": 20,
+			"top": 20,
+			"bottom": 20
+		},
+		"content_margin": {
+			"left": 10,
+			"right": 10,
+			"top": 8,
+			"bottom": 8
 		}
-	  },
-	  "rapid_fire": {
-		"asset": "res://assets/ui/icons/missile.png",
-		"width": 70,
-		"height": 70,
-		"bonus": 250
-	  }
 	},
-	"loot": {
-	  "asset": "res://assets/ui/icons/all.png",
-	  "width": 70,
-	  "height": 70,
-	  "drift_enabled": true,
-	  "drift_speed": 8
+	"ui_icons": {
+		"burger_menu": "res://assets/ui/burger_menu.png",
+		"burger_menu_width": 55,
+		"burger_menu_height": 55,
+		"super_power_placeholder": "res://assets/ui/fire_power.png",
+		"unique_power_placeholder": "res://assets/ui/frost_power.png",
+		"back_button": "res://assets/ui/button_back.png",
+		"close_button": "res://assets/ui/close_icon.png",
+		"sort_asc": "res://assets/ui/sort_asc.png",
+		"sort_desc": "res://assets/ui/sort_desc.png",
+		"shop_icon": "res://assets/ui/shop_icon.png",
+		"arrow_left": "res://assets/ui/arrow_left.png",
+		"arrow_right": "res://assets/ui/arrow_right.png"
 	},
-	"sfx": {
-	  "gain": {
-		"shield": "res://assets/sfx/combat/shield_up.ogg"
-	  },
-	  "collisions": {
-		"shield": "",
-		"player": "",
-		"enemy": "",
-		"boss": ""
-	  }
+	"shop_menu": {
+		"background": "res://assets/ui/main_menu_bg.jpg",
+		"title_font_size": 32,
+		"button": {
+			"asset": "res://assets/ui/button_regular.png",
+			"text_color": "#FFFFFF",
+			"font_size": 18,
+			"letter_spacing": 0,
+			"nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"content_margin": {
+				"left": 12,
+				"right": 12,
+				"top": 8,
+				"bottom": 8
+			}
+		},
+		"packs": [
+			{
+				"id": "pack_small",
+				"crystals": 100,
+				"price_usd": 0.99
+			},
+			{
+				"id": "pack_medium",
+				"crystals": 500,
+				"price_usd": 3.99
+			},
+			{
+				"id": "pack_large",
+				"crystals": 1200,
+				"price_usd": 7.99
+			},
+			{
+				"id": "pack_mega",
+				"crystals": 3000,
+				"price_usd": 14.99
+			}
+		],
+		"free_mode_unlock_all": {
+			"price_usd": 4.99,
+			"product_id_ios": "com.pewpewloot.freemode.unlock_all",
+			"product_id_android": "com.pewpewloot.freemode.unlock_all",
+			"icon": "res://assets/ui/cart.png"
+		}
+	},
+	"game_mode_select": {
+		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+		"title_font_size": 36,
+		"card_height_ratio": 0.34,
+		"card_corner_radius": 16,
+		"card_label_font_size": 42,
+		"overlay_opacity": 0.45,
+		"hover_translate_y": 4,
+		"cards": {
+			"story": {
+				"background": "res://assets/backgrounds/worlds/forest/level_5.jpg",
+				"locale_key": "game_mode_story"
+			},
+			"free": {
+				"background": "res://assets/backgrounds/far_layer/space.jpg",
+				"locale_key": "game_mode_free"
+			}
+		}
+	},
+	"free_mode_select": {
+		"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+		"title_font_size": 36,
+		"columns": 2,
+		"tile_height": 150,
+		"tile_corner_radius": 12,
+		"tile_label_font_size": 22,
+		"overlay_opacity": 0.55,
+		"hover_translate_y": 4,
+		"locked_asset": "res://assets/ui/buttons/locked.png",
+		"locked_opacity": 0.35,
+		"best_score_font_size": 16,
+		"best_score_color": "#FFD56B",
+		"plays_font_size": 21,
+		"plays_color": "#FFFFFF",
+		"counter_font_size": 20,
+		"unlock_button_font_size": 18,
+		"unlock_icon_size": 26
+	},
+	"story_overlay": {
+		"debug_header_font_size": 18,
+		"debug_next_button_font_size": 24
+	},
+	"game_over_overlay": {
+		"label_font_size": 64
+	},
+	"homescreen_buttons": {
+		"default_text_size": 24,
+		"default_text_color": "#FFFFFF",
+		"default_letter_spacing": 1,
+		"default_shadow_size": "medium",
+		"default_nine_slice": {
+			"left": 18,
+			"right": 18,
+			"top": 18,
+			"bottom": 18
+		},
+		"default_content_margin": {
+			"left": 14,
+			"right": 14,
+			"top": 10,
+			"bottom": 10
+		},
+		"default_stretch_horizontal": "stretch",
+		"default_stretch_vertical": "stretch",
+		"play": {
+			"asset": "res://assets/ui/buttons/button_large.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 30,
+			"letter_spacing": 1,
+			"shadow_size": "large",
+			"min_width": 540,
+			"min_height": 80
+		},
+		"ship": {
+			"asset": "",
+			"asset_anim": "",
+			"show_text": false,
+			"text_color": "#FFFFFF",
+			"text_size": 24,
+			"letter_spacing": 1
+		},
+		"skills": {
+			"asset": "res://assets/ui/buttons/button_violet.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 18,
+			"letter_spacing": 1,
+			"shadow_size": "medium",
+			"min_width": 100,
+			"min_height": 100
+		},
+		"equipment": {
+			"asset": "res://assets/ui/buttons/button_blue.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 18,
+			"letter_spacing": 1,
+			"shadow_size": "medium",
+			"min_width": 100,
+			"min_height": 100
+		},
+		"options": {
+			"asset": "res://assets/ui/buttons/button_orange.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 18,
+			"letter_spacing": 1,
+			"shadow_size": "medium",
+			"min_width": 170,
+			"min_height": 50
+		},
+		"change_profile": {
+			"asset": "res://assets/ui/buttons/button_green.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 18,
+			"letter_spacing": 1,
+			"shadow_size": "medium",
+			"min_width": 170,
+			"min_height": 50
+		},
+		"quit": {
+			"asset": "res://assets/ui/buttons/button_red.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 18,
+			"letter_spacing": 1,
+			"shadow_size": "medium",
+			"min_width": 170,
+			"min_height": 50
+		},
+		"debug_button": {
+			"asset": "res://assets/ui/button_regular.png",
+			"asset_anim": "",
+			"show_text": true,
+			"text_color": "#FFFFFF",
+			"text_size": 14,
+			"letter_spacing": 0,
+			"shadow_size": "small",
+			"min_width": 160,
+			"min_height": 38
+		}
+	},
+	"score": {
+		"text_size": 20,
+		"text_color": "#FFFFFF",
+		"outline_size": 2,
+		"outline_color": "#000000",
+		"text_align_h": "center",
+		"text_align_v": "center",
+		"asset": "res://assets/ui/score_bg.png",
+		"asset_min_width": 260,
+		"asset_min_height": 64,
+		"asset_width": 260,
+		"asset_height": 64,
+		"fixed_size": true,
+		"asset_stretch_mode": "keep_aspect_centered",
+		"asset_clip_contents": true
+	},
+	"wave_counter": {
+		"text_size": 18,
+		"text_color": "#FFFFFF",
+		"outline_size": 2,
+		"outline_color": "#000000",
+		"text_align_h": "center",
+		"text_align_v": "center",
+		"asset": "res://assets/ui/wave_bg.png",
+		"asset_min_width": 80,
+		"asset_min_height": 80,
+		"asset_width": 80,
+		"asset_height": 80,
+		"fixed_size": true,
+		"asset_stretch_mode": "keep_aspect_centered",
+		"asset_clip_contents": true
+	},
+	"loading_screen": {
+		"background": "res://assets/ui/main_menu_bg.jpg",
+		"show_label": false,
+		"show_spinner": false,
+		"overlay_color": "#000000",
+		"overlay_alpha": 0.5,
+		"progress_bar": {
+			"width_ratio": 0.62,
+			"min_width": 300,
+			"max_width": 980,
+			"height": 34,
+			"anchor_y": 0.84,
+			"show_percentage": false,
+			"background_color": "#1A1F2A",
+			"fill_color": "#6FD7FF",
+			"border_color": "#FFFFFF",
+			"fill_border_color": "#B9F0FF",
+			"border_width": 2,
+			"corner_radius": 12,
+			"fill_corner_radius": 11
+		}
+	},
+	"mobile_controls": {
+		"show_virtual_joystick_visual": false,
+		"player_top_safe_zone_ratio": 0.25,
+		"follow_finger": {
+			"lerp_speed": 18.0,
+			"finger_offset_y": -120.0,
+			"deadzone_px": 4.0
+		}
+	},
+	"gameplay": {
+		"enemy_density_multiplier": 1.5,
+		"enemy_density_max_per_wave": 60,
+		"end_session": {
+			"post_battle_delay_seconds": 1.5
+		},
+		"boss_spawn": {
+			"top_margin_px": 188.0,
+			"entry_duration_sec": 0.55
+		},
+		"wave_splash": {
+			"enabled": true,
+			"color": "#FFFFFF",
+			"font_size": 92,
+			"zoom_start": 0.0,
+			"zoom_end": 1.0,
+			"animation_duration_sec": 1.35,
+			"warning_duration_sec": 2.1,
+			"warning_delay_sec": 0.4,
+			"warning_margin_top": 30.0
+		},
+		"background_scroll": {
+			"far_speed": 20.0,
+			"mid_speed": 50.0,
+			"near_speed": 125.0,
+			"tile_height_viewport_multiplier": 1.5,
+			"overlay": {
+				"color": "#000000",
+				"opacity": 0.5
+			}
+		},
+		"power_buttons": {
+			"radius_px": 80,
+			"cooldown_ring": {
+				"radius_px": 45,
+				"thickness_px": 26,
+				"color_ready": "#13aa13",
+				"color_cooldown": "#d66102",
+				"layer_above": true
+			}
+		},
+		"bars": {
+			"height": 60,
+			"text_color": "#FFFFFF",
+			"text_size": 24,
+			"hp": {
+				"asset": "",
+				"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
+				"background_asset_duration": 0.0,
+				"background_asset_loop": true,
+				"fill_asset": "res://assets/ui/bars/hp_fill.png",
+				"fill_asset_duration": 0.0,
+				"fill_asset_loop": true,
+				"fill_render_mode": "reveal_mask",
+				"fill_mode": "tile_fit",
+				"fill_mode_vertical": "stretch",
+				"fill_margin_left": 0,
+				"fill_margin_right": 0,
+				"fill_margin_top": 0,
+				"fill_margin_bottom": 0,
+				"frame_asset": "",
+				"frame_asset_duration": 0.0,
+				"frame_asset_loop": true
+			},
+			"shield": {
+				"asset": "",
+				"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
+				"background_asset_duration": 0.0,
+				"background_asset_loop": true,
+				"fill_asset": "res://assets/ui/bars/shield_bar.png",
+				"fill_asset_duration": 0.0,
+				"fill_asset_loop": true,
+				"fill_render_mode": "reveal_mask",
+				"fill_mode": "tile_fit",
+				"fill_mode_vertical": "stretch",
+				"fill_margin_left": 0,
+				"fill_margin_right": 0,
+				"fill_margin_top": 0,
+				"fill_margin_bottom": 0,
+				"frame_asset": "",
+				"frame_asset_duration": 0.0,
+				"frame_asset_loop": true
+			}
+		},
+		"enemy_health_bar": {
+			"width": 44,
+			"height": 8,
+			"offset_x": -22,
+			"offset_y": -32,
+			"outline_px": 1,
+			"outline_color": "#000000",
+			"background_color": "#66000000",
+			"corner_radius": 1,
+			"color_high": "#1CFF00",
+			"color_mid": "#FFE100",
+			"color_low": "#FF3D3D"
+		},
+		"loot_drops": {
+			"enabled": true,
+			"allow_equipment": true,
+			"allow_powerups": true,
+			"global_chance_scale": 0.7,
+			"equipment_chance_scale": 0.45,
+			"powerup_chance_scale": 0.55,
+			"max_shield_per_wave": 1,
+			"max_rapid_fire_per_wave": 1,
+			"shield_weight": 1.0,
+			"rapid_fire_weight": 1.0,
+			"highlight": {
+				"enabled": true,
+				"highlight_opacity": 1.0,
+				"asset": "res://assets/vfx/power_upswirl.tres",
+				"asset_anim_duration": 2.0,
+				"asset_anim_loop": true,
+				"width": -1.0,
+				"height": -1.0,
+				"width_multiplier": 1,
+				"height_multiplier": 1,
+				"offset_y": 0.0,
+				"fallback_aura_enabled": true,
+				"fallback_color": "#9FE8FF88",
+				"pulse_enabled": true,
+				"pulse_scale": 1,
+				"pulse_duration": 0
+			}
+		},
+		"fire_pattern_drops": {
+			"enabled": true,
+			"drop_chance": 0.05,
+			"max_drops_per_level": 1,
+			"require_rank_one_unlocked": true,
+			"despawn_time_sec": 18.0,
+			"pickup_radius": 28.0,
+			"magnet_speed": 420.0,
+			"size_px": 56.0,
+			"fall_speed_px_sec": 220.0,
+			"spawn_offset_y": 10.0,
+			"patterns": {
+				"fire_straight": { "asset": "res://assets/loot/fire_straight.tres" },
+				"fire_cone": { "asset": "res://assets/loot/fire_cone.tres" },
+				"fire_360": { "asset": "res://assets/loot/fire_360.tres" },
+				"fire_aura": { "asset": "res://assets/loot/fire_aura.tres" }
+			}
+		},
+		"power_ups": {
+			"drift_enabled": true,
+			"drift_speed": 6,
+			"shield": {
+				"asset": "res://assets/ui/icons/shield.png",
+				"width": 70,
+				"height": 70,
+				"shield_absorb": 100,
+				"shield_diameter": 750,
+				"visual": {
+					"color_shield": "#150be2",
+					"color_brightness_shield": 15.0,
+					"intensity_shield": 3.0,
+					"glow_strength": 0.5,
+					"glow_enabled": true,
+					"active_static": true,
+					"frequency_static": 80.0,
+					"speed_static": 0.1
+				}
+			},
+			"rapid_fire": {
+				"asset": "res://assets/ui/icons/missile.png",
+				"width": 70,
+				"height": 70,
+				"bonus": 250
+			}
+		},
+		"loot": {
+			"fallback_asset": "res://assets/ui/icons/all.png",
+			"width": 70,
+			"height": 70,
+			"animation_speed_fps": 8,
+			"rarity_assets": {
+				"common": "res://assets/loot/drop_common.tres",
+				"uncommon": "res://assets/loot/drop_uncommon.tres",
+				"rare": "res://assets/loot/drop_rare.tres",
+				"epic": "res://assets/loot/drop_epic.tres",
+				"legendary": "res://assets/loot/drop_legendary.tres",
+				"unique": "res://assets/loot/drop_unique.tres"
+			},
+			"drift_enabled": true,
+			"drift_speed": 8
+		},
+		"sfx": {
+			"gain": {
+				"shield": "res://assets/sfx/combat/shield_up.ogg"
+			},
+			"collisions": {
+				"shield": "",
+				"player": "",
+				"enemy": "",
+				"boss": ""
+			}
+		},
+		"balance": {
+			"fire_rate_from_items_factor": 0.3,
+			"fire_rate_max": 5.0
+		},
+		"projectile_pools": {
+			"pool_size_player": 400,
+			"pool_size_enemy": 200,
+			"enemy_pool_expand_step": 64
+		},
+		"explosions": {
+			"player_missile_impact": {
+				"asset": "",
+				"asset_anim": "res://assets/vfx/mine_explosion.tres",
+				"asset_anim_duration": 0.18,
+				"asset_anim_loop": false,
+				"size": 16.0,
+				"width": -1.0,
+				"height": -1.0,
+				"color": "#FFE07A",
+				"fade_in_duration": 0.05,
+				"fade_out_duration": 0.1,
+				"scale_start": 0.72,
+				"scale_middle": 1.35,
+				"scale_end": 0.92,
+				"scale_middle_ratio": 0.42
+			},
+			"enemy_death": {
+				"asset": "",
+				"asset_anim": "res://assets/vfx/boss_explosion.tres",
+				"asset_anim_duration": 0.26,
+				"asset_anim_loop": false,
+				"size": 28.0,
+				"width": -1.0,
+				"height": -1.0,
+				"color": "#FFB35C",
+				"fade_in_duration": 0.05,
+				"fade_out_duration": 0.12,
+				"scale_start": 0.9,
+				"scale_middle": 1.18,
+				"scale_end": 1.0,
+				"scale_middle_ratio": 0.4
+			},
+			"boss_death": {
+				"asset": "",
+				"asset_anim": "res://assets/vfx/boss_explosion.tres",
+				"asset_anim_duration": 2,
+				"asset_anim_loop": false,
+				"size_multiplier": 2.8,
+				"size_min": 90.0,
+				"width": 70,
+				"height": 70,
+				"color": "#FFC368",
+				"fade_in_duration": 0.06,
+				"fade_out_duration": 0.16,
+				"scale_start": 0.52,
+				"scale_middle": 0.8,
+				"scale_end": 1.03,
+				"scale_middle_ratio": 0.45
+			}
+		},
+		"default_explosion": {
+			"fluid_id": ""
+		},
+		"parallax": {
+			"far_speed": 20.0,
+			"mid_speed": 50.0,
+			"near_speed": 125.0,
+			"tile_height_viewport_multiplier": 1.5,
+			"overlay": {
+				"color": "#000000",
+				"opacity": 0.5
+			}
+		},
+		"hud": {
+			"score": {
+				"text_size": 20,
+				"text_color": "#FFFFFF",
+				"outline_size": 2,
+				"outline_color": "#000000",
+				"text_align_h": "center",
+				"text_align_v": "center",
+				"asset": "res://assets/ui/score_bg.png",
+				"asset_min_width": 260,
+				"asset_min_height": 64,
+				"asset_width": 260,
+				"asset_height": 64,
+				"fixed_size": true,
+				"asset_stretch_mode": "keep_aspect_centered",
+				"asset_clip_contents": true
+			},
+			"wave_counter": {
+				"text_size": 18,
+				"text_color": "#FFFFFF",
+				"outline_size": 2,
+				"outline_color": "#000000",
+				"text_align_h": "center",
+				"text_align_v": "center",
+				"asset": "res://assets/ui/wave_bg.png",
+				"asset_min_width": 80,
+				"asset_min_height": 80,
+				"asset_width": 80,
+				"asset_height": 80,
+				"fixed_size": true,
+				"asset_stretch_mode": "keep_aspect_centered",
+				"asset_clip_contents": true
+			},
+			"mobile_controls": {
+				"show_virtual_joystick_visual": false,
+				"player_top_safe_zone_ratio": 0.25,
+				"follow_finger": {
+					"lerp_speed": 18.0,
+					"finger_offset_y": -120.0,
+					"deadzone_px": 4.0
+				}
+			},
+			"bars": {
+				"height": 60,
+				"text_color": "#FFFFFF",
+				"text_size": 24,
+				"hp": {
+					"asset": "",
+					"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
+					"background_asset_duration": 0.0,
+					"background_asset_loop": true,
+					"fill_asset": "res://assets/ui/bars/hp_fill.png",
+					"fill_asset_duration": 0.0,
+					"fill_asset_loop": true,
+					"fill_render_mode": "reveal_mask",
+					"fill_mode": "tile_fit",
+					"fill_mode_vertical": "stretch",
+					"fill_margin_left": 0,
+					"fill_margin_right": 0,
+					"fill_margin_top": 0,
+					"fill_margin_bottom": 0,
+					"frame_asset": "",
+					"frame_asset_duration": 0.0,
+					"frame_asset_loop": true
+				},
+				"shield": {
+					"asset": "",
+					"background_asset": "res://assets/ui/bars/hp_bar_bg.png",
+					"background_asset_duration": 0.0,
+					"background_asset_loop": true,
+					"fill_asset": "res://assets/ui/bars/shield_bar.png",
+					"fill_asset_duration": 0.0,
+					"fill_asset_loop": true,
+					"fill_render_mode": "reveal_mask",
+					"fill_mode": "tile_fit",
+					"fill_mode_vertical": "stretch",
+					"fill_margin_left": 0,
+					"fill_margin_right": 0,
+					"fill_margin_top": 0,
+					"fill_margin_bottom": 0,
+					"frame_asset": "",
+					"frame_asset_duration": 0.0,
+					"frame_asset_loop": true
+				}
+			},
+			"power_buttons": {
+				"radius_px": 80,
+				"cooldown_ring": {
+					"radius_px": 45,
+					"thickness_px": 26,
+					"color_ready": "#13aa13",
+					"color_cooldown": "#d66102",
+					"layer_above": true
+				}
+			},
+			"enemy_health_bar": {
+				"width": 44,
+				"height": 8,
+				"offset_x": -22,
+				"offset_y": -32,
+				"outline_px": 1,
+				"outline_color": "#000000",
+				"background_color": "#66000000",
+				"corner_radius": 1,
+				"color_high": "#1CFF00",
+				"color_mid": "#FFE100",
+				"color_low": "#FF3D3D"
+			}
+		},
+		"scoring": {
+			"killstreak_system": {
+				"enabled": true,
+				"base_timer_sec": 2.4,
+				"refresh_mode": "full_reset",
+				"partial_refill_sec": 0.75,
+				"critical_threshold_ratio": 0.25,
+				"max_multiplier": 3.0,
+				"rounding_mode": "round",
+				"lose_streak_on_player_death": true,
+				"lose_streak_on_level_end": true,
+				"show_end_popup": true,
+				"show_tier_name": true,
+				"show_multiplier": true,
+				"show_kill_count": true,
+				"show_timer_bar": true,
+				"enable_end_streak_bonus": true,
+				"streak_end_bonus_per_kill": 5,
+				"boss_kill_count_value": 1,
+				"boss_kill_bonus_score_flat": 0,
+				"boss_can_drop_bonus_crystal": true,
+				"tiers": [
+					{
+						"id": "base",
+						"min_kills": 0,
+						"label_key": "killstreak_tier_base",
+						"multiplier": 1.0
+					},
+					{
+						"id": "combo_1",
+						"min_kills": 3,
+						"label_key": "killstreak_tier_combo",
+						"multiplier": 1.1
+					},
+					{
+						"id": "combo_2",
+						"min_kills": 6,
+						"label_key": "killstreak_tier_fury",
+						"multiplier": 1.2
+					},
+					{
+						"id": "combo_3",
+						"min_kills": 10,
+						"label_key": "killstreak_tier_rampage",
+						"multiplier": 1.3
+					},
+					{
+						"id": "combo_4",
+						"min_kills": 15,
+						"label_key": "killstreak_tier_overdrive",
+						"multiplier": 1.5
+					},
+					{
+						"id": "combo_5",
+						"min_kills": 22,
+						"label_key": "killstreak_tier_slaughter",
+						"multiplier": 1.7
+					},
+					{
+						"id": "combo_6",
+						"min_kills": 30,
+						"label_key": "killstreak_tier_carnage",
+						"multiplier": 2.0
+					},
+					{
+						"id": "combo_7",
+						"min_kills": 40,
+						"label_key": "killstreak_tier_devastation",
+						"multiplier": 2.3
+					},
+					{
+						"id": "combo_8",
+						"min_kills": 55,
+						"label_key": "killstreak_tier_bloodbath",
+						"multiplier": 2.6
+					},
+					{
+						"id": "combo_9",
+						"min_kills": 75,
+						"label_key": "killstreak_tier_massacre",
+						"multiplier": 3.0
+					}
+				],
+				"hud": {
+					"anchor": "top_left",
+					"offset_x": 24,
+					"offset_y": 120,
+					"bar_width": 220,
+					"bar_height": 12,
+					"normal_color": "#8FD3FF",
+					"critical_color": "#FF5A5A",
+					"text_color": "#FFFFFF"
+				}
+			},
+			"bonus_crystals": {
+				"enabled": true,
+				"despawn_time_sec": 8.0,
+				"pickup_radius": 28.0,
+				"magnet_speed": 420.0,
+				"size_px": 68.0,
+				"fall_speed_px_sec": 220.0,
+				"spawn_offset_y": 10.0,
+				"use_pooling": false,
+				"default_asset": "res://assets/ui/icons/crystal.tres",
+				"drop_table": {
+					"normal_enemy_drop_chance": 0.12,
+					"elite_enemy_drop_chance": 0.25,
+					"boss_drop_chance": 1.0
+				},
+				"types": [
+					{
+						"id": "score_crystal_small",
+						"type": "score_crystal",
+						"weight": 70,
+						"score_value": 100,
+						"asset": "res://assets/ui/icons/crystal.tres"
+					},
+					{
+						"id": "score_crystal_big",
+						"type": "score_crystal",
+						"weight": 25,
+						"score_value": 300,
+						"asset": "res://assets/ui/icons/crystal.tres"
+					},
+					{
+						"id": "streak_time_crystal",
+						"type": "streak_time_crystal",
+						"weight": 5,
+						"time_bonus_sec": 0.5,
+						"asset": "res://assets/ui/icons/crystal.tres"
+					}
+				]
+			}
+		}
+	},
+	"SkillsMenu": {
+		"background": "#0B1020",
+		"default_font_size": 24,
+		"default_title_font_size": 38,
+		"title": {
+			"font_size": 44,
+			"text_color": "#FFFFFF"
+		},
+		"subtitle": {
+			"font_size": 22,
+			"text_color": "#C2C9E8"
+		},
+		"level": {
+			"background": "#172544",
+			"text_size": 46,
+			"text_color": "#D6E4FF"
+		},
+		"available_points": {
+			"background": "#4A2F10",
+			"text_size": 46,
+			"text_color": "#FFD56B"
+		},
+		"secondary_text": {
+			"empty_font_size": 19,
+			"invalid_font_size": 19,
+			"requirement_font_size": 14,
+			"rank_font_size": 15,
+			"action_button_font_size": 14,
+			"state_hidden_font_size": 1
+		},
+		"respec_popup": {
+			"message_font_size": 18,
+			"button_font_size": 16
+		},
+		"skills": {
+			"vertical_margin": 35,
+			"global_skill_icon_width": 65,
+			"global_skill_icon_height": 65,
+			"global_state_button_width": 60,
+			"global_state_button_height": 60,
+			"global_title_text_size": 32,
+			"global_description_text_size": 22,
+			"buttons": {
+				"magic": {
+					"background": "#3554A8",
+					"text_size": 22,
+					"text_color": "#FFFFFF"
+				},
+				"utility": {
+					"background": "#278F55",
+					"text_size": 22,
+					"text_color": "#FFFFFF"
+				},
+				"pew_pew": {
+					"background": "#B65C1E",
+					"text_size": 22,
+					"text_color": "#FFFFFF"
+				}
+			},
+			"state_buttons": {
+				"locked": {
+					"asset": "res://assets/ui/buttons/locked.png"
+				},
+				"unlocked": {
+					"asset": "res://assets/ui/buttons/unlocked.png"
+				},
+				"purchased": {
+					"asset": "res://assets/ui/buttons/purchased.png"
+				}
+			},
+			"blocks": {
+				"cryo": {
+					"background": "#13283D",
+					"title": {
+						"icon_asset": "res://assets/ui/skills/branch_cryo.png",
+						"text_size": 28,
+						"text_color": "#88DDFF"
+					},
+					"skills": {
+						"text_color": "#D6E4FF"
+					}
+				},
+				"toxin": {
+					"background": "#17361B",
+					"title": {
+						"icon_asset": "res://assets/ui/skills/branch_toxin.png",
+						"text_size": 36,
+						"text_color": "#66FF44"
+					},
+					"skills": {
+						"text_color": "#E1FFE1"
+					}
+				},
+				"singularity": {
+					"background": "#24163D",
+					"title": {
+						"icon_asset": "res://assets/ui/skills/branch_singularity.png",
+						"text_size": 28,
+						"text_color": "#B785FF"
+					},
+					"skills": {
+						"text_color": "#E8DAFF"
+					}
+				},
+				"fortune": {
+					"background": "#3A2E12",
+					"title": {
+						"icon_asset": "res://assets/ui/skills/branch_fortune.png",
+						"text_size": 28,
+						"text_color": "#FFD700"
+					},
+					"skills": {
+						"text_color": "#FFF3CD"
+					}
+				},
+				"tech": {
+					"background": "#0F3240",
+					"title": {
+						"icon_asset": "res://assets/ui/skills/branch_tech.png",
+						"text_size": 28,
+						"text_color": "#00DDFF"
+					},
+					"skills": {
+						"text_color": "#D5F9FF"
+					}
+				},
+				"perfection": {
+					"background": "#402312",
+					"title": {
+						"icon_asset": "res://assets/ui/buttons/branch_perfection.png",
+						"text_size": 28,
+						"text_color": "#FF8A3D"
+					},
+					"skills": {
+						"text_color": "#FFE7D6"
+					}
+				}
+			}
+		},
+		"respec": {
+			"background": "#4A2632",
+			"text_size": 22,
+			"text_color": "#FFFFFF"
+		}
+	},
+	"scoring": {
+		"killstreak_system": {
+			"enabled": true,
+			"base_timer_sec": 2.4,
+			"refresh_mode": "full_reset",
+			"partial_refill_sec": 0.75,
+			"critical_threshold_ratio": 0.25,
+			"max_multiplier": 3.0,
+			"rounding_mode": "round",
+			"lose_streak_on_player_death": true,
+			"lose_streak_on_level_end": true,
+			"show_end_popup": true,
+			"show_tier_name": true,
+			"show_multiplier": true,
+			"show_kill_count": true,
+			"show_timer_bar": true,
+			"enable_end_streak_bonus": true,
+			"streak_end_bonus_per_kill": 5,
+			"boss_kill_count_value": 1,
+			"boss_kill_bonus_score_flat": 0,
+			"boss_can_drop_bonus_crystal": true,
+			"tiers": [
+				{
+					"id": "base",
+					"min_kills": 0,
+					"label_key": "killstreak_tier_base",
+					"multiplier": 1.0
+				},
+				{
+					"id": "combo_1",
+					"min_kills": 3,
+					"label_key": "killstreak_tier_combo",
+					"multiplier": 1.1
+				},
+				{
+					"id": "combo_2",
+					"min_kills": 6,
+					"label_key": "killstreak_tier_fury",
+					"multiplier": 1.2
+				},
+				{
+					"id": "combo_3",
+					"min_kills": 10,
+					"label_key": "killstreak_tier_rampage",
+					"multiplier": 1.3
+				},
+				{
+					"id": "combo_4",
+					"min_kills": 15,
+					"label_key": "killstreak_tier_overdrive",
+					"multiplier": 1.5
+				},
+				{
+					"id": "combo_5",
+					"min_kills": 22,
+					"label_key": "killstreak_tier_slaughter",
+					"multiplier": 1.7
+				},
+				{
+					"id": "combo_6",
+					"min_kills": 30,
+					"label_key": "killstreak_tier_carnage",
+					"multiplier": 2.0
+				},
+				{
+					"id": "combo_7",
+					"min_kills": 40,
+					"label_key": "killstreak_tier_devastation",
+					"multiplier": 2.3
+				},
+				{
+					"id": "combo_8",
+					"min_kills": 55,
+					"label_key": "killstreak_tier_bloodbath",
+					"multiplier": 2.6
+				},
+				{
+					"id": "combo_9",
+					"min_kills": 75,
+					"label_key": "killstreak_tier_massacre",
+					"multiplier": 3.0
+				}
+			],
+			"hud": {
+				"anchor": "top_left",
+				"offset_x": 24,
+				"offset_y": 120,
+				"bar_width": 220,
+				"bar_height": 12,
+				"normal_color": "#8FD3FF",
+				"critical_color": "#FF5A5A",
+				"text_color": "#FFFFFF"
+			}
+		},
+		"bonus_crystals": {
+			"enabled": true,
+			"despawn_time_sec": 8.0,
+			"pickup_radius": 28.0,
+			"magnet_speed": 420.0,
+			"size_px": 68.0,
+			"fall_speed_px_sec": 220.0,
+			"spawn_offset_y": 10.0,
+			"use_pooling": false,
+			"default_asset": "res://assets/ui/icons/crystal.tres",
+			"drop_table": {
+				"normal_enemy_drop_chance": 0.12,
+				"elite_enemy_drop_chance": 0.25,
+				"boss_drop_chance": 1.0
+			},
+			"types": [
+				{
+					"id": "score_crystal_small",
+					"type": "score_crystal",
+					"weight": 70,
+					"score_value": 100,
+					"asset": "res://assets/ui/icons/crystal.tres"
+				},
+				{
+					"id": "score_crystal_big",
+					"type": "score_crystal",
+					"weight": 25,
+					"score_value": 300,
+					"asset": "res://assets/ui/icons/crystal.tres"
+				},
+				{
+					"id": "streak_time_crystal",
+					"type": "streak_time_crystal",
+					"weight": 5,
+					"time_bonus_sec": 0.5,
+					"asset": "res://assets/ui/icons/crystal.tres"
+				}
+			]
+		}
+	},
+	"common": {
+		"buttons": {
+			"pressed_offset_y": 4,
+			"default_style": {
+				"asset": "res://assets/ui/button_regular.png",
+				"text_color": "#FFFFFF",
+				"min_width": 220,
+				"min_height": 56,
+				"nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"content_margin": {
+					"left": 14,
+					"right": 14,
+					"top": 10,
+					"bottom": 10
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch"
+			},
+			"font_presets": {
+				"small": {
+					"font_size": 18,
+					"letter_spacing": 0
+				},
+				"medium": {
+					"font_size": 26,
+					"letter_spacing": 0
+				},
+				"large": {
+					"font_size": 30,
+					"letter_spacing": 1
+				}
+			},
+			"shadow": {
+				"small": {
+					"shadow_color": "#000000",
+					"shadow_offset_x": 1,
+					"shadow_offset_y": 1,
+					"shadow_outline_size": 0
+				},
+				"medium": {
+					"shadow_color": "#000000",
+					"shadow_offset_x": 2,
+					"shadow_offset_y": 2,
+					"shadow_outline_size": 0
+				},
+				"large": {
+					"shadow_color": "#000000",
+					"shadow_offset_x": 3,
+					"shadow_offset_y": 3,
+					"shadow_outline_size": 0
+				}
+			},
+			"validation": {
+				"text_color": "#ffffff",
+				"letter_spacing": 0,
+				"asset": "res://assets/ui/button_validation.png",
+				"nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"content_margin": {
+					"left": 14,
+					"right": 14,
+					"top": 10,
+					"bottom": 10
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch",
+				"draw_center": true
+			},
+			"cancellation": {
+				"text_color": "#ffffff",
+				"letter_spacing": 0,
+				"asset": "res://assets/ui/button_cancellation.png",
+				"nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"content_margin": {
+					"left": 14,
+					"right": 14,
+					"top": 10,
+					"bottom": 10
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch",
+				"draw_center": true
+			},
+			"highlight": {
+				"text_color": "#ffffff",
+				"letter_spacing": 0,
+				"label_template": "Compétences (+%d)",
+				"asset": "res://assets/ui/button_highlight.png",
+				"nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"content_margin": {
+					"left": 14,
+					"right": 14,
+					"top": 10,
+					"bottom": 10
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch",
+				"draw_center": true,
+				"glow_color": "#FFD86B",
+				"glow_thickness": 6.0,
+				"glow_intensity": 1.25,
+				"pulse_frequency": 1.6,
+				"pulse_amplitude": 0.22
+			}
+		},
+		"popups": {
+			"margin": 35,
+			"background": {
+				"asset": "res://assets/ui/popup_background.png",
+				"text_color": "#FFFFFF",
+				"letter_spacing": 0,
+				"font_size": 24,
+				"nine_slice": {
+					"left": 28,
+					"right": 28,
+					"top": 28,
+					"bottom": 28
+				},
+				"content_margin": {
+					"left": 35,
+					"right": 35,
+					"top": 35,
+					"bottom": 35
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch"
+			},
+			"button": {
+				"asset": "res://assets/ui/button_regular.png",
+				"text_color": "#FFFFFF",
+				"nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"content_margin": {
+					"left": 12,
+					"right": 12,
+					"top": 8,
+					"bottom": 8
+				},
+				"stretch_horizontal": "stretch",
+				"stretch_vertical": "stretch"
+			},
+			"recycle": {
+				"font_size": 16
+			}
+		},
+		"dropdown": {
+			"item_bg_asset": "res://assets/ui/popup_background.png",
+			"item_text_color": "#ffffff",
+			"highlight_bg_color": "#FFD700",
+			"highlight_text_color": "#ffffff",
+			"popup_font_size": 22,
+			"nine_slice": {
+				"left": 20,
+				"right": 20,
+				"top": 20,
+				"bottom": 20
+			},
+			"content_margin": {
+				"left": 10,
+				"right": 10,
+				"top": 8,
+				"bottom": 8
+			}
+		},
+		"loading_screen": {
+			"background": "res://assets/ui/main_menu_bg.jpg",
+			"show_label": false,
+			"show_spinner": false,
+			"overlay_color": "#000000",
+			"overlay_alpha": 0.5,
+			"progress_bar": {
+				"width_ratio": 0.62,
+				"min_width": 300,
+				"max_width": 980,
+				"height": 34,
+				"anchor_y": 0.84,
+				"show_percentage": false,
+				"background_color": "#1A1F2A",
+				"fill_color": "#6FD7FF",
+				"border_color": "#FFFFFF",
+				"fill_border_color": "#B9F0FF",
+				"border_width": 2,
+				"corner_radius": 12,
+				"fill_corner_radius": 11
+			}
+		},
+		"shared_assets": {
+			"crystal_icon": {
+				"asset": "res://assets/ui/icons/crystal.tres",
+				"animation_repeat_seconds": 6,
+				"animation_type": "loop",
+				"animation_duration": 2
+			},
+			"lock": {
+				"asset": "res://assets/ui/icons/locked.png",
+				"width": 64,
+				"height": 64,
+				"text_color": "#FFFFFF",
+				"text_size": 16
+			}
+		},
+		"menu_footer": {
+			"height_px": 95,
+			"margin_left": 25,
+			"margin_right": 20,
+			"margin_bottom": 0,
+			"background_asset": "res://assets/backgrounds/menus/footer_background.png",
+			"background_opacity": 1,
+			"border_top_height": 5,
+			"border_top_color": "#4a17a0",
+			"back_button": {
+				"asset": "res://assets/ui/button_back.png",
+				"width": 72,
+				"height": 72,
+				"icon_size": 36
+			}
+		},
+		"menu_header": {
+			"height_px": 135,
+			"margin_left": 20,
+			"margin_right": 20,
+			"margin_top": 25,
+			"margin_bottom": 40,
+			"bottom_gradient_height_px": 20,
+			"default_background_color": "",
+			"default_background_opacity": 0.85,
+			"homescreen_background_color": "",
+			"homescreen_background_opacity": 1,
+			"shipmenu_background_color": "#1a1a2e",
+			"shipmenu_background_opacity": 0.85,
+			"world_select_background_color": "",
+			"world_select_background_opacity": 0.85,
+			"level_select_background_color": "",
+			"level_select_background_opacity": 0.85,
+			"skillsmenu_background_color": "",
+			"skillsmenu_background_opacity": 0.85,
+			"optionsmenu_background_color": "",
+			"optionsmenu_background_opacity": 0.85,
+			"shopmenu_background_color": "",
+			"shopmenu_background_opacity": 0.85,
+			"profileselect_background_color": "",
+			"profileselect_background_opacity": 0.85,
+			"pausemenu_background_color": "",
+			"pausemenu_background_opacity": 0.85,
+			"lootresultscreen_background_color": "",
+			"lootresultscreen_background_opacity": 0.85,
+			"rectangle": {
+				"height": 36,
+				"border_radius": 16,
+				"background_color": "#1a1a2e",
+				"background_opacity": 0.5,
+				"border_color": "#000000",
+				"border_width": 0,
+				"content_margin_left": 12,
+				"content_margin_right": 12,
+				"content_margin_top": 0,
+				"content_margin_bottom": 0,
+				"content_align_h": "center",
+				"content_align_v": "center",
+				"icon_overlap_px": -2
+			},
+			"level": {
+				"asset": "res://assets/ui/icons/trophy.png",
+				"icon_size": 70,
+				"text_color": "#ffffff",
+				"font_size": 30
+			},
+			"xp_bar": {
+				"bar_min_width": 60,
+				"width": 80,
+				"fill_color": "#146be0",
+				"track_color": "#2d2d44",
+				"border_color": "#cccccc",
+				"border_width": 2,
+				"text_color": "#ffffff",
+				"text_margin_left": 8,
+				"text_margin_right": 8,
+				"font_size": 25
+			},
+			"stars": {
+				"asset": "res://assets/ui/stars/star_on.png",
+				"icon_size": 46,
+				"text_color": "#ffffff",
+				"font_size": 32,
+				"format": "{count}/{max}",
+				"center_offset_x": -40,
+				"text_margin_left": 8,
+				"text_margin_right": 8
+			},
+			"crystals": {
+				"icon_asset": "shared:crystal_icon",
+				"icon_size": 46,
+				"text_color": "#ffffff",
+				"font_size": 32,
+				"panel_padding": 8,
+				"text_margin_left": 8,
+				"text_margin_right": 8
+			},
+			"spacing_between_blocks": 16,
+			"tints": {
+				"default": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"home": {
+					"color": "",
+					"opacity": 1
+				},
+				"ship_menu": {
+					"color": "#1a1a2e",
+					"opacity": 0.85
+				},
+				"world_select": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"level_select": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"skills_menu": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"options_menu": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"shop_menu": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"profile_select": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"pause_menu": {
+					"color": "",
+					"opacity": 0.85
+				},
+				"loot_result": {
+					"color": "",
+					"opacity": 0.85
+				}
+			}
+		}
+	},
+	"screens": {
+		"home": {
+			"background": "res://assets/ui/main_menu_bg.jpg",
+			"music": "res://assets/music/neon.ogg",
+			"logo": {
+				"logo": "res://assets/logo/pewpewloot_final.png",
+				"logo_anim": "",
+				"logo_anim_duration": 2.0,
+				"logo_anim_loop": false,
+				"logo_width_pct": 0.4,
+				"logo_height_pct": 0.3
+			},
+			"buttons": {
+				"default_text_size": 24,
+				"default_text_color": "#FFFFFF",
+				"default_letter_spacing": 1,
+				"default_shadow_size": "medium",
+				"default_nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"default_content_margin": {
+					"left": 14,
+					"right": 14,
+					"top": 10,
+					"bottom": 10
+				},
+				"default_stretch_horizontal": "stretch",
+				"default_stretch_vertical": "stretch",
+				"play": {
+					"asset": "res://assets/ui/button_validation.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 30,
+					"letter_spacing": 1,
+					"shadow_size": "large",
+					"min_width": 0,
+					"min_height": 72,
+					"grid_col": 0,
+					"grid_row": 0,
+					"col_span": 2,
+					"row_span": 1,
+					"font_preset": "large"
+				},
+				"ship": {
+					"asset": "",
+					"asset_anim": "",
+					"show_text": false,
+					"text_color": "#FFFFFF",
+					"text_size": 24,
+					"letter_spacing": 1
+				},
+				"skills": {
+					"asset": "res://assets/ui/buttons/button_violet.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 18,
+					"letter_spacing": 1,
+					"shadow_size": "medium",
+					"min_width": 0,
+					"min_height": 62,
+					"grid_col": 0,
+					"grid_row": 1,
+					"col_span": 1,
+					"row_span": 1
+				},
+				"equipment": {
+					"asset": "res://assets/ui/buttons/button_blue.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 18,
+					"letter_spacing": 1,
+					"shadow_size": "medium",
+					"min_width": 0,
+					"min_height": 62,
+					"grid_col": 1,
+					"grid_row": 1,
+					"col_span": 1,
+					"row_span": 1
+				},
+				"options": {
+					"asset": "res://assets/ui/buttons/button_orange.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 18,
+					"letter_spacing": 1,
+					"shadow_size": "medium",
+					"min_width": 0,
+					"min_height": 56,
+					"grid_col": 0,
+					"grid_row": 2,
+					"col_span": 1,
+					"row_span": 1
+				},
+				"change_profile": {
+					"asset": "res://assets/ui/buttons/button_green.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 18,
+					"letter_spacing": 1,
+					"shadow_size": "medium",
+					"min_width": 0,
+					"min_height": 56,
+					"grid_col": 1,
+					"grid_row": 2,
+					"col_span": 1,
+					"row_span": 1
+				},
+				"quit": {
+					"asset": "res://assets/ui/buttons/button_red.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 18,
+					"letter_spacing": 1,
+					"shadow_size": "medium",
+					"min_width": 0,
+					"min_height": 56,
+					"grid_col": 0,
+					"grid_row": 3,
+					"col_span": 2,
+					"row_span": 1
+				},
+				"debug_button": {
+					"asset": "res://assets/ui/button_regular.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 14,
+					"letter_spacing": 0,
+					"shadow_size": "small",
+					"min_width": 160,
+					"min_height": 38
+				}
+			},
+			"layout": {
+				"grid": {
+					"columns": 2,
+					"rows": 5,
+					"spacing_x": 24,
+					"spacing_y": 16,
+					"margin": 24,
+					"top_ratio": 0.58,
+					"bottom_margin": 30
+				}
+			},
+			"alert": {
+				"asset": "res://assets/ui/icons/locked.png",
+				"width": 34,
+				"height": 34,
+				"offset_x": -10,
+				"offset_y": 8
+			},
+			"first_profile_modal": {
+				"canvas_layer": 80,
+				"dim": {
+					"color": [0, 0, 0, 0.72]
+				},
+				"panel": {
+					"min_width": 520,
+					"min_height": 260
+				},
+				"margins": {
+					"left": 24,
+					"right": 24,
+					"top": 22,
+					"bottom": 22
+				},
+				"content_separation": 14,
+				"title": {
+					"locale_key": "profile_first_launch_title",
+					"font_size": 22,
+					"color": "#FFFFFF"
+				},
+				"description": {
+					"locale_key": "profile_first_launch_hint",
+					"font_size": 16,
+					"color": "#DDDDDD"
+				},
+				"name_input": {
+					"locale_key_placeholder": "profile_select_name_hint",
+					"font_size": 18,
+					"max_length": 32,
+					"min_height": 48
+				},
+				"buttons": {
+					"column_separation": 12,
+					"validate": {
+						"style": "validation",
+						"locale_key": "profile_first_launch_validate",
+						"font_preset": "medium",
+						"min_width": 260,
+						"min_height": 52,
+						"shadow_size": "medium"
+					},
+					"quit": {
+						"style": "cancellation",
+						"locale_key": "home_quit",
+						"font_preset": "medium",
+						"min_width": 260,
+						"min_height": 52,
+						"shadow_size": "medium"
+					}
+				}
+			}
+		},
+		"world_select": {
+			"world_title_size": 32,
+			"world_star_count_size": 42,
+			"background": "res://assets/backgrounds/menus/world_select_menu.jpg",
+			"locked_asset": "res://assets/ui/buttons/locked.png",
+			"locked_opacity": 0.35,
+			"card_frame_asset": "res://assets/ui/popup_background.png",
+			"card_frame_margin": {
+				"top": 4,
+				"right": 8,
+				"bottom": 4,
+				"left": 8
+			},
+			"card_content_margin": {
+				"top": 12,
+				"bottom": 12,
+				"left": 12,
+				"right": 12
+			},
+			"card_height": 80,
+			"card_corner_radius": 12,
+			"overlay_opacity": 0.7,
+			"hover_translate_y": 4
+		},
+		"level_select": {
+			"level_title_size": 32,
+			"card_frame_asset": "res://assets/ui/popup_background.png",
+			"card_frame_margin": {
+				"top": 4,
+				"right": 4,
+				"bottom": 4,
+				"left": 4
+			},
+			"card_content_margin": {
+				"top": 12,
+				"bottom": 12,
+				"left": 6,
+				"right": 6
+			},
+			"card_height": 80,
+			"card_corner_radius": 12,
+			"overlay_opacity": 0.7,
+			"hover_translate_y": 4,
+			"details_panel_bg": "res://assets/ui/popup_background.png",
+			"details_nine_slice": {
+				"left": 18,
+				"right": 18,
+				"top": 18,
+				"bottom": 18
+			},
+			"details_content_margin": {
+				"left": 14,
+				"right": 14,
+				"top": 10,
+				"bottom": 10
+			},
+			"details_best_score_text_size": 36,
+			"details_best_score_text_color": "#FFFFFF",
+			"details_best_score_value_color": "#FFFFFF",
+			"details_threshold_text_size": 24,
+			"details_threshold_text_color": "#D9D9D9",
+			"details_threshold_earned_color": "#FFD94D",
+			"details_star_size": 32,
+			"details_spacing_score_to_stars": 15,
+			"details_spacing_stars_to_buttons": 15
+		},
+		"ship_menu": {
+			"background": "res://assets/backgrounds/menus/ship_background.jpg",
+			"background_scroll": false,
+			"default_font_size": 20,
+			"recycle_all": "res://assets/ui/icons/crystal.png",
+			"sections_background_opacity": 0.95,
+			"content_margin_top": 115,
+			"star_rating": {
+				"max_stars": 6,
+				"weights": {
+					"power": 1.0,
+					"max_hp": 0.2,
+					"missile_damage": 0.5,
+					"special_damage": 0.5,
+					"crit_chance": 2.0,
+					"crit_damage": 0.3,
+					"missile_speed_pct": 0.1,
+					"dodge_chance": 1.0,
+					"shield_capacity": 0.2
+				},
+				"thresholds": [
+					0,
+					220,
+					440,
+					660,
+					880,
+					1100
+				]
+			},
+			"ship_grid": {
+				"columns": 4,
+				"card_width": 130,
+				"card_height": 130,
+				"card_gap": 10,
+				"star_size": 16,
+				"star_color_filled": "#FFD54A",
+				"star_color_empty": "#3A4252"
+			},
+			"ship_selection": {
+				"width": 165,
+				"height": 165,
+				"size_multiplier": 1.5,
+				"strip_height": 95,
+				"strip_button_height": 56,
+				"strip_margin_top": 10,
+				"strip_margin_bottom": 0,
+				"animated": false,
+				"arrow_width": 48,
+				"arrow_height": 48
+			},
+			"sections": {
+				"ship_selection": {
+					"background": "res://assets/backgrounds/menus/shipmenu_ships.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					}
+				},
+				"equipment": {
+					"background": "res://assets/backgrounds/menus/shipmenu_equipment.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					}
+				},
+				"inventory": {
+					"background": "res://assets/backgrounds/menus/shipmenu_inventory.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					}
+				},
+				"powers": {
+					"background": "res://assets/backgrounds/menus/shipmenu_powers.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 0,
+						"right": 0,
+						"top": 15,
+						"bottom": 15
+					}
+				}
+			},
+			"title": {
+				"font_size": 40,
+				"letter_spacing": 2,
+				"text_color": "#FFFFFF"
+			},
+			"ship_details": {
+				"total_power_font_size": 24,
+				"stats_font_size": 22,
+				"header_column_gap": 20,
+				"preview_column_width": 190,
+				"preview_column_height": 170,
+				"stats_scroll_padding_right": 15,
+				"background": {
+					"asset": "res://assets/ui/popup_background.png",
+					"opacity": 1.0,
+					"nine_slice": {
+						"left": 28,
+						"right": 28,
+						"top": 28,
+						"bottom": 28
+					},
+					"content_margin": {
+						"left": 35,
+						"right": 35,
+						"top": 35,
+						"bottom": 35
+					},
+					"stretch_horizontal": "stretch",
+					"stretch_vertical": "stretch"
+				},
+				"buttons": {
+					"font_size": 18,
+					"text_color": "#FFFFFF",
+					"select": {
+						"width": 160,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_blue.png"
+					},
+					"upgrade": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_gold.png"
+					},
+					"recycle": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_green.png"
+					},
+					"close": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_red.png"
+					},
+					"equip": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_blue.png"
+					}
+				}
+			},
+			"stats_max_values": {
+				"power": 4000,
+				"max_hp": 3000,
+				"move_speed": 1000,
+				"fire_rate": 20,
+				"missile_speed_pct": 300,
+				"missile_damage": 300,
+				"crit_chance": 50,
+				"crit_damage": 300,
+				"dodge_chance": 30,
+				"damage_reduction": 75,
+				"special_damage": 4000,
+				"special_cd": 20,
+				"shield_capacity": 2000,
+				"shield_regen": 200,
+				"loot_radius": 500,
+				"luck": 200,
+				"xp_multiplier": 200
+			},
+			"stat_icons": {
+				"power": "res://assets/ui/icons/power.png",
+				"level": "res://assets/ui/icons/trophy.png",
+				"crystals": "shared:crystal_icon",
+				"shop": "res://assets/ui/cart.png",
+				"hp": "res://assets/ui/icons/heart.png",
+				"speed": "res://assets/ui/icons/speed.png",
+				"missile": "res://assets/ui/icons/missile.png",
+				"crit_chance": "res://assets/ui/icons/crit.png",
+				"dodge_chance": "res://assets/ui/icons/dodge.png",
+				"fire_rate": "res://assets/ui/icons/missile.png",
+				"missile_speed_pct": "res://assets/ui/icons/missile.png",
+				"missile_damage": "res://assets/ui/icons/missile.png",
+				"crit_damage": "res://assets/ui/icons/crit.png",
+				"special_cd": "res://assets/ui/icons/special.png",
+				"special_damage": "res://assets/ui/icons/special.png",
+				"damage_reduction": "res://assets/ui/icons/hp.png",
+				"shield_capacity": "res://assets/ui/icons/shield.png",
+				"shield_regen": "res://assets/ui/icons/shield.png",
+				"loot_radius": "res://assets/ui/icons/all.png",
+				"luck": "res://assets/ui/icons/crit.png",
+				"xp_multiplier": "res://assets/ui/icons/trophy.png"
+			},
+			"stat_colors": {
+				"power": "#501dc5",
+				"level": "#501dc5",
+				"crystals": "#501dc5",
+				"hp": "#501dc5",
+				"speed": "#501dc5",
+				"missile": "#501dc5",
+				"crit_chance": "#501dc5",
+				"dodge_chance": "#501dc5"
+			},
+			"upgrade_anim_decent": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_anim_decent_duration": 3.0,
+			"upgrade_anim_decent_loop": false,
+			"upgrade_anim_great": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_anim_great_duration": 3.0,
+			"upgrade_anim_great_loop": false,
+			"upgrade_anim_perfect": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_anim_perfect_duration": 3.0,
+			"upgrade_anim_perfect_loop": false,
+			"upgrade_craft_anim": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_craft_anim_duration": 0.0,
+			"upgrade_craft_anim_loop": true,
+			"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
+			"upgrade_sound": "res://assets/sfx/upgrade_success.ogg",
+			"ship_stats": {
+				"power": {
+					"icon_asset": "res://assets/ui/icons/power.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"level": {
+					"icon_asset": "res://assets/ui/icons/level.png",
+					"icon_height": 30,
+					"icon_width": 30,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"crystals": {
+					"icon_asset": "shared:crystal_icon",
+					"icon_height": 30,
+					"icon_width": 30,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0
+				},
+				"shop": {
+					"icon_asset": "res://assets/ui/cart.tres",
+					"icon_anim_duration": 1.0,
+					"icon_anim_loop": false,
+					"icon_height": 40,
+					"icon_width": 40,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 10
+				},
+				"hp": {
+					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"max_hp": {
+					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"speed": {
+					"icon_asset": "res://assets/ui/icons/speed.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"move_speed": {
+					"icon_asset": "res://assets/ui/icons/speed.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"missile": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"crit_chance": {
+					"icon_asset": "res://assets/ui/icons/crit.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"crit_damage": {
+					"icon_asset": "res://assets/ui/icons/crit.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"dodge_chance": {
+					"icon_asset": "res://assets/ui/icons/dodge.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"fire_rate": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"missile_speed_pct": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"missile_damage": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"damage_reduction": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"special_cd": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"special_damage": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"shield_capacity": {
+					"icon_asset": "res://assets/ui/icons/shield.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"shield_regen": {
+					"icon_asset": "res://assets/ui/icons/shield.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"loot_radius": {
+					"icon_asset": "res://assets/ui/icons/all.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"luck": {
+					"icon_asset": "res://assets/ui/icons/crit.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"xp_multiplier": {
+					"icon_asset": "res://assets/ui/icons/trophy.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"special": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				}
+			}
+		},
+		"equipment_menu": {
+			"background": "res://assets/backgrounds/menus/ship_background.jpg",
+			"background_scroll": false,
+			"default_font_size": 20,
+			"recycle_all": "res://assets/ui/icons/crystal.png",
+			"sections_background_opacity": 0.95,
+			"content_margin_top": 115,
+			"star_rating": {
+				"max_stars": 6,
+				"weights": {
+					"power": 1.0,
+					"max_hp": 0.2,
+					"missile_damage": 0.5,
+					"special_damage": 0.5,
+					"crit_chance": 2.0,
+					"crit_damage": 0.3,
+					"missile_speed_pct": 0.1,
+					"dodge_chance": 1.0,
+					"shield_capacity": 0.2
+				},
+				"thresholds": [
+					0,
+					220,
+					440,
+					660,
+					880,
+					1100
+				]
+			},
+			"ship_grid": {
+				"columns": 4,
+				"card_width": 130,
+				"card_height": 130,
+				"card_gap": 10,
+				"star_size": 16,
+				"star_color_filled": "#FFD54A",
+				"star_color_empty": "#3A4252"
+			},
+			"ship_selection": {
+				"width": 165,
+				"height": 165,
+				"size_multiplier": 1.5,
+				"strip_height": 95,
+				"strip_button_height": 56,
+				"strip_margin_top": 10,
+				"strip_margin_bottom": 0,
+				"animated": false,
+				"arrow_width": 48,
+				"arrow_height": 48
+			},
+			"sections": {
+				"ship_selection": {
+					"background": "res://assets/backgrounds/menus/shipmenu_ships.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					}
+				},
+				"equipment": {
+					"background": "res://assets/backgrounds/menus/shipmenu_equipment.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					}
+				},
+				"inventory": {
+					"background": "res://assets/backgrounds/menus/shipmenu_inventory.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					}
+				},
+				"powers": {
+					"background": "res://assets/backgrounds/menus/shipmenu_powers.png",
+					"nine_slice": {
+						"left": 15,
+						"right": 15,
+						"top": 15,
+						"bottom": 15
+					},
+					"content_margin": {
+						"left": 0,
+						"right": 0,
+						"top": 15,
+						"bottom": 15
+					}
+				}
+			},
+			"title": {
+				"font_size": 40,
+				"letter_spacing": 2,
+				"text_color": "#FFFFFF"
+			},
+			"ship_details": {
+				"total_power_font_size": 24,
+				"stats_font_size": 22,
+				"header_column_gap": 20,
+				"preview_column_width": 190,
+				"preview_column_height": 170,
+				"stats_scroll_padding_right": 15,
+				"background": {
+					"asset": "res://assets/ui/popup_background.png",
+					"opacity": 1.0,
+					"nine_slice": {
+						"left": 28,
+						"right": 28,
+						"top": 28,
+						"bottom": 28
+					},
+					"content_margin": {
+						"left": 35,
+						"right": 35,
+						"top": 35,
+						"bottom": 35
+					},
+					"stretch_horizontal": "stretch",
+					"stretch_vertical": "stretch"
+				},
+				"buttons": {
+					"font_size": 18,
+					"text_color": "#FFFFFF",
+					"select": {
+						"width": 160,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_blue.png"
+					},
+					"upgrade": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_gold.png"
+					},
+					"recycle": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_green.png"
+					},
+					"close": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_red.png"
+					},
+					"equip": {
+						"width": 140,
+						"height": 50,
+						"asset": "res://assets/ui/buttons/button_blue.png"
+					}
+				}
+			},
+			"stats_max_values": {
+				"power": 4000,
+				"max_hp": 3000,
+				"move_speed": 1000,
+				"fire_rate": 20,
+				"missile_speed_pct": 300,
+				"missile_damage": 300,
+				"crit_chance": 50,
+				"crit_damage": 300,
+				"dodge_chance": 30,
+				"damage_reduction": 75,
+				"special_damage": 4000,
+				"special_cd": 20,
+				"shield_capacity": 2000,
+				"shield_regen": 200,
+				"loot_radius": 500,
+				"luck": 200,
+				"xp_multiplier": 200
+			},
+			"stat_icons": {
+				"power": "res://assets/ui/icons/power.png",
+				"level": "res://assets/ui/icons/trophy.png",
+				"crystals": "shared:crystal_icon",
+				"shop": "res://assets/ui/cart.png",
+				"hp": "res://assets/ui/icons/heart.png",
+				"speed": "res://assets/ui/icons/speed.png",
+				"missile": "res://assets/ui/icons/missile.png",
+				"crit_chance": "res://assets/ui/icons/crit.png",
+				"dodge_chance": "res://assets/ui/icons/dodge.png",
+				"fire_rate": "res://assets/ui/icons/missile.png",
+				"missile_speed_pct": "res://assets/ui/icons/missile.png",
+				"missile_damage": "res://assets/ui/icons/missile.png",
+				"crit_damage": "res://assets/ui/icons/crit.png",
+				"special_cd": "res://assets/ui/icons/special.png",
+				"special_damage": "res://assets/ui/icons/special.png",
+				"damage_reduction": "res://assets/ui/icons/hp.png",
+				"shield_capacity": "res://assets/ui/icons/shield.png",
+				"shield_regen": "res://assets/ui/icons/shield.png",
+				"loot_radius": "res://assets/ui/icons/all.png",
+				"luck": "res://assets/ui/icons/crit.png",
+				"xp_multiplier": "res://assets/ui/icons/trophy.png"
+			},
+			"stat_colors": {
+				"power": "#501dc5",
+				"level": "#501dc5",
+				"crystals": "#501dc5",
+				"hp": "#501dc5",
+				"speed": "#501dc5",
+				"missile": "#501dc5",
+				"crit_chance": "#501dc5",
+				"dodge_chance": "#501dc5"
+			},
+			"upgrade_anim_decent": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_anim_decent_duration": 3.0,
+			"upgrade_anim_decent_loop": false,
+			"upgrade_anim_great": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_anim_great_duration": 3.0,
+			"upgrade_anim_great_loop": false,
+			"upgrade_anim_perfect": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_anim_perfect_duration": 3.0,
+			"upgrade_anim_perfect_loop": false,
+			"upgrade_craft_anim": "res://assets/ui/popup_upgrade.tres",
+			"upgrade_craft_anim_duration": 0.0,
+			"upgrade_craft_anim_loop": true,
+			"upgrade_craft_sound": "res://assets/sfx/craft.ogg",
+			"upgrade_sound": "res://assets/sfx/upgrade_success.ogg",
+			"ship_stats": {
+				"power": {
+					"icon_asset": "res://assets/ui/icons/power.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"level": {
+					"icon_asset": "res://assets/ui/icons/level.png",
+					"icon_height": 30,
+					"icon_width": 30,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"crystals": {
+					"icon_asset": "shared:crystal_icon",
+					"icon_height": 30,
+					"icon_width": 30,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0
+				},
+				"shop": {
+					"icon_asset": "res://assets/ui/cart.tres",
+					"icon_anim_duration": 1.0,
+					"icon_anim_loop": false,
+					"icon_height": 40,
+					"icon_width": 40,
+					"font_size": 22,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 10
+				},
+				"hp": {
+					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"max_hp": {
+					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"speed": {
+					"icon_asset": "res://assets/ui/icons/speed.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"move_speed": {
+					"icon_asset": "res://assets/ui/icons/speed.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"missile": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"crit_chance": {
+					"icon_asset": "res://assets/ui/icons/crit.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"crit_damage": {
+					"icon_asset": "res://assets/ui/icons/crit.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"dodge_chance": {
+					"icon_asset": "res://assets/ui/icons/dodge.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"fire_rate": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"missile_speed_pct": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"missile_damage": {
+					"icon_asset": "res://assets/ui/icons/missile.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"damage_reduction": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"special_cd": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"special_damage": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"shield_capacity": {
+					"icon_asset": "res://assets/ui/icons/shield.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"shield_regen": {
+					"icon_asset": "res://assets/ui/icons/shield.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"loot_radius": {
+					"icon_asset": "res://assets/ui/icons/all.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"luck": {
+					"icon_asset": "res://assets/ui/icons/crit.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"xp_multiplier": {
+					"icon_asset": "res://assets/ui/icons/trophy.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				},
+				"special": {
+					"icon_asset": "res://assets/ui/icons/special.png",
+					"icon_height": 24,
+					"icon_width": 24,
+					"font_size": 20,
+					"font_color": "#FFFFFF",
+					"letter_spacing": 0,
+					"animation_repeat_seconds": 0
+				}
+			}
+		},
+		"skills_menu": {
+			"background": "#0B1020",
+			"default_font_size": 24,
+			"default_title_font_size": 38,
+			"title": {
+				"font_size": 44,
+				"text_color": "#FFFFFF"
+			},
+			"subtitle": {
+				"font_size": 22,
+				"text_color": "#C2C9E8"
+			},
+			"level": {
+				"background": "#172544",
+				"text_size": 46,
+				"text_color": "#D6E4FF"
+			},
+			"available_points": {
+				"background": "#4A2F10",
+				"text_size": 46,
+				"text_color": "#FFD56B"
+			},
+			"skills": {
+				"vertical_margin": 35,
+				"global_skill_icon_width": 65,
+				"global_skill_icon_height": 65,
+				"global_state_button_width": 60,
+				"global_state_button_height": 60,
+				"global_title_text_size": 32,
+				"global_description_text_size": 22,
+				"buttons": {
+					"magic": {
+						"background": "#3554A8",
+						"text_size": 22,
+						"text_color": "#FFFFFF"
+					},
+					"utility": {
+						"background": "#278F55",
+						"text_size": 22,
+						"text_color": "#FFFFFF"
+					},
+					"pew_pew": {
+						"background": "#B65C1E",
+						"text_size": 22,
+						"text_color": "#FFFFFF"
+					}
+				},
+				"state_buttons": {
+					"locked": {
+						"asset": "res://assets/ui/buttons/locked.png"
+					},
+					"unlocked": {
+						"asset": "res://assets/ui/buttons/unlocked.png"
+					},
+					"purchased": {
+						"asset": "res://assets/ui/buttons/purchased.png"
+					}
+				},
+				"blocks": {
+					"cryo": {
+						"background": "#13283D",
+						"title": {
+							"icon_asset": "res://assets/ui/skills/branch_cryo.png",
+							"text_size": 28,
+							"text_color": "#88DDFF"
+						},
+						"skills": {
+							"text_color": "#D6E4FF"
+						}
+					},
+					"toxin": {
+						"background": "#17361B",
+						"title": {
+							"icon_asset": "res://assets/ui/skills/branch_toxin.png",
+							"text_size": 36,
+							"text_color": "#66FF44"
+						},
+						"skills": {
+							"text_color": "#E1FFE1"
+						}
+					},
+					"singularity": {
+						"background": "#24163D",
+						"title": {
+							"icon_asset": "res://assets/ui/skills/branch_singularity.png",
+							"text_size": 28,
+							"text_color": "#B785FF"
+						},
+						"skills": {
+							"text_color": "#E8DAFF"
+						}
+					},
+					"fortune": {
+						"background": "#3A2E12",
+						"title": {
+							"icon_asset": "res://assets/ui/skills/branch_fortune.png",
+							"text_size": 28,
+							"text_color": "#FFD700"
+						},
+						"skills": {
+							"text_color": "#FFF3CD"
+						}
+					},
+					"tech": {
+						"background": "#0F3240",
+						"title": {
+							"icon_asset": "res://assets/ui/skills/branch_tech.png",
+							"text_size": 28,
+							"text_color": "#00DDFF"
+						},
+						"skills": {
+							"text_color": "#D5F9FF"
+						}
+					},
+					"perfection": {
+						"background": "#402312",
+						"title": {
+							"icon_asset": "res://assets/ui/buttons/branch_perfection.png",
+							"text_size": 28,
+							"text_color": "#FF8A3D"
+						},
+						"skills": {
+							"text_color": "#FFE7D6"
+						}
+					}
+				}
+			},
+			"respec": {
+				"background": "#4A2632",
+				"text_size": 22,
+				"text_color": "#FFFFFF"
+			}
+		},
+		"options_menu": {
+			"background": "res://assets/ui/main_menu_bg.jpg",
+			"default_font_size": 24,
+			"title_text_size": 30
+		},
+		"pause_menu": {
+			"panel_width": 500,
+			"panel_height": 360,
+			"panel_margin": 24,
+			"separation": 24,
+			"title_font_size": 38,
+			"button_font_size": 22,
+			"button_min_width": 350,
+			"button_min_height": 70,
+			"button_max_width": 500
+		},
+		"shop_menu": {
+			"background": "res://assets/ui/main_menu_bg.jpg",
+			"button": {
+				"asset": "res://assets/ui/button_regular.png",
+				"text_color": "#FFFFFF",
+				"font_size": 18,
+				"letter_spacing": 0,
+				"nine_slice": {
+					"left": 18,
+					"right": 18,
+					"top": 18,
+					"bottom": 18
+				},
+				"content_margin": {
+					"left": 12,
+					"right": 12,
+					"top": 8,
+					"bottom": 8
+				}
+			},
+			"packs": [
+				{
+					"id": "pack_small",
+					"crystals": 100,
+					"price_usd": 0.99
+				},
+				{
+					"id": "pack_medium",
+					"crystals": 500,
+					"price_usd": 3.99
+				},
+				{
+					"id": "pack_large",
+					"crystals": 1200,
+					"price_usd": 7.99
+				},
+				{
+					"id": "pack_mega",
+					"crystals": 3000,
+					"price_usd": 14.99
+				}
+			]
+		},
+		"loot_result": {
+			"background": "res://assets/ui/reward_bg.png",
+			"button_equip": "res://assets/ui/button.png",
+			"button_destroy": "res://assets/ui/button.png"
+		}
+	},
+	"ui": {
+		"icons": {
+			"burger_menu": "res://assets/ui/burger_menu.png",
+			"burger_menu_width": 55,
+			"burger_menu_height": 55,
+			"super_power_placeholder": "res://assets/ui/fire_power.png",
+			"unique_power_placeholder": "res://assets/ui/frost_power.png",
+			"back_button": "res://assets/ui/button_back.png",
+			"close_button": "res://assets/ui/close_icon.png",
+			"sort_asc": "res://assets/ui/sort_asc.png",
+			"sort_desc": "res://assets/ui/sort_desc.png",
+			"shop_icon": "res://assets/ui/shop_icon.png",
+			"arrow_left": "res://assets/ui/arrow_left.png",
+			"arrow_right": "res://assets/ui/arrow_right.png"
+		}
+	},
+	"items": {
+		"rarity": {
+			"frames": {
+				"common": "res://assets/ui/frames/frame_common.png",
+				"uncommon": "res://assets/ui/frames/frame_uncommon.png",
+				"rare": "res://assets/ui/frames/frame_rare.png",
+				"epic": "res://assets/ui/frames/frame_epic.png",
+				"legendary": "res://assets/ui/frames/frame_legendary.png",
+				"unique": "res://assets/ui/frames/frame_gold.png"
+			},
+			"colors": {
+				"common": "#AAAAAA",
+				"uncommon": "#1EFF00",
+				"rare": "#0070FF",
+				"epic": "#A335EE",
+				"legendary": "#FF8000",
+				"unique": "#FFD700"
+			},
+			"filter_assets": {
+				"all": "res://assets/frames/rarity/all.png",
+				"common": "res://assets/frames/rarity/common.png",
+				"uncommon": "res://assets/frames/rarity/uncommon.png",
+				"rare": "res://assets/frames/rarity/rare.png",
+				"epic": "res://assets/frames/rarity/epic.png",
+				"legendary": "res://assets/frames/rarity/legendary.png",
+				"unique": "res://assets/frames/rarity/unique.png"
+			},
+			"highlight": "res://assets/frames/rarity/rarity_selected.png"
+		},
+		"ship_options": {
+			"ship_select_button": {
+				"asset_animation": "res://assets/ui/ship_select_background_selected.tres",
+				"asset_animation_duration": 1.5,
+				"asset_animation_loop": false,
+				"asset_selected": "res://assets/ui/ship_select_background_selected.png",
+				"asset_unselected": "res://assets/ui/ship_select_background.png",
+				"animation_duration": 1.5,
+				"animation_width": 323,
+				"animation_height": 328,
+				"static_width": 165,
+				"static_height": 165,
+				"text_color": "#000000",
+				"font_size": 24,
+				"letter_spacing": 2
+			},
+			"power_button": {
+				"asset": "res://assets/ui/fire_power.png",
+				"text_color": "#ffffff",
+				"font_size": 30,
+				"letter_spacing": 2
+			},
+			"unique_power_button": {
+				"asset": "res://assets/ui/frost_power.png",
+				"text_color": "#ffffff",
+				"font_size": 30,
+				"letter_spacing": 2
+			},
+			"equipment_button": {
+				"asset": "res://assets/ui/frames/frame_common.png",
+				"text_color": "#ffffff",
+				"font_size": 30,
+				"letter_spacing": 2
+			},
+			"inventory_button": {
+				"asset": "res://assets/ui/frame_empty.png",
+				"text_color": "#000000",
+				"font_size": 30,
+				"letter_spacing": 2
+			},
+			"slot_icons": {
+				"all": "res://assets/ui/icons/all.png",
+				"reactor": "res://assets/ui/icons/reactor.png",
+				"engine": "res://assets/ui/icons/engine.png",
+				"armor": "res://assets/ui/icons/armor.png",
+				"shield": "res://assets/ui/icons/shield.png",
+				"missiles": "res://assets/ui/icons/missile.png",
+				"targeting": "res://assets/ui/icons/targeting.png",
+				"utility": "res://assets/ui/icons/utility.png",
+				"primary": "res://assets/ui/icons/primary.png"
+			},
+			"item_placeholders": {
+				"reactor": "res://assets/items/engine.png",
+				"engine": "res://assets/items/engine.png",
+				"armor": "res://assets/items/engine.png",
+				"shield": "res://assets/items/engine.png",
+				"missiles": "res://assets/items/engine.png",
+				"targeting": "res://assets/items/engine.png",
+				"utility": "res://assets/items/engine.png",
+				"primary": "res://assets/items/engine.png"
+			},
+			"level_indicator_assets": {
+				"1-2": "res://assets/ui/frame_level_bronze.png",
+				"3-5": "res://assets/ui/frame_level_silver.png",
+				"6-8": "res://assets/ui/frame_level_gold.png",
+				"9": "res://assets/ui/frame_level_diamond.png",
+				"text_color": "#FFFFFF",
+				"font_size": 26,
+				"width": 40,
+				"height": 40
+			},
+			"stats_number_font_size": 22
+		}
+	},
+	"audio": {
+		"music": {
+			"main_menu": "res://assets/music/neon.ogg"
+		},
+		"sfx": {
+			"gain": {
+				"shield": "res://assets/sfx/combat/shield_up.ogg"
+			},
+			"collisions": {
+				"shield": "",
+				"player": "",
+				"enemy": "",
+				"boss": ""
+			}
+		}
 	}
-  },
-  "SkillsMenu": {
-	"background": "#0B1020",
-	"default_font_size": 20,
-	"default_title_font_size": 28,
-	"title": {
-	  "font_size": 44,
-	  "text_color": "#FFFFFF"
-	},
-	"subtitle": {
-	  "font_size": 22,
-	  "text_color": "#C2C9E8"
-	},
-	"level": {
-	  "background": "#172544",
-	  "text_size": 30,
-	  "text_color": "#D6E4FF"
-	},
-	"available_points": {
-	  "background": "#4A2F10",
-	  "text_size": 30,
-	  "text_color": "#FFD56B"
-	},
-	"skills": {
-	  "buttons": {
-		"magic": {
-		  "background": "#3554A8",
-		  "text_size": 22,
-		  "text_color": "#FFFFFF"
-		},
-		"utility": {
-		  "background": "#278F55",
-		  "text_size": 22,
-		  "text_color": "#FFFFFF"
-		},
-		"pew_pew": {
-		  "background": "#B65C1E",
-		  "text_size": 22,
-		  "text_color": "#FFFFFF"
-		}
-	  },
-	  "state_buttons": {
-		"locked": {
-		  "asset": "res://assets/ui/buttons/locked.png",
-		  "width": 70,
-		  "height": 70
-		},
-		"unlocked": {
-		  "asset": "res://assets/ui/buttons/unlocked.png",
-		  "width": 70,
-		  "height": 70
-		}
-	  },
-	  "blocks": {
-		"cryo": {
-		  "background": "#13283D",
-		  "locked_icon": {
-			"asset": "res://assets/ui/buttons/btn_close.png",
-			"width": 28,
-			"height": 28
-		  },
-		  "title": {
-			"icon_asset": "",
-			"text_size": 28,
-			"text_color": "#88DDFF"
-		  },
-		  "skills": {
-			"skill_icon_size": 34,
-			"text_color": "#D6E4FF",
-			"title_text_size": 22,
-			"description_text_size": 17
-		  }
-		},
-		"toxin": {
-		  "background": "#17361B",
-		  "locked_icon": {
-			"asset": "res://assets/ui/buttons/btn_close.png",
-			"width": 28,
-			"height": 28
-		  },
-		  "title": {
-			"icon_asset": "",
-			"text_size": 28,
-			"text_color": "#66FF44"
-		  },
-		  "skills": {
-			"skill_icon_size": 34,
-			"text_color": "#E1FFE1",
-			"title_text_size": 22,
-			"description_text_size": 17
-		  }
-		},
-		"singularity": {
-		  "background": "#24163D",
-		  "locked_icon": {
-			"asset": "res://assets/ui/buttons/btn_close.png",
-			"width": 28,
-			"height": 28
-		  },
-		  "title": {
-			"icon_asset": "",
-			"text_size": 28,
-			"text_color": "#B785FF"
-		  },
-		  "skills": {
-			"skill_icon_size": 34,
-			"text_color": "#E8DAFF",
-			"title_text_size": 22,
-			"description_text_size": 17
-		  }
-		},
-		"fortune": {
-		  "background": "#3A2E12",
-		  "locked_icon": {
-			"asset": "res://assets/ui/buttons/btn_close.png",
-			"width": 28,
-			"height": 28
-		  },
-		  "title": {
-			"icon_asset": "",
-			"text_size": 28,
-			"text_color": "#FFD700"
-		  },
-		  "skills": {
-			"skill_icon_size": 34,
-			"text_color": "#FFF3CD",
-			"title_text_size": 22,
-			"description_text_size": 17
-		  }
-		},
-		"tech": {
-		  "background": "#0F3240",
-		  "locked_icon": {
-			"asset": "res://assets/ui/buttons/btn_close.png",
-			"width": 28,
-			"height": 28
-		  },
-		  "title": {
-			"icon_asset": "",
-			"text_size": 28,
-			"text_color": "#00DDFF"
-		  },
-		  "skills": {
-			"skill_icon_size": 34,
-			"text_color": "#D5F9FF",
-			"title_text_size": 22,
-			"description_text_size": 17
-		  }
-		},
-		"perfection": {
-		  "background": "#402312",
-		  "locked_icon": {
-			"asset": "res://assets/ui/buttons/btn_close.png",
-			"width": 28,
-			"height": 28
-		  },
-		  "title": {
-			"icon_asset": "",
-			"text_size": 28,
-			"text_color": "#FF8A3D"
-		  },
-		  "skills": {
-			"skill_icon_size": 34,
-			"text_color": "#FFE7D6",
-			"title_text_size": 22,
-			"description_text_size": 17
-		  }
-		}
-	  }
-	},
-	"respec": {
-	  "background": "#4A2632",
-	  "text_size": 22,
-	  "text_color": "#FFFFFF"
-	}
-  },
-  "scoring": {
-	"killstreak_system": {
-	  "enabled": true,
-	  "base_timer_sec": 2.4,
-	  "refresh_mode": "full_reset",
-	  "partial_refill_sec": 0.75,
-	  "critical_threshold_ratio": 0.25,
-	  "max_multiplier": 3.0,
-	  "rounding_mode": "round",
-	  "lose_streak_on_player_death": true,
-	  "lose_streak_on_level_end": true,
-	  "show_end_popup": true,
-	  "show_tier_name": true,
-	  "show_multiplier": true,
-	  "show_kill_count": true,
-	  "show_timer_bar": true,
-	  "enable_end_streak_bonus": true,
-	  "streak_end_bonus_per_kill": 5,
-	  "boss_kill_count_value": 1,
-	  "boss_kill_bonus_score_flat": 0,
-	  "boss_can_drop_bonus_crystal": true,
-	  "tiers": [
-		{
-		  "id": "base",
-		  "min_kills": 0,
-		  "label_key": "killstreak_tier_base",
-		  "multiplier": 1.0
-		},
-		{
-		  "id": "combo_1",
-		  "min_kills": 3,
-		  "label_key": "killstreak_tier_combo",
-		  "multiplier": 1.1
-		},
-		{
-		  "id": "combo_2",
-		  "min_kills": 6,
-		  "label_key": "killstreak_tier_fury",
-		  "multiplier": 1.2
-		},
-		{
-		  "id": "combo_3",
-		  "min_kills": 10,
-		  "label_key": "killstreak_tier_rampage",
-		  "multiplier": 1.3
-		},
-		{
-		  "id": "combo_4",
-		  "min_kills": 15,
-		  "label_key": "killstreak_tier_overdrive",
-		  "multiplier": 1.5
-		},
-		{
-		  "id": "combo_5",
-		  "min_kills": 22,
-		  "label_key": "killstreak_tier_slaughter",
-		  "multiplier": 1.7
-		},
-		{
-		  "id": "combo_6",
-		  "min_kills": 30,
-		  "label_key": "killstreak_tier_carnage",
-		  "multiplier": 2.0
-		},
-		{
-		  "id": "combo_7",
-		  "min_kills": 40,
-		  "label_key": "killstreak_tier_devastation",
-		  "multiplier": 2.3
-		},
-		{
-		  "id": "combo_8",
-		  "min_kills": 55,
-		  "label_key": "killstreak_tier_bloodbath",
-		  "multiplier": 2.6
-		},
-		{
-		  "id": "combo_9",
-		  "min_kills": 75,
-		  "label_key": "killstreak_tier_massacre",
-		  "multiplier": 3.0
-		}
-	  ],
-	  "hud": {
-		"anchor": "top_left",
-		"offset_x": 24,
-		"offset_y": 120,
-		"bar_width": 220,
-		"bar_height": 12,
-		"normal_color": "#8FD3FF",
-		"critical_color": "#FF5A5A",
-		"text_color": "#FFFFFF"
-	  }
-	},
-	"bonus_crystals": {
-	  "enabled": true,
-	  "despawn_time_sec": 8.0,
-	  "pickup_radius": 28.0,
-	  "magnet_speed": 420.0,
-	  "size_px": 68.0,
-	  "fall_speed_px_sec": 220.0,
-	  "spawn_offset_y": 10.0,
-	  "use_pooling": false,
-	  "default_asset": "res://assets/ui/icons/crystal.tres",
-	  "drop_table": {
-		"normal_enemy_drop_chance": 0.12,
-		"elite_enemy_drop_chance": 0.25,
-		"boss_drop_chance": 1.0
-	  },
-	  "types": [
-		{
-		  "id": "score_crystal_small",
-		  "type": "score_crystal",
-		  "weight": 70,
-		  "score_value": 100,
-		  "asset": "res://assets/ui/icons/crystal.tres"
-		},
-		{
-		  "id": "score_crystal_big",
-		  "type": "score_crystal",
-		  "weight": 25,
-		  "score_value": 300,
-		  "asset": "res://assets/ui/icons/crystal.tres"
-		},
-		{
-		  "id": "streak_time_crystal",
-		  "type": "streak_time_crystal",
-		  "weight": 5,
-		  "time_bonus_sec": 0.5,
-		  "asset": "res://assets/ui/icons/crystal.tres"
-		}
-	  ]
-	}
-  }
 }

@@ -8,6 +8,11 @@ var current_world_id: String = "world_1"
 var current_level_index: int = 0
 var active_override_protocol_ids: Array = []
 
+# Mode Libre : un seul wave_type joué en boucle infinie (posé par
+# FreeModeSelect avant d'entrer dans Game.tscn, remis à false partout ailleurs).
+var free_mode_active: bool = false
+var free_mode_wave_type: String = ""
+
 func _ready() -> void:
 	pass
 

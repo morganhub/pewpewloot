@@ -71,22 +71,25 @@ func get_magic_level() -> int:
 # FIRE PATTERN SYSTEM
 # =============================================================================
 
-## Returns the resolved fire pattern data based on the equipped pattern and its rank.
+## Returns the resolved fire pattern data for the given pattern id and its rank.
+## The active pattern is now provided by the run state (fire pattern drops),
+## not by a persisted equipped pattern. Pass "" (or "fire_ship_default") to use
+## the ship's native pattern.
 ## Returns { "use_ship_default": true } if default ship pattern is selected.
 ## Returns { "is_aura": true, ... } for the aura pattern.
 ## Returns a full pattern_data Dictionary for projectile-based patterns.
-func get_fire_pattern_data() -> Dictionary:
-	var pattern_id := ProfileManager.get_equipped_fire_pattern()
+func get_fire_pattern_data(pattern_id: String = "") -> Dictionary:
 	if pattern_id == "fire_ship_default" or pattern_id == "":
 		return { "use_ship_default": true }
 
-	var rank := ProfileManager.get_skill_rank(pattern_id)
-	if rank <= 0:
-		# Pattern not unlocked, fallback to ship default
-		return { "use_ship_default": true }
+	# Resolve at the player's current rank; fall back to rank 1 for a forced
+	# pattern that is not unlocked in the skill tree.
+	var rank := maxi(1, ProfileManager.get_skill_rank(pattern_id))
 
 	var skill_data := DataManager.get_skill(pattern_id)
 	if skill_data.is_empty():
+		return { "use_ship_default": true }
+	if str(skill_data.get("type", "")) != "fire_pattern":
 		return { "use_ship_default": true }
 
 	var params: Dictionary = skill_data.get("params", {})
@@ -143,6 +146,35 @@ func get_fire_pattern_data() -> Dictionary:
 	base_data["rank"] = rank
 	base_data["fire_pattern_id"] = pattern_id
 	return base_data
+
+## Returns the list of fire_pattern skill ids defined in the pew_pew tree.
+func get_fire_pattern_skill_ids() -> Array:
+	var result: Array = []
+	var tree_data := DataManager.get_skill_tree("pew_pew")
+	var branches: Dictionary = tree_data.get("branches", {})
+	var branch_data: Dictionary = branches.get("fire_patterns", {})
+	var levels: Variant = branch_data.get("levels", [])
+	if levels is Array:
+		for level in (levels as Array):
+			if level is Dictionary and str((level as Dictionary).get("type", "")) == "fire_pattern":
+				var skill_id := str((level as Dictionary).get("id", ""))
+				if skill_id != "":
+					result.append(skill_id)
+	return result
+
+## Returns the fire patterns eligible to drop in a run.
+## When require_rank_one is true, only patterns unlocked (rank >= 1) are returned;
+## if none is unlocked, the array is empty (no fire drop should happen).
+## When require_rank_one is false, all fire patterns are returned.
+func get_eligible_fire_pattern_drops(require_rank_one: bool = true) -> Array:
+	var ids := get_fire_pattern_skill_ids()
+	if not require_rank_one:
+		return ids
+	var eligible: Array = []
+	for skill_id in ids:
+		if ProfileManager.get_skill_rank(str(skill_id)) >= 1:
+			eligible.append(skill_id)
+	return eligible
 
 ## Returns the projectile modifier config based on active magic tree.
 ## { "missile_override": "missile_ice", "on_hit_effects": [...], ... }
@@ -352,9 +384,6 @@ func get_utility_bonuses() -> Dictionary:
 
 ## Checks if a skill can currently be unlocked by the player.
 func can_unlock_skill(skill_id: String) -> bool:
-	if ProfileManager.get_skill_points() <= 0:
-		return false
-
 	var skill_data := DataManager.get_skill(skill_id)
 	if skill_data.is_empty():
 		return false
@@ -362,6 +391,10 @@ func can_unlock_skill(skill_id: String) -> bool:
 	var max_rank := int(skill_data.get("max_rank", 1))
 	var current_rank := ProfileManager.get_skill_rank(skill_id)
 	if current_rank >= max_rank:
+		return false
+
+	var upgrade_cost := ProfileManager.get_skill_upgrade_cost(skill_id, current_rank + 1)
+	if ProfileManager.get_skill_points() < upgrade_cost:
 		return false
 
 	var prereq := str(skill_data.get("prerequisite", ""))

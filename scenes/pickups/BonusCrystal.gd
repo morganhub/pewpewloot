@@ -3,11 +3,36 @@ extends Area2D
 signal collected(crystal_data: Dictionary)
 signal expired
 
+# Strong static cache shared across all BonusCrystal instances.
+# Pattern aligned with scenes/Enemy.gd and scenes/LootDrop.gd (performance_improvements.md).
+static var _resource_cache: Dictionary = {}
+static var _missing_paths: Dictionary = {}
+
+static func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _resource_cache.has(path):
+		return _resource_cache[path] as Resource
+	if _missing_paths.has(path):
+		return null
+	if not ResourceLoader.exists(path):
+		_missing_paths[path] = true
+		return null
+	var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res != null:
+		_resource_cache[path] = res
+	else:
+		_missing_paths[path] = true
+	return res
+
 var crystal_data: Dictionary = {}
 var despawn_time_sec: float = 8.0
 var pickup_radius: float = 28.0
 var magnet_speed: float = 420.0
 var size_px: float = 28.0
+# Forced magnet after a delay (opt-in, e.g. slice_rush where the ship cannot
+# move to the crystal): 0 = disabled, standard proximity magnet only.
+var _force_magnet_after_sec: float = 0.0
 var _time_left: float = 0.0
 var _base_fall_speed: float = 420.0
 var _float_amplitude: float = 6.0
@@ -26,6 +51,7 @@ func setup(data: Dictionary, player_ref: Node2D) -> void:
 	magnet_speed = maxf(10.0, float(crystal_data.get("magnet_speed", 420.0)))
 	size_px = maxf(8.0, float(crystal_data.get("size_px", 28.0)))
 	_base_fall_speed = maxf(40.0, float(crystal_data.get("fall_speed_px_sec", 420.0)))
+	_force_magnet_after_sec = maxf(0.0, float(crystal_data.get("force_magnet_after_sec", 0.0)))
 	_time_left = despawn_time_sec
 	_age = 0.0
 	_apply_visual()
@@ -38,9 +64,9 @@ func _apply_visual() -> void:
 		animated.visible = false
 
 	var asset_path: String = str(crystal_data.get("asset", "")).strip_edges()
-	if asset_path == "" or not ResourceLoader.exists(asset_path):
+	var res: Resource = _load_cached_resource(asset_path)
+	if res == null:
 		return
-	var res: Resource = load(asset_path)
 	if res is SpriteFrames and animated:
 		animated.sprite_frames = res as SpriteFrames
 		var default_anim: StringName = &"default"
@@ -102,5 +128,6 @@ func _process(delta: float) -> void:
 			queue_free()
 			return
 		var to_player: Vector2 = (_player.global_position - global_position)
-		if dist <= pickup_radius * 6.0 and to_player != Vector2.ZERO:
+		var force_magnet: bool = _force_magnet_after_sec > 0.0 and _age >= _force_magnet_after_sec
+		if (dist <= pickup_radius * 6.0 or force_magnet) and to_player != Vector2.ZERO:
 			global_position += to_player.normalized() * magnet_speed * delta

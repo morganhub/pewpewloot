@@ -1,794 +1,890 @@
 {
-	"id": "world_9",
-	"name": "Royaume Magique",
-	"description": "Un plan dimensionnel éthéré où la magie pure façonne la réalité et défie les lois de la physique.",
-	"order": 9,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-			"fighter": "res://assets/enemies/atlantis/fighter.tres",
-			"tank": "res://assets/enemies/atlantis/tank.tres",
-			"artillery": "res://assets/enemies/atlantis/artillery.tres",
-			"elite": "res://assets/enemies/atlantis/elite.tres"
-		},
-		"bosses": {
-			"boss_magic_1": "res://assets/bosses/magical/boss_1.png",
-			"boss_magic_1_animation_duration": 2.0,
-			"boss_magic_1_animation_frequency": 8.0,
-			"boss_magic_2": "res://assets/bosses/magical/boss_2.png",
-			"boss_magic_2_animation_duration": 2.0,
-			"boss_magic_2_animation_frequency": 8.0,
-			"boss_magic_3": "res://assets/bosses/magical/boss_3.png",
-			"boss_magic_3_animation_duration": 2.0,
-			"boss_magic_3_animation_frequency": 8.0,
-			"boss_magic_4": "res://assets/bosses/magical/boss_4.png",
-			"boss_magic_4_animation_duration": 2.0,
-			"boss_magic_4_animation_frequency": 8.0,
-			"boss_magic_5": "res://assets/bosses/magical/boss_5.png",
-			"boss_magic_5_animation_duration": 2.0,
-			"boss_magic_5_animation_frequency": 8.0,
-			"boss_magic_final": "res://assets/bosses/magical/boss_final.tres",
-			"boss_magic_final_animation_duration": 2.0,
-			"boss_magic_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/magical/obstacle_explosive_1.png",
-				"res://assets/obstacles/magical/obstacle_explosive_2.png",
-				"res://assets/obstacles/magical/obstacle_explosive_3.png",
-				"res://assets/obstacles/magical/obstacle_explosive_4.png",
-				"res://assets/obstacles/magical/obstacle_explosive_5.png",
-				"res://assets/obstacles/magical/obstacle_explosive_6.png",
-				"res://assets/obstacles/magical/obstacle_explosive_7.png"
-			]
-		}
+  "id": "world_9",
+  "name": "Royaume Magique",
+  "description": "Un plan dimensionnel éthéré où la magie pure façonne la réalité et défie les lois de la physique.",
+  "order": 9,
+  "skin_overrides": {
+	"enemies": {
+	  "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+	  "fighter": "res://assets/enemies/atlantis/fighter.tres",
+	  "tank": "res://assets/enemies/atlantis/tank.tres",
+	  "artillery": "res://assets/enemies/atlantis/artillery.tres",
+	  "elite": "res://assets/enemies/atlantis/elite.tres"
 	},
-	"multipliers": {
-		"hp": 20.0,
-		"damage": 14.0,
-		"speed": 1.2
+	"bosses": {
+	  "boss_magic_1": "res://assets/bosses/magical/boss_1.png",
+	  "boss_magic_1_animation_duration": 2.0,
+	  "boss_magic_1_animation_frequency": 8.0,
+	  "boss_magic_2": "res://assets/bosses/magical/boss_2.png",
+	  "boss_magic_2_animation_duration": 2.0,
+	  "boss_magic_2_animation_frequency": 8.0,
+	  "boss_magic_3": "res://assets/bosses/magical/boss_3.png",
+	  "boss_magic_3_animation_duration": 2.0,
+	  "boss_magic_3_animation_frequency": 8.0,
+	  "boss_magic_4": "res://assets/bosses/magical/boss_4.png",
+	  "boss_magic_4_animation_duration": 2.0,
+	  "boss_magic_4_animation_frequency": 8.0,
+	  "boss_magic_5": "res://assets/bosses/magical/boss_5.png",
+	  "boss_magic_5_animation_duration": 2.0,
+	  "boss_magic_5_animation_frequency": 8.0,
+	  "boss_magic_final": "res://assets/bosses/magical/boss_final.tres",
+	  "boss_magic_final_animation_duration": 2.0,
+	  "boss_magic_final_animation_frequency": 8.0
 	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/starlight.ogg",
-		"color_palette": "#7b2d8e"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_9_lvl_0",
-			"name": "Orée Enchantée",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_magic_1",
-			"score_1star": 2000,
-			"score_2stars": 3300,
-			"score_3stars": 4550
-		},
-		{
-			"index": 1,
-			"id": "world_9_lvl_1",
-			"name": "Cascade de Mana",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_magic_2",
-			"score_1star": 3900,
-			"score_2stars": 6400,
-			"score_3stars": 8900
-		},
-		{
-			"index": 2,
-			"id": "world_9_lvl_2",
-			"name": "Jardins Cristallins",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_magic_3",
-			"score_1star": 4250,
-			"score_2stars": 6950,
-			"score_3stars": 9600
-		},
-		{
-			"index": 3,
-			"id": "world_9_lvl_3",
-			"name": "Bibliothèque Astrale",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_magic_4",
-			"score_1star": 2950,
-			"score_2stars": 4800,
-			"score_3stars": 6700
-		},
-		{
-			"index": 4,
-			"id": "world_9_lvl_4",
-			"name": "Nexus de Pouvoir",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_magic_5",
-			"score_1star": 7100,
-			"score_2stars": 11600,
-			"score_3stars": 16100
-		},
-		{
-			"index": 5,
-			"id": "world_9_lvl_5",
-			"name": "L'Archimage",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_magic_final",
-			"score_1star": 5450,
-			"score_2stars": 8900,
-			"score_3stars": 12350
-		},
-		{
-			"index": 6,
-			"id": "world_9_lvl_6",
-			"name": "Boss Debug Arena",
-			"type": "boss_debug",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
-				"near_layer": []
-			},
-			"waves": [],
-			"events": [],
-			"boss_sequence": [
-				"boss_forest_1",
-				"boss_forest_2",
-				"boss_forest_3",
-				"boss_forest_4",
-				"boss_forest_5",
-				"boss_forest_final",
-				"boss_atlantis_1",
-				"boss_atlantis_2",
-				"boss_atlantis_3",
-				"boss_atlantis_4",
-				"boss_atlantis_5",
-				"boss_atlantis_final",
-				"boss_industrial_1",
-				"boss_industrial_2",
-				"boss_industrial_3",
-				"boss_industrial_4",
-				"boss_industrial_5",
-				"boss_industrial_final",
-				"boss_lava_1",
-				"boss_lava_2",
-				"boss_lava_3",
-				"boss_lava_4",
-				"boss_lava_5",
-				"boss_lava_final",
-				"boss_mine_1",
-				"boss_mine_2",
-				"boss_mine_3",
-				"boss_mine_4",
-				"boss_mine_5",
-				"boss_mine_final",
-				"boss_necro_1",
-				"boss_necro_2",
-				"boss_necro_3",
-				"boss_necro_4",
-				"boss_necro_5",
-				"boss_necro_final",
-				"boss_titan_1",
-				"boss_titan_2",
-				"boss_titan_3",
-				"boss_titan_4",
-				"boss_titan_5",
-				"boss_titan_final",
-				"boss_alien_1",
-				"boss_alien_2",
-				"boss_alien_3",
-				"boss_alien_4",
-				"boss_alien_5",
-				"boss_alien_final",
-				"boss_magic_1",
-				"boss_magic_2",
-				"boss_magic_3",
-				"boss_magic_4",
-				"boss_magic_5",
-				"boss_magic_final"
-			],
-			"score_1star": 1200,
-			"score_2stars": 1600,
-			"score_3stars": 2100
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_8"
+	"obstacles": {
+	  "explosives": [
+		"res://assets/obstacles/magical/obstacle_explosive_1.png",
+		"res://assets/obstacles/magical/obstacle_explosive_2.png",
+		"res://assets/obstacles/magical/obstacle_explosive_3.png",
+		"res://assets/obstacles/magical/obstacle_explosive_4.png",
+		"res://assets/obstacles/magical/obstacle_explosive_5.png",
+		"res://assets/obstacles/magical/obstacle_explosive_6.png",
+        "res://assets/obstacles/magical/obstacle_explosive_7.png"
+	  ]
 	}
+  },
+  "multipliers": {
+	"hp": 20.0,
+	"damage": 14.0,
+	"speed": 1.2
+  },
+  "wave_runtime_defaults": {
+	"artillery_count": 18,
+	"artillery_rows": 3,
+	"artillery_spawn_interval_sec": 0.08,
+	"artillery_fire_rate_sec": 1.9
+  },
+  "theme": {
+	"background": "",
+	"music": "res://assets/music/starlight.ogg",
+	"color_palette": "#7b2d8e"
+  },
+  "levels": [
+	{
+	  "index": 0,
+	  "id": "world_9_lvl_0",
+	  "name": "Orée Enchantée",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_magic_1",
+	  "score_1star": 2000,
+	  "score_2stars": 3300,
+	  "score_3stars": 4550,
+	  "waves": [
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 260.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 1,
+	  "id": "world_9_lvl_1",
+	  "name": "Cascade de Mana",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_magic_2",
+	  "score_1star": 3900,
+	  "score_2stars": 6400,
+	  "score_3stars": 8900,
+	  "waves": [
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 290.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "type": "swarm",
+		  "enemy_id": "swarmer",
+		  "count": 49,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "pong",
+		  "duration": 30,
+		  "ball_speed_px_sec": 640,
+		  "enemy_paddle_speed_px_sec": 560,
+		  "enemy_reaction_interval_sec": 0.12,
+		  "enemy_aim_error_px": 10,
+		  "crystals_per_point": 5
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 2,
+	  "id": "world_9_lvl_2",
+	  "name": "Jardins Cristallins",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_magic_3",
+	  "score_1star": 4250,
+	  "score_2stars": 6950,
+	  "score_3stars": 9600,
+	  "waves": [
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 260.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 90,
+		  "gap_width": 260,
+		  "row_interval": 2.5
+		},
+		{
+		  "type": "asteroid_split",
+		  "duration": 35,
+		  "count": 8,
+		  "speed": 175,
+		  "hp_multiplier": 2.5
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 2.0
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 3,
+	  "id": "world_9_lvl_3",
+	  "name": "Bibliothèque Astrale",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_magic_4",
+	  "score_1star": 2950,
+	  "score_2stars": 4800,
+	  "score_3stars": 6700,
+	  "waves": [
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 90,
+		  "gap_width": 260,
+		  "row_interval": 2.5
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 310.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "ball_launcher",
+		  "duration": 60,
+		  "ball_count_start": 5,
+		  "row_hp_base": 6,
+		  "row_hp_growth_per_turn": 1.8,
+		  "row_fill_ratio_min": 0.55,
+		  "row_fill_ratio_max": 0.85,
+		  "token_chance": 0.18,
+		  "damage_percent_per_row_crossed": 0.2,
+		  "reward_multiplier": 2.0
+		},
+		{
+		  "type": "vertical_climb",
+		  "duration": 45,
+		  "gravity_px_sec2": 1850,
+		  "bounce_speed_px_sec": 800,
+		  "platform_gap_y_min_px": 115,
+		  "platform_gap_y_max_px": 155,
+		  "lava_rise_px_sec": 8
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 4,
+	  "id": "world_9_lvl_4",
+	  "name": "Nexus de Pouvoir",
+	  "type": "normal",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_magic_5",
+	  "score_1star": 7100,
+	  "score_2stars": 11600,
+	  "score_3stars": 16100,
+	  "waves": [
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 290.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 160,
+		  "gap_width": 180,
+		  "row_interval": 1.8
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "slalom",
+		  "speed": 70,
+		  "gap_width": 300,
+		  "row_interval": 3.0,
+		  "drift_speed": 5,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "gates",
+		  "speed": 150,
+		  "gap_width": 200,
+		  "row_interval": 2.0
+		},
+		{
+		  "type": "pong",
+		  "duration": 30,
+		  "ball_speed_px_sec": 640,
+		  "enemy_paddle_speed_px_sec": 560,
+		  "enemy_reaction_interval_sec": 0.12,
+		  "enemy_aim_error_px": 10,
+		  "crystals_per_point": 5
+		},
+		{
+		  "type": "star_drift",
+		  "duration": 60,
+		  "scroll_speed_px_sec_start": 290,
+		  "scroll_speed_px_sec_end": 540,
+		  "hazard_interval_sec_start": 1.3,
+		  "hazard_interval_sec_end": 0.65,
+		  "max_active_hazards": 14,
+		  "quasar_interval_sec_start": 10,
+		  "quasar_interval_sec_end": 6,
+		  "quasar_max_active": 2,
+		  "trail_interval_sec_start": 2.8,
+		  "reward_multiplier": 1.6
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "slalom",
+		  "speed": 70,
+		  "gap_width": 300,
+		  "row_interval": 3.0,
+		  "drift_speed": 5,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "artillery",
+		  "enemy_id": "artillery",
+		  "count": 6,
+		  "rows": 2,
+		  "spawn_interval_sec": 0.08,
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 5,
+	  "id": "world_9_lvl_5",
+	  "name": "L'Archimage",
+	  "type": "boss",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_id": "boss_magic_final",
+	  "score_1star": 5450,
+	  "score_2stars": 8900,
+	  "score_3stars": 12350,
+	  "waves": [
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "rain",
+		  "speed": 130,
+		  "gap_width": 200,
+		  "row_interval": 2.0,
+		  "drift_speed": 8,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "tank",
+		  "interval": 3.33,
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 330.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "elite",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_medium",
+		  "pattern": "slalom",
+		  "speed": 170,
+		  "gap_width": 190,
+		  "row_interval": 1.2,
+		  "drift_speed": 10,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "enemy_id": "fighter",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_small",
+		  "pattern": "rain",
+		  "speed": 250,
+		  "gap_width": 130,
+		  "row_interval": 0.6,
+		  "drift_speed": 25,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		},
+		{
+		  "type": "obstacle",
+		  "obstacle_id": "asteroid_large",
+		  "pattern": "slalom",
+		  "speed": 70,
+		  "gap_width": 300,
+		  "row_interval": 3.0,
+		  "drift_speed": 5,
+		  "drift_directions": [
+			"SW",
+			"S",
+            "SE"
+		  ]
+		},
+		{
+		  "enemy_id": "artillery",
+		  "type": "artillery",
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	},
+	{
+	  "index": 6,
+	  "id": "world_9_lvl_6",
+	  "name": "Boss Debug Arena",
+	  "type": "boss_debug",
+	  "backgrounds": {
+		"card": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"far_layer": "res://assets/backgrounds/worlds/magical/magical_1.png",
+		"near_layer": []
+	  },
+	  "events": [],
+	  "boss_sequence": [
+		"boss_forest_1",
+		"boss_forest_2",
+		"boss_forest_3",
+		"boss_forest_4",
+		"boss_forest_5",
+		"boss_forest_final",
+		"boss_atlantis_1",
+		"boss_atlantis_2",
+		"boss_atlantis_3",
+		"boss_atlantis_4",
+		"boss_atlantis_5",
+		"boss_atlantis_final",
+		"boss_industrial_1",
+		"boss_industrial_2",
+		"boss_industrial_3",
+		"boss_industrial_4",
+		"boss_industrial_5",
+		"boss_industrial_final",
+		"boss_lava_1",
+		"boss_lava_2",
+		"boss_lava_3",
+		"boss_lava_4",
+		"boss_lava_5",
+		"boss_lava_final",
+		"boss_mine_1",
+		"boss_mine_2",
+		"boss_mine_3",
+		"boss_mine_4",
+		"boss_mine_5",
+		"boss_mine_final",
+		"boss_necro_1",
+		"boss_necro_2",
+		"boss_necro_3",
+		"boss_necro_4",
+		"boss_necro_5",
+		"boss_necro_final",
+		"boss_titan_1",
+		"boss_titan_2",
+		"boss_titan_3",
+		"boss_titan_4",
+		"boss_titan_5",
+		"boss_titan_final",
+		"boss_alien_1",
+		"boss_alien_2",
+		"boss_alien_3",
+		"boss_alien_4",
+		"boss_alien_5",
+		"boss_alien_final",
+		"boss_magic_1",
+		"boss_magic_2",
+		"boss_magic_3",
+		"boss_magic_4",
+		"boss_magic_5",
+        "boss_magic_final"
+	  ],
+	  "score_1star": 1200,
+	  "score_2stars": 1600,
+	  "score_3stars": 2100,
+	  "waves": [
+		{
+		  "enemy_id": "tank",
+		  "enemy_modifier_id": "",
+		  "type": "tank",
+		  "interval": 3.33,
+		  "hp_multiplier": 1.65
+		},
+		{
+		  "type": "path_trial",
+		  "pattern_id": "dna_helix",
+		  "speed": 300.0,
+		  "tick_damage": 12,
+		  "tick_interval_sec": 0.35,
+		  "path_width": 120.0,
+		  "warmup_sec": 1.0,
+		  "head_length_px": 280.0,
+		  "tail_length_px": 180.0,
+		  "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+		  "path_asset_override": "res://assets/missiles/blue_energy.tres"
+		},
+		{
+		  "type": "artillery",
+		  "enemy_id": "artillery",
+		  "count": 6,
+		  "rows": 2,
+		  "spawn_interval_sec": 0.08,
+		  "interval": 0.7,
+		  "enemy_modifier_id": ""
+		}
+	  ]
+	}
+  ],
+  "unlock_condition": {
+	"type": "world_clear",
+	"world_id": "world_8"
+  }
 }

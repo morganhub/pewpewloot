@@ -24,6 +24,7 @@ var _knob_pos: Vector2 = Vector2.ZERO
 var _output: Vector2 = Vector2.ZERO
 var _frame_drag_delta: Vector2 = Vector2.ZERO
 var _active: bool = false
+var _finger_screen_pos: Vector2 = Vector2.INF
 
 # =============================================================================
 # LIFECYCLE
@@ -65,6 +66,7 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
 		# Si aucun doigt n'est actif, on prend celui-ci comme joystick
 		if _touch_id == -1:
 			_touch_id = event.index
+			_finger_screen_pos = event.position
 			_start_joystick(event.position)
 	else:
 		# Si le doigt actif est relâché
@@ -73,6 +75,7 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
 
 func _handle_drag(event: InputEventScreenDrag) -> void:
 	if event.index == _touch_id:
+		_finger_screen_pos = event.position
 		_update_joystick(event.position)
 		_frame_drag_delta += event.relative
 
@@ -90,6 +93,7 @@ func _reset_joystick() -> void:
 	_active = false
 	_output = Vector2.ZERO
 	_frame_drag_delta = Vector2.ZERO
+	_finger_screen_pos = Vector2.INF
 	hide()
 	queue_redraw()
 
@@ -142,6 +146,14 @@ func get_drag_delta() -> Vector2:
 ## Vérifie si le joystick est actif (doigt posé).
 func is_active() -> bool:
 	return _active
+
+## Vérifie si un doigt est posé (alias d'is_active pour clarté côté follow_finger).
+func is_touching() -> bool:
+	return _active
+
+## Position écran du doigt actif. Retourne Vector2.INF si aucun doigt n'est posé.
+func get_finger_screen_position() -> Vector2:
+	return _finger_screen_pos
 
 func is_mobile() -> bool:
 	return OS.has_feature("mobile") or DisplayServer.get_name() == "headless" # Headless/Mobile simulation

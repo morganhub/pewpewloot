@@ -23,6 +23,7 @@ var _unique_powers: Dictionary = {} # power_id -> data
 var _boss_powers: Dictionary = {} # power_id -> data
 var _effects: Dictionary = {} # effect_id -> data
 var _game_config: Dictionary = {} # game.json data
+var _wave_types_config: Dictionary = {} # wave_types.json data (config par type de vague)
 var _override_protocols: Dictionary = {} # override_protocols.json data
 var _skills: Dictionary = {} # skills.json data
 var _obstacles: Dictionary = {} # obstacle_id -> data
@@ -38,6 +39,7 @@ var _full_data_loaded: bool = false
 
 func _ready() -> void:
 	_load_game_config()
+	_load_wave_types_config()
 	_load_override_protocols()
 	pass
 
@@ -124,11 +126,45 @@ func get_skill_tree_for_id(skill_id: String) -> String:
 func get_respec_cost_base() -> int:
 	return int(_skills.get("respec_cost_base", 100))
 
+## Returns the XP curve base, used in xp_for_level(N) = base * pow(N, exponent).
+## Read from data/game.json -> progression (centralized).
+## Falls back to data/skills.json then to legacy default for safety.
 func get_xp_curve_base() -> int:
+	var prog: Dictionary = _get_progression_config()
+	if prog.has("xp_curve_base"):
+		return int(prog.get("xp_curve_base"))
 	return int(_skills.get("xp_curve_base", 100))
 
 func get_xp_curve_exponent() -> float:
+	var prog: Dictionary = _get_progression_config()
+	if prog.has("xp_curve_exponent"):
+		return float(prog.get("xp_curve_exponent"))
 	return float(_skills.get("xp_curve_exponent", 1.5))
+
+## Ratio appliquee au score pour le convertir en XP brute avant les multiplicateurs.
+## Permet de decoupler l'echelle de score (UI/feedback) du rythme de progression XP.
+func get_xp_per_score_ratio() -> float:
+	var prog: Dictionary = _get_progression_config()
+	return float(prog.get("xp_per_score_ratio", 1.0))
+
+## Cap dur du niveau joueur. 0 = pas de cap.
+func get_max_player_level() -> int:
+	var prog: Dictionary = _get_progression_config()
+	return int(prog.get("max_player_level", 0))
+
+## Multiplicateur d'XP applique pour les runs faites dans un monde donne.
+## Plus le world est "haut", plus le multiplicateur recompense les level-ups.
+func get_world_xp_multiplier(world_id: String) -> float:
+	var prog: Dictionary = _get_progression_config()
+	var v: Variant = prog.get("world_xp_multipliers", {})
+	if v is Dictionary:
+		var mult: Variant = (v as Dictionary).get(world_id, 1.0)
+		return maxf(0.0, float(mult))
+	return 1.0
+
+func _get_progression_config() -> Dictionary:
+	var v: Variant = _game_config.get("progression", {})
+	return v if v is Dictionary else {}
 
 # =============================================================================
 # GAME CONFIG (game.json)
@@ -136,6 +172,10 @@ func get_xp_curve_exponent() -> float:
 
 func _load_game_config() -> void:
 	_game_config = _load_json("res://data/game.json")
+
+func _load_wave_types_config() -> void:
+	_wave_types_config = _load_json("res://data/wave_types.json")
+	_freemode_config = _load_json("res://data/freemode.json")
 
 func _load_override_protocols() -> void:
 	_override_protocols = _load_json("res://data/override_protocols.json")
@@ -221,8 +261,19 @@ func get_game_config() -> Dictionary:
 func get_game_data() -> Dictionary:
 	return _game_config
 
+func _get_config_path(path: Array, fallback: Variant = {}) -> Variant:
+	var current: Variant = _game_config
+	for key in path:
+		if not (current is Dictionary):
+			return fallback
+		var dict := current as Dictionary
+		if not dict.has(key):
+			return fallback
+		current = dict.get(key)
+	return current
+
 func get_killstreak_config() -> Dictionary:
-	var scoring: Variant = _game_config.get("scoring", {})
+	var scoring: Variant = _get_config_path(["gameplay", "scoring"], _game_config.get("scoring", {}))
 	if not (scoring is Dictionary):
 		return {}
 	var cfg: Variant = (scoring as Dictionary).get("killstreak_system", {})
@@ -231,7 +282,7 @@ func get_killstreak_config() -> Dictionary:
 	return {}
 
 func get_bonus_crystals_config() -> Dictionary:
-	var scoring: Variant = _game_config.get("scoring", {})
+	var scoring: Variant = _get_config_path(["gameplay", "scoring"], _game_config.get("scoring", {}))
 	if not (scoring is Dictionary):
 		return {}
 	var cfg: Variant = (scoring as Dictionary).get("bonus_crystals", {})
@@ -240,19 +291,99 @@ func get_bonus_crystals_config() -> Dictionary:
 	return {}
 
 func get_explosions_config() -> Dictionary:
-	var cfg: Variant = _game_config.get("explosions", {})
+	var cfg: Variant = _get_config_path(["gameplay", "explosions"], _game_config.get("explosions", {}))
 	if cfg is Dictionary:
 		return (cfg as Dictionary).duplicate(true)
 	return {}
+
+func get_fire_pattern_drops_config() -> Dictionary:
+	var cfg: Variant = _get_config_path(["gameplay", "fire_pattern_drops"], _game_config.get("fire_pattern_drops", {}))
+	if cfg is Dictionary:
+		return (cfg as Dictionary).duplicate(true)
+	return {}
+
+# Pre-migration locations of wave-type configs inside game.json (legacy fallback).
+const _WAVE_TYPE_LEGACY_GAME_KEYS: Dictionary = {
+	"swarm": "swarm",
+	"tank": "tank_wave",
+	"path_trial": "path_trial_defaults",
+	"gate_runner": "gate_runner",
+	"pong": "pong"
+}
+
+## Config centralisée par type de vague (data/wave_types.json). La clé est la
+## valeur de wave.type des world_x.json. Fallback legacy vers game.json pour
+## les anciens emplacements gameplay.<key>.
+func get_wave_type_config(wave_type: String) -> Dictionary:
+	var cfg: Variant = _wave_types_config.get(wave_type, {})
+	if cfg is Dictionary and not (cfg as Dictionary).is_empty():
+		return (cfg as Dictionary).duplicate(true)
+	var legacy_key: String = str(_WAVE_TYPE_LEGACY_GAME_KEYS.get(wave_type, wave_type))
+	var legacy: Variant = _get_config_path(["gameplay", legacy_key], _game_config.get(legacy_key, {}))
+	if legacy is Dictionary:
+		return (legacy as Dictionary).duplicate(true)
+	return {}
+
+## Tous les types de vagues déclarés dans wave_types.json (clés de config).
+func get_wave_type_ids() -> Array:
+	var ids: Array = []
+	for key in _wave_types_config.keys():
+		var id: String = str(key)
+		if not id.begins_with("_"):
+			ids.append(id)
+	return ids
+
+# =============================================================================
+# FREE MODE (data/freemode.json)
+# =============================================================================
+
+var _freemode_config: Dictionary = {}
+
+func get_freemode_config() -> Dictionary:
+	return _freemode_config.duplicate(true)
+
+## Modes jouables en mode libre = intersection des types de wave_types.json et
+## des blocs déclarés dans freemode.json > modes (liste dynamique : ajouter un
+## type + son bloc freemode suffit à le faire apparaître dans le menu).
+func get_freemode_mode_ids() -> Array:
+	var modes_v: Variant = _freemode_config.get("modes", {})
+	if not (modes_v is Dictionary):
+		return []
+	var wave_ids: Array = get_wave_type_ids()
+	var ids: Array = []
+	for key in (modes_v as Dictionary).keys():
+		var id: String = str(key)
+		if not id.begins_with("_") and wave_ids.has(id):
+			ids.append(id)
+	return ids
+
+func get_freemode_mode_config(wave_type: String) -> Dictionary:
+	var modes_v: Variant = _freemode_config.get("modes", {})
+	if modes_v is Dictionary:
+		var cfg: Variant = (modes_v as Dictionary).get(wave_type, {})
+		if cfg is Dictionary:
+			return (cfg as Dictionary).duplicate(true)
+	return {}
+
+## Insère un niveau construit au runtime (mode libre) dans le registre des
+## niveaux : toutes les lectures get_level_data (background, wave counter,
+## seuils de score, prewarm) restent ainsi cohérentes.
+func register_synthetic_level(level_id: String, data: Dictionary) -> void:
+	if level_id == "":
+		return
+	_levels[level_id] = data.duplicate(true)
+
+func get_gate_runner_config() -> Dictionary:
+	return get_wave_type_config("gate_runner")
 
 func get_path_trial_defaults() -> Dictionary:
-	var cfg: Variant = _game_config.get("path_trial_defaults", {})
-	if cfg is Dictionary:
-		return (cfg as Dictionary).duplicate(true)
-	return {}
+	return get_wave_type_config("path_trial")
+
+func get_pong_config() -> Dictionary:
+	return get_wave_type_config("pong")
 
 func get_shared_asset_config(asset_id: String) -> Dictionary:
-	var shared_assets: Variant = _game_config.get("shared_assets", {})
+	var shared_assets: Variant = _get_config_path(["common", "shared_assets"], _game_config.get("shared_assets", {}))
 	if not (shared_assets is Dictionary):
 		return {}
 
@@ -791,7 +922,7 @@ func get_rarity(rarity_id: String) -> Dictionary:
 
 ## Retourne la couleur hexadécimale associée à une rareté
 func get_rarity_color(rarity_id: String) -> Color:
-	var rarity_colors: Variant = _game_config.get("rarity_colors", {})
+	var rarity_colors: Variant = _get_config_path(["items", "rarity", "colors"], _game_config.get("rarity_colors", {}))
 	if rarity_colors is Dictionary and (rarity_colors as Dictionary).has(rarity_id):
 		return Color.html(str((rarity_colors as Dictionary).get(rarity_id, "#FFFFFF")))
 
@@ -801,7 +932,8 @@ func get_rarity_color(rarity_id: String) -> Color:
 
 ## Retourne le chemin de la frame (bordure) associée à une rareté
 func get_rarity_frame_path(rarity_id: String) -> String:
-	var frames: Dictionary = _game_config.get("rarity_frames", {})
+	var frames_v: Variant = _get_config_path(["items", "rarity", "frames"], _game_config.get("rarity_frames", {}))
+	var frames: Dictionary = frames_v if frames_v is Dictionary else {}
 	if frames.has(rarity_id):
 		return str(frames.get(rarity_id, ""))
 	# Fallback to common if not found

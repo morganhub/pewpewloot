@@ -11,6 +11,11 @@ extends Area2D
 var item_data: Dictionary = {}
 var fall_speed: float = 100.0
 var _is_collected: bool = false
+# Timed auto-collect (opt-in, e.g. slice_rush where the ship cannot move):
+# 0 = disabled, standard behavior untouched.
+var _auto_collect_delay_sec: float = 0.0
+var _auto_collect_speed: float = 900.0
+var _auto_collect_timer: float = 0.0
 var _drift_velocity: Vector2 = Vector2.ZERO
 var _viewport_width: float = 0.0
 var _sprite_node: Sprite2D = null
@@ -45,13 +50,20 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	set_process(true)
 	item_data = loot_item
 	global_position = pos
-	
+
+	# Optional timed auto-collect: after the delay the drop homes to the player
+	# unconditionally and collects on contact. Keys absent -> disabled.
+	_auto_collect_delay_sec = maxf(0.0, float(item_data.get("auto_collect_delay_sec", 0.0)))
+	_auto_collect_speed = maxf(50.0, float(item_data.get("auto_collect_speed_px_sec", 900.0)))
+	_auto_collect_timer = _auto_collect_delay_sec
+
 	var is_powerup := str(item_data.get("type", "")) == "powerup"
 	var default_size: float = 56.0 if is_powerup else 32.0
 	var target_width: float = maxf(1.0, float(item_data.get("width", default_size)))
 	var target_height: float = maxf(1.0, float(item_data.get("height", default_size)))
 	var asset_anim_duration: float = maxf(0.0, float(item_data.get("asset_anim_duration", item_data.get("asset_duration", 0.0))))
 	var asset_anim_loop: bool = bool(item_data.get("asset_anim_loop", item_data.get("asset_loop", true)))
+	var asset_animation_speed_fps: float = 0.0
 	
 	# Visual Setup (Sprite vs Polygon)
 	# Support both 'visual_asset' (legacy/powerups) and 'asset' (LootItem)
@@ -61,13 +73,22 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 		var loot_cfg_v: Variant = gameplay_cfg.get("loot", {})
 		if loot_cfg_v is Dictionary:
 			var loot_cfg := loot_cfg_v as Dictionary
-			var generic_asset := str(loot_cfg.get("asset", ""))
-			if generic_asset != "":
-				asset_path = generic_asset
+			var fallback_asset := str(loot_cfg.get("fallback_asset", loot_cfg.get("asset", "")))
+			var rarity := str(item_data.get("rarity", "common"))
+			var rarity_assets_v: Variant = loot_cfg.get("rarity_assets", {})
+			if rarity_assets_v is Dictionary:
+				var rarity_asset := str((rarity_assets_v as Dictionary).get(rarity, ""))
+				if rarity_asset != "" and ResourceLoader.exists(rarity_asset):
+					asset_path = rarity_asset
+				elif fallback_asset != "" and ResourceLoader.exists(fallback_asset):
+					asset_path = fallback_asset
+			elif fallback_asset != "" and ResourceLoader.exists(fallback_asset):
+				asset_path = fallback_asset
 			target_width = maxf(1.0, float(loot_cfg.get("width", target_width)))
 			target_height = maxf(1.0, float(loot_cfg.get("height", target_height)))
 			asset_anim_duration = maxf(0.0, float(loot_cfg.get("asset_anim_duration", loot_cfg.get("asset_duration", asset_anim_duration))))
 			asset_anim_loop = bool(loot_cfg.get("asset_anim_loop", loot_cfg.get("asset_loop", asset_anim_loop)))
+			asset_animation_speed_fps = maxf(0.0, float(loot_cfg.get("animation_speed_fps", 0.0)))
 
 	LootDropHighlightSetup.setup_for_parent(self, target_width, target_height)
 	
@@ -79,13 +100,16 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 			anim_sprite.position = Vector2.ZERO
 			anim_sprite.centered = true
 			var frames: SpriteFrames = loaded_res as SpriteFrames
+			var playback_duration: float = asset_anim_duration
+			if playback_duration <= 0.0 and asset_animation_speed_fps > 0.0:
+				playback_duration = _compute_animation_duration_for_speed(frames, &"default", asset_animation_speed_fps)
 			
 			var anim_name: StringName = VFXManager.play_sprite_frames(
 				anim_sprite,
 				frames,
 				&"default",
 				asset_anim_loop,
-				asset_anim_duration
+				playback_duration
 			)
 			if anim_name != &"" and anim_sprite.sprite_frames:
 				var frame_tex: Texture2D = _get_cached_first_frame_texture(anim_sprite.sprite_frames, anim_name)
@@ -116,10 +140,6 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	else:
 		_apply_polygon_fallback(target_width, target_height)
 	
-	# TODO: Remplacer par sprite de l'item selon rarity
-	# var rarity := str(item_data.get("rarity", "common"))
-	# visual.texture = load("res://assets/items/" + item_data.get("id", "unknown") + ".png")
-	
 	# Connecter signaux
 	# Layer 4 (Loot), Mask 2 (Player)
 	collision_layer = 4
@@ -137,6 +157,20 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	modulate.a = 0.0
 	var tween_in := create_tween()
 	tween_in.tween_property(self, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _compute_animation_duration_for_speed(frames: SpriteFrames, preferred_anim: StringName, fps: float) -> float:
+	if frames == null or fps <= 0.0:
+		return 0.0
+	var anim_name: StringName = preferred_anim
+	if not frames.has_animation(anim_name):
+		var names: PackedStringArray = frames.get_animation_names()
+		if names.is_empty():
+			return 0.0
+		anim_name = StringName(names[0])
+	var frame_count: int = frames.get_frame_count(anim_name)
+	if frame_count <= 0:
+		return 0.0
+	return float(frame_count) / fps
 
 func _get_or_create_sprite() -> Sprite2D:
 	if _sprite_node and is_instance_valid(_sprite_node):
@@ -225,6 +259,20 @@ func _setup_drift() -> void:
 func _process(delta: float) -> void:
 	if _is_collected:
 		return
+
+	# Timed auto-collect homing: replaces fall/drift/magnet once the delay is up.
+	if _auto_collect_delay_sec > 0.0:
+		_auto_collect_timer -= delta
+		if _auto_collect_timer <= 0.0:
+			var home_target: Node = get_tree().get_first_node_in_group("player")
+			if home_target is Node2D:
+				var to_ship: Vector2 = (home_target as Node2D).global_position - global_position
+				var dist: float = to_ship.length()
+				if dist <= 24.0:
+					_collect()
+					return
+				global_position += to_ship.normalized() * minf(_auto_collect_speed * delta, dist)
+				return
 
 	global_position.y += fall_speed * delta
 	

@@ -16,6 +16,7 @@ var _speed: float = 200.0
 var _gap_width: float = 180.0
 var _row_interval: float = 1.2
 var _duration: float = 15.0
+var _spawn_cutoff_time: float = 10.0
 
 var _elapsed: float = 0.0
 var _row_timer: float = 0.0
@@ -60,6 +61,7 @@ func setup(wave_data: Dictionary) -> void:
 	_gap_width = float(wave_data.get("gap_width", 180))
 	_row_interval = float(wave_data.get("row_interval", 1.2))
 	_duration = float(wave_data.get("duration", 15.0))
+	_spawn_cutoff_time = clampf(float(wave_data.get("spawn_cutoff_time", _duration - 5.0)), 0.0, _duration)
 	
 	# Charger les données de l'obstacle depuis DataManager
 	var obstacle_id: String = str(wave_data.get("obstacle_id", ""))
@@ -120,6 +122,9 @@ func setup(wave_data: Dictionary) -> void:
 func stop() -> void:
 	_is_active = false
 
+func is_spawning_finished() -> bool:
+	return not _is_active or _elapsed >= _spawn_cutoff_time
+
 func _process(delta: float) -> void:
 	if not _is_active:
 		return
@@ -133,8 +138,8 @@ func _process(delta: float) -> void:
 		finished.emit()
 		return
 	
-	# Spawn une ligne à chaque intervalle
-	if _row_timer >= _row_interval:
+	# Spawn une ligne à chaque intervalle, en gardant une marge avant la fin de wave.
+	if _elapsed <= _spawn_cutoff_time and _row_timer >= _row_interval:
 		_row_timer -= _row_interval
 		_spawn_row()
 

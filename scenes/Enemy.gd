@@ -125,6 +125,33 @@ var _wave_end_exiting: bool = false
 var _wave_end_exit_velocity: Vector2 = Vector2.ZERO
 var _wave_end_exit_timer: float = 0.0
 var _wave_end_exit_duration: float = 1.6
+var _movement_mode: String = "path"
+var _swarm_phase: String = "none"
+var _swarm_target_position: Vector2 = Vector2.ZERO
+var _swarm_zone_rect: Rect2 = Rect2()
+var _swarm_entry_speed: float = 900.0
+var _swarm_drift_speed: float = 30.0
+var _swarm_drift_direction: Vector2 = Vector2.RIGHT
+var _swarm_direction_change_timer: float = 0.0
+var _swarm_direction_change_min: float = 0.8
+var _swarm_direction_change_max: float = 1.8
+var _tank_speed_px_sec: float = 150.0
+var _artillery_phase: String = "none"
+var _artillery_target_position: Vector2 = Vector2.ZERO
+var _artillery_entry_speed_px_sec: float = 1200.0
+var _artillery_recoil_offset_y: float = 0.0
+var _artillery_recoil_distance_px: float = 16.0
+var _artillery_recoil_recover_speed_px_sec: float = 72.0
+var _gate_rush_descent_speed: float = 240.0
+var _gate_rush_x_follow_speed: float = 130.0
+var _gate_rush_weave_amplitude: float = 36.0
+var _gate_rush_weave_frequency: float = 1.6
+var _gate_rush_phase_offset: float = 0.0
+var _gate_rush_player: Node2D = null
+# Per-drone lateral offset from the player so the swarm spreads across the width
+# and draws curves instead of stacking in single file on the player's exact x.
+var _gate_rush_target_offset_x: float = 0.0
+var _gate_rush_base_x: float = 0.0
 
 # TODO: Remplacer par Sprite2D
 # @onready var sprite: Sprite2D = $Sprite2D
@@ -168,6 +195,7 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	var t_data_bound_usec: int = 0
 	if DEBUG_SETUP_COST_LOG:
 		t_data_bound_usec = Time.get_ticks_usec()
+	_setup_special_movement_from_data(enemy_data)
 	
 	# Visual setup
 	_setup_visual(enemy_data)
@@ -181,7 +209,11 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	
 	_start_position = global_position
 	_ensure_path_nodes()
-	setup_movement(_move_pattern_data)
+	if _movement_mode == "swarm" or _movement_mode == "tank" or _movement_mode == "artillery" or _movement_mode == "gate_rush":
+		_path_is_valid = false
+		_path_reached_end = false
+	else:
+		setup_movement(_move_pattern_data)
 	var t_movement_usec: int = 0
 	if DEBUG_SETUP_COST_LOG:
 		t_movement_usec = Time.get_ticks_usec()
@@ -213,6 +245,47 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 				" enemy=", enemy_id,
 				" pattern=", move_pattern_id
 			)
+
+func _setup_special_movement_from_data(enemy_data: Dictionary) -> void:
+	_movement_mode = str(enemy_data.get("_movement_mode", "path"))
+	if _movement_mode == "tank":
+		_tank_speed_px_sec = maxf(1.0, float(enemy_data.get("_tank_speed_px_sec", 150.0)))
+		return
+	if _movement_mode == "artillery":
+		_artillery_phase = "enter"
+		_artillery_target_position = enemy_data.get("_artillery_target_position", global_position)
+		_artillery_entry_speed_px_sec = maxf(1.0, float(enemy_data.get("_artillery_entry_speed_px_sec", 1200.0)))
+		_artillery_recoil_distance_px = maxf(0.0, float(enemy_data.get("_artillery_recoil_distance_px", 16.0)))
+		_artillery_recoil_recover_speed_px_sec = maxf(1.0, float(enemy_data.get("_artillery_recoil_recover_speed_px_sec", 72.0)))
+		_artillery_recoil_offset_y = 0.0
+		return
+
+	if _movement_mode == "gate_rush":
+		add_to_group("swarm_enemies")
+		_gate_rush_descent_speed = maxf(1.0, float(enemy_data.get("_gate_rush_descent_speed", 240.0)))
+		_gate_rush_x_follow_speed = maxf(0.0, float(enemy_data.get("_gate_rush_x_follow_speed", 130.0)))
+		_gate_rush_weave_amplitude = maxf(0.0, float(enemy_data.get("_gate_rush_weave_amplitude", 36.0)))
+		_gate_rush_weave_frequency = maxf(0.0, float(enemy_data.get("_gate_rush_weave_frequency", 1.6)))
+		_gate_rush_phase_offset = randf() * TAU
+		var spread: float = maxf(0.0, float(enemy_data.get("_gate_rush_target_spread_px", 240.0)))
+		_gate_rush_target_offset_x = randf_range(-spread, spread)
+		_gate_rush_base_x = global_position.x
+		return
+
+	if _movement_mode != "swarm":
+		return
+	add_to_group("swarm_enemies")
+	_swarm_phase = "enter"
+	_swarm_target_position = enemy_data.get("_swarm_target_position", global_position)
+	_swarm_zone_rect = enemy_data.get("_swarm_zone_rect", Rect2())
+	if _swarm_zone_rect.size.x <= 0.0 or _swarm_zone_rect.size.y <= 0.0:
+		var viewport_size: Vector2 = get_viewport_rect().size
+		_swarm_zone_rect = Rect2(0.0, viewport_size.y * 0.12, viewport_size.x, viewport_size.y * 0.25)
+	_swarm_entry_speed = maxf(1.0, float(enemy_data.get("_swarm_entry_speed", 900.0)))
+	_swarm_drift_speed = maxf(0.0, float(enemy_data.get("_swarm_drift_speed", 30.0)))
+	_swarm_direction_change_min = maxf(0.05, float(enemy_data.get("_swarm_direction_change_interval_min", 0.8)))
+	_swarm_direction_change_max = maxf(_swarm_direction_change_min, float(enemy_data.get("_swarm_direction_change_interval_max", 1.8)))
+	_pick_new_swarm_direction()
 
 func _setup_visual(enemy_data: Dictionary) -> void:
 	var size_data: Variant = enemy_data.get("size", {"width": 30, "height": 30})
@@ -388,6 +461,14 @@ func apply_stat_multipliers(stats: Dictionary) -> void:
 	var spd_mult = float(stats.get("speed_mult", 1.0))
 	if spd_mult != 1.0:
 		move_speed *= spd_mult
+		if _movement_mode == "swarm":
+			_swarm_entry_speed *= spd_mult
+			_swarm_drift_speed *= spd_mult
+		elif _movement_mode == "tank":
+			_tank_speed_px_sec *= spd_mult
+		elif _movement_mode == "artillery":
+			_artillery_entry_speed_px_sec *= spd_mult
+			_artillery_recoil_recover_speed_px_sec *= spd_mult
 		
 	var dmg_mult = float(stats.get("damage_mult", 1.0))
 	if dmg_mult != 1.0:
@@ -395,8 +476,10 @@ func apply_stat_multipliers(stats: Dictionary) -> void:
 
 func set_health_bar_frame(path: String) -> void:
 	if not ResourceLoader.exists(path): return
-	var tex = load(path)
-	
+	# Spawn-frame path: go through the strong cache, never a raw load().
+	var tex: Texture2D = _load_cached_resource(path) as Texture2D
+	if tex == null: return
+
 	var frame = TextureRect.new()
 	frame.name = "EliteFrame"
 	frame.texture = tex
@@ -423,12 +506,12 @@ func _process(delta: float) -> void:
 	if _wave_end_exiting:
 		_wave_end_exit_timer += delta
 		global_position += _wave_end_exit_velocity * delta
-		var vp_rect := get_viewport_rect().size
+		var wave_exit_viewport_size := get_viewport_rect().size
 		var far_offscreen: bool = (
 			global_position.x < -OFFSCREEN_MARGIN
-			or global_position.x > vp_rect.x + OFFSCREEN_MARGIN
+			or global_position.x > wave_exit_viewport_size.x + OFFSCREEN_MARGIN
 			or global_position.y < -OFFSCREEN_MARGIN
-			or global_position.y > vp_rect.y + OFFSCREEN_MARGIN
+			or global_position.y > wave_exit_viewport_size.y + OFFSCREEN_MARGIN
 		)
 		if far_offscreen or _wave_end_exit_timer >= _wave_end_exit_duration:
 			queue_free()
@@ -504,6 +587,19 @@ func _update_wave_firing(delta: float) -> void:
 # =============================================================================
 
 func _update_movement(delta: float) -> void:
+	if _movement_mode == "swarm":
+		_update_swarm_movement(delta)
+		return
+	if _movement_mode == "tank":
+		_update_tank_wave_movement(delta)
+		return
+	if _movement_mode == "artillery":
+		_update_artillery_wave_movement(delta)
+		return
+	if _movement_mode == "gate_rush":
+		_update_gate_rush_movement(delta)
+		return
+
 	if not _path_is_valid:
 		return
 
@@ -524,6 +620,111 @@ func _update_movement(delta: float) -> void:
 			_path_end_timer = 0.0
 
 	_sync_position_from_path()
+
+func _update_swarm_movement(delta: float) -> void:
+	_move_time += delta
+	var previous_position: Vector2 = global_position
+
+	if _swarm_phase == "enter":
+		var to_target: Vector2 = _swarm_target_position - global_position
+		var distance: float = to_target.length()
+		var step: float = _swarm_entry_speed * delta
+		if distance <= step or distance <= 1.0:
+			global_position = _swarm_target_position
+			_swarm_phase = "drift"
+			_pick_new_swarm_direction()
+		else:
+			global_position += to_target.normalized() * step
+	elif _swarm_phase == "drift":
+		_swarm_direction_change_timer -= delta
+		if _swarm_direction_change_timer <= 0.0:
+			_pick_new_swarm_direction()
+		global_position += _swarm_drift_direction * _swarm_drift_speed * delta
+		_constrain_to_swarm_zone()
+
+	velocity = (global_position - previous_position) / maxf(delta, 0.0001)
+	rotation = 0.0
+
+func _pick_new_swarm_direction() -> void:
+	var angle: float = randf_range(0.0, TAU)
+	_swarm_drift_direction = Vector2(cos(angle), sin(angle)).normalized()
+	if _swarm_drift_direction == Vector2.ZERO:
+		_swarm_drift_direction = Vector2.RIGHT
+	_swarm_direction_change_timer = randf_range(_swarm_direction_change_min, _swarm_direction_change_max)
+
+func _constrain_to_swarm_zone() -> void:
+	var min_x: float = _swarm_zone_rect.position.x
+	var max_x: float = _swarm_zone_rect.position.x + _swarm_zone_rect.size.x
+	var min_y: float = _swarm_zone_rect.position.y
+	var max_y: float = _swarm_zone_rect.position.y + _swarm_zone_rect.size.y
+	var clamped_pos := Vector2(
+		clampf(global_position.x, min_x, max_x),
+		clampf(global_position.y, min_y, max_y)
+	)
+	if not is_equal_approx(clamped_pos.x, global_position.x):
+		_swarm_drift_direction.x *= -1.0
+	if not is_equal_approx(clamped_pos.y, global_position.y):
+		_swarm_drift_direction.y *= -1.0
+	global_position = clamped_pos
+	if _swarm_drift_direction.length_squared() <= 0.0001:
+		_pick_new_swarm_direction()
+	else:
+		_swarm_drift_direction = _swarm_drift_direction.normalized()
+
+func _update_gate_rush_movement(delta: float) -> void:
+	_move_time += delta
+	var previous_position: Vector2 = global_position
+
+	if _gate_rush_player == null or not is_instance_valid(_gate_rush_player):
+		_gate_rush_player = get_tree().get_first_node_in_group("player") as Node2D
+
+	# Rectilinear descent.
+	global_position.y += _gate_rush_descent_speed * delta
+
+	# The base x slowly drifts toward (player.x + personal offset). The offset
+	# keeps the swarm spread out instead of converging on the player's exact x.
+	var target_x: float = _gate_rush_base_x
+	if _gate_rush_player and is_instance_valid(_gate_rush_player):
+		target_x = _gate_rush_player.global_position.x + _gate_rush_target_offset_x
+	_gate_rush_base_x = move_toward(_gate_rush_base_x, target_x, _gate_rush_x_follow_speed * delta)
+	var viewport_width: float = get_viewport_rect().size.x
+	_gate_rush_base_x = clampf(_gate_rush_base_x, 0.0, viewport_width)
+
+	# A sinusoidal offset draws a visible curve around the drifting base x.
+	var weave: float = sin(_move_time * TAU * _gate_rush_weave_frequency + _gate_rush_phase_offset) * _gate_rush_weave_amplitude
+	global_position.x = _gate_rush_base_x + weave
+
+	velocity = (global_position - previous_position) / maxf(delta, 0.0001)
+	rotation = 0.0
+
+	# No collision happened: the swarm simply exits past the bottom (no penalty).
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if global_position.y > viewport_size.y + OFFSCREEN_MARGIN:
+		queue_free()
+
+func _update_tank_wave_movement(delta: float) -> void:
+	_move_time += delta
+	var previous_position: Vector2 = global_position
+	global_position.y += _tank_speed_px_sec * delta
+	velocity = (global_position - previous_position) / maxf(delta, 0.0001)
+	rotation = 0.0
+
+func _update_artillery_wave_movement(delta: float) -> void:
+	_move_time += delta
+	var previous_position: Vector2 = global_position
+	if _artillery_phase == "enter":
+		var to_target: Vector2 = _artillery_target_position - global_position
+		var step: float = _artillery_entry_speed_px_sec * delta
+		if to_target.length() <= step or to_target.length() <= 1.0:
+			global_position = _artillery_target_position
+			_artillery_phase = "hold"
+		else:
+			global_position += to_target.normalized() * step
+	else:
+		_artillery_recoil_offset_y = move_toward(_artillery_recoil_offset_y, 0.0, _artillery_recoil_recover_speed_px_sec * delta)
+		global_position = _artillery_target_position + Vector2(0.0, _artillery_recoil_offset_y)
+	velocity = (global_position - previous_position) / maxf(delta, 0.0001)
+	rotation = 0.0
 
 func _ensure_path_nodes() -> void:
 	if path_2d == null or not is_instance_valid(path_2d):
@@ -1265,6 +1466,11 @@ func _generate_circle_path(radius: float, center_offset: Vector2 = Vector2.ZERO)
 # =============================================================================
 
 func _update_shooting(delta: float) -> void:
+	# Gate-runner drones are a pure avoidance threat: they never fire.
+	if _movement_mode == "gate_rush":
+		return
+	if _movement_mode == "artillery" and _artillery_phase != "hold":
+		return
 	_fire_timer -= delta
 	
 	if _fire_timer <= 0:
@@ -1304,6 +1510,7 @@ func _fire() -> void:
 func _fire_single_wave() -> void:
 	if _missile_pattern_data.is_empty():
 		return
+	_trigger_artillery_recoil()
 
 	var projectile_count: int = int(_missile_pattern_data.get("projectile_count", 1))
 	var spread_angle: float = float(_missile_pattern_data.get("spread_angle", 0))
@@ -1351,7 +1558,7 @@ func _fire_single_wave() -> void:
 	# Get spawn positions based on strategy
 	var spawn_positions: Array = _get_spawn_positions(spawn_strategy, projectile_count)
 	var player_node: Node2D = get_tree().get_first_node_in_group("player")
-	var should_aim_at_player: bool = player_node != null
+	var should_aim_at_player: bool = player_node != null and bool(_missile_pattern_data.get("aim_target", true))
 	
 	for i in range(spawn_positions.size()):
 		var spawn_pos: Vector2 = spawn_positions[i]
@@ -1375,6 +1582,11 @@ func _fire_single_wave() -> void:
 				direction = direction.rotated(angle)
 		
 		ProjectileManager.spawn_enemy_projectile(spawn_pos, direction, speed, damage, _missile_pattern_data)
+
+func _trigger_artillery_recoil() -> void:
+	if _movement_mode != "artillery" or _artillery_phase != "hold":
+		return
+	_artillery_recoil_offset_y = -_artillery_recoil_distance_px
 
 func _get_spawn_positions(strategy: String, count: int) -> Array:
 	var positions: Array = []
@@ -2275,7 +2487,7 @@ func _build_status_visual_node(
 	anim_loop: bool = true
 ) -> Node2D:
 	if anim_path != "" and ResourceLoader.exists(anim_path):
-		var anim_res: Resource = load(anim_path)
+		var anim_res: Resource = _load_cached_resource(anim_path)
 		if anim_res is SpriteFrames:
 			var frames: SpriteFrames = anim_res as SpriteFrames
 			var anim_sprite := AnimatedSprite2D.new()
@@ -2299,7 +2511,7 @@ func _build_status_visual_node(
 				return anim_sprite
 
 	if asset_path != "" and ResourceLoader.exists(asset_path):
-		var tex_res: Resource = load(asset_path)
+		var tex_res: Resource = _load_cached_resource(asset_path)
 		if tex_res is Texture2D:
 			var texture: Texture2D = tex_res as Texture2D
 			var sprite := Sprite2D.new()

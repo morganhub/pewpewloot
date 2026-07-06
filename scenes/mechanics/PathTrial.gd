@@ -61,6 +61,7 @@ var _hazard_scroll_layers: Array[Sprite2D] = []
 var _hazard_scroll_layer_height: float = 0.0
 var _hazard_scroll_offset: float = 0.0
 var _damage_pulse_tween: Tween = null
+var _phase_visual_tween: Tween = null
 
 var _player: Node2D = null
 var _player_in_hazard: bool = false
@@ -102,6 +103,9 @@ func stop() -> void:
 	if damage_tick_timer:
 		damage_tick_timer.stop()
 	set_process(false)
+
+func finish_with_fade() -> void:
+	_end_trial()
 
 func _process(delta: float) -> void:
 	if not _is_running or _ending:
@@ -514,10 +518,14 @@ func _setup_hazard_visual() -> void:
 		_start_visual_node.z_as_relative = false
 		_start_visual_node.z_index = -39
 		hazard_visual.add_child(_start_visual_node)
+		_set_canvas_item_alpha(_start_visual_node, 1.0)
+		_start_visual_node.visible = true
 	if _active_visual_node and is_instance_valid(_active_visual_node):
 		_active_visual_node.z_as_relative = false
 		_active_visual_node.z_index = -40
 		hazard_visual.add_child(_active_visual_node)
+		_set_canvas_item_alpha(_active_visual_node, 0.0)
+		_active_visual_node.visible = false
 	_setup_warning_frame_overlay()
 	_set_hazard_phase_visuals(true)
 
@@ -664,14 +672,60 @@ void fragment() {
 	mat.set_shader_parameter("damage_pulse_px", _damage_frame_pulse_size)
 	mat.set_shader_parameter("damage_pulse_strength", 0.0)
 	_warning_frame_overlay.material = mat
+	_warning_frame_overlay.z_as_relative = false
+	_warning_frame_overlay.z_index = 100
 	hazard_visual.add_child(_warning_frame_overlay)
 
 func _set_hazard_phase_visuals(start_phase: bool) -> void:
+	if _in_start_phase == start_phase:
+		return
 	_in_start_phase = start_phase
+	if _phase_visual_tween and _phase_visual_tween.is_running():
+		_phase_visual_tween.kill()
+	_phase_visual_tween = create_tween()
+	_phase_visual_tween.set_parallel(true)
+
 	if _start_visual_node and is_instance_valid(_start_visual_node):
-		_start_visual_node.visible = start_phase
+		_start_visual_node.visible = true
+		_phase_visual_tween.tween_method(
+			_set_start_visual_alpha,
+			_get_canvas_item_alpha(_start_visual_node),
+			1.0 if start_phase else 0.0,
+			_hazard_fade_duration_sec
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	if _active_visual_node and is_instance_valid(_active_visual_node):
-		_active_visual_node.visible = not start_phase
+		_active_visual_node.visible = true
+		_phase_visual_tween.tween_method(
+			_set_active_visual_alpha,
+			_get_canvas_item_alpha(_active_visual_node),
+			0.0 if start_phase else 1.0,
+			_hazard_fade_duration_sec
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+	_phase_visual_tween.finished.connect(func() -> void:
+		if _start_visual_node and is_instance_valid(_start_visual_node):
+			_start_visual_node.visible = _in_start_phase
+		if _active_visual_node and is_instance_valid(_active_visual_node):
+			_active_visual_node.visible = not _in_start_phase
+	)
+
+func _set_start_visual_alpha(value: float) -> void:
+	_set_canvas_item_alpha(_start_visual_node, value)
+
+func _set_active_visual_alpha(value: float) -> void:
+	_set_canvas_item_alpha(_active_visual_node, value)
+
+func _set_canvas_item_alpha(node: Node, value: float) -> void:
+	if node is CanvasItem:
+		var item := node as CanvasItem
+		var color: Color = item.modulate
+		color.a = clampf(value, 0.0, 1.0)
+		item.modulate = color
+
+func _get_canvas_item_alpha(node: Node) -> float:
+	if node is CanvasItem:
+		return (node as CanvasItem).modulate.a
+	return 1.0
 
 func _setup_path_visual() -> void:
 	if path_visual == null:
@@ -951,6 +1005,9 @@ func _ensure_tile_pool_size(count: int) -> void:
 		var tile := Sprite2D.new()
 		tile.centered = true
 		tile.visible = false
+		var mat := CanvasItemMaterial.new()
+		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		tile.material = mat
 		_path_tiles_root.add_child(tile)
 		_path_tile_pool.append(tile)
 

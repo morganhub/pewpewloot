@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/MenuHeader.tscn" id="2_header"]
 [ext_resource type="PackedScene" path="res://scenes/components/MenuFooter.tscn" id="3_footer"]
 
-[node name="WorldSelect" type="Control"]
+[node name="WorldSelect" type="Control" unique_id=1020950003]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,7 +14,7 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_3bfae")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1458735871]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -25,10 +25,10 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="MenuHeader" parent="." instance=ExtResource("2_header")]
+[node name="MenuHeader" parent="." unique_id=1866775642 instance=ExtResource("2_header")]
 layout_mode = 1
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="TitleLabel" type="Label" parent="." unique_id=829711245]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 80.0
@@ -38,7 +38,7 @@ theme_override_font_sizes/font_size = 36
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ScrollContainer" type="ScrollContainer" parent="."]
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1029975528]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 140.0
@@ -46,10 +46,12 @@ offset_right = 700.0
 offset_bottom = 1200.0
 horizontal_scroll_mode = 0
 
-[node name="WorldList" type="VBoxContainer" parent="ScrollContainer"]
+[node name="WorldList" type="VBoxContainer" parent="ScrollContainer" unique_id=41312701]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="MenuFooter" parent="." instance=ExtResource("3_footer")]
+[node name="MenuFooter" parent="." unique_id=45087928 instance=ExtResource("3_footer")]
 layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5

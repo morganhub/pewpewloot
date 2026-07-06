@@ -65,6 +65,103 @@ var _fire_rate_max: float = DEFAULT_MAX_FIRE_RATE
 var _fire_timer: float = 0.0
 var _can_shoot: bool = true
 
+# Active fire pattern for the current run (obtained via in-run fire pattern drops).
+# Empty string means the ship's native pattern is used. Resets every run.
+var _active_fire_pattern_id: String = ""
+
+# Gate Runner wave state: HP becomes a resource (can overflow max_hp). The ship
+# shrinks and clones itself into an escort swarm whose unit count follows the
+# resource; the big HP value is shown on the ship.
+var _gate_runner_active: bool = false
+var _gate_runner_ref_hp: float = 100.0
+var _gate_runner_swarm_cfg: Dictionary = {}
+var _gate_runner_clones: Array = [] # [{node, base_offset, offset, target_offset, phase, drift_timer}]
+var _gate_runner_swarm_root: Node2D = null
+var _gate_runner_swarm_radius: float = 0.0
+var _gate_runner_swarm_time: float = 0.0
+var _gate_runner_current_scale: float = 1.0
+var _big_hp_label: Label = null
+
+# Pong wave state: Y locked on the paddle line, the ship visual squashed flat.
+var _pong_active: bool = false
+var _pong_lock_y: float = 0.0
+var _pong_lock_tween: Tween = null
+
+# Vertical climb wave state: Y is fully driven by the climb manager (gravity +
+# bounces), X stays player-controlled.
+var _climb_active: bool = false
+var _climb_y: float = 0.0
+
+# Absorb wave state: the ship carries a mass shown on the big label; its size
+# follows the mass (sqrt curve, capped).
+var _absorb_active: bool = false
+var _absorb_start_mass: float = 10.0
+var _absorb_scale_base: float = 1.0
+var _absorb_scale_min: float = 0.8
+var _absorb_scale_max: float = 2.4
+
+# Lane runner wave state: X snaps to a fixed set of lanes (Subway Surfers-like).
+# One touch/click gesture = ONE lane shift max: the first horizontal move past
+# the swipe threshold shifts, then the gesture is consumed until release.
+# Y locked near the bottom. Arrow keys still shift lanes on desktop.
+const LANE_MOUSE_CAPTURE_ID: int = -2
+var _lane_runner_active: bool = false
+var _lane_count: int = 3
+var _lane_index: int = 1
+var _lane_render_x: float = 0.0
+var _lane_lock_y: float = 0.0
+var _lane_side_margin_px: float = 70.0
+var _lane_snap_speed: float = 14.0
+var _lane_swipe_threshold_px: float = 48.0
+var _lane_gesture_id: int = -1
+var _lane_gesture_start_x: float = 0.0
+var _lane_gesture_consumed: bool = false
+var _lane_lock_tween: Tween = null
+var _lane_last_switch_msec: int = -100000
+
+# Ball launcher wave state: Y locked on the launch line (no squash — the ship
+# stays a ship), X glides toward a target driven by the BallLauncherManager
+# (finger follow / freeze while aiming). All regular movement input is
+# neutralized; the manager reads the raw touches itself.
+var _ball_launcher_active: bool = false
+var _ball_launcher_lock_y: float = 0.0
+var _ball_launcher_target_x: float = 0.0
+var _ball_launcher_snap_speed: float = 14.0
+var _ball_launcher_lock_tween: Tween = null
+
+# Slice rush wave state: the ship is fully locked (X and Y) at the bottom
+# center; the finger slices, the ship only fires the visual laser.
+var _slice_rush_active: bool = false
+var _slice_rush_lock_pos: Vector2 = Vector2.ZERO
+var _slice_rush_lock_tween: Tween = null
+
+# Match3 wave state: the ship is a jokered tile inside the 9x9 board — fully
+# locked, shrunk to cell size, position driven by the Match3Manager through
+# set_match3_lock_pos (the manager tweens it cell to cell). A configurable
+# additive glow marks it as the special tile.
+var _match3_active: bool = false
+var _match3_lock_pos: Vector2 = Vector2.ZERO
+var _match3_glow: AnimatedSprite2D = null
+var _match3_glow_tween: Tween = null
+
+# Gravity hole wave state: the ship is a free-roaming vortex (movement free in
+# ALL directions — the forbidden top zone is lifted while active). Mass shown
+# on the big label; animated aura as a direct Player child at index 0 (NOT in
+# visual_container: the aura tracks the ABSORPTION radius pushed by the
+# manager, while the ship scale tracks the mass — independent scales).
+var _gravity_hole_active: bool = false
+var _gh_start_mass: float = 10.0
+var _gh_scale_base: float = 1.0
+var _gh_scale_min: float = 0.75
+var _gh_scale_max: float = 1.55
+var _gh_aura: AnimatedSprite2D = null
+var _gh_aura_frame_dim: float = 0.0
+var _gh_aura_visual_ratio: float = 1.08
+var _gh_aura_base_scale: float = 1.0
+var _gh_aura_pulse_scale: float = 1.15
+var _gh_aura_pulse_sec: float = 0.18
+var _gh_aura_pulse_tween: Tween = null
+
 var visual_container: Node2D = null
 var shape_visual: Polygon2D = null
 var _ice_aura_node: Node2D = null
@@ -102,6 +199,8 @@ var _debug_has_fired_current_pattern: bool = false
 
 func _ready() -> void:
 	_load_fire_rate_caps()
+	# Each run starts on the ship's native fire pattern; drops change it in-run.
+	_active_fire_pattern_id = ""
 	# Top-down movement: avoid carrying platform velocity after leaving moving obstacles.
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	platform_on_leave = CharacterBody2D.PLATFORM_ON_LEAVE_DO_NOTHING
@@ -487,6 +586,7 @@ func _process(delta: float) -> void:
 	_handle_shield_regen(delta)
 	_update_deflection_aura(delta)
 	_update_aura(delta)
+	_update_gate_runner_swarm_motion(delta)
 	if _fluid_id != "":
 		FluidManager.emit_fluid(global_position, _fluid_id, velocity)
 	if _skill_emergency_cooldown_remaining > 0.0:
@@ -525,6 +625,831 @@ func set_can_shoot(state: bool) -> void:
 		_deactivate_aura()
 
 # =============================================================================
+# GATE RUNNER WAVE
+# =============================================================================
+
+## Enters the gate-runner mode: HP becomes a resource (overflow allowed), the
+## ship shrinks and clones itself into an escort swarm sized by the resource,
+## and the big HP value is displayed.
+func begin_gate_runner(cfg: Dictionary) -> void:
+	_gate_runner_active = true
+	_gate_runner_ref_hp = float(maxi(1, max_hp))
+	_gate_runner_swarm_cfg = cfg.duplicate(true)
+	_gate_runner_swarm_time = 0.0
+	_apply_ship_scale(maxf(0.1, float(_gate_runner_swarm_cfg.get("player_swarm_ship_scale", 0.55))))
+	_ensure_big_hp_label()
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.visible = true
+	_update_gate_runner_swarm()
+	_update_big_hp_label()
+
+## Leaves the gate-runner mode: clamps HP back to max_hp, frees the clone swarm
+## and resets the ship size.
+func end_gate_runner() -> void:
+	if not _gate_runner_active and (_big_hp_label == null or not is_instance_valid(_big_hp_label) or not _big_hp_label.visible):
+		# Already restored; still make sure the ship state is neutral.
+		_apply_ship_scale(1.0)
+		_clear_gate_runner_swarm()
+		return
+	_gate_runner_active = false
+	clamp_hp_to_max()
+	_apply_ship_scale(1.0)
+	_clear_gate_runner_swarm()
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.visible = false
+
+func is_gate_runner_active() -> bool:
+	return _gate_runner_active
+
+## Applies a gate math operation to the HP resource. Overflow above max_hp is
+## allowed during the wave; reaching 0 triggers death.
+func apply_gate_operation(operation: String, value: float) -> void:
+	if not _gate_runner_active:
+		return
+	var hp: float = float(current_hp)
+	match operation:
+		"add":
+			hp += value
+		"subtract":
+			hp -= value
+		"multiply":
+			hp *= value
+		"divide":
+			if absf(value) > 0.0001:
+				hp /= value
+		_:
+			pass
+	current_hp = int(round(hp))
+	if current_hp <= 0:
+		current_hp = 0
+		die()
+		return
+	_update_gate_runner_swarm()
+	_update_big_hp_label()
+	var is_bonus: bool = (operation == "add" and value >= 0.0) \
+		or (operation == "multiply" and value >= 1.0) \
+		or (operation == "divide" and value <= 1.0)
+	_play_gate_juice(is_bonus)
+
+## Clamps the HP resource back to max_hp (called when the gate-runner wave ends).
+func clamp_hp_to_max() -> void:
+	current_hp = clampi(current_hp, 0, max_hp)
+
+## HP ratio -> escort size. The real ship is the swarm center and counts as one
+## unit; clones are pure visuals (no hitbox, no shooting — drone contacts are
+## resolved by GateRunnerManager against the whole swarm radius). The spread
+## radius is capped so the on-screen footprint never exceeds what the old
+## max-size ship used to take.
+func _update_gate_runner_swarm() -> void:
+	if not _gate_runner_active:
+		return
+	var cfg: Dictionary = _gate_runner_swarm_cfg
+	var ratio: float = float(current_hp) / maxf(1.0, _gate_runner_ref_hp)
+	var count_base: int = maxi(1, int(cfg.get("player_swarm_count_base", 12)))
+	var count_min: int = maxi(1, int(cfg.get("player_swarm_count_min", 2)))
+	var count_max: int = maxi(count_min, int(cfg.get("player_swarm_count_max", 40)))
+	var total_units: int = clampi(int(round(ratio * float(count_base))), count_min, count_max)
+	var spread_max: float = maxf(24.0, float(cfg.get("player_swarm_spread_max_px", 170.0)))
+	var spread_min: float = clampf(float(cfg.get("player_swarm_spread_min_px", 52.0)), 8.0, spread_max)
+	# Swarm area grows with the unit count -> radius grows with its square root.
+	_gate_runner_swarm_radius = clampf(spread_max * sqrt(float(total_units) / float(count_max)), spread_min, spread_max)
+	_ensure_gate_runner_swarm_root()
+	_sync_gate_runner_clone_count(maxi(0, total_units - 1))
+	_reflow_gate_runner_clones()
+
+func get_gate_runner_scale() -> float:
+	return _gate_runner_current_scale
+
+## Current escort radius (px around the ship), 0 when no clone is out.
+## GateRunnerManager uses it to size the drone contact zone.
+func get_gate_runner_swarm_radius() -> float:
+	if not _gate_runner_active or _gate_runner_clones.is_empty():
+		return 0.0
+	return _gate_runner_swarm_radius
+
+func _ensure_gate_runner_swarm_root() -> void:
+	if _gate_runner_swarm_root and is_instance_valid(_gate_runner_swarm_root):
+		return
+	_gate_runner_swarm_root = Node2D.new()
+	_gate_runner_swarm_root.name = "GateRunnerSwarm"
+	add_child(_gate_runner_swarm_root)
+	# Clones draw below the real ship so the swarm center stays readable.
+	move_child(_gate_runner_swarm_root, 0)
+
+func _sync_gate_runner_clone_count(target: int) -> void:
+	# Drop extra clones with a quick shrink-out.
+	while _gate_runner_clones.size() > target:
+		var entry: Dictionary = _gate_runner_clones.pop_back()
+		var gone_v: Variant = entry.get("node", null)
+		if gone_v is Node2D and is_instance_valid(gone_v):
+			var gone: Node2D = gone_v as Node2D
+			var out_tween: Tween = gone.create_tween()
+			out_tween.tween_property(gone, "scale", Vector2.ZERO, 0.15)
+			out_tween.finished.connect(gone.queue_free)
+	# Spawn missing clones with a small pop-in.
+	var clone_scale: float = maxf(0.05, float(_gate_runner_swarm_cfg.get("player_swarm_clone_scale", 0.35)))
+	while _gate_runner_clones.size() < target:
+		var clone: Node2D = _build_gate_runner_clone_visual()
+		_gate_runner_swarm_root.add_child(clone)
+		clone.scale = Vector2.ZERO
+		var in_tween: Tween = clone.create_tween()
+		in_tween.tween_property(clone, "scale", Vector2.ONE * clone_scale, 0.18) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_gate_runner_clones.append({
+			"node": clone,
+			"base_offset": Vector2.ZERO,
+			"offset": Vector2.ZERO,
+			"target_offset": Vector2.ZERO,
+			"phase": randf() * TAU,
+			"drift_timer": randf_range(0.1, 0.6)
+		})
+
+## Copies the currently visible ship visual (animated sprite, sprite or shape).
+func _build_gate_runner_clone_visual() -> Node2D:
+	var root := Node2D.new()
+	root.name = "PlayerClone"
+	var source: Node2D = null
+	if visual_container and is_instance_valid(visual_container):
+		var anim: Node = visual_container.get_node_or_null("AnimatedSprite2D")
+		var spr: Node = visual_container.get_node_or_null("Sprite2D")
+		if anim is AnimatedSprite2D and (anim as AnimatedSprite2D).visible:
+			source = anim as Node2D
+		elif spr is Sprite2D and (spr as Sprite2D).visible:
+			source = spr as Node2D
+		elif shape_visual and is_instance_valid(shape_visual) and shape_visual.visible:
+			source = shape_visual
+	if source:
+		var copy: Node2D = source.duplicate(0) as Node2D
+		if copy:
+			copy.visible = true
+			copy.position = Vector2.ZERO
+			if copy is AnimatedSprite2D and source is AnimatedSprite2D:
+				(copy as AnimatedSprite2D).play((source as AnimatedSprite2D).animation)
+			root.add_child(copy)
+	return root
+
+## Even sunflower distribution of the clones inside the swarm ring; targets are
+## recomputed on every count change and the clones glide to their new slot.
+func _reflow_gate_runner_clones() -> void:
+	var n: int = _gate_runner_clones.size()
+	if n <= 0:
+		return
+	var inner_radius: float = maxf(8.0, float(_gate_runner_swarm_cfg.get("player_swarm_inner_radius_px", 44.0)))
+	const GOLDEN_ANGLE: float = 2.399963
+	for i in range(n):
+		var entry: Dictionary = _gate_runner_clones[i]
+		var r: float = maxf(inner_radius, _gate_runner_swarm_radius * sqrt((float(i) + 0.75) / float(n)))
+		var a: float = float(i) * GOLDEN_ANGLE
+		entry["base_offset"] = Vector2(cos(a), sin(a)) * r
+		entry["target_offset"] = entry["base_offset"]
+
+## Light per-clone wander so the escort never looks static: slow drift around
+## the home slot plus a small sine weave, all relative to the player position.
+func _update_gate_runner_swarm_motion(delta: float) -> void:
+	if not _gate_runner_active or _gate_runner_clones.is_empty():
+		return
+	_gate_runner_swarm_time += delta
+	var cfg: Dictionary = _gate_runner_swarm_cfg
+	var amp: float = maxf(0.0, float(cfg.get("player_swarm_weave_amplitude_px", 10.0)))
+	var freq: float = maxf(0.05, float(cfg.get("player_swarm_weave_frequency_hz", 1.4)))
+	var drift_min: float = maxf(0.1, float(cfg.get("player_swarm_drift_interval_min_sec", 0.8)))
+	var drift_max: float = maxf(drift_min, float(cfg.get("player_swarm_drift_interval_max_sec", 1.8)))
+	var follow: float = minf(1.0, delta * 3.5)
+	var jitter: float = maxf(6.0, _gate_runner_swarm_radius * 0.16)
+	for i in range(_gate_runner_clones.size() - 1, -1, -1):
+		var entry: Dictionary = _gate_runner_clones[i]
+		var clone_v: Variant = entry.get("node", null)
+		if not (clone_v is Node2D) or not is_instance_valid(clone_v):
+			_gate_runner_clones.remove_at(i)
+			continue
+		var clone: Node2D = clone_v as Node2D
+		entry["drift_timer"] = float(entry.get("drift_timer", 0.0)) - delta
+		if float(entry["drift_timer"]) <= 0.0:
+			entry["drift_timer"] = randf_range(drift_min, drift_max)
+			entry["target_offset"] = (entry.get("base_offset", Vector2.ZERO) as Vector2) \
+				+ Vector2(randf_range(-jitter, jitter), randf_range(-jitter, jitter))
+		var current_offset: Vector2 = entry.get("offset", Vector2.ZERO) as Vector2
+		entry["offset"] = current_offset.lerp(entry.get("target_offset", Vector2.ZERO) as Vector2, follow)
+		var t: float = _gate_runner_swarm_time * TAU * freq + float(entry.get("phase", 0.0))
+		clone.position = (entry["offset"] as Vector2) + Vector2(sin(t), cos(t * 0.83 + 1.7)) * amp
+
+func _clear_gate_runner_swarm() -> void:
+	_gate_runner_clones.clear()
+	_gate_runner_swarm_radius = 0.0
+	if _gate_runner_swarm_root and is_instance_valid(_gate_runner_swarm_root):
+		_gate_runner_swarm_root.queue_free()
+	_gate_runner_swarm_root = null
+
+func _apply_ship_scale(mult: float) -> void:
+	_gate_runner_current_scale = mult
+	var s: Vector2 = Vector2.ONE * mult
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.scale = s
+	if hitbox and is_instance_valid(hitbox):
+		hitbox.scale = s
+	var main_col: Node = get_node_or_null("CollisionShape2D")
+	if main_col is Node2D:
+		(main_col as Node2D).scale = s
+
+func _ensure_big_hp_label() -> void:
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		return
+	_big_hp_label = Label.new()
+	_big_hp_label.name = "GateRunnerHPLabel"
+	_big_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_big_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_big_hp_label.add_theme_font_size_override("font_size", 56)
+	_big_hp_label.add_theme_color_override("font_color", Color.WHITE)
+	_big_hp_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_big_hp_label.add_theme_constant_override("outline_size", 8)
+	_big_hp_label.size = Vector2(240, 90)
+	_big_hp_label.position = Vector2(-120, -150)
+	_big_hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_big_hp_label.z_as_relative = false
+	_big_hp_label.z_index = 80
+	add_child(_big_hp_label)
+
+func _update_big_hp_label() -> void:
+	if _big_hp_label == null or not is_instance_valid(_big_hp_label):
+		return
+	_big_hp_label.text = str(current_hp)
+
+func _play_gate_juice(is_bonus: bool) -> void:
+	var col: Color = Color(0.45, 1.0, 0.55) if is_bonus else Color(1.0, 0.5, 0.45)
+	if VFXManager and visual_container and is_instance_valid(visual_container):
+		VFXManager.flash_sprite(visual_container, col, 0.15)
+
+# =============================================================================
+# PONG WAVE
+# =============================================================================
+
+## Enters pong mode: Y tweens down to the paddle line and stays locked there,
+## X movement stays player-controlled, the ship visual is squashed into a paddle.
+## The paddle collision itself is resolved by PongManager (manual AABB), so the
+## hitbox/collision shapes are left untouched.
+func begin_pong(cfg: Dictionary) -> void:
+	_pong_active = true
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var target_y: float = viewport_size.y * clampf(float(cfg.get("player_paddle_y_ratio", 0.9)), 0.5, 0.97)
+	_pong_lock_y = global_position.y
+	if _pong_lock_tween and _pong_lock_tween.is_valid():
+		_pong_lock_tween.kill()
+	var intro_sec: float = maxf(0.05, float(cfg.get("intro_tween_sec", 0.6)))
+	_pong_lock_tween = create_tween()
+	_pong_lock_tween.tween_property(self, "_pong_lock_y", target_y, intro_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var squash := Vector2(
+		maxf(0.05, float(cfg.get("player_squash_scale_x", 2.2))),
+		maxf(0.05, float(cfg.get("player_squash_scale_y", 0.35)))
+	)
+	if visual_container and is_instance_valid(visual_container):
+		_pong_lock_tween.parallel().tween_property(visual_container, "scale", squash, intro_sec) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Leaves pong mode: unlocks Y and restores the ship shape.
+func end_pong() -> void:
+	if _pong_lock_tween and _pong_lock_tween.is_valid():
+		_pong_lock_tween.kill()
+	_pong_lock_tween = null
+	if not _pong_active:
+		return
+	_pong_active = false
+	_apply_ship_scale(1.0)
+
+func is_pong_active() -> bool:
+	return _pong_active
+
+# =============================================================================
+# BALL LAUNCHER WAVE
+# =============================================================================
+
+## Enters ball-launcher mode: Y tweens down to the launch line and stays
+## locked there (no visual squash — the ship stays a ship). X is driven by the
+## BallLauncherManager through set_ball_launcher_x (finger follow, frozen
+## while aiming); the ship glides toward that target with a fast exponential
+## snap, like the lane runner.
+func begin_ball_launcher(cfg: Dictionary) -> void:
+	_ball_launcher_active = true
+	_ball_launcher_snap_speed = maxf(2.0, float(cfg.get("ship_snap_speed", 14.0)))
+	_ball_launcher_target_x = global_position.x
+	_ball_launcher_lock_y = global_position.y
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var target_y: float = viewport_size.y * clampf(float(cfg.get("player_y_ratio", 0.9)), 0.5, 0.97)
+	if _ball_launcher_lock_tween and _ball_launcher_lock_tween.is_valid():
+		_ball_launcher_lock_tween.kill()
+	var intro_sec: float = maxf(0.05, float(cfg.get("intro_tween_sec", 0.6)))
+	_ball_launcher_lock_tween = create_tween()
+	_ball_launcher_lock_tween.tween_property(self, "_ball_launcher_lock_y", target_y, intro_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Leaves ball-launcher mode: unlocks X/Y.
+func end_ball_launcher() -> void:
+	if _ball_launcher_lock_tween and _ball_launcher_lock_tween.is_valid():
+		_ball_launcher_lock_tween.kill()
+	_ball_launcher_lock_tween = null
+	_ball_launcher_active = false
+
+## Called by the BallLauncherManager: horizontal launch-point target.
+func set_ball_launcher_x(x: float) -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_ball_launcher_target_x = clampf(x, 20.0, viewport_size.x - 20.0)
+
+func is_ball_launcher_active() -> bool:
+	return _ball_launcher_active
+
+# =============================================================================
+# VERTICAL CLIMB WAVE
+# =============================================================================
+
+## Enters climb mode: the VerticalClimbManager drives Y every frame through
+## set_climb_y() (gravity + accelerator bounces), X stays player-controlled.
+func begin_climb() -> void:
+	_climb_active = true
+	_climb_y = global_position.y
+
+func end_climb() -> void:
+	_climb_active = false
+
+func set_climb_y(y: float) -> void:
+	_climb_y = y
+
+func get_climb_y() -> float:
+	return _climb_y
+
+func is_climb_active() -> bool:
+	return _climb_active
+
+# =============================================================================
+# ABSORB WAVE
+# =============================================================================
+
+## Enters absorb mode: the AbsorbManager owns the mass value and pushes it
+## through set_absorb_mass(); the ship grows with the mass (reuses the big
+## gate-runner label and _apply_ship_scale). Movement stays fully free.
+func begin_absorb(cfg: Dictionary) -> void:
+	_absorb_active = true
+	_absorb_start_mass = maxf(1.0, float(cfg.get("start_mass", 10.0)))
+	_absorb_scale_base = maxf(0.1, float(cfg.get("ship_scale_base", 1.0)))
+	_absorb_scale_min = maxf(0.05, float(cfg.get("ship_scale_min", 0.8)))
+	_absorb_scale_max = maxf(_absorb_scale_min, float(cfg.get("ship_scale_max", 2.4)))
+	_ensure_big_hp_label()
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.visible = true
+	set_absorb_mass(_absorb_start_mass)
+
+func set_absorb_mass(mass: float) -> void:
+	if not _absorb_active:
+		return
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.text = str(int(round(mass)))
+	# Sqrt growth: the ship gets visibly bigger without ever exploding.
+	var mult: float = clampf(_absorb_scale_base * sqrt(maxf(1.0, mass) / _absorb_start_mass), _absorb_scale_min, _absorb_scale_max)
+	_apply_ship_scale(mult)
+
+func end_absorb() -> void:
+	if not _absorb_active:
+		return
+	_absorb_active = false
+	_apply_ship_scale(1.0)
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.visible = false
+
+func is_absorb_active() -> bool:
+	return _absorb_active
+
+# =============================================================================
+# LANE RUNNER WAVE
+# =============================================================================
+
+## Enters lane-runner mode: Y tweens down to the run line and stays locked,
+## X snaps to one of `lane_count` fixed lanes. Lane switching is swipe-based
+## (see _input) or via the left/right arrows on desktop.
+func begin_lane_runner(cfg: Dictionary) -> void:
+	_lane_runner_active = true
+	_lane_count = maxi(2, int(cfg.get("lane_count", 3)))
+	_lane_side_margin_px = maxf(10.0, float(cfg.get("lane_side_margin_px", 70.0)))
+	_lane_snap_speed = maxf(2.0, float(cfg.get("lane_snap_speed", 14.0)))
+	_lane_swipe_threshold_px = maxf(8.0, float(cfg.get("swipe_threshold_px", 48.0)))
+	_lane_gesture_id = -1
+	_lane_gesture_consumed = false
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var target_y: float = viewport_size.y * clampf(float(cfg.get("player_y_ratio", 0.82)), 0.4, 0.95)
+	# Start on the lane nearest to the current ship position.
+	var nearest: int = 0
+	var best_dist: float = INF
+	for i in range(_lane_count):
+		var d: float = absf(get_lane_runner_lane_center_x(i) - global_position.x)
+		if d < best_dist:
+			best_dist = d
+			nearest = i
+	_lane_index = nearest
+	_lane_render_x = global_position.x
+	_lane_lock_y = global_position.y
+	_lane_last_switch_msec = -100000
+	if _lane_lock_tween and _lane_lock_tween.is_valid():
+		_lane_lock_tween.kill()
+	var intro_sec: float = maxf(0.05, float(cfg.get("intro_tween_sec", 0.7)))
+	_lane_lock_tween = create_tween()
+	_lane_lock_tween.tween_property(self, "_lane_lock_y", target_y, intro_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Leaves lane-runner mode: unlocks X/Y.
+func end_lane_runner() -> void:
+	if _lane_lock_tween and _lane_lock_tween.is_valid():
+		_lane_lock_tween.kill()
+	_lane_lock_tween = null
+	_lane_runner_active = false
+	_lane_gesture_id = -1
+	_lane_gesture_consumed = false
+
+## Lane-runner swipe input: one gesture (press -> first horizontal move past
+## the threshold) = ONE lane shift; any further motion, including direction
+## reversals, is ignored until the finger/button is released and re-pressed.
+## Raw touches are read in _input like VirtualJoystick (the only phase proven
+## reliable in the real scene); the mouse is handled explicitly with the same
+## cross-guards as SliceRushManager so touch/mouse emulation pairs run once.
+func _input(event: InputEvent) -> void:
+	if not _lane_runner_active:
+		return
+	if event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event as InputEventScreenTouch
+		if touch.pressed and _lane_gesture_id == -1:
+			_lane_gesture_begin(touch.index, touch.position)
+		elif not touch.pressed and touch.index == _lane_gesture_id:
+			_lane_gesture_id = -1
+	elif event is InputEventScreenDrag:
+		var drag: InputEventScreenDrag = event as InputEventScreenDrag
+		if drag.index == _lane_gesture_id:
+			_lane_gesture_feed(drag.position)
+	elif event is InputEventMouseButton:
+		var mouse_btn: InputEventMouseButton = event as InputEventMouseButton
+		if mouse_btn.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mouse_btn.pressed and _lane_gesture_id == -1:
+			_lane_gesture_begin(LANE_MOUSE_CAPTURE_ID, mouse_btn.position)
+		elif not mouse_btn.pressed and _lane_gesture_id == LANE_MOUSE_CAPTURE_ID:
+			_lane_gesture_id = -1
+	elif event is InputEventMouseMotion and _lane_gesture_id == LANE_MOUSE_CAPTURE_ID:
+		_lane_gesture_feed((event as InputEventMouseMotion).position)
+
+func _lane_gesture_begin(capture_id: int, screen_pos: Vector2) -> void:
+	_lane_gesture_id = capture_id
+	_lane_gesture_start_x = (get_canvas_transform().affine_inverse() * screen_pos).x
+	_lane_gesture_consumed = false
+
+func _lane_gesture_feed(screen_pos: Vector2) -> void:
+	if _lane_gesture_consumed:
+		return
+	var dx: float = (get_canvas_transform().affine_inverse() * screen_pos).x - _lane_gesture_start_x
+	if absf(dx) >= _lane_swipe_threshold_px:
+		_lane_gesture_consumed = true
+		_lane_runner_shift(1 if dx > 0.0 else -1)
+
+func is_lane_runner_active() -> bool:
+	return _lane_runner_active
+
+func get_lane_runner_lane() -> int:
+	return _lane_index
+
+## Milliseconds since the last lane switch (near-miss window checks).
+func get_lane_runner_msec_since_switch() -> int:
+	return Time.get_ticks_msec() - _lane_last_switch_msec
+
+func get_lane_runner_lane_center_x(lane: int) -> float:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var usable: float = maxf(1.0, viewport_size.x - _lane_side_margin_px * 2.0)
+	var lane_width: float = usable / float(_lane_count)
+	return _lane_side_margin_px + lane_width * (float(clampi(lane, 0, _lane_count - 1)) + 0.5)
+
+func _lane_runner_lane_width() -> float:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	return maxf(1.0, viewport_size.x - _lane_side_margin_px * 2.0) / float(_lane_count)
+
+## Switches one lane over (clamped on the edge lanes).
+func _lane_runner_shift(dir: int) -> void:
+	var target: int = clampi(_lane_index + dir, 0, _lane_count - 1)
+	if target == _lane_index:
+		return
+	_lane_index = target
+	_lane_last_switch_msec = Time.get_ticks_msec()
+
+## Applied at the end of _handle_movement: X/Y are fully lane-driven — lane
+## switches come from swipes (_input) or arrow keys; the ship glides onto its
+## lane center (fast exponential snap).
+func _apply_lane_runner_lock(delta: float) -> void:
+	if Input.is_action_just_pressed("ui_left"):
+		_lane_runner_shift(-1)
+	elif Input.is_action_just_pressed("ui_right"):
+		_lane_runner_shift(1)
+
+	_lane_render_x = lerpf(
+		_lane_render_x,
+		get_lane_runner_lane_center_x(_lane_index),
+		clampf(delta * _lane_snap_speed, 0.0, 1.0)
+	)
+	global_position.x = _lane_render_x
+	global_position.y = _lane_lock_y
+
+# =============================================================================
+# SLICE RUSH WAVE
+# =============================================================================
+
+## Enters slice-rush mode: the ship tweens down to the bottom center and stays
+## fully locked (X and Y). All regular movement input (stick / follow finger /
+## mouse) is neutralized; the SliceRushManager reads the raw touches itself.
+func begin_slice_rush(cfg: Dictionary) -> void:
+	_slice_rush_active = true
+	_slice_rush_lock_pos = global_position
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var target := Vector2(
+		viewport_size.x * clampf(float(cfg.get("player_x_ratio", 0.5)), 0.05, 0.95),
+		viewport_size.y * clampf(float(cfg.get("player_y_ratio", 0.9)), 0.5, 0.95)
+	)
+	if _slice_rush_lock_tween and _slice_rush_lock_tween.is_valid():
+		_slice_rush_lock_tween.kill()
+	var intro_sec: float = maxf(0.05, float(cfg.get("intro_tween_sec", 0.7)))
+	_slice_rush_lock_tween = create_tween()
+	_slice_rush_lock_tween.tween_property(self, "_slice_rush_lock_pos", target, intro_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Leaves slice-rush mode: unlocks the ship.
+func end_slice_rush() -> void:
+	if _slice_rush_lock_tween and _slice_rush_lock_tween.is_valid():
+		_slice_rush_lock_tween.kill()
+	_slice_rush_lock_tween = null
+	_slice_rush_active = false
+
+func is_slice_rush_active() -> bool:
+	return _slice_rush_active
+
+# =============================================================================
+# MATCH 3 WAVE
+# =============================================================================
+
+## Enters match3 mode: full lock, ship shrunk to a board cell, additive glow
+## attached behind the visuals. The Match3Manager drives the position through
+## set_match3_lock_pos (tweened from the manager side).
+func begin_match3(cfg: Dictionary) -> void:
+	_match3_active = true
+	_match3_lock_pos = global_position
+	_apply_ship_scale(clampf(float(cfg.get("ship_scale_mult", 0.68)), 0.2, 1.5))
+	_attach_match3_glow(cfg)
+
+## Leaves match3 mode: restores scale, removes the glow, unlocks the ship.
+func end_match3() -> void:
+	if not _match3_active:
+		_remove_match3_glow()
+		return
+	_match3_active = false
+	_remove_match3_glow()
+	_apply_ship_scale(1.0)
+
+func is_match3_active() -> bool:
+	return _match3_active
+
+func set_match3_lock_pos(pos: Vector2) -> void:
+	_match3_lock_pos = pos
+
+func get_match3_lock_pos() -> Vector2:
+	return _match3_lock_pos
+
+## Additive glow behind the ship so the joker tile reads instantly. Child of
+## visual_container (index 0) -> follows the ship scale automatically.
+func _attach_match3_glow(cfg: Dictionary) -> void:
+	_remove_match3_glow()
+	if visual_container == null or not is_instance_valid(visual_container):
+		return
+	var asset_path: String = str(cfg.get("glow_asset", ""))
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+	var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if not (res is SpriteFrames):
+		return
+	var frames: SpriteFrames = res as SpriteFrames
+	_match3_glow = AnimatedSprite2D.new()
+	_match3_glow.name = "Match3Glow"
+	_match3_glow.sprite_frames = frames
+	var anim_name: StringName = &"default"
+	if not frames.has_animation(anim_name):
+		var names: PackedStringArray = frames.get_animation_names()
+		if names.size() > 0:
+			anim_name = StringName(names[0])
+	if frames.has_animation(anim_name):
+		_match3_glow.play(anim_name)
+	var add_mat := CanvasItemMaterial.new()
+	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_match3_glow.material = add_mat
+	_match3_glow.modulate = Color(str(cfg.get("glow_tint", "#8FD3FFB4")))
+	# Scale relative to the UNSCALED ship footprint (84 px baseline): the glow
+	# is inside visual_container so _apply_ship_scale shrinks both together.
+	var glow_px: float = 84.0 * maxf(0.2, float(cfg.get("glow_scale", 1.7)))
+	var base_scale: float = 1.0
+	if frames.has_animation(anim_name) and frames.get_frame_count(anim_name) > 0:
+		var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+		if frame_tex:
+			var f_size: Vector2 = frame_tex.get_size()
+			if f_size.x > 0.0 and f_size.y > 0.0:
+				base_scale = glow_px / maxf(f_size.x, f_size.y)
+	_match3_glow.scale = Vector2.ONE * base_scale
+	visual_container.add_child(_match3_glow)
+	visual_container.move_child(_match3_glow, 0)
+	var pulse_sec: float = maxf(0.1, float(cfg.get("glow_pulse_sec", 0.8)))
+	_match3_glow_tween = _match3_glow.create_tween()
+	_match3_glow_tween.set_loops()
+	_match3_glow_tween.tween_property(_match3_glow, "scale", Vector2.ONE * base_scale * 1.18, pulse_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_match3_glow_tween.tween_property(_match3_glow, "scale", Vector2.ONE * base_scale, pulse_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _remove_match3_glow() -> void:
+	if _match3_glow_tween and _match3_glow_tween.is_valid():
+		_match3_glow_tween.kill()
+	_match3_glow_tween = null
+	if _match3_glow and is_instance_valid(_match3_glow):
+		_match3_glow.queue_free()
+	_match3_glow = null
+
+# =============================================================================
+# GRAVITY HOLE WAVE
+# =============================================================================
+
+## Enters gravity-hole mode: the ship becomes a free-roaming gravity vortex.
+## Movement stays fully free (and the top forbidden zone is lifted via
+## _get_player_top_limit_y); the big label shows the mass; an animated aura
+## sits behind the ship, hidden until the intro cover hands off to it. The
+## absorption radius stays owned by the manager (set_gravity_hole_radius).
+func begin_gravity_hole(cfg: Dictionary) -> void:
+	# Defensive: no other special mode may leak into this one.
+	if _absorb_active:
+		end_absorb()
+	if _slice_rush_active:
+		end_slice_rush()
+	if _match3_active:
+		end_match3()
+	if _lane_runner_active:
+		end_lane_runner()
+	_gravity_hole_active = true
+	_gh_start_mass = maxf(1.0, float(cfg.get("start_mass", 10.0)))
+	_gh_scale_base = maxf(0.2, float(cfg.get("visual_scale_base", 1.0)))
+	_gh_scale_min = maxf(0.2, float(cfg.get("visual_scale_min", 0.75)))
+	_gh_scale_max = maxf(_gh_scale_min, float(cfg.get("visual_scale_max", 1.55)))
+	_gh_aura_pulse_scale = maxf(1.0, float(cfg.get("aura_pulse_scale", 1.15)))
+	_gh_aura_pulse_sec = maxf(0.05, float(cfg.get("aura_pulse_sec", 0.18)))
+	_ensure_big_hp_label()
+	if _big_hp_label:
+		_big_hp_label.visible = true
+	_attach_gravity_hole_aura(cfg)
+	set_gravity_hole_mass(_gh_start_mass)
+
+## Mass drives the label and the ship visual scale (sqrt growth, clamped).
+func set_gravity_hole_mass(mass: float) -> void:
+	if not _gravity_hole_active:
+		return
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.text = str(int(round(mass)))
+	var mult: float = clampf(_gh_scale_base * sqrt(maxf(1.0, mass) / _gh_start_mass), _gh_scale_min, _gh_scale_max)
+	_apply_ship_scale(mult)
+
+## The aura diameter follows the ABSORPTION radius pushed by the manager.
+func set_gravity_hole_radius(radius_px: float) -> void:
+	if _gh_aura == null or not is_instance_valid(_gh_aura) or _gh_aura_frame_dim <= 0.0:
+		return
+	_gh_aura_base_scale = maxf(0.01, radius_px * 2.0 * _gh_aura_visual_ratio / _gh_aura_frame_dim)
+	if _gh_aura_pulse_tween == null or not _gh_aura_pulse_tween.is_valid():
+		_gh_aura.scale = Vector2.ONE * _gh_aura_base_scale
+
+## Handoff from the intro/outro cover sprite: same asset, same size formula —
+## syncing the animation frame makes the swap seamless.
+func set_gravity_hole_aura_visible(aura_visible: bool, sync_frame: int = -1) -> void:
+	if _gh_aura == null or not is_instance_valid(_gh_aura):
+		return
+	_gh_aura.visible = aura_visible
+	if sync_frame >= 0 and _gh_aura.sprite_frames != null:
+		var anim_name: StringName = _gh_aura.animation
+		if _gh_aura.sprite_frames.has_animation(anim_name) \
+			and sync_frame < _gh_aura.sprite_frames.get_frame_count(anim_name):
+			_gh_aura.frame = sync_frame
+	if _gh_aura_pulse_tween == null or not _gh_aura_pulse_tween.is_valid():
+		_gh_aura.scale = Vector2.ONE * _gh_aura_base_scale
+
+## Small satisfaction kick on each absorption (kill-and-replace).
+func pulse_gravity_hole_aura() -> void:
+	if _gh_aura == null or not is_instance_valid(_gh_aura):
+		return
+	if _gh_aura_pulse_tween and _gh_aura_pulse_tween.is_valid():
+		_gh_aura_pulse_tween.kill()
+	_gh_aura_pulse_tween = _gh_aura.create_tween()
+	_gh_aura_pulse_tween.tween_property(_gh_aura, "scale", Vector2.ONE * _gh_aura_base_scale * _gh_aura_pulse_scale, _gh_aura_pulse_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_gh_aura_pulse_tween.tween_property(_gh_aura, "scale", Vector2.ONE * _gh_aura_base_scale, _gh_aura_pulse_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Leaves gravity-hole mode: restores scale, label and the top zone (implicit).
+func end_gravity_hole() -> void:
+	_remove_gravity_hole_aura()
+	if not _gravity_hole_active:
+		return
+	_gravity_hole_active = false
+	_apply_ship_scale(1.0)
+	if _big_hp_label and is_instance_valid(_big_hp_label):
+		_big_hp_label.visible = false
+
+func is_gravity_hole_active() -> bool:
+	return _gravity_hole_active
+
+## Additive animated aura behind the ship, direct Player child at index 0
+## (outside visual_container: its scale tracks the absorption radius, not the
+## ship mass scale). Hidden until the intro handoff.
+func _attach_gravity_hole_aura(cfg: Dictionary) -> void:
+	_remove_gravity_hole_aura()
+	var asset_path: String = str(cfg.get("aura_asset", ""))
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+	var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if not (res is SpriteFrames):
+		return
+	var frames: SpriteFrames = res as SpriteFrames
+	_gh_aura = AnimatedSprite2D.new()
+	_gh_aura.name = "GravityHoleAura"
+	_gh_aura.sprite_frames = frames
+	var anim_name: StringName = &"default"
+	if not frames.has_animation(anim_name):
+		var names: PackedStringArray = frames.get_animation_names()
+		if names.size() > 0:
+			anim_name = StringName(names[0])
+	if frames.has_animation(anim_name):
+		_gh_aura.play(anim_name)
+	var add_mat := CanvasItemMaterial.new()
+	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_gh_aura.material = add_mat
+	_gh_aura.modulate = Color(str(cfg.get("aura_tint", "#2A1848C8")))
+	_gh_aura_visual_ratio = maxf(0.2, float(cfg.get("aura_visual_ratio", 1.08)))
+	_gh_aura_frame_dim = 1.0
+	if frames.has_animation(anim_name) and frames.get_frame_count(anim_name) > 0:
+		var frame_tex: Texture2D = frames.get_frame_texture(anim_name, 0)
+		if frame_tex:
+			var f_size: Vector2 = frame_tex.get_size()
+			if f_size.x > 0.0 and f_size.y > 0.0:
+				_gh_aura_frame_dim = maxf(f_size.x, f_size.y)
+	_gh_aura.visible = false
+	add_child(_gh_aura)
+	move_child(_gh_aura, 0)
+
+func _remove_gravity_hole_aura() -> void:
+	if _gh_aura_pulse_tween and _gh_aura_pulse_tween.is_valid():
+		_gh_aura_pulse_tween.kill()
+	_gh_aura_pulse_tween = null
+	if _gh_aura and is_instance_valid(_gh_aura):
+		_gh_aura.queue_free()
+	_gh_aura = null
+
+# =============================================================================
+# STAR DRIFT WAVE
+# =============================================================================
+
+## Star drift mode (Super Starfish): the ship glides after the finger with
+## inertia — the velocity eases toward the target instead of snapping, so the
+## ship keeps drifting when the finger stops or lifts. Free movement in all
+## four directions (the top forbidden zone is bypassed: vertical dodging is
+## part of the wave); shooting is cut by Game via set_can_shoot.
+var _star_drift_active: bool = false
+var _sd_velocity: Vector2 = Vector2.ZERO
+var _sd_follow_gain: float = 7.0
+var _sd_max_speed: float = 950.0
+var _sd_inertia_response: float = 6.0
+var _sd_finger_offset_y: float = -110.0
+var _sd_deadzone_px: float = 4.0
+
+func begin_star_drift(cfg: Dictionary) -> void:
+	# Defensive: no other special mode may leak into this one.
+	if _absorb_active:
+		end_absorb()
+	if _slice_rush_active:
+		end_slice_rush()
+	if _match3_active:
+		end_match3()
+	if _lane_runner_active:
+		end_lane_runner()
+	if _gravity_hole_active:
+		end_gravity_hole()
+	_star_drift_active = true
+	_sd_velocity = Vector2.ZERO
+	_sd_follow_gain = maxf(0.5, float(cfg.get("control_follow_gain", 7.0)))
+	_sd_max_speed = maxf(100.0, float(cfg.get("control_max_speed_px_sec", 950.0)))
+	_sd_inertia_response = maxf(0.5, float(cfg.get("control_inertia_response", 6.0)))
+	_sd_finger_offset_y = float(cfg.get("control_finger_offset_y", -110.0))
+	_sd_deadzone_px = maxf(0.0, float(cfg.get("control_deadzone_px", 4.0)))
+
+func end_star_drift() -> void:
+	if not _star_drift_active:
+		return
+	_star_drift_active = false
+	_sd_velocity = Vector2.ZERO
+
+func is_star_drift_active() -> bool:
+	return _star_drift_active
+
+# =============================================================================
 # FIRE PATTERN: AURA SYSTEM
 # =============================================================================
 
@@ -552,6 +1477,21 @@ func _setup_aura_area() -> void:
 	if not _aura_area.area_exited.is_connected(_on_aura_area_exited):
 		_aura_area.area_exited.connect(_on_aura_area_exited)
 	add_child(_aura_area)
+
+## Sets the active fire pattern for the current run (from a fire pattern drop).
+## Pass "" to revert to the ship's native pattern.
+func set_active_fire_pattern(pattern_id: String) -> void:
+	_active_fire_pattern_id = str(pattern_id)
+	# If we leave an aura pattern, make sure the persistent aura stops.
+	var fire_data := SkillManager.get_fire_pattern_data(_active_fire_pattern_id)
+	if not bool(fire_data.get("is_aura", false)):
+		_deactivate_aura()
+	# Force the next shot to use the new pattern immediately.
+	_fire_timer = 0.0
+
+## Returns the active fire pattern id for the current run ("" = ship default).
+func get_active_fire_pattern() -> String:
+	return _active_fire_pattern_id
 
 ## Activate the aura with the given fire_data parameters.
 func _activate_aura(fire_data: Dictionary) -> void:
@@ -817,11 +1757,11 @@ func absorb_damage_with_shield(amount: int, impact_world_pos: Vector2 = Vector2.
 		
 		print("[Player] 💥 SHIELD BREAK! Collapsing...")
 		
-		# Collapse sequence
-		get_tree().create_timer(0.2).timeout.connect(func():
+		# Collapse sequence (pausable timers: freeze with the pause menu)
+		get_tree().create_timer(0.2, false).timeout.connect(func():
 			if shield:
 				shield.collapse()
-				get_tree().create_timer(1.0).timeout.connect(func():
+				get_tree().create_timer(1.0, false).timeout.connect(func():
 					if shield and not shield_active:
 						shield.visible = false
 						if shield.get_parent() is SubViewport:
@@ -888,31 +1828,152 @@ var _external_displacement: Vector2 = Vector2.ZERO
 func apply_external_displacement(offset: Vector2) -> void:
 	_external_displacement += offset
 
+func _get_follow_finger_config() -> Dictionary:
+	if not DataManager:
+		return {}
+	var cfg: Dictionary = DataManager.get_game_config()
+	var mc_v: Variant = cfg.get("mobile_controls", {})
+	if not (mc_v is Dictionary):
+		return {}
+	var ff_v: Variant = (mc_v as Dictionary).get("follow_finger", {})
+	if not (ff_v is Dictionary):
+		return {}
+	return ff_v as Dictionary
+
+## Hauteur (en pixels) de la zone interdite en haut de l'ecran. Le joueur ne peut pas
+## y entrer (ni via stick virtuel, ni via follow finger). Pilote par game.json -> mobile_controls.player_top_safe_zone_ratio.
+func _get_player_top_limit_y(viewport_height: float) -> float:
+	# Gravity hole: free movement in ALL directions — only the hard screen
+	# margin remains (same 20 px used for the X/bottom clamps).
+	if _gravity_hole_active:
+		return 20.0
+	var ratio: float = 0.25
+	if DataManager:
+		var cfg: Dictionary = DataManager.get_game_config()
+		var mc_v: Variant = cfg.get("mobile_controls", {})
+		if mc_v is Dictionary:
+			ratio = float((mc_v as Dictionary).get("player_top_safe_zone_ratio", 0.25))
+	ratio = clampf(ratio, 0.0, 0.9)
+	return viewport_height * ratio
+
 ## Pousse le joueur vers le bas d'un montant donné (utilisé par les obstacles "pusher").
 ## Si le joueur est poussé hors de l'écran, la mécanique de mort existante s'en charge.
 func push_down(y_amount: float) -> void:
 	apply_external_displacement(Vector2(0, y_amount))
 
 func _handle_movement(delta: float) -> void:
+	# Slice rush wave: the ship is fully locked (X and Y) — short-circuit every
+	# movement input path (stick, follow finger, desktop mouse, external forces).
+	if _slice_rush_active:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position = _slice_rush_lock_pos
+		return
+
+	# Match3 wave: same full lock, the board manager drives the position.
+	if _match3_active:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position = _match3_lock_pos
+		return
+
+	# Ball launcher wave: Y locked on the launch line, X glides toward the
+	# manager-driven target (finger follow / frozen while aiming). Regular
+	# movement input is fully neutralized.
+	if _ball_launcher_active:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position.x = lerpf(
+			global_position.x,
+			_ball_launcher_target_x,
+			clampf(delta * _ball_launcher_snap_speed, 0.0, 1.0)
+		)
+		global_position.y = _ball_launcher_lock_y
+		return
+
+	# Star drift wave: fully inertial finger-follow (Super Starfish feel).
+	# The velocity eases toward the target so the ship glides and overshoots
+	# slightly; without a target it decelerates smoothly on its own inertia.
+	# Free in all four directions (no top safe zone — vertical dodging is the
+	# point); black-hole pulls arrive through _external_displacement.
+	if _star_drift_active:
+		var sd_start_pos: Vector2 = global_position
+		velocity = Vector2.ZERO
+		var sd_target: Vector2 = global_position
+		var sd_has_target := false
+		var sd_touch := false
+		if input_provider and input_provider.has_method("is_touching"):
+			sd_touch = input_provider.is_touching()
+		elif input_provider and input_provider.has_method("is_joystick_active"):
+			sd_touch = input_provider.is_joystick_active()
+		if sd_touch and input_provider and input_provider.has_method("get_finger_screen_position"):
+			var sd_finger: Vector2 = input_provider.get_finger_screen_position()
+			if sd_finger != Vector2.INF:
+				sd_target = get_canvas_transform().affine_inverse() * (sd_finger + Vector2(0.0, _sd_finger_offset_y))
+				sd_has_target = true
+		if not sd_has_target:
+			var sd_on_mobile: bool = OS.has_feature("mobile")
+			if input_provider and input_provider.has_method("is_on_mobile"):
+				sd_on_mobile = input_provider.is_on_mobile()
+			if not sd_on_mobile:
+				sd_target = get_global_mouse_position()
+				sd_has_target = true
+		var sd_desired: Vector2 = Vector2.ZERO
+		if sd_has_target and global_position.distance_to(sd_target) > _sd_deadzone_px:
+			sd_desired = ((sd_target - global_position) * _sd_follow_gain).limit_length(_sd_max_speed)
+		_sd_velocity = _sd_velocity.lerp(sd_desired, clampf(delta * _sd_inertia_response, 0.0, 1.0))
+		global_position += _sd_velocity * delta
+		# This early-branch skips the shared path below: consume external
+		# forces (black-hole pull) and clamp to the hard screen margins here.
+		if _external_displacement != Vector2.ZERO:
+			global_position += _external_displacement
+			_external_displacement = Vector2.ZERO
+		var sd_viewport_size: Vector2 = get_viewport_rect().size
+		global_position.x = clampf(global_position.x, 20.0, sd_viewport_size.x - 20.0)
+		global_position.y = clampf(global_position.y, 20.0, sd_viewport_size.y - 20.0)
+		velocity = (global_position - sd_start_pos) / maxf(delta, 0.0001)
+		return
+
 	var start_pos: Vector2 = global_position
 	# Clear any residual velocity from obstacle/platform contacts each frame.
 	velocity = Vector2.ZERO
 
-	var use_joystick := false
 	var has_external_force := _external_displacement.length_squared() > 0.000001
-	
-	# Vérifier si on a un provider de joystick actif
-	if input_provider and input_provider.has_method("is_joystick_active"):
-		if input_provider.is_joystick_active():
-			use_joystick = true
-	
-	if use_joystick:
-		# 1:1 Direct Drag Movement (Touch Follow)
-		# On récupère le déplacement relatif exact du doigt depuis la dernière frame
+	var control_mode: String = "virtual_stick"
+	if typeof(ProfileManager) != TYPE_NIL and ProfileManager:
+		control_mode = str(ProfileManager.get_setting("control_mode", "virtual_stick"))
+
+	var touch_active := false
+	if input_provider and input_provider.has_method("is_touching"):
+		touch_active = input_provider.is_touching()
+	elif input_provider and input_provider.has_method("is_joystick_active"):
+		touch_active = input_provider.is_joystick_active()
+
+	if control_mode == "follow_finger" and touch_active and input_provider and input_provider.has_method("get_finger_screen_position"):
+		var finger_screen: Vector2 = input_provider.get_finger_screen_position()
+		if finger_screen != Vector2.INF:
+			var ff_cfg: Dictionary = _get_follow_finger_config()
+			var lerp_speed: float = float(ff_cfg.get("lerp_speed", 18.0))
+			var finger_offset_y: float = float(ff_cfg.get("finger_offset_y", -120.0))
+			var deadzone_px: float = float(ff_cfg.get("deadzone_px", 4.0))
+			# finger_screen_pos est en coordonnees ecran (CanvasLayer du HUD).
+			# Comme le HUD est full screen, screen_pos == viewport_pos. On le convertit
+			# en world via le canvas_transform du joueur.
+			var canvas_xform: Transform2D = get_canvas_transform()
+			var target_world: Vector2 = canvas_xform.affine_inverse() * (finger_screen + Vector2(0.0, finger_offset_y))
+			# Empeche la cible de remonter dans la zone interdite du haut: le vaisseau ne
+			# doit jamais essayer d'y aller (sinon il colle a la limite indefiniment).
+			var ff_viewport_size: Vector2 = get_viewport_rect().size
+			var ff_top_limit: float = _get_player_top_limit_y(ff_viewport_size.y)
+			if target_world.y < ff_top_limit:
+				target_world.y = ff_top_limit
+			if global_position.distance_to(target_world) > deadzone_px:
+				global_position = global_position.lerp(target_world, clampf(delta * lerp_speed, 0.0, 1.0))
+	elif touch_active:
+		# Mode stick virtuel: 1:1 Direct Drag Movement (Touch Follow)
 		var drag_delta := Vector2.ZERO
 		if input_provider.has_method("get_joystick_drag_delta"):
 			drag_delta = input_provider.get_joystick_drag_delta()
-			
 		position += drag_delta
 	else:
 		# Mouse Follow mode (Desktop)
@@ -925,7 +1986,10 @@ func _handle_movement(delta: float) -> void:
 			
 		# If an external force (e.g. GravityWell) is active this frame, skip cursor recentering.
 		# This keeps the pull effect visible even when the mouse is static.
-		if not on_mobile and not has_external_force:
+		# Lane runner: X/Y are fully lane-driven (discrete swipes read in
+		# _input); the passive mouse-follow must not fight the lane snap.
+		var mouse_steering_allowed: bool = not _lane_runner_active
+		if not on_mobile and not has_external_force and mouse_steering_allowed:
 			var mouse_pos := get_global_mouse_position()
 			var distance := global_position.distance_to(mouse_pos)
 			if distance > 5:  # Dead zone
@@ -955,10 +2019,24 @@ func _handle_movement(delta: float) -> void:
 	# 2. Strict X Clamp
 	global_position.x = clampf(global_position.x, 20, viewport_size.x - 20)
 	
-	# 3. Y Clamp - Top only (Prevent going up off screen)
-	if global_position.y < 20:
-		global_position.y = 20
-		
+	# 3. Y Clamp - Top: zone interdite (par defaut 25% haut de l'ecran).
+	# Le joueur ne peut pas y entrer, ni en stick virtuel ni en follow finger.
+	var top_limit_y: float = _get_player_top_limit_y(viewport_size.y)
+	if global_position.y < top_limit_y:
+		global_position.y = top_limit_y
+
+	# Pong wave: Y stays locked on the paddle line (X remains player-controlled).
+	if _pong_active:
+		global_position.y = _pong_lock_y
+
+	# Vertical climb wave: Y is driven by the climb manager (X remains free).
+	if _climb_active:
+		global_position.y = _climb_y
+
+	# Lane runner wave: X snaps to the current lane, Y locked on the run line.
+	if _lane_runner_active:
+		_apply_lane_runner_lock(delta)
+
 	# 4. Check death by "Crushing" (Pushed off screen bottom by Wall)
 	# Significant margin to avoid accidental death on edge
 	if global_position.y > viewport_size.y + 50:
@@ -1001,8 +2079,8 @@ func _fire() -> void:
 		missile_pattern_id = str(ship.get("missile_pattern_id", "single_straight"))
 	# --- DEBUG PATTERN ROTATION - END ---
 
-	# --- FIRE PATTERN SYSTEM: Check equipped fire pattern ---
-	var fire_data := SkillManager.get_fire_pattern_data()
+	# --- FIRE PATTERN SYSTEM: Use the active run pattern (from fire pattern drops) ---
+	var fire_data := SkillManager.get_fire_pattern_data(_active_fire_pattern_id)
 	var pattern_data: Dictionary
 
 	if fire_data.get("is_aura", false):
@@ -1117,7 +2195,8 @@ func _execute_burst_sequence(pattern_data: Dictionary, count: int, interval: flo
 		_spawn_salvo(pattern_data, speed, damage)
 		
 		if count > 1 and i < count - 1:
-			await get_tree().create_timer(interval).timeout
+			# Pausable timer: a burst must not keep firing while the game is paused.
+			await get_tree().create_timer(interval, false).timeout
 			if not _can_shoot:
 				return
 
@@ -1255,6 +2334,11 @@ func take_damage(amount: int) -> void:
 	
 	current_hp -= amount
 	current_hp = maxi(0, current_hp)
+
+	# Gate-runner: the escort swarm loses ships as the HP resource drops.
+	if _gate_runner_active:
+		_update_gate_runner_swarm()
+		_update_big_hp_label()
 	
 	print("[Player] Took damage: ", amount, " | HP: ", current_hp, "/", max_hp)
 	

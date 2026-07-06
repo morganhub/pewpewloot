@@ -19,6 +19,44 @@ var _press_start_time: int = 0
 var _long_press_triggered: bool = false
 const LONG_PRESS_DURATION: int = 500 # ms
 
+# Strong static caches shared across all ItemCard instances.
+# Pattern aligned with scenes/Enemy.gd and scenes/LootDrop.gd (performance_improvements.md).
+static var _resource_cache: Dictionary = {}        # path -> Resource (Texture2D / SpriteFrames)
+static var _missing_paths: Dictionary = {}         # path -> true (paths confirmed absent)
+static var _bg_stylebox_cache: Dictionary = {}     # path -> StyleBoxTexture (rarity frames)
+static var _flat_stylebox_empty: StyleBoxFlat
+static var _flat_stylebox_filled: StyleBoxFlat
+
+static func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _resource_cache.has(path):
+		return _resource_cache[path] as Resource
+	if _missing_paths.has(path):
+		return null
+	if not ResourceLoader.exists(path):
+		_missing_paths[path] = true
+		return null
+	var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res != null:
+		_resource_cache[path] = res
+	else:
+		_missing_paths[path] = true
+	return res
+
+static func _get_flat_stylebox(is_empty: bool) -> StyleBoxFlat:
+	if is_empty:
+		if _flat_stylebox_empty == null:
+			_flat_stylebox_empty = StyleBoxFlat.new()
+			_flat_stylebox_empty.bg_color = Color(0.2, 0.2, 0.2, 1)
+			_flat_stylebox_empty.set_corner_radius_all(4)
+		return _flat_stylebox_empty
+	if _flat_stylebox_filled == null:
+		_flat_stylebox_filled = StyleBoxFlat.new()
+		_flat_stylebox_filled.bg_color = Color(0.1, 0.1, 0.1, 1)
+		_flat_stylebox_filled.set_corner_radius_all(4)
+	return _flat_stylebox_filled
+
 func _ensure_nodes() -> void:
 	if not content: content = $Content
 	if not icon_rect: icon_rect = $Content/Icon
@@ -55,6 +93,8 @@ func setup_item(data: Dictionary, p_slot_id: String, config: Dictionary = {}) ->
 	_ensure_nodes()
 	item_id = str(data.get("id", ""))
 	slot_id = p_slot_id
+	modulate = Color.WHITE
+	if button: button.disabled = false
 	
 	# 1. Background (Rarity)
 	var rarity = str(data.get("rarity", "common"))
@@ -65,23 +105,25 @@ func setup_item(data: Dictionary, p_slot_id: String, config: Dictionary = {}) ->
 	
 	# 2. Icon
 	var icon_path = str(data.get("asset", ""))
-	
+	var icon_res: Resource = _load_cached_resource(icon_path)
+
 	# If no valid asset on item, try to resolve from DataManager (Affixes) based on rarity
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
+	if icon_res == null:
 		var slot_def = DataManager.get_slot(slot_id)
 		var icon_def = slot_def.get("icon")
 		if icon_def is Dictionary:
 			icon_path = str(icon_def.get(rarity, icon_def.get("common", "")))
 		elif icon_def is String:
 			icon_path = icon_def
+		icon_res = _load_cached_resource(icon_path)
 
 	# Fallback to placeholder if still invalid
-	if icon_path == "" or not ResourceLoader.exists(icon_path):
+	if icon_res == null:
 		var placeholders = config.get("placeholders", {})
 		icon_path = str(placeholders.get(slot_id, ""))
-		
+		icon_res = _load_cached_resource(icon_path)
 
-	_set_icon(icon_path)
+	_set_icon(icon_path, icon_res)
 	
 	# Robust Centering & Sizing (80% size = 10% margins)
 	# Remove scale/pivot logic which fails if size is 0 initally.
@@ -124,11 +166,29 @@ func setup_item(data: Dictionary, p_slot_id: String, config: Dictionary = {}) ->
 	# 6. Empty Label
 	empty_label.visible = false
 
+# Setup as dim placeholder card (inventory page filler).
+func setup_placeholder(config: Dictionary = {}) -> void:
+	_ensure_nodes()
+	item_id = ""
+	slot_id = ""
+	var rarity_frames = config.get("rarity_frames", {})
+	var bg_asset = str(rarity_frames.get("common", ""))
+	_set_background(bg_asset, false)
+	modulate = Color(1.0, 1.0, 1.0, 0.4)
+	icon_rect.visible = false
+	level_badge.visible = false
+	slot_indicator.visible = false
+	action_indicator.visible = false
+	empty_label.visible = false
+	if button: button.disabled = true
+
 # Setup for empty slot (Equipment)
 func setup_empty(p_slot_id: String, slot_name: String, config: Dictionary = {}) -> void:
 	_ensure_nodes()
 	item_id = ""
 	slot_id = p_slot_id
+	modulate = Color.WHITE
+	if button: button.disabled = false
 	
 	# Style
 	var eq_cfg = config.get("equipment_button", {})
@@ -154,48 +214,51 @@ func setup_empty(p_slot_id: String, slot_name: String, config: Dictionary = {}) 
 		empty_label.add_theme_font_size_override("font_size", default_font_sz)
 
 func _set_background(path: String, is_empty: bool = false) -> void:
-	if path != "" and ResourceLoader.exists(path):
-		var texture_style = StyleBoxTexture.new()
-		texture_style.texture = load(path)
-		add_theme_stylebox_override("panel", texture_style)
+	var res: Resource = _load_cached_resource(path)
+	if res is Texture2D:
+		var sb: StyleBoxTexture = _bg_stylebox_cache.get(path)
+		if sb == null:
+			sb = StyleBoxTexture.new()
+			sb.texture = res as Texture2D
+			_bg_stylebox_cache[path] = sb
+		add_theme_stylebox_override("panel", sb)
 	else:
-		var flat_style = StyleBoxFlat.new()
-		flat_style.bg_color = Color(0.2, 0.2, 0.2, 1) if is_empty else Color(0.1, 0.1, 0.1, 1)
-		flat_style.set_corner_radius_all(4)
-		add_theme_stylebox_override("panel", flat_style)
+		add_theme_stylebox_override("panel", _get_flat_stylebox(is_empty))
 
-func _set_icon(path: String) -> void:
+func _set_icon(path: String, preloaded_res: Resource = null) -> void:
 	# Clean up previous animation
 	var existing = icon_rect.get_node_or_null("AnimSprite")
 	if existing: existing.queue_free()
-	
-	if path != "" and ResourceLoader.exists(path):
+
+	var res: Resource = preloaded_res if preloaded_res != null else _load_cached_resource(path)
+	if res != null:
 		icon_rect.visible = true
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		
-		if path.ends_with(".tres") or path.ends_with(".res"):
-			var res = load(path)
-			if res is SpriteFrames:
-				icon_rect.texture = null
-				var anim = AnimatedSprite2D.new()
-				anim.name = "AnimSprite"
-				anim.sprite_frames = res
-				anim.play("default") # Assume 'default' animation
-				anim.centered = true
-				icon_rect.add_child(anim)
-				
-				# Center the animation
-				anim.position = icon_rect.size / 2.0
-				# Connect resize to keep centered
-				if not icon_rect.resized.is_connected(_on_icon_resized):
-					icon_rect.resized.connect(_on_icon_resized)
-				return
-		
+
+		if res is SpriteFrames:
+			icon_rect.texture = null
+			var anim = AnimatedSprite2D.new()
+			anim.name = "AnimSprite"
+			anim.sprite_frames = res
+			anim.play("default") # Assume 'default' animation
+			anim.centered = true
+			icon_rect.add_child(anim)
+
+			# Center the animation
+			anim.position = icon_rect.size / 2.0
+			# Connect resize to keep centered
+			if not icon_rect.resized.is_connected(_on_icon_resized):
+				icon_rect.resized.connect(_on_icon_resized)
+			return
+
 		# Fallback / Normal Texture
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if icon_rect.resized.is_connected(_on_icon_resized):
 			icon_rect.resized.disconnect(_on_icon_resized)
-		icon_rect.texture = load(path)
+		if res is Texture2D:
+			icon_rect.texture = res as Texture2D
+		else:
+			icon_rect.visible = false
 	else:
 		icon_rect.visible = false
 
@@ -226,8 +289,9 @@ func _setup_level_badge(level: int, assets: Dictionary) -> void:
 		if lbl: level_badge.move_child(lbl, -1)
 		badge_bg.show_behind_parent = true 
 	
-	if bg_path != "" and ResourceLoader.exists(bg_path):
-		badge_bg.texture = load(bg_path)
+	var bg_res: Resource = _load_cached_resource(bg_path)
+	if bg_res is Texture2D:
+		badge_bg.texture = bg_res as Texture2D
 		badge_bg.visible = true
 	else:
 		badge_bg.visible = false
@@ -255,8 +319,9 @@ func _setup_level_badge(level: int, assets: Dictionary) -> void:
 	level_badge.visible = true
 
 func _setup_slot_indicator(path: String) -> void:
-	if path != "" and ResourceLoader.exists(path):
-		slot_icon.texture = load(path)
+	var res: Resource = _load_cached_resource(path)
+	if res is Texture2D:
+		slot_icon.texture = res as Texture2D
 		slot_indicator.visible = true
 		slot_indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		

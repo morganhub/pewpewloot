@@ -16,6 +16,7 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var cancel_btn: Button = %CancelBtn
 @onready var background: TextureRect = $Background
 @onready var margin_container: MarginContainer = $MarginContainer
+@onready var title_label: Label = $MarginContainer/VBox/Header/TitleLabel
 
 # =============================================================================
 # ÉTAT
@@ -67,6 +68,8 @@ func _setup_visuals() -> void:
 	var bg_path: String = str(shop_cfg.get("background", main_cfg.get("background", "")))
 	if bg_path != "" and ResourceLoader.exists(bg_path) and background:
 		background.texture = load(bg_path)
+	if title_label:
+		title_label.add_theme_font_size_override("font_size", int(shop_cfg.get("title_font_size", 32)))
 	
 	# Popup Styling
 	var popups_cfg: Dictionary = _game_config.get("popups", {})

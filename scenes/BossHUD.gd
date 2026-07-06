@@ -9,6 +9,7 @@ extends Control
 var boss_ref: CharacterBody2D = null
 
 func setup(boss: CharacterBody2D) -> void:
+	_apply_typography()
 	boss_ref = boss
 	boss_name_label.text = boss.boss_name
 	boss_hp_bar.max_value = boss.max_hp
@@ -48,3 +49,12 @@ func _on_boss_died() -> void:
 	var tween := create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.5)
 	tween.chain().tween_callback(queue_free)
+
+func _apply_typography() -> void:
+	var game_cfg: Dictionary = DataManager.get_game_config() if DataManager else {}
+	var hud_cfg_v: Variant = game_cfg.get("game_hud", {})
+	var hud_cfg: Dictionary = hud_cfg_v if hud_cfg_v is Dictionary else {}
+	if boss_name_label:
+		boss_name_label.add_theme_font_size_override("font_size", int(hud_cfg.get("boss_name_font_size", 24)))
+	if phase_label:
+		phase_label.add_theme_font_size_override("font_size", int(hud_cfg.get("boss_phase_font_size", 16)))

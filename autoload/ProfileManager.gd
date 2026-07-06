@@ -7,6 +7,10 @@ signal level_up(new_level: int, skill_points_earned: int)
 
 var active_profile_id: String = ""
 var profiles: Array[Dictionary] = []
+# True once load_from_disk() ran: save_to_disk() refuses to overwrite an
+# existing save before that (protects against early/tool calls wiping profiles
+# — e.g. a headless script touching a setting before the bootstrap).
+var _loaded_from_disk: bool = false
 func _ready() -> void:
 	# load_from_disk() is called by bootstrap (LoadingScreen) after DataManager.load_remaining_data()
 	# so that migration can use DataManager (ships, uniques, skills, etc.)
@@ -18,7 +22,8 @@ var settings: Dictionary = {
 	"screenshake_enabled": true,
 	"show_health_bar_values": true,
 	"manual_debug_mode": false,
-	"locale": "en"
+	"locale": "en",
+	"control_mode": "virtual_stick"
 }
 
 const ITEM_PERCENT_STATS: Array[String] = [
@@ -116,11 +121,27 @@ func load_from_disk() -> void:
 	var raw_settings: Variant = data.get("settings", {})
 	if raw_settings is Dictionary:
 		settings.merge(raw_settings, true)
+
+	# Référence active invalide (profil supprimé / save corrompue)
+	if active_profile_id != "":
+		var active_ok := false
+		for p in profiles:
+			if p is Dictionary and str(p.get("id", "")) == active_profile_id:
+				active_ok = true
+				break
+		if not active_ok:
+			active_profile_id = ""
 	
 	# Sauvegarder si des migrations ont eu lieu
+	_loaded_from_disk = true
 	save_to_disk()
 
 func save_to_disk() -> void:
+	# Never overwrite an existing save with an unloaded (empty) state: any
+	# write before load_from_disk() would wipe every profile on disk.
+	if not _loaded_from_disk and FileAccess.file_exists(SaveManager.SAVE_PATH):
+		push_warning("[ProfileManager] save_to_disk() ignored: profiles not loaded yet (existing save protected).")
+		return
 	var data := {
 		"profiles": profiles,
 		"active_profile_id": active_profile_id,
@@ -191,6 +212,11 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		migrated["loadouts"] = {}
 		needs_save = true
 
+	# Migration: unseen equipment alert state
+	if not migrated.has("unseen_equipment_item_ids"):
+		migrated["unseen_equipment_item_ids"] = []
+		needs_save = true
+
 	# Migration: sanitize inventory entries and enforce unique instance IDs.
 	var inv_sanitized := _sanitize_inventory_entries(migrated.get("inventory", []))
 	if bool(inv_sanitized.get("changed", false)):
@@ -200,6 +226,20 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 	# Migration: crystals
 	if not migrated.has("crystals"):
 		migrated["crystals"] = 0
+		needs_save = true
+
+	# Migration: free mode (wave types rencontrés en histoire + unlock global + records)
+	if not migrated.has("wave_types_encountered"):
+		migrated["wave_types_encountered"] = []
+		needs_save = true
+	if not migrated.has("free_mode_all_unlocked"):
+		migrated["free_mode_all_unlocked"] = false
+		needs_save = true
+	if not migrated.has("free_mode_scores"):
+		migrated["free_mode_scores"] = {}
+		needs_save = true
+	if not migrated.has("free_mode_plays"):
+		migrated["free_mode_plays"] = {}
 		needs_save = true
 
 	# Migration: skill tree system
@@ -284,6 +324,11 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 				needs_save = true
 			migrated["level_scores"] = sanitized_level_scores
 	
+	# Migration: player profile portraits removed — drop legacy field
+	if migrated.has("portrait_id"):
+		migrated.erase("portrait_id")
+		needs_save = true
+
 	# Keep profile ship references valid if ship IDs changed in ships.json.
 	if _can_validate_ship_ids():
 		var normalized_unlocked := _sanitize_unlocked_ships(migrated.get("ships_unlocked", []))
@@ -525,7 +570,26 @@ func set_active_profile(profile_id: String) -> void:
 	active_profile_id = profile_id
 	save_to_disk()
 
-func create_profile(profile_name: String, portrait_id: int) -> String:
+## Default name for first-time profile creation (editable). Store/App display names need Play Games / Game Center plugins.
+func get_suggested_player_display_name() -> String:
+	var raw := ""
+	match OS.get_name():
+		"Windows":
+			raw = OS.get_environment("USERNAME")
+		"macOS", "OSX", "Linux", "FreeBSD":
+			raw = OS.get_environment("USER")
+		"Android", "iOS":
+			raw = OS.get_model_name()
+		_:
+			raw = OS.get_environment("USER")
+	raw = str(raw).strip_edges()
+	if raw == "":
+		raw = str(OS.get_model_name()).strip_edges()
+	if raw == "":
+		raw = "Player"
+	return raw.substr(0, mini(32, raw.length()))
+
+func create_profile(profile_name: String) -> String:
 	var id := str(Time.get_unix_time_from_system()) + "_" + str(randi())
 	var default_unlocked: Array = _sanitize_unlocked_ships(DataManager.get_default_unlocked_ships())
 	var default_active: String = str(default_unlocked[0]) if default_unlocked.size() > 0 else _get_fallback_ship_id(_get_available_ship_ids())
@@ -533,13 +597,13 @@ func create_profile(profile_name: String, portrait_id: int) -> String:
 	var profile := {
 		"id": id,
 		"name": profile_name,
-		"portrait_id": portrait_id,
 		"progress": _create_default_progress(),
 		"level_scores": {},
 		"ships_unlocked": default_unlocked,
 		"active_ship_id": default_active,
 		"inventory": [],
 		"loadouts": {},
+		"unseen_equipment_item_ids": [],
 		"crystals": 0,
 		"player_xp": 0,
 		"player_level": 1,
@@ -548,7 +612,11 @@ func create_profile(profile_name: String, portrait_id: int) -> String:
 		"active_magic_branch": "",
 		"equipped_fire_pattern": "fire_ship_default",
 		"viewed_stories": [],
-		"levels_cleared_with_max_override": 0
+		"levels_cleared_with_max_override": 0,
+		"wave_types_encountered": [],
+		"free_mode_all_unlocked": false,
+		"free_mode_scores": {},
+		"free_mode_plays": {}
 	}
 
 	profiles.append(profile)
@@ -688,6 +756,16 @@ func get_max_levels_override() -> int:
 		total += App.get_world_level_count(world_id)
 	return maxi(1, total)
 
+## Number of override protocols defined in data (used as the "max active" target).
+func _get_total_override_protocol_count() -> int:
+	if DataManager == null or not DataManager.has_method("get_override_protocols_config"):
+		return 0
+	var cfg: Dictionary = DataManager.get_override_protocols_config()
+	var protocols_v: Variant = cfg.get("protocols", [])
+	if protocols_v is Array:
+		return (protocols_v as Array).size()
+	return 0
+
 func set_world_active_override_protocols(world_id: String, protocol_ids: Array) -> void:
 	var profile := get_active_profile()
 	if profile.is_empty():
@@ -741,9 +819,10 @@ func complete_level(world_id: String, level_index: int, levels_per_world: int = 
 
 	prog[world_id] = world_prog
 
-	# Levels cleared with max override (10 protocols): increment counter, cap at get_max_levels_override()
-	const MAX_PROTOCOLS_FOR_COUNT: int = 10
-	if override_count >= MAX_PROTOCOLS_FOR_COUNT:
+	# Levels cleared with the maximum number of override protocols active.
+	# Tied to the actual protocol count so it stays correct if protocols are added/removed.
+	var max_protocols_for_count: int = _get_total_override_protocol_count()
+	if max_protocols_for_count > 0 and override_count >= max_protocols_for_count:
 		var current: int = int(profile.get("levels_cleared_with_max_override", 0))
 		var cap: int = get_max_levels_override()
 		_update_active_profile("levels_cleared_with_max_override", mini(cap, current + 1))
@@ -940,6 +1019,95 @@ func get_global_best_score(world_id: String, level_id: String) -> Dictionary:
 	return {"score": best_score, "profile_name": best_name, "profile_id": best_id}
 
 # =============================================================================
+# MODE LIBRE (déblocage par wave_type rencontré + records par mode)
+# =============================================================================
+
+## Marque un type de vague comme rencontré en mode Histoire (déblocage libre).
+func mark_wave_type_encountered(wave_type: String) -> void:
+	var t: String = wave_type.strip_edges()
+	if t == "":
+		return
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+	var encountered_v: Variant = profile.get("wave_types_encountered", [])
+	var encountered: Array = (encountered_v as Array).duplicate() if encountered_v is Array else []
+	if encountered.has(t):
+		return
+	encountered.append(t)
+	_update_active_profile("wave_types_encountered", encountered)
+
+func is_wave_type_unlocked(wave_type: String) -> bool:
+	if is_free_mode_all_unlocked():
+		return true
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return false
+	var encountered_v: Variant = profile.get("wave_types_encountered", [])
+	return encountered_v is Array and (encountered_v as Array).has(wave_type)
+
+func get_unlocked_wave_type_count(mode_ids: Array) -> int:
+	var count: int = 0
+	for id_v in mode_ids:
+		if is_wave_type_unlocked(str(id_v)):
+			count += 1
+	return count
+
+func is_free_mode_all_unlocked() -> bool:
+	var profile := get_active_profile()
+	return bool(profile.get("free_mode_all_unlocked", false))
+
+func set_free_mode_all_unlocked(value: bool) -> void:
+	_update_active_profile("free_mode_all_unlocked", value)
+
+## Record par mode libre. Ne remplace que si le score bat le précédent.
+func save_free_mode_score(wave_type: String, score: int) -> Dictionary:
+	var profile := get_active_profile()
+	var t: String = wave_type.strip_edges()
+	if profile.is_empty() or t == "":
+		return {"updated": false, "best_score": 0}
+	var candidate: int = maxi(0, score)
+	var scores_v: Variant = profile.get("free_mode_scores", {})
+	var scores: Dictionary = (scores_v as Dictionary).duplicate(true) if scores_v is Dictionary else {}
+	var previous_best: int = maxi(0, int(scores.get(t, 0)))
+	var updated: bool = candidate > previous_best
+	var final_best: int = candidate if updated else previous_best
+	scores[t] = final_best
+	_update_active_profile("free_mode_scores", scores)
+	return {"updated": updated, "best_score": final_best}
+
+func get_free_mode_best_score(wave_type: String) -> int:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return 0
+	var scores_v: Variant = profile.get("free_mode_scores", {})
+	if scores_v is Dictionary:
+		return maxi(0, int((scores_v as Dictionary).get(wave_type, 0)))
+	return 0
+
+## Historique : nombre de parties jouées par mode (incrémenté au lancement).
+func increment_free_mode_plays(wave_type: String) -> void:
+	var t: String = wave_type.strip_edges()
+	if t == "":
+		return
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+	var plays_v: Variant = profile.get("free_mode_plays", {})
+	var plays: Dictionary = (plays_v as Dictionary).duplicate(true) if plays_v is Dictionary else {}
+	plays[t] = maxi(0, int(plays.get(t, 0))) + 1
+	_update_active_profile("free_mode_plays", plays)
+
+func get_free_mode_play_count(wave_type: String) -> int:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return 0
+	var plays_v: Variant = profile.get("free_mode_plays", {})
+	if plays_v is Dictionary:
+		return maxi(0, int((plays_v as Dictionary).get(wave_type, 0)))
+	return 0
+
+# =============================================================================
 # VAISSEAUX
 # =============================================================================
 
@@ -1097,9 +1265,66 @@ func add_item_to_inventory(item: Dictionary) -> bool:
 	var items_to_save: Variant = sanitized.get("items", inv_array)
 	if items_to_save is Array:
 		_update_active_profile("inventory", items_to_save as Array)
+		_track_unseen_equipment_item(item_copy, items_to_save as Array)
 	else:
 		_update_active_profile("inventory", inv_array)
+		_track_unseen_equipment_item(item_copy, inv_array)
 	return true
+
+func _track_unseen_equipment_item(original_item: Dictionary, saved_inventory: Array) -> void:
+	if not _is_equipment_inventory_item(original_item):
+		return
+	var item_id: String = str(original_item.get("id", "")).strip_edges()
+	if item_id == "" and not saved_inventory.is_empty():
+		var last_item: Variant = saved_inventory[saved_inventory.size() - 1]
+		if last_item is Dictionary:
+			item_id = str((last_item as Dictionary).get("id", "")).strip_edges()
+	if item_id == "":
+		return
+	var profile := get_active_profile()
+	var raw: Variant = profile.get("unseen_equipment_item_ids", [])
+	var unseen: Array = raw.duplicate() if raw is Array else []
+	if not unseen.has(item_id):
+		unseen.append(item_id)
+		_update_active_profile("unseen_equipment_item_ids", unseen)
+
+func _is_equipment_inventory_item(item: Dictionary) -> bool:
+	if str(item.get("type", "")).to_lower() == "powerup":
+		return false
+	return str(item.get("slot", "")).strip_edges() != ""
+
+func has_unseen_equipment_items() -> bool:
+	var profile := get_active_profile()
+	var raw: Variant = profile.get("unseen_equipment_item_ids", [])
+	if not (raw is Array):
+		return false
+	var inventory_ids: Dictionary = {}
+	for item in get_inventory():
+		if item is Dictionary:
+			var item_id: String = str((item as Dictionary).get("id", "")).strip_edges()
+			if item_id != "":
+				inventory_ids[item_id] = true
+	for item_id_v in raw:
+		var item_id: String = str(item_id_v).strip_edges()
+		if item_id != "" and inventory_ids.has(item_id):
+			return true
+	return false
+
+func mark_equipment_items_seen() -> void:
+	_update_active_profile("unseen_equipment_item_ids", [])
+
+func reset_active_equipment_state() -> void:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+	_update_active_profile("inventory", [])
+	_update_active_profile("loadouts", {})
+	_update_active_profile("unseen_equipment_item_ids", [])
+
+func delete_active_profile() -> void:
+	if active_profile_id == "":
+		return
+	delete_profile(active_profile_id)
 
 ## Vérifie si l'inventaire est plein
 func is_inventory_full() -> bool:
@@ -1486,7 +1711,43 @@ func is_skill_unlocked(skill_id: String) -> bool:
 func get_skill_rank(skill_id: String) -> int:
 	return int(get_skills_unlocked().get(skill_id, 0))
 
-## Returns total spent skill points (sum of ranks), optionally excluding one tree.
+func _get_skill_rank_cost_from_data(skill_data: Dictionary, target_rank: int) -> int:
+	var rank_costs_v: Variant = skill_data.get("rank_costs", [])
+	if rank_costs_v is Array:
+		var rank_costs := rank_costs_v as Array
+		if target_rank >= 1 and not rank_costs.is_empty():
+			var rank_index: int = mini(target_rank - 1, rank_costs.size() - 1)
+			return maxi(0, int(rank_costs[rank_index]))
+
+	var cost_v: Variant = skill_data.get("cost", 1)
+	if cost_v is Array:
+		var costs := cost_v as Array
+		if target_rank >= 1 and not costs.is_empty():
+			var cost_index: int = mini(target_rank - 1, costs.size() - 1)
+			return maxi(0, int(costs[cost_index]))
+		return 1
+	return maxi(0, int(cost_v))
+
+func get_skill_upgrade_cost(skill_id: String, target_rank: int = -1) -> int:
+	var skill_data := DataManager.get_skill(skill_id)
+	if skill_data.is_empty():
+		return 0
+	if target_rank <= 0:
+		target_rank = get_skill_rank(skill_id) + 1
+	return _get_skill_rank_cost_from_data(skill_data, target_rank)
+
+func get_skill_spent_points_for_rank(skill_id: String, rank: int) -> int:
+	var skill_data := DataManager.get_skill(skill_id)
+	if skill_data.is_empty() or rank <= 0:
+		return 0
+	var total := 0
+	for target_rank in range(1, rank + 1):
+		if skill_id == "fire_straight" and target_rank == 1:
+			continue
+		total += _get_skill_rank_cost_from_data(skill_data, target_rank)
+	return total
+
+## Returns total spent skill points, optionally excluding one tree.
 func get_spent_skill_points(excluded_tree_id: String = "") -> int:
 	var unlocked := get_skills_unlocked()
 	var total_spent := 0
@@ -1498,10 +1759,12 @@ func get_spent_skill_points(excluded_tree_id: String = "") -> int:
 			var tree_id := DataManager.get_skill_tree_for_id(str(skill_id))
 			if tree_id == excluded_tree_id:
 				continue
-		total_spent += rank
+		total_spent += get_skill_spent_points_for_rank(str(skill_id), rank)
 	return total_spent
 
-## Gain XP. Score = XP. Handles level ups and skill point grants.
+## Gain XP. Handles level ups and skill point grants. The amount passed in
+## is already scaled by Game.gd via progression.xp_per_score_ratio and
+## progression.world_xp_multipliers (see data/game.json).
 ## Returns a dict { "xp_gained", "old_level", "new_level", "skill_points_earned" }
 func gain_xp(amount: int) -> Dictionary:
 	var old_xp := get_player_xp()
@@ -1509,9 +1772,14 @@ func gain_xp(amount: int) -> Dictionary:
 	var new_xp := old_xp + amount
 	var new_level := old_level
 	var points_earned := 0
+	var max_level := DataManager.get_max_player_level()
 
 	# Check for level ups
 	while true:
+		if max_level > 0 and new_level >= max_level:
+			# Cap atteint: on consomme tout l'XP residuel pour eviter une barre debordante.
+			new_xp = 0
+			break
 		var xp_needed := get_xp_for_level(new_level)
 		if new_xp >= xp_needed:
 			new_xp -= xp_needed
@@ -1537,9 +1805,6 @@ func gain_xp(amount: int) -> Dictionary:
 
 ## Spend a skill point to unlock/rank up a skill
 func spend_skill_point(skill_id: String) -> bool:
-	if get_skill_points() <= 0:
-		return false
-
 	var skill_data := DataManager.get_skill(skill_id)
 	if skill_data.is_empty():
 		push_warning("[ProfileManager] Unknown skill: " + skill_id)
@@ -1549,6 +1814,10 @@ func spend_skill_point(skill_id: String) -> bool:
 	var max_rank := int(skill_data.get("max_rank", 1))
 	var current_rank := get_skill_rank(skill_id)
 	if current_rank >= max_rank:
+		return false
+
+	var upgrade_cost := get_skill_upgrade_cost(skill_id, current_rank + 1)
+	if get_skill_points() < upgrade_cost:
 		return false
 
 	# Check prerequisite
@@ -1588,7 +1857,7 @@ func spend_skill_point(skill_id: String) -> bool:
 	var unlocked := get_skills_unlocked().duplicate()
 	unlocked[skill_id] = current_rank + 1
 	_update_active_profile("skills_unlocked", unlocked)
-	_update_active_profile("skill_points", get_skill_points() - 1)
+	_update_active_profile("skill_points", get_skill_points() - upgrade_cost)
 	return true
 
 ## Respec all skills. Costs crystals.
@@ -1602,42 +1871,12 @@ func respec_skills() -> bool:
 	var refunded := 0
 	for skill_id in unlocked:
 		var rank := int(unlocked[skill_id])
-		if skill_id == "fire_straight":
-			# Rank 1 is free (default), only refund extra ranks
-			refunded += max(0, rank - 1)
-		else:
-			refunded += rank
+		refunded += get_skill_spent_points_for_rank(str(skill_id), rank)
 
 	# Reset all skills but keep fire_straight rank 1 (free default)
 	_update_active_profile("skills_unlocked", { "fire_straight": 1 })
 	_update_active_profile("active_magic_branch", "")
-	_update_active_profile("equipped_fire_pattern", "fire_ship_default")
 	_update_active_profile("skill_points", get_skill_points() + refunded)
-	return true
-
-# =============================================================================
-# FIRE PATTERN EQUIP
-# =============================================================================
-
-## Returns the currently equipped fire pattern ID.
-func get_equipped_fire_pattern() -> String:
-	var profile := get_active_profile()
-	return str(profile.get("equipped_fire_pattern", "fire_ship_default"))
-
-## Equip a fire pattern. Must be "fire_ship_default" or an unlocked fire_pattern skill.
-func set_equipped_fire_pattern(pattern_id: String) -> bool:
-	if pattern_id == "fire_ship_default":
-		_update_active_profile("equipped_fire_pattern", pattern_id)
-		return true
-	# Validate: must be an unlocked fire_pattern skill
-	if not is_skill_unlocked(pattern_id):
-		push_warning("[ProfileManager] Cannot equip locked fire pattern: " + pattern_id)
-		return false
-	var skill_data := DataManager.get_skill(pattern_id)
-	if skill_data.is_empty() or str(skill_data.get("type", "")) != "fire_pattern":
-		push_warning("[ProfileManager] Not a fire_pattern skill: " + pattern_id)
-		return false
-	_update_active_profile("equipped_fire_pattern", pattern_id)
 	return true
 
 ## Get respec cost in crystals

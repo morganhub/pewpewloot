@@ -13,6 +13,8 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var back_button: TextureButton = $MarginContainer/VBoxContainer/Header/BackButton
 @onready var language_label: Label = $MarginContainer/VBoxContainer/LanguageSection/LanguageLabel
 @onready var language_dropdown: OptionButton = $MarginContainer/VBoxContainer/LanguageSection/LanguageDropdown
+@onready var control_label: Label = $MarginContainer/VBoxContainer/ControlSection/ControlLabel
+@onready var control_dropdown: OptionButton = $MarginContainer/VBoxContainer/ControlSection/ControlDropdown
 
 @onready var music_label: Label = $MarginContainer/VBoxContainer/SoundSection/MusicBox/Label
 @onready var music_slider: HSlider = $MarginContainer/VBoxContainer/SoundSection/MusicBox/MusicSlider
@@ -24,10 +26,19 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 @onready var health_values_checkbox: Button = $MarginContainer/VBoxContainer/SoundSection/HealthValuesBox/HealthValuesCheckbox
 @onready var debug_mode_label: Label = $MarginContainer/VBoxContainer/DebugSection/DebugModeBox/Label
 @onready var debug_mode_checkbox: Button = $MarginContainer/VBoxContainer/DebugSection/DebugModeBox/DebugModeCheckbox
+@onready var debug_section: VBoxContainer = $MarginContainer/VBoxContainer/DebugSection
 @onready var story_label: Label = $MarginContainer/VBoxContainer/StorySection/StoryLabel
 @onready var reset_stories_button: Button = $MarginContainer/VBoxContainer/StorySection/ResetStoriesButton
+@onready var story_section: HBoxContainer = $MarginContainer/VBoxContainer/StorySection
 
 var _game_config: Dictionary = {}
+var _debug_actions_section: VBoxContainer = null
+var _debug_unlock_all_button: Button = null
+var _debug_reset_stories_button: Button = null
+var _debug_reset_level_button: Button = null
+var _debug_start_story_button: Button = null
+var _debug_reset_equipment_button: Button = null
+var _debug_reset_profile_button: Button = null
 
 # =============================================================================
 # LIFECYCLE
@@ -45,19 +56,30 @@ func _ready() -> void:
 	var lang_popup: PopupMenu = language_dropdown.get_popup() if language_dropdown else null
 	if lang_popup:
 		lang_popup.add_theme_font_size_override("font_size", content_sz)
+	_setup_control_dropdown()
+	_apply_dropdown_style(control_dropdown)
+	if control_dropdown:
+		var ctrl_popup: PopupMenu = control_dropdown.get_popup()
+		if ctrl_popup:
+			ctrl_popup.add_theme_font_size_override("font_size", content_sz)
 	_setup_audio_sliders()
 	_setup_screenshake_toggle()
 	_setup_health_values_toggle()
 	_setup_debug_mode_toggle()
+	_setup_debug_actions_section()
 	_apply_translations()
 	UIStyle.apply_default_button_style(reset_stories_button, "medium")
 	UIStyle.apply_default_button_style(screenshake_checkbox, "small")
 	UIStyle.apply_default_button_style(health_values_checkbox, "small")
 	UIStyle.apply_default_button_style(debug_mode_checkbox, "small")
+	if story_section:
+		story_section.visible = false
 	
 	# Connect signals
 	back_button.pressed.connect(_on_back_pressed)
 	language_dropdown.item_selected.connect(_on_language_selected)
+	if control_dropdown:
+		control_dropdown.item_selected.connect(_on_control_mode_selected)
 	music_slider.value_changed.connect(_on_music_volume_changed)
 	sfx_slider.value_changed.connect(_on_sfx_volume_changed)
 	screenshake_checkbox.toggled.connect(_on_screenshake_toggled)
@@ -103,7 +125,10 @@ func _setup_background() -> void:
 func _setup_fonts() -> void:
 	var cfg: Dictionary = _game_config.get("options_menu", {})
 	var content_font_size: int = int(cfg.get("title_text_size", 24))  # même taille que "Langue" pour tout le contenu
+	if title_label: title_label.add_theme_font_size_override("font_size", int(cfg.get("screen_title_text_size", 32)))
 	if language_label: language_label.add_theme_font_size_override("font_size", content_font_size)
+	if control_label: control_label.add_theme_font_size_override("font_size", content_font_size)
+	if control_dropdown: control_dropdown.add_theme_font_size_override("font_size", content_font_size)
 	if story_label: story_label.add_theme_font_size_override("font_size", content_font_size)
 	if music_label: music_label.add_theme_font_size_override("font_size", content_font_size)
 	if sfx_label: sfx_label.add_theme_font_size_override("font_size", content_font_size)
@@ -126,6 +151,16 @@ func _setup_language_dropdown() -> void:
 			language_dropdown.select(1)
 		_:
 			language_dropdown.select(0)
+
+func _setup_control_dropdown() -> void:
+	if not control_dropdown:
+		return
+	var current_mode: String = str(ProfileManager.get_setting("control_mode", "virtual_stick"))
+	match current_mode:
+		"follow_finger":
+			control_dropdown.select(1)
+		_:
+			control_dropdown.select(0)
 
 func _apply_dropdown_style(opt_btn: OptionButton) -> void:
 	if not opt_btn:
@@ -186,6 +221,72 @@ func _setup_debug_mode_toggle() -> void:
 	if debug_mode_checkbox:
 		debug_mode_checkbox.button_pressed = enabled
 		_refresh_toggle_button_text(debug_mode_checkbox, enabled)
+	_refresh_debug_actions_visibility()
+
+func _setup_debug_actions_section() -> void:
+	if debug_section == null:
+		return
+	if _debug_actions_section != null and is_instance_valid(_debug_actions_section):
+		return
+	_debug_actions_section = VBoxContainer.new()
+	_debug_actions_section.name = "DebugActionsSection"
+	_debug_actions_section.add_theme_constant_override("separation", 10)
+	debug_section.add_child(_debug_actions_section)
+
+	var title := Label.new()
+	title.name = "DebugActionsTitle"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", int(_get_options_config().get("title_text_size", 24)))
+	_debug_actions_section.add_child(title)
+
+	var grid := GridContainer.new()
+	grid.name = "DebugActionsGrid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	_debug_actions_section.add_child(grid)
+
+	_debug_unlock_all_button = _create_debug_button("UnlockAllButton", _on_debug_unlock_all_pressed)
+	_debug_reset_stories_button = _create_debug_button("ResetStoriesButton", _on_debug_reset_stories_pressed)
+	_debug_reset_level_button = _create_debug_button("ResetLevelButton", _on_debug_reset_level_pressed)
+	_debug_start_story_button = _create_debug_button("StartStoryButton", _on_debug_start_story_pressed)
+	_debug_reset_equipment_button = _create_debug_button("ResetEquipmentButton", _on_debug_reset_equipment_pressed)
+	_debug_reset_profile_button = _create_debug_button("ResetProfileButton", _on_debug_reset_profile_pressed)
+	for btn in [
+		_debug_unlock_all_button,
+		_debug_reset_stories_button,
+		_debug_reset_level_button,
+		_debug_start_story_button,
+		_debug_reset_equipment_button,
+		_debug_reset_profile_button
+	]:
+		grid.add_child(btn)
+	_refresh_debug_actions_visibility()
+
+func _create_debug_button(button_name: String, callback: Callable) -> Button:
+	var btn := Button.new()
+	btn.name = button_name
+	btn.custom_minimum_size = Vector2(220, 52)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.add_theme_font_size_override("font_size", int(_get_options_config().get("title_text_size", 24)))
+	UIStyle.apply_default_button_style(btn, "small")
+	UIStyle.apply_button_shadow(btn, "small")
+	btn.pressed.connect(callback)
+	return btn
+
+func _get_options_config() -> Dictionary:
+	var screens_v: Variant = _game_config.get("screens", {})
+	if screens_v is Dictionary:
+		var opts_v: Variant = (screens_v as Dictionary).get("options_menu", {})
+		if opts_v is Dictionary:
+			return opts_v as Dictionary
+	var cfg_v: Variant = _game_config.get("options_menu", {})
+	return cfg_v if cfg_v is Dictionary else {}
+
+func _refresh_debug_actions_visibility() -> void:
+	if _debug_actions_section == null or not is_instance_valid(_debug_actions_section):
+		return
+	_debug_actions_section.visible = bool(ProfileManager.get_setting("manual_debug_mode", false))
 
 func _refresh_toggle_button_text(btn: Button, enabled: bool) -> void:
 	if not btn:
@@ -202,6 +303,11 @@ func _refresh_toggle_button_text(btn: Button, enabled: bool) -> void:
 func _apply_translations() -> void:
 	title_label.text = LocaleManager.translate("options_title")
 	language_label.text = LocaleManager.translate("options_language")
+	if control_label:
+		control_label.text = LocaleManager.translate("options_control_mode")
+	if control_dropdown:
+		control_dropdown.set_item_text(0, LocaleManager.translate("options_control_virtual_stick"))
+		control_dropdown.set_item_text(1, LocaleManager.translate("options_control_follow_finger"))
 	
 	if music_label: music_label.text = LocaleManager.translate("options_music")
 	if sfx_label: sfx_label.text = LocaleManager.translate("options_sfx")
@@ -218,6 +324,30 @@ func _apply_translations() -> void:
 		else:
 			reset_stories_button.text = LocaleManager.translate("options_reset_stories")
 			UIStyle.apply_button_shadow(reset_stories_button, "medium")
+	_apply_debug_action_translations()
+
+func _apply_debug_action_translations() -> void:
+	if _debug_actions_section == null or not is_instance_valid(_debug_actions_section):
+		return
+	var title: Label = _debug_actions_section.get_node_or_null("DebugActionsTitle") as Label
+	if title:
+		title.text = LocaleManager.translate("options_debug_actions")
+	_set_button_text(_debug_unlock_all_button, "options_debug_unlock_all")
+	_set_button_text(_debug_reset_stories_button, "options_debug_reset_stories")
+	_set_button_text(_debug_reset_level_button, "options_debug_reset_level")
+	_set_button_text(_debug_start_story_button, "options_debug_start_story")
+	_set_button_text(_debug_reset_equipment_button, "options_debug_reset_equipment")
+	_set_button_text(_debug_reset_profile_button, "options_debug_reset_profile")
+
+func _set_button_text(button: Button, locale_key: String) -> void:
+	if button == null:
+		return
+	var text := LocaleManager.translate(locale_key)
+	if button.get_node_or_null("ShadowLabel"):
+		UIStyle.set_button_shadow_text(button, text)
+	else:
+		button.text = text
+		UIStyle.apply_button_shadow(button, "small")
 
 # =============================================================================
 # CALLBACKS
@@ -226,6 +356,13 @@ func _apply_translations() -> void:
 func _on_back_pressed() -> void:
 	var switcher := get_tree().current_scene
 	switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+func _on_control_mode_selected(index: int) -> void:
+	var mode: String = "virtual_stick"
+	if index == 1:
+		mode = "follow_finger"
+	ProfileManager.set_setting("control_mode", mode)
+	print("[OptionsMenu] Control mode changed to: ", mode)
 
 func _on_language_selected(index: int) -> void:
 	var new_locale: String = ""
@@ -260,6 +397,7 @@ func _on_health_values_toggled(enabled: bool) -> void:
 func _on_debug_mode_toggled(enabled: bool) -> void:
 	ProfileManager.set_setting("manual_debug_mode", enabled)
 	_refresh_toggle_button_text(debug_mode_checkbox, enabled)
+	_refresh_debug_actions_visibility()
 
 func _on_reset_stories_pressed() -> void:
 	ProfileManager.reset_viewed_stories()
@@ -267,3 +405,65 @@ func _on_reset_stories_pressed() -> void:
 	var tw := create_tween()
 	tw.tween_interval(1.5)
 	tw.tween_callback(func(): UIStyle.set_button_shadow_text(reset_stories_button, LocaleManager.translate("options_reset_stories")))
+
+func _on_debug_unlock_all_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	for world_variant in App.get_worlds():
+		if not (world_variant is Dictionary):
+			continue
+		var world_id: String = str((world_variant as Dictionary).get("id", ""))
+		if world_id == "":
+			continue
+		var levels_per_world: int = max(1, App.get_world_level_count(world_id))
+		ProfileManager.complete_level(world_id, levels_per_world - 1, levels_per_world)
+	ProfileManager.save_to_disk()
+	_show_debug_button_done(_debug_unlock_all_button, "options_debug_unlock_all_done", "options_debug_unlock_all")
+
+func _on_debug_reset_stories_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	ProfileManager.reset_viewed_stories()
+	_show_debug_button_done(_debug_reset_stories_button, "options_debug_reset_stories_done", "options_debug_reset_stories")
+
+func _on_debug_reset_level_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	ProfileManager.reset_player_level_progress()
+	_show_debug_button_done(_debug_reset_level_button, "options_debug_reset_level_done", "options_debug_reset_level")
+
+func _on_debug_start_story_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	StoryManager.play_debug_story_flow()
+
+func _on_debug_reset_equipment_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	if ProfileManager.has_method("reset_active_equipment_state"):
+		ProfileManager.call("reset_active_equipment_state")
+	_show_debug_button_done(_debug_reset_equipment_button, "options_debug_reset_equipment_done", "options_debug_reset_equipment")
+
+func _on_debug_reset_profile_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	if ProfileManager.has_method("delete_active_profile"):
+		ProfileManager.call("delete_active_profile")
+	else:
+		ProfileManager.delete_profile(ProfileManager.active_profile_id)
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+func _show_debug_button_done(button: Button, done_key: String, reset_key: String) -> void:
+	if button == null:
+		return
+	button.disabled = true
+	UIStyle.set_button_shadow_text(button, LocaleManager.translate(done_key))
+	var tw := create_tween()
+	tw.tween_interval(1.2)
+	tw.tween_callback(func():
+		if button != null and is_instance_valid(button):
+			button.disabled = false
+			UIStyle.set_button_shadow_text(button, LocaleManager.translate(reset_key))
+	)

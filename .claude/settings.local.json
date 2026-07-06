@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk 'NR>=1240 && NR<=1260' C:/Tafor/Projet/pewpewloot/scenes/Boss.gd)",
+      "Bash(awk 'NR>=1315 && NR<=1335' C:/Tafor/Projet/pewpewloot/scenes/Player.gd)",
+      "Bash(awk 'NR>=140 && NR<=155' C:/Tafor/Projet/pewpewloot/scenes/Enemy.gd)",
+      "Bash(awk 'NR>=60 && NR<=75' C:/Tafor/Projet/pewpewloot/scenes/Projectile.gd)",
+      "Bash(awk 'NR>=3155 && NR<=3170' C:/Tafor/Projet/pewpewloot/scenes/ShipMenu.gd)"
+    ]
+  }
+}

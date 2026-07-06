@@ -10,9 +10,24 @@ signal level_select_requested
 signal quit_requested
 
 @onready var panel: PanelContainer = $Panel
+@onready var overlay: ColorRect = $Overlay
+@onready var resume_countdown: CenterContainer = $ResumeCountdown
+@onready var countdown_label: Label = $ResumeCountdown/CountdownLabel
+
+const COUNTDOWN_SEQUENCE: Array[int] = [3, 2, 1]
+const COUNTDOWN_TICK_DURATION: float = 0.8
+# Plus le chiffre est petit, plus il commence gros (effet d'impact qui grossit en s'approchant de 0).
+const COUNTDOWN_START_SCALES: Dictionary = {3: 1.4, 2: 1.7, 1: 2.1}
+const COUNTDOWN_END_SCALE: float = 1.0
+
+var _countdown_active: bool = false
+var _countdown_tween: Tween = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if resume_countdown:
+		resume_countdown.process_mode = Node.PROCESS_MODE_ALWAYS
+		resume_countdown.visible = false
 	_apply_pause_menu_config()
 	_apply_popup_style()
 	_apply_button_styles()
@@ -60,6 +75,8 @@ func _apply_pause_menu_config() -> void:
 	var title_label: Label = panel.get_node_or_null("Margin/VBox/Title") as Label
 	if title_label:
 		title_label.add_theme_font_size_override("font_size", int(cfg.get("title_font_size", 28)))
+	if countdown_label:
+		countdown_label.add_theme_font_size_override("font_size", int(cfg.get("countdown_font_size", 240)))
 	var btn_font_sz: int = int(cfg.get("button_font_size", 22))
 	var btn_w: int = int(cfg.get("button_min_width", 280))
 	var btn_h: int = int(cfg.get("button_min_height", 56))
@@ -160,8 +177,7 @@ func hide_menu() -> void:
 	get_tree().paused = false
 
 func _on_resume_pressed() -> void:
-	hide_menu()
-	resume_requested.emit()
+	_start_resume_countdown()
 
 func _on_restart_pressed() -> void:
 	hide_menu()
@@ -176,5 +192,73 @@ func _on_quit_pressed() -> void:
 	quit_requested.emit()
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel") and visible:
-		hide_menu()
+	if event.is_action_pressed("ui_cancel") and visible and not _countdown_active:
+		_start_resume_countdown()
+
+# =============================================================================
+# RESUME COUNTDOWN
+# =============================================================================
+
+func _start_resume_countdown() -> void:
+	if _countdown_active:
+		return
+	_countdown_active = true
+	if panel:
+		panel.visible = false
+	if overlay:
+		var tw := overlay.create_tween()
+		tw.tween_property(overlay, "color:a", 0.25, 0.15)
+	if not resume_countdown or not countdown_label:
+		_finish_resume_countdown()
+		return
+	resume_countdown.visible = true
+	_play_countdown_sequence()
+
+func _play_countdown_sequence() -> void:
+	for n in COUNTDOWN_SEQUENCE:
+		await _play_countdown_tick(n)
+		if not _countdown_active:
+			return
+	_finish_resume_countdown()
+
+func _play_countdown_tick(n: int) -> void:
+	if not countdown_label:
+		await get_tree().create_timer(COUNTDOWN_TICK_DURATION, true).timeout
+		return
+	# Kill le tween du tick precedent: sinon son fade-out continue d'ecrire modulate:a=0
+	# pendant que ce tick essaie de l'afficher (ce qui faisait sauter le "2").
+	if _countdown_tween and _countdown_tween.is_valid():
+		_countdown_tween.kill()
+	_countdown_tween = null
+	countdown_label.text = str(n)
+	var start_scale: float = float(COUNTDOWN_START_SCALES.get(n, 1.6))
+	# Le label a un custom_minimum_size fixe (cf .tscn): le pivot reste donc centre
+	# et identique entre les chiffres -> le zoom part bien du centre du chiffre.
+	countdown_label.pivot_offset = countdown_label.size * 0.5
+	countdown_label.scale = Vector2.ONE * start_scale
+	countdown_label.modulate.a = 1.0
+	_countdown_tween = countdown_label.create_tween()
+	_countdown_tween.set_parallel(true)
+	_countdown_tween.tween_property(countdown_label, "scale", Vector2.ONE * COUNTDOWN_END_SCALE, COUNTDOWN_TICK_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Fade out sur la derniere partie du tick.
+	var fade_duration: float = 0.25
+	var fade_delay: float = maxf(0.0, COUNTDOWN_TICK_DURATION - fade_duration)
+	_countdown_tween.tween_property(countdown_label, "modulate:a", 0.0, fade_duration).set_delay(fade_delay).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await get_tree().create_timer(COUNTDOWN_TICK_DURATION, true).timeout
+
+func _finish_resume_countdown() -> void:
+	_countdown_active = false
+	if _countdown_tween and _countdown_tween.is_valid():
+		_countdown_tween.kill()
+	_countdown_tween = null
+	if resume_countdown:
+		resume_countdown.visible = false
+	if countdown_label:
+		countdown_label.scale = Vector2.ONE
+		countdown_label.modulate.a = 1.0
+	if overlay:
+		overlay.color.a = 0.6
+	if panel:
+		panel.visible = true
+	hide_menu()
+	resume_requested.emit()

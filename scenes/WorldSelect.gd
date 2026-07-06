@@ -25,6 +25,9 @@ var _hover_translate_y := 4.0
 var _frame_tex: Texture2D = null
 var _frame_margin := {"top": 4, "right": 4, "bottom": 4, "left": 4}
 var _content_margin := {"top": 5, "bottom": 5, "left": 0, "right": 0}
+var _world_title_size: int = 24
+var _world_star_count_size: int = 20
+var _locked_popup_overlay: Control = null
 
 func _ready() -> void:
 	_load_config()
@@ -52,6 +55,9 @@ func _notification(what: int) -> void:
 func _load_config() -> void:
 	_game_config = DataManager.get_game_config()
 	_world_select_cfg = _game_config.get("world_select", {})
+
+	_world_title_size = int(_world_select_cfg.get("world_title_size", 24))
+	_world_star_count_size = int(_world_select_cfg.get("world_star_count_size", 20))
 
 	_locked_asset_path = _resolve_asset_path(
 		str(_world_select_cfg.get("locked_asset", "res://assets/ui/buttons/locked.png"))
@@ -90,6 +96,7 @@ func _load_config() -> void:
 func _setup_ui() -> void:
 	title_label.text = LocaleManager.translate("world_select_title")
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", int(_world_select_cfg.get("screen_title_size", 36)))
 	_apply_label_shadow(title_label)
 
 func _load_world_items() -> void:
@@ -233,7 +240,7 @@ func _create_world_card(entry: Dictionary) -> Control:
 	name_label.text = str(entry.get("name", ""))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 24)
+	name_label.add_theme_font_size_override("font_size", _world_title_size)
 	name_label.add_theme_color_override("font_color", Color.WHITE)
 	_apply_label_shadow(name_label)
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -257,7 +264,7 @@ func _create_world_card(entry: Dictionary) -> Control:
 	var star_label := Label.new()
 	star_label.text = "%d / %d" % [int(entry.get("stars_earned", 0)), int(entry.get("stars_max", 0))]
 	star_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	star_label.add_theme_font_size_override("font_size", 20)
+	star_label.add_theme_font_size_override("font_size", _world_star_count_size)
 	star_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
 	_apply_label_shadow(star_label)
 	star_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -325,6 +332,9 @@ func _stop_hover_tween(card: Control) -> void:
 
 func _on_card_gui_input(event: InputEvent, world_id: String, unlocked: bool) -> void:
 	if not unlocked:
+		if _is_primary_press(event):
+			_show_locked_popup("world_select_locked_message")
+			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
@@ -335,6 +345,84 @@ func _on_card_gui_input(event: InputEvent, world_id: String, unlocked: bool) -> 
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
 			_navigate_to_world(world_id)
+
+func _is_primary_press(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		return mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).pressed
+	return false
+
+func _show_locked_popup(message_key: String) -> void:
+	if _locked_popup_overlay != null and is_instance_valid(_locked_popup_overlay):
+		_locked_popup_overlay.queue_free()
+
+	_locked_popup_overlay = Control.new()
+	_locked_popup_overlay.name = "LockedPopupOverlay"
+	_locked_popup_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_locked_popup_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_locked_popup_overlay)
+
+	var dim := ColorRect.new()
+	dim.name = "Dim"
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_locked_popup_overlay.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_locked_popup_overlay.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(420, 180)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.08, 0.16, 0.96)
+	style.set_corner_radius_all(18)
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 22)
+	panel.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 18)
+	margin.add_child(content)
+
+	var message := Label.new()
+	message.text = LocaleManager.translate(message_key)
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message.add_theme_font_size_override("font_size", int(_world_select_cfg.get("locked_popup_message_size", 22)))
+	_apply_label_shadow(message)
+	content.add_child(message)
+
+	var close_btn := Button.new()
+	close_btn.text = LocaleManager.translate("level_select_override_close")
+	close_btn.custom_minimum_size = Vector2(0, 54)
+	close_btn.pressed.connect(_close_locked_popup)
+	UIStyle.apply_default_button_style(close_btn, "medium")
+	UIStyle.apply_button_shadow(close_btn, "large")
+	content.add_child(close_btn)
+	dim.gui_input.connect(_on_locked_popup_dim_input)
+
+func _close_locked_popup() -> void:
+	if _locked_popup_overlay != null and is_instance_valid(_locked_popup_overlay):
+		_locked_popup_overlay.queue_free()
+	_locked_popup_overlay = null
+
+func _on_locked_popup_dim_input(event: InputEvent) -> void:
+	if _is_primary_press(event):
+		_close_locked_popup()
 
 func _navigate_to_world(world_id: String) -> void:
 	App.current_world_id = world_id

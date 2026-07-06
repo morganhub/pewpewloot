@@ -1,9 +1,10 @@
 extends Control
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
+const HOMESCREEN_BUTTONS_SECTION := "homescreen_buttons"
+const LEGACY_HOME_BUTTONS_SECTION := "home_buttons"
 
-## HomeScreen — Écran d'accueil après sélection/chargement du profil.
-## Layout: Top 40% for title/info, Bottom 60% for buttons.
-## Buttons are 75% screen width.
+## HomeScreen — Écran d'accueil avec vaisseau central et boutons d'accès rapide
+## (skills, équipement, jouer). Le vaisseau peut être tappé pour ouvrir le ShipMenu.
 
 # =============================================================================
 # RÉFÉRENCES UI
@@ -11,27 +12,24 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 @onready var background_rect: TextureRect = $Background
 @onready var menu_header: Control = $MenuHeader
-@onready var top_section: VBoxContainer = $TopSection
-@onready var bottom_section: VBoxContainer = $BottomSection
 
-@onready var title_label: Label = $TopSection/TitleLabel
-@onready var logo_texture: TextureRect = $TopSection/LogoTexture
-@onready var logo_anim_container: Control = $TopSection/LogoAnimContainer
-@onready var logo_anim: AnimatedSprite2D = $TopSection/LogoAnimContainer/LogoAnim
+@onready var ship_display: Control = $ShipDisplay
+@onready var ship_preview_button: TextureButton = $ShipDisplay/ShipPreviewButton
+@onready var ship_preview_icon: TextureRect = $ShipDisplay/ShipPreviewButton/ShipPreviewIcon
+@onready var ship_preview_anim: AnimatedSprite2D = $ShipDisplay/ShipPreviewButton/ShipPreviewAnim
+@onready var change_ship_label: Label = $ShipDisplay/ChangeShipLabel
+@onready var skills_button: Button = $ShipDisplay/SkillsButton
+@onready var equipment_button: Button = $ShipDisplay/EquipmentButton
 
 @onready var play_button: Button = $BottomSection/PlayButton
-@onready var ship_button: Button = $BottomSection/ShipButton
-@onready var skills_button: Button = $BottomSection/SkillsButton
-@onready var options_button: Button = $BottomSection/OptionsButton
-@onready var quit_button: Button = $BottomSection/QuitButton
-@onready var change_profile_button: Button = $BottomSection/ChangeProfileButton
-@onready var unlock_all_button: Button = $BottomSection/UnlockAllButton
-@onready var reset_viewed_stories_button: Button = $BottomSection/ResetViewedStoriesButton
-@onready var reset_to_level_one_button: Button = $BottomSection/ResetToLevelOneButton
-@onready var start_story_button: Button = $BottomSection/StartStoryButton
-
+@onready var options_button: Button = $BottomSection/SecondaryRow/OptionsButton
+@onready var change_profile_button: Button = $BottomSection/SecondaryRow/ChangeProfileButton
+@onready var quit_button: Button = $BottomSection/SecondaryRow/QuitButton
 var _game_config: Dictionary = {}
-static var _logo_first_visit: bool = true
+var _button_grid: Control = null
+var _skills_alert_icon: TextureRect = null
+var _equipment_alert_icon: TextureRect = null
+var _first_profile_layer: CanvasLayer = null
 
 # =============================================================================
 # LIFECYCLE
@@ -40,45 +38,47 @@ static var _logo_first_visit: bool = true
 func _ready() -> void:
 	_load_game_config()
 	App.play_menu_music()
-	_setup_layout()
 	_setup_background()
-	_setup_logo()
-	_setup_buttons()
+	_apply_home_button_styles()
+	_apply_home_grid_layout()
+	_setup_alert_icons()
 	_apply_translations()
+	_setup_ship_preview()
+	_refresh_alert_icons()
 	if menu_header and menu_header.has_signal("crystals_pressed"):
 		if not menu_header.crystals_pressed.is_connected(_on_crystals_header_pressed):
 			menu_header.crystals_pressed.connect(_on_crystals_header_pressed)
 	_request_menu_prewarm()
-	
-	# Connect signals
-	play_button.pressed.connect(_on_play_pressed)
-	ship_button.pressed.connect(_on_ship_pressed)
-	skills_button.pressed.connect(_on_skills_pressed)
-	options_button.pressed.connect(_on_options_pressed)
-	quit_button.pressed.connect(_on_quit_pressed)
-	change_profile_button.pressed.connect(_on_change_profile_pressed)
-	
-	# Temporary dev button (editor only): regenerate movement curve resources.
-	if unlock_all_button:
-		unlock_all_button.visible = ProfileManager.is_debug_mode_enabled()
-		if unlock_all_button.visible:
-			unlock_all_button.pressed.connect(_on_unlock_all_pressed)
-	if reset_viewed_stories_button:
-		reset_viewed_stories_button.visible = ProfileManager.is_debug_mode_enabled()
-		if reset_viewed_stories_button.visible:
-			reset_viewed_stories_button.pressed.connect(_on_reset_viewed_stories_pressed)
-	if reset_to_level_one_button:
-		reset_to_level_one_button.visible = ProfileManager.is_debug_mode_enabled()
-		if reset_to_level_one_button.visible:
-			reset_to_level_one_button.pressed.connect(_on_reset_to_level_one_pressed)
-	if start_story_button:
-		start_story_button.visible = ProfileManager.is_debug_mode_enabled()
-		if start_story_button.visible:
-			start_story_button.pressed.connect(_on_start_story_pressed)
+
+	if ship_preview_button and not ship_preview_button.pressed.is_connected(_on_ship_pressed):
+		ship_preview_button.pressed.connect(_on_ship_pressed)
+	if play_button and not play_button.pressed.is_connected(_on_play_pressed):
+		play_button.pressed.connect(_on_play_pressed)
+	if skills_button and not skills_button.pressed.is_connected(_on_skills_pressed):
+		skills_button.pressed.connect(_on_skills_pressed)
+	if equipment_button and not equipment_button.pressed.is_connected(_on_equipment_pressed):
+		equipment_button.pressed.connect(_on_equipment_pressed)
+	if options_button and not options_button.pressed.is_connected(_on_options_pressed):
+		options_button.pressed.connect(_on_options_pressed)
+	if change_profile_button and not change_profile_button.pressed.is_connected(_on_change_profile_pressed):
+		change_profile_button.pressed.connect(_on_change_profile_pressed)
+	if quit_button and not quit_button.pressed.is_connected(_on_quit_pressed):
+		quit_button.pressed.connect(_on_quit_pressed)
+
+	_update_change_profile_visibility()
+	_maybe_show_first_profile_modal()
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_VISIBILITY_CHANGED and visible and menu_header != null and menu_header.has_method("refresh"):
-		menu_header.refresh()
+	if what == NOTIFICATION_VISIBILITY_CHANGED and visible:
+		if not ProfileManager.has_any_profile():
+			_maybe_show_first_profile_modal()
+		if menu_header != null and menu_header.has_method("refresh"):
+			menu_header.refresh()
+		_setup_ship_preview()
+		_refresh_alert_icons()
+	if what == NOTIFICATION_RESIZED and is_node_ready():
+		_apply_home_grid_layout()
+		_refresh_alert_icons()
 
 func _load_game_config() -> void:
 	if DataManager:
@@ -86,299 +86,334 @@ func _load_game_config() -> void:
 	else:
 		_game_config = {}
 
-func _setup_layout() -> void:
-	var header_height: int = 0
-	var h: Variant = _game_config.get("menu_header", {})
-	if h is Dictionary:
-		header_height = int((h as Dictionary).get("height_px", 72))
-		var margin_t: int = int((h as Dictionary).get("margin_top", 8))
-		header_height += margin_t
-	if top_section:
-		top_section.offset_top = 30 + header_height
-	if bottom_section:
-		bottom_section.offset_top = 0
-
 func _setup_background() -> void:
-	var menu_config: Dictionary = _game_config.get("main_menu", {})
+	var menu_config: Dictionary = _get_home_screen_config()
 	var bg_path: String = str(menu_config.get("background", ""))
-	var bg_anim_path: String = str(menu_config.get("background_anim", ""))
-	
-	# Priority: anim > static > fallback color
-	if bg_anim_path != "" and ResourceLoader.exists(bg_anim_path):
-		# TODO: Handle animated background
-		pass
-	elif bg_path != "" and ResourceLoader.exists(bg_path):
+	if bg_path == "":
+		bg_path = str(_game_config.get("main_menu", {}).get("background", ""))
+	if bg_path != "" and ResourceLoader.exists(bg_path):
 		var tex = load(bg_path)
 		if tex and background_rect:
 			background_rect.texture = tex
 			background_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 			background_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	else:
-		# Fallback: dark gradient
-		if background_rect:
-			background_rect.visible = false
+	elif background_rect:
+		background_rect.visible = false
 
-func _setup_logo() -> void:
-	var menu_config: Dictionary = _game_config.get("main_menu", {})
-	var logo_path: String = str(menu_config.get("logo", ""))
-	var logo_anim_path: String = str(menu_config.get("logo_anim", ""))
-	var logo_anim_duration: float = maxf(0.0, float(menu_config.get("logo_anim_duration", 2.0)))
-	var logo_anim_loop: bool = bool(menu_config.get("logo_anim_loop", false))
-	var width_pct: float = float(menu_config.get("logo_width_pct", 0.5))
-	var height_pct: float = float(menu_config.get("logo_height_pct", 0.2))
-	
-	var viewport_size := get_viewport_rect().size
-	var target_size := Vector2(viewport_size.x * width_pct, viewport_size.y * height_pct)
-	
-	# Apply sizing and 'contain' behavior
-	if logo_texture:
-		logo_texture.custom_minimum_size = target_size
-		logo_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		logo_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	
-	if logo_anim_container:
-		logo_anim_container.custom_minimum_size = target_size
-	
-	# Reset visibility (default to text)
-	title_label.visible = true
-	if logo_texture: logo_texture.visible = false
-	if logo_anim_container: logo_anim_container.visible = false
-	
-	# Au premier passage dans la session : logo animé. Retours au menu : logo statique (main_menu.logo)
-	var was_first_visit: bool = _logo_first_visit
-	if _logo_first_visit:
-		_logo_first_visit = false
-	var use_animated_logo: bool = was_first_visit and (logo_anim_path != "" and ResourceLoader.exists(logo_anim_path))
-	
-	# Logo animé : uniquement au démarrage du jeu
-	if use_animated_logo:
-		var frames: Resource = load(logo_anim_path)
-		if frames is SpriteFrames and logo_anim:
+# =============================================================================
+# BUTTON STYLES
+# =============================================================================
+
+func _get_home_buttons_config() -> Dictionary:
+	var home_cfg: Dictionary = _get_home_screen_config()
+	var buttons_v: Variant = home_cfg.get("buttons", {})
+	if buttons_v is Dictionary:
+		return buttons_v as Dictionary
+	var section: Variant = _game_config.get(HOMESCREEN_BUTTONS_SECTION, {})
+	if section is Dictionary:
+		return section as Dictionary
+	var legacy_section: Variant = _game_config.get(LEGACY_HOME_BUTTONS_SECTION, {})
+	return legacy_section if legacy_section is Dictionary else {}
+
+func _get_home_button_config(button_key: String) -> Dictionary:
+	var section := _get_home_buttons_config()
+	var cfg := {
+		"text_color": str(section.get("default_text_color", "#FFFFFF")),
+		"text_size": int(section.get("default_text_size", 24)),
+		"letter_spacing": int(section.get("default_letter_spacing", 0)),
+		"stretch_horizontal": str(section.get("default_stretch_horizontal", "stretch")),
+		"stretch_vertical": str(section.get("default_stretch_vertical", "stretch")),
+		"shadow_size": str(section.get("default_shadow_size", "medium"))
+	}
+	var default_nine_slice: Variant = section.get("default_nine_slice", {})
+	if default_nine_slice is Dictionary:
+		cfg["nine_slice"] = (default_nine_slice as Dictionary).duplicate(true)
+	var default_content_margin: Variant = section.get("default_content_margin", {})
+	if default_content_margin is Dictionary:
+		cfg["content_margin"] = (default_content_margin as Dictionary).duplicate(true)
+
+	var button_cfg: Variant = section.get(button_key, {})
+	if button_cfg is Dictionary:
+		for key in (button_cfg as Dictionary).keys():
+			cfg[key] = (button_cfg as Dictionary)[key]
+	return cfg
+
+func _apply_home_button_styles() -> void:
+	_apply_home_button_style(play_button, "play")
+	_apply_home_button_style(skills_button, "skills")
+	_apply_home_button_style(equipment_button, "equipment")
+	_apply_home_button_style(options_button, "options")
+	_apply_home_button_style(change_profile_button, "change_profile")
+	_apply_home_button_style(quit_button, "quit")
+
+func _get_home_screen_config() -> Dictionary:
+	var screens_v: Variant = _game_config.get("screens", {})
+	if screens_v is Dictionary:
+		var home_v: Variant = (screens_v as Dictionary).get("home", {})
+		if home_v is Dictionary:
+			return home_v as Dictionary
+	return {}
+
+func _apply_home_grid_layout() -> void:
+	var home_cfg := _get_home_screen_config()
+	var layout_v: Variant = home_cfg.get("layout", {})
+	if not (layout_v is Dictionary):
+		return
+	var grid_v: Variant = (layout_v as Dictionary).get("grid", {})
+	if not (grid_v is Dictionary):
+		return
+	var grid_cfg := grid_v as Dictionary
+	var buttons_cfg := _get_home_buttons_config()
+	if buttons_cfg.is_empty():
+		return
+
+	if _button_grid == null or not is_instance_valid(_button_grid):
+		_button_grid = Control.new()
+		_button_grid.name = "HomeButtonGrid"
+		_button_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_button_grid)
+		move_child(_button_grid, get_child_count() - 1)
+
+	var margin: float = maxf(0.0, float(grid_cfg.get("margin", 24.0)))
+	var top_ratio: float = clampf(float(grid_cfg.get("top_ratio", 0.64)), 0.0, 0.95)
+	var bottom_margin: float = maxf(0.0, float(grid_cfg.get("bottom_margin", 30.0)))
+	var grid_rect := Rect2(
+		Vector2(margin, size.y * top_ratio),
+		Vector2(maxf(1.0, size.x - margin * 2.0), maxf(1.0, size.y * (1.0 - top_ratio) - bottom_margin))
+	)
+	_button_grid.position = grid_rect.position
+	_button_grid.size = grid_rect.size
+
+	var button_map: Dictionary = {
+		"play": play_button,
+		"skills": skills_button,
+		"equipment": equipment_button,
+		"options": options_button,
+		"change_profile": change_profile_button,
+		"quit": quit_button
+	}
+	for button_key in button_map:
+		var node_v: Variant = button_map[button_key]
+		if not (node_v is Button):
+			continue
+		var button := node_v as Button
+		var cfg_v: Variant = buttons_cfg.get(button_key, {})
+		if not (cfg_v is Dictionary):
+			continue
+		var cfg := cfg_v as Dictionary
+		if not cfg.has("grid_col") and not cfg.has("grid_row"):
+			continue
+		if button.get_parent() != _button_grid:
+			button.reparent(_button_grid)
+		_place_button_in_grid(button, cfg, grid_cfg)
+	if bottom_section_exists():
+		$BottomSection.visible = false
+	_refresh_alert_icons()
+
+func _place_button_in_grid(button: Button, cfg: Dictionary, grid_cfg: Dictionary) -> void:
+	var columns: int = maxi(1, int(grid_cfg.get("columns", 2)))
+	var rows: int = maxi(1, int(grid_cfg.get("rows", 4)))
+	var spacing_x: float = maxf(0.0, float(grid_cfg.get("spacing_x", 24.0)))
+	var spacing_y: float = maxf(0.0, float(grid_cfg.get("spacing_y", 18.0)))
+	var col: int = clampi(int(cfg.get("grid_col", 0)), 0, columns - 1)
+	var row: int = clampi(int(cfg.get("grid_row", 0)), 0, rows - 1)
+	var col_span: int = clampi(int(cfg.get("col_span", 1)), 1, columns - col)
+	var row_span: int = clampi(int(cfg.get("row_span", 1)), 1, rows - row)
+	var cell_w: float = (_button_grid.size.x - spacing_x * float(columns - 1)) / float(columns)
+	var cell_h: float = (_button_grid.size.y - spacing_y * float(rows - 1)) / float(rows)
+	button.position = Vector2(float(col) * (cell_w + spacing_x), float(row) * (cell_h + spacing_y))
+	button.size = Vector2(cell_w * float(col_span) + spacing_x * float(col_span - 1), cell_h * float(row_span) + spacing_y * float(row_span - 1))
+	button.size_flags_horizontal = Control.SIZE_FILL
+	button.size_flags_vertical = Control.SIZE_FILL
+
+func bottom_section_exists() -> bool:
+	return has_node("BottomSection")
+
+func _get_home_alert_config() -> Dictionary:
+	var home_cfg := _get_home_screen_config()
+	var alert_v: Variant = home_cfg.get("alert", {})
+	return alert_v if alert_v is Dictionary else {}
+
+func _setup_alert_icons() -> void:
+	_skills_alert_icon = _create_or_update_alert_icon(skills_button, "SkillsAlertIcon")
+	_equipment_alert_icon = _create_or_update_alert_icon(equipment_button, "EquipmentAlertIcon")
+	_refresh_alert_icons()
+
+func _create_or_update_alert_icon(button: Button, icon_name: String) -> TextureRect:
+	if button == null:
+		return null
+	var icon: TextureRect = button.get_node_or_null(icon_name) as TextureRect
+	if icon == null:
+		icon = TextureRect.new()
+		icon.name = icon_name
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		button.add_child(icon)
+	var cfg := _get_home_alert_config()
+	var asset_path: String = str(cfg.get("asset", ""))
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		icon.texture = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+	return icon
+
+func _refresh_alert_icons() -> void:
+	_update_alert_icon_layout(_skills_alert_icon, skills_button)
+	_update_alert_icon_layout(_equipment_alert_icon, equipment_button)
+	if _skills_alert_icon != null and is_instance_valid(_skills_alert_icon):
+		_skills_alert_icon.visible = ProfileManager.get_skill_points() > 0
+	if _equipment_alert_icon != null and is_instance_valid(_equipment_alert_icon):
+		var has_unseen_equipment := false
+		if ProfileManager.has_method("has_unseen_equipment_items"):
+			has_unseen_equipment = bool(ProfileManager.call("has_unseen_equipment_items"))
+		_equipment_alert_icon.visible = has_unseen_equipment
+
+func _update_alert_icon_layout(icon: TextureRect, button: Button) -> void:
+	if icon == null or button == null or not is_instance_valid(icon):
+		return
+	var cfg := _get_home_alert_config()
+	var w: float = maxf(1.0, float(cfg.get("width", 34.0)))
+	var h: float = maxf(1.0, float(cfg.get("height", 34.0)))
+	var offset_x: float = float(cfg.get("offset_x", -10.0))
+	var offset_y: float = float(cfg.get("offset_y", 8.0))
+	icon.size = Vector2(w, h)
+	icon.position = Vector2(button.size.x - w + offset_x, offset_y)
+
+func _apply_home_button_style(button: Button, button_key: String) -> void:
+	if button == null:
+		return
+	var cfg := _get_home_button_config(button_key)
+	var min_width: float = float(cfg.get("min_width", 0.0))
+	var min_height: float = float(cfg.get("min_height", 0.0))
+	if min_width > 0.0 or min_height > 0.0:
+		button.custom_minimum_size = Vector2(maxf(min_width, 0.0), maxf(min_height, 0.0))
+
+	var asset_path: String = str(cfg.get("asset", ""))
+	if asset_path != "":
+		UIStyle.apply_validation_to_button(button, cfg, str(cfg.get("font_preset", "medium")))
+	else:
+		var font_cfg := UIStyle.get_button_font_preset(str(cfg.get("font_preset", "medium")))
+		button.add_theme_font_size_override("font_size", int(cfg.get("text_size", font_cfg.get("font_size", 18))))
+
+func _apply_home_button_shadow(button: Button, button_key: String) -> void:
+	if button == null:
+		return
+	var cfg := _get_home_button_config(button_key)
+	UIStyle.apply_button_shadow(button, str(cfg.get("shadow_size", "medium")))
+
+# =============================================================================
+# SHIP PREVIEW (centered, animated when possible)
+# =============================================================================
+
+func _setup_ship_preview() -> void:
+	if not ship_preview_button or not is_node_ready():
+		return
+	var ship_id: String = ProfileManager.get_active_ship_id()
+	if ship_id == "":
+		return
+	var ship_data: Dictionary = DataManager.get_ship(ship_id)
+	if ship_data.is_empty():
+		return
+	_hydrate_ship_preview(ship_data)
+
+func _hydrate_ship_preview(ship_data: Dictionary) -> void:
+	var visual: Dictionary = ship_data.get("visual", {}) if ship_data.get("visual") is Dictionary else {}
+	var visual_asset: String = str(visual.get("asset", ""))
+	var visual_anim: String = str(visual.get("asset_anim", ""))
+	var visual_anim_duration: float = maxf(0.0, float(visual.get("asset_anim_duration", 0.0)))
+	var visual_anim_loop: bool = bool(visual.get("asset_anim_loop", true))
+
+	var preview_size: Vector2 = ship_preview_button.size
+	if preview_size.x <= 0.0 or preview_size.y <= 0.0:
+		preview_size = Vector2(360, 360)
+
+	if ship_preview_icon:
+		ship_preview_icon.visible = true
+		ship_preview_icon.texture = null
+
+	var anim_frames: SpriteFrames = null
+	if visual_anim != "" and ResourceLoader.exists(visual_anim):
+		var anim_res: Resource = ResourceLoader.load(visual_anim, "", ResourceLoader.CACHE_MODE_REUSE)
+		if anim_res is SpriteFrames:
+			anim_frames = anim_res as SpriteFrames
+
+	var static_tex: Texture2D = null
+	if visual_asset != "" and ResourceLoader.exists(visual_asset):
+		var asset_res: Resource = ResourceLoader.load(visual_asset, "", ResourceLoader.CACHE_MODE_REUSE)
+		if asset_res is Texture2D:
+			static_tex = asset_res as Texture2D
+		elif asset_res is SpriteFrames and anim_frames == null:
+			anim_frames = asset_res as SpriteFrames
+
+	if anim_frames != null and ship_preview_anim:
+		var first_anim: StringName = _first_anim_name(anim_frames)
+		if first_anim != &"":
 			VFXManager.play_sprite_frames(
-				logo_anim,
-				frames as SpriteFrames,
-				&"default",
-				logo_anim_loop,
-				logo_anim_duration
+				ship_preview_anim,
+				anim_frames,
+				first_anim,
+				visual_anim_loop,
+				visual_anim_duration
 			)
-			
-			if not logo_anim_container.resized.is_connected(_center_logo_anim):
-				logo_anim_container.resized.connect(_center_logo_anim)
-			_center_logo_anim()
-			
-			logo_anim_container.scale = Vector2.ZERO
-			logo_anim_container.modulate.a = 0.0
-			logo_anim_container.pivot_offset = target_size / 2
-			
-			var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			tween.tween_property(logo_anim_container, "scale", Vector2.ONE, 3.0)
-			tween.tween_property(logo_anim_container, "modulate:a", 1.0, 3.0)
-			
-			if logo_anim_container: logo_anim_container.visible = true
-			title_label.visible = false
+			ship_preview_anim.position = preview_size * 0.5
+			var first_tex: Texture2D = anim_frames.get_frame_texture(first_anim, 0)
+			if first_tex:
+				var f_size: Vector2 = first_tex.get_size()
+				if f_size.x > 0 and f_size.y > 0:
+					var fit_scale: float = minf(preview_size.x / f_size.x, preview_size.y / f_size.y) * 0.85
+					ship_preview_anim.scale = Vector2(fit_scale, fit_scale)
+			ship_preview_anim.visible = true
+			if ship_preview_icon:
+				ship_preview_icon.visible = false
 			return
 
-	# Logo statique (retours au menu ou si pas d'anim) : main_menu.logo
-	if logo_path != "" and ResourceLoader.exists(logo_path):
-		var tex = load(logo_path)
-		if tex and logo_texture:
-			logo_texture.texture = tex
-			logo_texture.visible = true
-			title_label.visible = false
-			logo_texture.pivot_offset = target_size / 2
-			if was_first_visit:
-				logo_texture.scale = Vector2.ZERO
-				logo_texture.modulate.a = 0.0
-				var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-				tween.tween_property(logo_texture, "scale", Vector2.ONE, 3.0)
-				tween.tween_property(logo_texture, "modulate:a", 1.0, 3.0)
-			else:
-				logo_texture.scale = Vector2.ONE
-				logo_texture.modulate.a = 1.0
-			return
+	if ship_preview_anim:
+		ship_preview_anim.visible = false
+	if static_tex and ship_preview_icon:
+		ship_preview_icon.texture = static_tex
+		ship_preview_icon.visible = true
 
-func _center_logo_anim() -> void:
-	if logo_anim and logo_anim_container:
-		var container_size = logo_anim_container.size
-		logo_anim.position = container_size / 2
-		
-		# Containment logic for AnimatedSprite2D
-		var frames = logo_anim.sprite_frames
-		if frames:
-			var anim_name: StringName = VFXManager.get_first_animation_name(frames, &"default")
-			var frame_tex: Texture2D = null
-			if anim_name != &"":
-				frame_tex = frames.get_frame_texture(anim_name, 0)
-			if frame_tex:
-				var tex_size = frame_tex.get_size()
-				if tex_size.x > 0 and tex_size.y > 0:
-					var scale_factor = min(container_size.x / tex_size.x, container_size.y / tex_size.y)
-					logo_anim.scale = Vector2(scale_factor, scale_factor)
+func _first_anim_name(frames: SpriteFrames) -> StringName:
+	if frames == null:
+		return &""
+	if frames.has_animation(&"default"):
+		return &"default"
+	var names: PackedStringArray = frames.get_animation_names()
+	if names.size() > 0:
+		return StringName(names[0])
+	return &""
 
-func _setup_buttons() -> void:
-	var buttons_config: Dictionary = _game_config.get("home_buttons", {})
-	var shared_cfg := _extract_shared_button_cfg(buttons_config)
-	var validation_cfg: Dictionary = UIStyle.get_validation_config()
-	if not validation_cfg.is_empty() and str(validation_cfg.get("asset", "")) != "":
-		var play_cfg: Dictionary = buttons_config.get("play", {})
-		var merged_cfg: Dictionary = validation_cfg.duplicate()
-		if play_cfg.has("letter_spacing"):
-			merged_cfg["letter_spacing"] = play_cfg["letter_spacing"]
-		if play_cfg.has("text_color"):
-			merged_cfg["text_color"] = play_cfg["text_color"]
-		if play_cfg.has("text_size"):
-			merged_cfg["text_size"] = play_cfg["text_size"]
-		UIStyle.apply_validation_to_button(play_button, merged_cfg, "large")
-		play_button.text = LocaleManager.translate("home_play")
-		_apply_button_text_shadow(play_button)
-	else:
-		_setup_single_button(play_button, _merge_button_cfg(shared_cfg, buttons_config.get("play", {})), "home_play")
-	_setup_single_button(ship_button, _merge_button_cfg(shared_cfg, buttons_config.get("ship", {})), "home_ship_menu")
-	_setup_single_button(options_button, _merge_button_cfg(shared_cfg, buttons_config.get("options", {})), "home_options")
-	var cancel_cfg: Dictionary = UIStyle.get_cancellation_config()
-	if not cancel_cfg.is_empty() and str(cancel_cfg.get("asset", "")) != "":
-		var quit_cfg: Dictionary = buttons_config.get("quit", {})
-		var cancel_merged: Dictionary = cancel_cfg.duplicate()
-		if quit_cfg.has("text_size"):
-			cancel_merged["text_size"] = quit_cfg["text_size"]
-		if quit_cfg.has("letter_spacing"):
-			cancel_merged["letter_spacing"] = quit_cfg["letter_spacing"]
-		UIStyle.apply_cancellation_to_button(quit_button, cancel_merged, "large")
-		quit_button.text = LocaleManager.translate("home_quit")
-		_apply_button_text_shadow(quit_button)
-	else:
-		_setup_single_button(quit_button, _merge_button_cfg(shared_cfg, buttons_config.get("quit", {})), "home_quit")
-	_setup_single_button(skills_button, _merge_button_cfg(shared_cfg, buttons_config.get("skills", {})), "home_skills")
-	_setup_single_button(change_profile_button, _merge_button_cfg(shared_cfg, buttons_config.get("change_profile", {})), "home_change_profile_short")
-	UIStyle.apply_button_shadow(unlock_all_button, "small")
-	UIStyle.apply_button_shadow(reset_viewed_stories_button, "small")
-	UIStyle.apply_button_shadow(reset_to_level_one_button, "small")
-	UIStyle.apply_button_shadow(start_story_button, "small")
-
-func _extract_shared_button_cfg(buttons_config: Dictionary) -> Dictionary:
-	var shared := {}
-	if buttons_config.has("default_nine_slice"):
-		shared["nine_slice"] = buttons_config.get("default_nine_slice", {})
-	if buttons_config.has("default_content_margin"):
-		shared["content_margin"] = buttons_config.get("default_content_margin", {})
-	if buttons_config.has("default_stretch_horizontal"):
-		shared["stretch_horizontal"] = buttons_config.get("default_stretch_horizontal", "stretch")
-	if buttons_config.has("default_stretch_vertical"):
-		shared["stretch_vertical"] = buttons_config.get("default_stretch_vertical", "stretch")
-	if buttons_config.has("default_draw_center"):
-		shared["draw_center"] = buttons_config.get("default_draw_center", true)
-	if buttons_config.has("default_text_size"):
-		shared["default_text_size"] = buttons_config.get("default_text_size")
-	return shared
-
-func _merge_button_cfg(shared_cfg: Dictionary, per_button_cfg: Variant) -> Dictionary:
-	var merged := shared_cfg.duplicate(true)
-	if per_button_cfg is Dictionary:
-		for key in (per_button_cfg as Dictionary).keys():
-			merged[key] = (per_button_cfg as Dictionary)[key]
-	return merged
-
-func _setup_single_button(button: Button, config: Dictionary, translation_key: String) -> void:
-	var asset_path: String = str(config.get("asset", ""))
-	var asset_anim: String = str(config.get("asset_anim", ""))
-	var asset_anim_duration: float = maxf(0.0, float(config.get("asset_anim_duration", 0.0)))
-	var asset_anim_loop: bool = bool(config.get("asset_anim_loop", true))
-	var show_text: bool = bool(config.get("show_text", true))
-	var text_color_hex: String = str(config.get("text_color", "#FFFFFF"))
-	
-	var letter_spacing: int = int(config.get("letter_spacing", 0))
-	
-	# Reset state
-	button.icon = null
-	# Clear existing children that might be anims (if reused) or specific nodes
-	for child in button.get_children():
-		if child.name == "BgAnim": child.queue_free()
-	
-	var _has_visual_bg: bool = false
-	
-	# 1. GESTION ASSET ANIMÉ (Priorité 1)
-	if asset_anim != "" and ResourceLoader.exists(asset_anim):
-		var frames: Resource = load(asset_anim)
-		if frames is SpriteFrames:
-			_has_visual_bg = true
-			# Style transparent pour le bouton (plus de cadre gris)
-			var style_empty = StyleBoxEmpty.new()
-			_apply_style_override(button, style_empty)
-			
-			# Ajouter AnimatedSprite2D
-			var anim = AnimatedSprite2D.new()
-			anim.name = "BgAnim"
-			VFXManager.play_sprite_frames(
-				anim,
-				frames as SpriteFrames,
-				&"default",
-				asset_anim_loop,
-				asset_anim_duration
-			)
-			anim.show_behind_parent = true 
-			button.add_child(anim)
-			
-			# Centrage initial et connexion signal
-			_center_child_sprite(button, anim)
-			if not button.resized.is_connected(_center_child_sprite.bind(button, anim)):
-				button.resized.connect(_center_child_sprite.bind(button, anim))
-				
-			# Scale logic (simple fit)
-			var tex = frames.get_frame_texture("default", 0)
-			if tex:
-				# anim.scale can be computed here if needed in the future.
-				# Current behavior keeps native animation scale.
-				pass
-	
-	# 2. GESTION ASSET STATIQUE (Priorité 2)
-	elif asset_path != "" and ResourceLoader.exists(asset_path):
-		var style := UIStyle.build_texture_stylebox(asset_path, config, 10)
-		if style:
-			_has_visual_bg = true
-			_apply_style_override(button, style)
-	
-	# 3. TEXTE
-	if show_text:
-		var text_size_val: Variant = config.get("text_size", config.get("default_text_size", null))
-		if text_size_val != null:
-			button.add_theme_font_size_override("font_size", int(text_size_val))
-		button.text = LocaleManager.t(translation_key)
-		
-		# Appliquer la couleur personnalisée
-		var col := Color(text_color_hex)
-		button.add_theme_color_override("font_color", col)
-		button.add_theme_color_override("font_pressed_color", col)
-		button.add_theme_color_override("font_hover_color", col)
-		button.add_theme_color_override("font_focus_color", col)
-		
-		# Appliquer l'espacement des lettres (letter_spacing)
-		if letter_spacing != 0:
-			var current_font = button.get_theme_font("font")
-			if current_font:
-				var fv = FontVariation.new()
-				fv.base_font = current_font
-				fv.spacing_glyph = letter_spacing
-				button.add_theme_font_override("font", fv)
-		_apply_button_text_shadow(button)
-	else:
-		button.text = ""
-
-func _apply_button_text_shadow(button: Button) -> void:
-	UIStyle.apply_button_shadow(button, "large")
-
-func _apply_style_override(btn: Button, style: StyleBox) -> void:
-	btn.add_theme_stylebox_override("normal", style)
-	var hover_style: StyleBox = UIStyle.get_stylebox_with_hover_offset(style)
-	btn.add_theme_stylebox_override("hover", hover_style)
-	btn.add_theme_stylebox_override("pressed", hover_style)
-	btn.add_theme_stylebox_override("focus", hover_style)
-	UIStyle.apply_button_hover_translate(btn) 
-
-func _center_child_sprite(btn: Control, sprite: Node2D) -> void:
-	sprite.position = btn.size / 2
+# =============================================================================
+# TRANSLATIONS
+# =============================================================================
 
 func _apply_translations() -> void:
-	title_label.text = LocaleManager.t("app_title")
+	if change_ship_label:
+		change_ship_label.text = LocaleManager.translate("home_touch_to_change_ship")
+		var ship_cfg := _get_home_button_config("ship")
+		change_ship_label.add_theme_font_size_override("font_size", int(ship_cfg.get("text_size", 18)))
+		change_ship_label.add_theme_color_override("font_color", Color.from_string(str(ship_cfg.get("text_color", "#FFFFFF")), Color.WHITE))
+	if play_button:
+		play_button.text = LocaleManager.translate("home_play")
+		_apply_home_button_shadow(play_button, "play")
+	if skills_button:
+		skills_button.text = LocaleManager.translate("home_skills_button")
+		_apply_home_button_shadow(skills_button, "skills")
+	if equipment_button:
+		equipment_button.text = LocaleManager.translate("home_equipment_button")
+		_apply_home_button_shadow(equipment_button, "equipment")
+	if options_button:
+		options_button.text = LocaleManager.translate("home_options")
+		_apply_home_button_shadow(options_button, "options")
+	if change_profile_button:
+		change_profile_button.text = LocaleManager.translate("home_change_profile_short")
+		_apply_home_button_shadow(change_profile_button, "change_profile")
+	if quit_button:
+		quit_button.text = LocaleManager.translate("home_quit")
+		_apply_home_button_shadow(quit_button, "quit")
+
+# =============================================================================
+# NAVIGATION
+# =============================================================================
 
 func _request_menu_prewarm() -> void:
 	var switcher := get_tree().current_scene
@@ -390,21 +425,17 @@ func _goto_from_home(scene_path: String) -> void:
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen(scene_path)
 
-func prepare_for_transition() -> void:
-	pass
-
-# =============================================================================
-# NAVIGATION
-# =============================================================================
-
 func _on_play_pressed() -> void:
-	_goto_from_home("res://scenes/WorldSelect.tscn")
+	_goto_from_home("res://scenes/GameModeSelect.tscn")
 
 func _on_ship_pressed() -> void:
 	_goto_from_home("res://scenes/ShipMenu.tscn")
 
 func _on_skills_pressed() -> void:
 	_goto_from_home("res://scenes/SkillsMenu.tscn")
+
+func _on_equipment_pressed() -> void:
+	_goto_from_home("res://scenes/EquipmentMenu.tscn")
 
 func _on_options_pressed() -> void:
 	_goto_from_home("res://scenes/OptionsMenu.tscn")
@@ -418,59 +449,221 @@ func _on_crystals_header_pressed() -> void:
 func _on_change_profile_pressed() -> void:
 	_goto_from_home("res://scenes/ProfileSelect.tscn")
 
-func _on_unlock_all_pressed() -> void:
-	if not ProfileManager.is_debug_mode_enabled():
-		return
-	if unlock_all_button == null:
-		return
+func _update_change_profile_visibility() -> void:
+	if change_profile_button:
+		change_profile_button.visible = ProfileManager.has_any_profile()
 
-	var profile := ProfileManager.get_active_profile()
-	if profile.is_empty():
+func _maybe_show_first_profile_modal() -> void:
+	if ProfileManager.has_any_profile():
 		return
+	if _first_profile_layer != null and is_instance_valid(_first_profile_layer):
+		return
+	call_deferred("_show_first_profile_modal")
 
-	for world_variant in App.get_worlds():
-		if not (world_variant is Dictionary):
+func _get_first_profile_modal_config() -> Dictionary:
+	var home := _get_home_screen_config()
+	var v: Variant = home.get("first_profile_modal", {})
+	return v if v is Dictionary else {}
+
+func _deep_merge_modal_cfg(base: Dictionary, over: Dictionary) -> Dictionary:
+	var out: Dictionary = base.duplicate(true)
+	for k in over.keys():
+		var val: Variant = over[k]
+		if val is Dictionary and out.has(k) and out[k] is Dictionary:
+			out[k] = _deep_merge_modal_cfg(out[k], val as Dictionary)
+		else:
+			out[k] = val
+	return out
+
+func _merged_first_profile_modal_cfg() -> Dictionary:
+	var defaults := {
+		"canvas_layer": 80,
+		"dim": {"color": [0.0, 0.0, 0.0, 0.72]},
+		"panel": {"min_width": 520.0, "min_height": 260.0},
+		"margins": {"left": 24, "right": 24, "top": 22, "bottom": 22},
+		"content_separation": 14,
+		"title": {"locale_key": "profile_first_launch_title", "font_size": 22, "color": "#FFFFFF"},
+		"description": {"locale_key": "profile_first_launch_hint", "font_size": 16, "color": "#DDDDDD"},
+		"name_input": {"locale_key_placeholder": "profile_select_name_hint", "font_size": 18, "max_length": 32, "min_height": 48},
+		"buttons": {
+			"column_separation": 12,
+			"validate": {"style": "validation", "locale_key": "profile_first_launch_validate", "font_preset": "medium", "min_width": 260.0, "min_height": 52.0, "shadow_size": "medium"},
+			"quit": {"style": "cancellation", "locale_key": "home_quit", "font_preset": "medium", "min_width": 260.0, "min_height": 52.0, "shadow_size": "medium"}
+		}
+	}
+	return _deep_merge_modal_cfg(defaults, _get_first_profile_modal_config())
+
+func _modal_dim_color(cfg: Dictionary) -> Color:
+	var dim_v: Variant = cfg.get("dim", {})
+	var dim: Dictionary = dim_v if dim_v is Dictionary else {}
+	var arr_v: Variant = dim.get("color", [0.0, 0.0, 0.0, 0.72])
+	if arr_v is Array and (arr_v as Array).size() >= 4:
+		var a: Array = arr_v as Array
+		return Color(float(a[0]), float(a[1]), float(a[2]), float(a[3]))
+	return Color(0.0, 0.0, 0.0, 0.72)
+
+func _modal_label_color(hex_or_empty: String) -> Color:
+	var s := hex_or_empty.strip_edges()
+	if s == "":
+		return Color.WHITE
+	return Color.from_string(s, Color.WHITE)
+
+func _apply_modal_action_button(btn: Button, btn_cfg: Dictionary) -> void:
+	var style_id := str(btn_cfg.get("style", "validation")).to_lower()
+	var preset := str(btn_cfg.get("font_preset", "medium"))
+	var shadow_sz := str(btn_cfg.get("shadow_size", "medium"))
+	var base: Dictionary = {}
+	match style_id:
+		"cancellation":
+			base = UIStyle.get_cancellation_config()
+		"default":
+			base = UIStyle.get_default_button_style()
+		_:
+			base = UIStyle.get_validation_config()
+	var merged: Dictionary = base.duplicate(true)
+	for k in btn_cfg.keys():
+		if k in ["style", "locale_key", "font_preset", "shadow_size"]:
 			continue
-		var world_id: String = str((world_variant as Dictionary).get("id", ""))
-		if world_id == "":
-			continue
+		if btn_cfg[k] != null:
+			merged[k] = btn_cfg[k]
+	if style_id == "default":
+		UIStyle.apply_default_button_style(btn, preset)
+	else:
+		UIStyle.apply_validation_to_button(btn, merged, preset)
+	UIStyle.apply_button_shadow(btn, shadow_sz)
 
-		var levels_per_world: int = max(1, App.get_world_level_count(world_id))
-		ProfileManager.complete_level(world_id, levels_per_world - 1, levels_per_world)
-
-	ProfileManager.save_to_disk()
-
-	unlock_all_button.disabled = true
-	UIStyle.set_button_shadow_text(unlock_all_button, "Unlocked!")
-	await get_tree().create_timer(1.0).timeout
-	unlock_all_button.disabled = false
-	UIStyle.set_button_shadow_text(unlock_all_button, "Unlock All Worlds")
-
-func _on_reset_viewed_stories_pressed() -> void:
-	if not ProfileManager.is_debug_mode_enabled():
+func _show_first_profile_modal() -> void:
+	if ProfileManager.has_any_profile():
 		return
-	if reset_viewed_stories_button == null:
+	if _first_profile_layer != null and is_instance_valid(_first_profile_layer):
 		return
-	ProfileManager.reset_viewed_stories()
-	reset_viewed_stories_button.disabled = true
-	UIStyle.set_button_shadow_text(reset_viewed_stories_button, "Reset!")
-	await get_tree().create_timer(1.0).timeout
-	reset_viewed_stories_button.disabled = false
-	UIStyle.set_button_shadow_text(reset_viewed_stories_button, "Reset viewed stories")
 
-func _on_reset_to_level_one_pressed() -> void:
-	if not ProfileManager.is_debug_mode_enabled():
-		return
-	if reset_to_level_one_button == null:
-		return
-	ProfileManager.reset_player_level_progress()
-	reset_to_level_one_button.disabled = true
-	UIStyle.set_button_shadow_text(reset_to_level_one_button, "Level 1!")
-	await get_tree().create_timer(1.0).timeout
-	reset_to_level_one_button.disabled = false
-	UIStyle.set_button_shadow_text(reset_to_level_one_button, "Reset to level 1")
+	var mc := _merged_first_profile_modal_cfg()
 
-func _on_start_story_pressed() -> void:
-	if not ProfileManager.is_debug_mode_enabled():
-		return
-	StoryManager.play_debug_story_flow()
+	var layer := CanvasLayer.new()
+	layer.layer = int(mc.get("canvas_layer", 80))
+	layer.name = "FirstProfileModalLayer"
+	add_child(layer)
+	_first_profile_layer = layer
+
+	var dim := ColorRect.new()
+	dim.color = _modal_dim_color(mc)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(center)
+
+	var panel_v: Variant = mc.get("panel", {})
+	var panel_cfg: Dictionary = panel_v if panel_v is Dictionary else {}
+	var pm_w: float = float(panel_cfg.get("min_width", 520.0))
+	var pm_h: float = float(panel_cfg.get("min_height", 260.0))
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(pm_w, pm_h)
+	var popup_config: Dictionary = _game_config.get("popups", {})
+	var popup_bg_cfg: Dictionary = popup_config.get("background", {}) if popup_config.get("background") is Dictionary else {}
+	var popup_bg_asset: String = str(popup_bg_cfg.get("asset", ""))
+	var pm: int = int(popup_config.get("margin", 20))
+	var panel_style := UIStyle.build_texture_stylebox(popup_bg_asset, popup_bg_cfg, pm)
+	if panel_style:
+		panel.add_theme_stylebox_override("panel", panel_style)
+	center.add_child(panel)
+
+	var mg_v: Variant = mc.get("margins", {})
+	var mg: Dictionary = mg_v if mg_v is Dictionary else {}
+	var margin_root := MarginContainer.new()
+	margin_root.add_theme_constant_override("margin_left", int(mg.get("left", 24)))
+	margin_root.add_theme_constant_override("margin_right", int(mg.get("right", 24)))
+	margin_root.add_theme_constant_override("margin_top", int(mg.get("top", 22)))
+	margin_root.add_theme_constant_override("margin_bottom", int(mg.get("bottom", 22)))
+	panel.add_child(margin_root)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", int(mc.get("content_separation", 14)))
+	margin_root.add_child(vbox)
+
+	var title_cfg_v: Variant = mc.get("title", {})
+	var title_cfg: Dictionary = title_cfg_v if title_cfg_v is Dictionary else {}
+	var title := Label.new()
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", 22)))
+	title.add_theme_color_override("font_color", _modal_label_color(str(title_cfg.get("color", "#FFFFFF"))))
+	title.text = LocaleManager.translate(str(title_cfg.get("locale_key", "profile_first_launch_title")))
+	vbox.add_child(title)
+
+	var desc_cfg_v: Variant = mc.get("description", {})
+	var desc_cfg: Dictionary = desc_cfg_v if desc_cfg_v is Dictionary else {}
+	var hint := Label.new()
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", int(desc_cfg.get("font_size", 16)))
+	hint.add_theme_color_override("font_color", _modal_label_color(str(desc_cfg.get("color", "#DDDDDD"))))
+	hint.text = LocaleManager.translate(str(desc_cfg.get("locale_key", "profile_first_launch_hint")))
+	vbox.add_child(hint)
+
+	var ni_v: Variant = mc.get("name_input", {})
+	var ni: Dictionary = ni_v if ni_v is Dictionary else {}
+	var name_edit := LineEdit.new()
+	name_edit.custom_minimum_size = Vector2(0, float(ni.get("min_height", 48)))
+	name_edit.max_length = int(ni.get("max_length", 32))
+	name_edit.text = ProfileManager.get_suggested_player_display_name()
+	name_edit.placeholder_text = LocaleManager.translate(str(ni.get("locale_key_placeholder", "profile_select_name_hint")))
+	name_edit.add_theme_font_size_override("font_size", int(ni.get("font_size", 18)))
+	vbox.add_child(name_edit)
+
+	var btn_wrap_v: Variant = mc.get("buttons", {})
+	var btn_wrap: Dictionary = btn_wrap_v if btn_wrap_v is Dictionary else {}
+	var col_sep: int = int(btn_wrap.get("column_separation", 12))
+
+	var btn_col := VBoxContainer.new()
+	btn_col.add_theme_constant_override("separation", col_sep)
+	btn_col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	vbox.add_child(btn_col)
+
+	var val_cfg_v: Variant = btn_wrap.get("validate", {})
+	var val_btn_cfg: Dictionary = val_cfg_v if val_cfg_v is Dictionary else {}
+	var validate_btn := Button.new()
+	validate_btn.custom_minimum_size = Vector2(float(val_btn_cfg.get("min_width", 260)), float(val_btn_cfg.get("min_height", 52)))
+	_apply_modal_action_button(validate_btn, val_btn_cfg)
+	validate_btn.text = LocaleManager.translate(str(val_btn_cfg.get("locale_key", "profile_first_launch_validate")))
+	btn_col.add_child(validate_btn)
+
+	var quit_cfg_v: Variant = btn_wrap.get("quit", {})
+	var quit_btn_cfg: Dictionary = quit_cfg_v if quit_cfg_v is Dictionary else {}
+	var quit_btn := Button.new()
+	quit_btn.custom_minimum_size = Vector2(float(quit_btn_cfg.get("min_width", 260)), float(quit_btn_cfg.get("min_height", 52)))
+	_apply_modal_action_button(quit_btn, quit_btn_cfg)
+	quit_btn.text = LocaleManager.translate(str(quit_btn_cfg.get("locale_key", "home_quit")))
+	btn_col.add_child(quit_btn)
+
+	quit_btn.pressed.connect(func(): get_tree().quit())
+
+	var _refresh_validate_enabled := func():
+		var ok: bool = name_edit.text.strip_edges().length() >= 2
+		validate_btn.disabled = not ok
+
+	name_edit.text_changed.connect(func(_t): _refresh_validate_enabled.call())
+	_refresh_validate_enabled.call()
+
+	validate_btn.pressed.connect(func():
+		var raw_name := name_edit.text.strip_edges()
+		if raw_name.length() < 2:
+			return
+		ProfileManager.create_profile(raw_name)
+		if layer != null and is_instance_valid(layer):
+			layer.queue_free()
+		_first_profile_layer = null
+		_update_change_profile_visibility()
+		if menu_header != null and menu_header.has_method("refresh"):
+			menu_header.refresh()
+		_setup_ship_preview()
+		_refresh_alert_icons()
+	)
+
+func prepare_for_transition() -> void:
+	if _first_profile_layer != null and is_instance_valid(_first_profile_layer):
+		_first_profile_layer.queue_free()
+		_first_profile_layer = null

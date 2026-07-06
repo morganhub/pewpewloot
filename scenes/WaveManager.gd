@@ -6,9 +6,22 @@ extends Node
 signal spawn_enemy(enemy_data: Dictionary, spawn_pos: Vector2)
 signal spawn_obstacle(obstacle_data: Dictionary, positions: Array, speed: float)
 signal spawn_path_trial(config: Dictionary)
+signal spawn_gate_runner(config: Dictionary)
+signal spawn_pong(config: Dictionary)
+signal spawn_breakout(config: Dictionary)
+signal spawn_ball_launcher(config: Dictionary)
+signal spawn_vertical_climb(config: Dictionary)
+signal spawn_absorb(config: Dictionary)
+signal spawn_lane_runner(config: Dictionary)
+signal spawn_slice_rush(config: Dictionary)
+signal spawn_match3(config: Dictionary)
+signal spawn_gravity_hole(config: Dictionary)
+signal spawn_star_drift(config: Dictionary)
+signal spawn_asteroid_field(config: Dictionary)
 signal level_completed
 signal wave_started(wave_index: int)
 signal story_check_before_wave(wave_index: int)
+signal free_mode_level_changed(level: int)
 
 const ObstacleSpawnerScript: Script = preload("res://scenes/obstacles/ObstacleSpawner.gd")
 
@@ -20,6 +33,8 @@ var _is_active: bool = false
 var _is_wave_running: bool = false
 var _current_wave_elapsed: float = 0.0
 var _current_wave_duration: float = 20.0
+var _current_wave_type: String = "enemy"
+var _clear_advance_timer: float = 0.0
 var _pending_spawns: Array = [] # {time, enemy_id, pattern_id}
 var _available_move_pattern_ids: Array[String] = []
 var _active_obstacle_spawners: Array = [] # Active ObstacleSpawner nodes
@@ -28,6 +43,9 @@ var _world_wave_runtime_cfg: Dictionary = {}
 var _enemy_skin_type_cache: Dictionary = {} # skin_path -> "frames" | "texture" | "unknown"
 var _override_elite_replacement_chance: float = 0.0
 var _world_id: String = ""
+var _log_resource_warmup_enabled: bool = false
+var _active_enemy_count: int = 0
+var _active_obstacle_count: int = 0
 
 const DEFAULT_MOVE_PATTERN_ID := "linear_cross_fast"
 const DEBUG_WAVE_PATTERN_LOG := false
@@ -40,6 +58,129 @@ const MAX_WAVE_ELAPSED_STEP_SEC: float = 0.25
 const WAVE_END_FLYOFF_MIN_SPEED: float = 1080.0
 const WAVE_END_FLYOFF_MAX_SPEED: float = 2040.0
 const WAVE_END_FLYOFF_DURATION_SEC: float = 1.6
+const WAVE_CLEAR_ADVANCE_DELAY_SEC: float = 2.0
+const SPAWN_STOP_BEFORE_WAVE_END_SEC: float = 5.0
+const ARTILLERY_WAVE_DEFAULT_ROWS: int = 3
+const ARTILLERY_WAVE_DEFAULT_COUNT: int = 18
+const ARTILLERY_WAVE_DEFAULT_SPAWN_INTERVAL_SEC: float = 0.08
+const ARTILLERY_WAVE_DEFAULT_FIRE_RATE_SEC: float = 3.0
+
+# =============================================================================
+# MODE LIBRE — un seul wave_type en boucle infinie, difficulté par "level"
+# (1 -> max, +1 tous les seconds_per_level). Config : data/freemode.json.
+# =============================================================================
+
+# Durée d'itération des modes "continuous" : le manager ne se termine jamais
+# de lui-même, la difficulté est re-scalée en place au changement de level.
+const FREE_MODE_CONTINUOUS_DURATION_SEC: float = 86400.0
+
+var _free_mode_active: bool = false
+var _free_mode_wave_type: String = ""
+var _free_mode_cfg: Dictionary = {} # bloc freemode.json > modes.<type>
+var _free_seconds_per_level: float = 45.0
+var _free_max_level: int = 20
+var _free_round_duration_default: float = 40.0
+var _free_elapsed: float = 0.0
+var _free_level: int = 1
+# Temps total (sec) pour ATTEINDRE le level i+2 (index 0 = seuil du level 2),
+# précalculé depuis leveling.level_time_steps (fallback seconds_per_level).
+var _free_level_thresholds: Array[float] = []
+
+## À appeler AVANT setup(). Le niveau synthétique passé à setup() contient la
+## vague de level 1 (build_free_mode_wave(1)) ; les itérations suivantes sont
+## régénérées dans _complete_current_wave().
+func set_free_mode(wave_type: String, freemode_cfg: Dictionary) -> void:
+	_free_mode_active = true
+	_free_mode_wave_type = wave_type
+	_free_mode_cfg = {}
+	var modes_v: Variant = freemode_cfg.get("modes", {})
+	if modes_v is Dictionary:
+		var mode_v: Variant = (modes_v as Dictionary).get(wave_type, {})
+		if mode_v is Dictionary:
+			_free_mode_cfg = (mode_v as Dictionary).duplicate(true)
+	var level_steps: Array = []
+	var leveling_v: Variant = freemode_cfg.get("leveling", {})
+	if leveling_v is Dictionary:
+		_free_seconds_per_level = maxf(5.0, float((leveling_v as Dictionary).get("seconds_per_level", 45.0)))
+		_free_max_level = maxi(1, int((leveling_v as Dictionary).get("max_level", 20)))
+		var steps_v: Variant = (leveling_v as Dictionary).get("level_time_steps", [])
+		if steps_v is Array:
+			level_steps = steps_v as Array
+	var defaults_v: Variant = freemode_cfg.get("defaults", {})
+	if defaults_v is Dictionary:
+		_free_round_duration_default = maxf(10.0, float((defaults_v as Dictionary).get("round_duration_sec", 40.0)))
+	_free_elapsed = 0.0
+	_free_level = 1
+	_build_free_level_thresholds(level_steps)
+
+## Échelonnement configurable de la montée de level : level_time_steps[] =
+## paliers {until_level, seconds} — le passage au level L coûte les "seconds"
+## du premier palier dont until_level >= L (fallback : seconds_per_level).
+## Permet une cadence rapide au début et plus lente en fin de rampe.
+func _build_free_level_thresholds(level_steps: Array) -> void:
+	_free_level_thresholds.clear()
+	var total: float = 0.0
+	for target_level in range(2, _free_max_level + 1):
+		total += _seconds_for_level_up(target_level, level_steps)
+		_free_level_thresholds.append(total)
+
+func _seconds_for_level_up(target_level: int, level_steps: Array) -> float:
+	for step_v in level_steps:
+		if not (step_v is Dictionary):
+			continue
+		var step: Dictionary = step_v as Dictionary
+		if target_level <= int(step.get("until_level", 0)):
+			return maxf(2.0, float(step.get("seconds", _free_seconds_per_level)))
+	return _free_seconds_per_level
+
+func get_free_mode_level() -> int:
+	return _free_level
+
+## Vague du mode libre au level donné : {type, duration, countdown_hidden}
+## + base_wave, puis chaque clé numérique de per_level ajoutée en
+## (level-1) x delta sur la valeur de base_wave. Les listes pattern_ids[]
+## (path_trial) sont résolues en un pattern_id tiré au hasard par itération.
+func build_free_mode_wave(level: int) -> Dictionary:
+	# loop_style "continuous" : une seule itération quasi infinie, la montée de
+	# difficulté est poussée en place au manager (update_free_mode_config) — pas
+	# de réengagement d'état (indispensable pour pong et les modes à match).
+	var continuous: bool = str(_free_mode_cfg.get("loop_style", "restart")) == "continuous"
+	var round_duration: float = FREE_MODE_CONTINUOUS_DURATION_SEC if continuous \
+		else maxf(10.0, float(_free_mode_cfg.get("round_duration_sec", _free_round_duration_default)))
+	var wave: Dictionary = {
+		"type": _free_mode_wave_type,
+		"countdown_hidden": true,
+		"duration": round_duration
+	}
+	var base_v: Variant = _free_mode_cfg.get("base_wave", {})
+	if base_v is Dictionary:
+		for key in (base_v as Dictionary).keys():
+			wave[key] = (base_v as Dictionary)[key]
+	var per_level_v: Variant = _free_mode_cfg.get("per_level", {})
+	if per_level_v is Dictionary and level > 1:
+		for key in (per_level_v as Dictionary).keys():
+			var delta_v: Variant = (per_level_v as Dictionary)[key]
+			var base_val_v: Variant = wave.get(key, 0.0)
+			if (delta_v is float or delta_v is int) and (base_val_v is float or base_val_v is int):
+				wave[key] = float(base_val_v) + float(delta_v) * float(level - 1)
+	var pattern_ids_v: Variant = wave.get("pattern_ids", null)
+	if pattern_ids_v is Array and not (pattern_ids_v as Array).is_empty():
+		var pool: Array = pattern_ids_v as Array
+		wave["pattern_id"] = str(pool[randi() % pool.size()])
+		wave.erase("pattern_ids")
+	return wave
+
+func _tick_free_mode_level(delta: float) -> void:
+	if not _free_mode_active:
+		return
+	_free_elapsed += delta
+	var new_level: int = _free_level
+	while new_level < _free_max_level and new_level - 1 < _free_level_thresholds.size() \
+		and _free_elapsed >= _free_level_thresholds[new_level - 1]:
+		new_level += 1
+	if new_level != _free_level:
+		_free_level = new_level
+		free_mode_level_changed.emit(_free_level)
 
 func setup(level_id: String, world_id: String = "") -> void:
 	_current_level_data = DataManager.get_level_data(level_id)
@@ -61,13 +202,21 @@ func setup(level_id: String, world_id: String = "") -> void:
 			_world_wave_runtime_cfg = (runtime_cfg_v as Dictionary).duplicate(true)
 	
 	_waves = _current_level_data.get("waves", [])
+	if _free_mode_active:
+		# Mode libre : la vague jouée est toujours régénérée localement (le
+		# niveau synthétique ne porte qu'un placeholder).
+		_waves = [build_free_mode_wave(_free_level)]
 	_current_wave_index = 0
 	_current_wave_elapsed = 0.0
 	_current_wave_duration = 20.0
+	_current_wave_type = "enemy"
+	_clear_advance_timer = 0.0
 	_is_wave_running = false
 	_pending_wave_index = -1
 	_pending_spawns.clear()
 	_enemy_skin_type_cache.clear()
+	_active_enemy_count = 0
+	_active_obstacle_count = 0
 	_refresh_move_pattern_pool()
 	_prewarm_wave_resources()
 	_is_active = true
@@ -76,21 +225,55 @@ func setup(level_id: String, world_id: String = "") -> void:
 		_is_active = false
 		level_completed.emit()
 		return
-	_queue_wave_start(_current_wave_index)
-	
+	# Wave 1 is NOT queued here: setup() runs behind the loading screen, so an
+	# immediate start would play the first wave invisibly (and the start-of-run
+	# cleanup would finish_now() any manager wave, skipping it). Game calls
+	# start_waves() once the bootstrap (loading + intro story) is done.
+
 	if DEBUG_WAVE_LIFECYCLE_LOG:
 		print("[WaveManager] Setup level: ", level_id, " with ", _waves.size(), " waves. Skin overrides: ", _skin_overrides.keys())
 
+## Called by Game at the end of the run bootstrap (post-loading, post-story):
+## queues the first wave. Idempotent.
+func start_waves() -> void:
+	if not _is_active or _is_wave_running or _pending_wave_index >= 0:
+		return
+	_queue_wave_start(_current_wave_index)
+
 func set_override_elite_replacement_chance(chance: float) -> void:
 	_override_elite_replacement_chance = clampf(chance, 0.0, 1.0)
+
+func set_performance_config(performance_cfg: Dictionary) -> void:
+	_log_resource_warmup_enabled = OS.is_debug_build() and bool(performance_cfg.get("log_wave_resource_warmup", false))
+
+func track_enemy_node(enemy: Node) -> void:
+	if not is_instance_valid(enemy):
+		return
+	_active_enemy_count += 1
+	enemy.tree_exiting.connect(_on_tracked_enemy_exiting, CONNECT_ONE_SHOT)
+
+func track_obstacle_node(obstacle: Node) -> void:
+	if not is_instance_valid(obstacle):
+		return
+	_active_obstacle_count += 1
+	obstacle.tree_exiting.connect(_on_tracked_obstacle_exiting, CONNECT_ONE_SHOT)
+
+func _on_tracked_enemy_exiting() -> void:
+	_active_enemy_count = maxi(0, _active_enemy_count - 1)
+
+func _on_tracked_obstacle_exiting() -> void:
+	_active_obstacle_count = maxi(0, _active_obstacle_count - 1)
 
 func stop() -> void:
 	_is_active = false
 	_is_wave_running = false
 	_current_wave_elapsed = 0.0
+	_clear_advance_timer = 0.0
 	_pending_wave_index = -1
 	_pending_spawns.clear()
 	_enemy_skin_type_cache.clear()
+	_active_enemy_count = 0
+	_active_obstacle_count = 0
 	# Arrêter tous les spawners d'obstacles actifs
 	for spawner in _active_obstacle_spawners:
 		if is_instance_valid(spawner):
@@ -101,13 +284,17 @@ func stop() -> void:
 func _process(delta: float) -> void:
 	if not _is_active:
 		return
-	
+
+	_tick_free_mode_level(delta)
 	_process_pending_spawns(delta)
 	if not _is_wave_running:
 		return
 	# Prevent a single long frame from skipping almost a full wave (and its spawns).
 	_current_wave_elapsed += minf(delta, MAX_WAVE_ELAPSED_STEP_SEC)
 	if _current_wave_elapsed >= _current_wave_duration:
+		_complete_current_wave()
+		return
+	if _should_advance_cleared_wave(delta):
 		_complete_current_wave()
 
 func continue_after_story() -> void:
@@ -139,19 +326,155 @@ func _complete_current_wave() -> void:
 
 	var next_wave_index: int = _current_wave_index + 1
 	if next_wave_index >= _waves.size():
+		if _free_mode_active:
+			# Boucle infinie : régénérer la vague au level courant et repartir
+			# au lieu de terminer le niveau.
+			_waves = [build_free_mode_wave(_free_level)]
+			_current_wave_index = 0
+			_queue_wave_start(0)
+			return
 		_is_active = false
 		level_completed.emit()
 		return
 	_current_wave_index = next_wave_index
 	_queue_wave_start(_current_wave_index)
 
+## Called by Game when the GateRunnerManager reports its scripted content is over
+## (all gates/swarms dispatched and no enemy ship left on screen). Ends the wave
+## early so there is no idle period before the next wave.
+func notify_gate_runner_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "gate_runner":
+		return
+	_complete_current_wave()
+
+## Called by Game when the PongManager reports the pong match is over.
+func notify_pong_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "pong":
+		return
+	_complete_current_wave()
+
+## Called by Game when the BreakoutManager reports the wall is cleared or the
+## timer is over.
+func notify_breakout_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "breakout":
+		return
+	_complete_current_wave()
+
+## Called by Game when the BallLauncherManager reports the run is over.
+func notify_ball_launcher_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "ball_launcher":
+		return
+	_complete_current_wave()
+
+## Called by Game when the VerticalClimbManager reports the climb is over.
+func notify_vertical_climb_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "vertical_climb":
+		return
+	_complete_current_wave()
+
+## Called by Game when the AbsorbManager reports the hunt is over.
+func notify_absorb_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "absorb":
+		return
+	_complete_current_wave()
+
+## Called by Game when the LaneRunnerManager reports the run is over.
+func notify_lane_runner_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "lane_runner":
+		return
+	_complete_current_wave()
+
+## Called by Game when the SliceRushManager reports the slicing is over.
+func notify_slice_rush_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "slice_rush":
+		return
+	_complete_current_wave()
+
+## Called by Game when the Match3Manager reports the board is done.
+func notify_match3_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "match3":
+		return
+	_complete_current_wave()
+
+## Called by Game when the GravityHoleManager reports the wave is over.
+func notify_gravity_hole_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "gravity_hole":
+		return
+	_complete_current_wave()
+
+## Called by Game when the StarDriftManager reports the drift is over.
+func notify_star_drift_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "star_drift":
+		return
+	_complete_current_wave()
+
+func _should_advance_cleared_wave(delta: float) -> bool:
+	if _current_wave_type == "path_trial" or _current_wave_type == "gate_runner" \
+		or _current_wave_type == "pong" or _current_wave_type == "breakout" \
+		or _current_wave_type == "ball_launcher" \
+		or _current_wave_type == "vertical_climb" or _current_wave_type == "absorb" \
+		or _current_wave_type == "lane_runner" or _current_wave_type == "slice_rush" \
+		or _current_wave_type == "match3" or _current_wave_type == "gravity_hole" \
+		or _current_wave_type == "star_drift":
+		_clear_advance_timer = 0.0
+		return false
+	if not _pending_spawns.is_empty():
+		_clear_advance_timer = 0.0
+		return false
+	if _has_obstacle_spawner_still_spawning():
+		_clear_advance_timer = 0.0
+		return false
+	if _active_enemy_count > 0:
+		_clear_advance_timer = 0.0
+		return false
+	if _active_obstacle_count > 0:
+		_clear_advance_timer = 0.0
+		return false
+
+	_clear_advance_timer += delta
+	return _clear_advance_timer >= WAVE_CLEAR_ADVANCE_DELAY_SEC
+
+func _has_obstacle_spawner_still_spawning() -> bool:
+	for i in range(_active_obstacle_spawners.size() - 1, -1, -1):
+		var spawner: Variant = _active_obstacle_spawners[i]
+		if not is_instance_valid(spawner):
+			_active_obstacle_spawners.remove_at(i)
+			continue
+		if spawner.has_method("is_spawning_finished") and bool(spawner.call("is_spawning_finished")):
+			continue
+		return true
+	return false
+
 func _start_wave_end_enemy_flyoff() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(enemy):
 			continue
 		if enemy.has_method("start_wave_end_flyoff"):
-			# Arc 180°: left-mid -> top -> right-mid (never downward).
-			var angle: float = randf_range(PI, TAU)
+			var is_swarm_enemy: bool = enemy.is_in_group("swarm_enemies")
+			# Swarm enemies scatter in all directions; classic waves keep their upward exit arc.
+			var angle: float = randf_range(0.0, TAU) if is_swarm_enemy else randf_range(PI, TAU)
 			var dir: Vector2 = Vector2(cos(angle), sin(angle)).normalized()
 			var speed: float = randf_range(WAVE_END_FLYOFF_MIN_SPEED, WAVE_END_FLYOFF_MAX_SPEED)
 			enemy.call("start_wave_end_flyoff", dir, speed, WAVE_END_FLYOFF_DURATION_SEC)
@@ -167,15 +490,60 @@ func _start_wave(wave: Dictionary) -> void:
 	_pending_spawns.clear()
 	_current_wave_duration = maxf(0.1, _resolve_wave_duration(wave))
 	_current_wave_elapsed = 0.0
+	_clear_advance_timer = 0.0
 	_is_wave_running = true
 
-	var wave_type: String = str(wave.get("type", "enemy"))
+	# Defensive auto-correction: an obstacle/path_trial wave declared without explicit type
+	# would silently fall through to the enemy branch and produce an empty 20s wave.
+	var wave_type: String = str(wave.get("type", ""))
+	if wave_type == "":
+		if wave.has("obstacle_id"):
+			push_warning("[WaveManager] wave#" + str(_current_wave_index) + " missing 'type' but has obstacle_id -> auto-set type='obstacle'")
+			wave_type = "obstacle"
+		elif wave.has("pattern_id") and not wave.has("enemy_id"):
+			push_warning("[WaveManager] wave#" + str(_current_wave_index) + " missing 'type' but has pattern_id alone -> auto-set type='path_trial'")
+			wave_type = "path_trial"
+		elif str(wave.get("enemy_id", "")) == "artillery":
+			wave_type = "artillery"
+		else:
+			wave_type = "enemy"
+	_current_wave_type = wave_type
 	
 	match wave_type:
 		"obstacle":
 			_start_obstacle_wave(wave)
 		"path_trial":
 			_start_path_trial_wave(wave)
+		"gate_runner":
+			_start_gate_runner_wave(wave)
+		"pong":
+			_start_pong_wave(wave)
+		"breakout":
+			_start_breakout_wave(wave)
+		"ball_launcher":
+			_start_ball_launcher_wave(wave)
+		"vertical_climb":
+			_start_vertical_climb_wave(wave)
+		"absorb":
+			_start_absorb_wave(wave)
+		"lane_runner":
+			_start_lane_runner_wave(wave)
+		"slice_rush":
+			_start_slice_rush_wave(wave)
+		"match3":
+			_start_match3_wave(wave)
+		"gravity_hole":
+			_start_gravity_hole_wave(wave)
+		"star_drift":
+			_start_star_drift_wave(wave)
+		"asteroid_split":
+			_start_asteroid_split_wave(wave)
+		"swarm":
+			_start_swarm_wave(wave)
+		"tank":
+			_start_tank_wave(wave)
+		"artillery":
+			_start_artillery_wave(wave)
 		_:
 			_start_enemy_wave(wave)
 
@@ -185,16 +553,61 @@ func _start_wave(wave: Dictionary) -> void:
 			print("[WavePerf] wave_start cost=", snappedf(wave_cost_ms, 0.1), "ms type=", wave_type, " idx=", _current_wave_index)
 
 func _resolve_wave_duration(wave: Dictionary) -> float:
+	var wave_type: String = str(wave.get("type", "enemy"))
 	var duration: float = _resolve_base_wave_duration(wave)
 	var forced_duration: float = float(_world_wave_runtime_cfg.get("force_duration_sec", -1.0))
-	if forced_duration > 0.0:
+	# Gate runner / asteroid waves are time-boxed by design, so an explicit
+	# per-wave "duration" must take precedence over the world force_duration_sec.
+	var honor_explicit_duration: bool = (wave_type == "gate_runner" or wave_type == "asteroid_split") and wave.has("duration")
+	# Pong/breakout/ball_launcher/climb/absorb/lane_runner/slice_rush/match3/
+	# gravity_hole waves are self-timed by their manager: keep both clocks
+	# identical and never let force_duration_sec truncate them.
+	if wave_type == "pong" or wave_type == "breakout" or wave_type == "ball_launcher" \
+		or wave_type == "vertical_climb" \
+		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
+		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift":
+		honor_explicit_duration = true
+		if not wave.has("duration"):
+			match wave_type:
+				"pong":
+					duration = _resolve_pong_default_duration()
+				"breakout":
+					duration = _resolve_breakout_default_duration()
+				"ball_launcher":
+					duration = _resolve_ball_launcher_default_duration()
+				"vertical_climb":
+					duration = _resolve_vertical_climb_default_duration()
+				"lane_runner":
+					duration = _resolve_lane_runner_default_duration()
+				"slice_rush":
+					duration = _resolve_slice_rush_default_duration()
+				"match3":
+					duration = _resolve_match3_default_duration()
+				"gravity_hole":
+					duration = _resolve_gravity_hole_default_duration()
+				"star_drift":
+					duration = _resolve_star_drift_default_duration()
+				_:
+					duration = _resolve_absorb_default_duration()
+	if forced_duration > 0.0 and not honor_explicit_duration:
 		duration = forced_duration
-	if str(wave.get("type", "enemy")) == "path_trial":
+	if wave_type == "path_trial":
 		duration += _resolve_path_trial_start_delay(wave)
+	if wave_type == "gravity_hole":
+		# The manager plays `duration` seconds of gameplay PLUS the intro/outro
+		# cover choreography: pad the WaveManager clock so the hard timeout
+		# stays a safety net and can never cut the outro mid-transition.
+		duration += _resolve_gravity_hole_transition_margin()
 	return maxf(0.1, duration)
 
 func _resolve_base_wave_duration(wave: Dictionary) -> float:
 	return maxf(0.1, float(wave.get("duration", 20.0)))
+
+func _resolve_spawn_cutoff_time() -> float:
+	return maxf(0.0, _current_wave_duration - SPAWN_STOP_BEFORE_WAVE_END_SEC)
+
+func _is_spawn_delay_allowed(delay: float) -> bool:
+	return delay <= _resolve_spawn_cutoff_time()
 
 func _resolve_path_trial_start_delay(wave: Dictionary) -> float:
 	var defaults: Dictionary = DataManager.get_path_trial_defaults() if DataManager else {}
@@ -212,7 +625,12 @@ func _resolve_path_trial_start_delay(wave: Dictionary) -> float:
 	)
 
 func _start_enemy_wave(wave: Dictionary) -> void:
-	var enemy_id: String = str(wave.get("enemy_id", "enemy_basic"))
+	var raw_enemy_id: String = str(wave.get("enemy_id", ""))
+	var enemy_id: String = raw_enemy_id
+	if enemy_id == "" or DataManager.get_enemy(enemy_id).is_empty():
+		var fallback_id: String = "swarmer" if not DataManager.get_enemy("swarmer").is_empty() else ""
+		push_error("[WaveManager] wave#" + str(_current_wave_index) + " invalid enemy_id='" + raw_enemy_id + "' -> fallback='" + fallback_id + "'")
+		enemy_id = fallback_id
 	var base_interval: float = maxf(0.05, float(wave.get("interval", _resolve_default_enemy_interval())))
 	var count: int = _resolve_enemy_spawn_count(base_interval)
 	var interval: float = _resolve_enemy_spawn_interval(base_interval)
@@ -236,6 +654,9 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 	
 	# Ajouter les spawns prévus avec leur délai
 	for i in range(count):
+		var spawn_delay: float = i * interval
+		if not _is_spawn_delay_allowed(spawn_delay):
+			break
 		var spawn_enemy_id: String = enemy_id
 		if enemy_id != "elite" and _override_elite_replacement_chance > 0.0:
 			if randf() <= _override_elite_replacement_chance and not DataManager.get_enemy("elite").is_empty():
@@ -243,7 +664,6 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 		var spawn_skin: String = enemy_skin
 		if spawn_enemy_id != enemy_id:
 			spawn_skin = _resolve_enemy_skin_for_id(spawn_enemy_id)
-		var spawn_delay: float = i * interval
 		_pending_spawns.append({
 			"delay": spawn_delay,
 			"enemy_id": spawn_enemy_id,
@@ -252,17 +672,239 @@ func _start_enemy_wave(wave: Dictionary) -> void:
 			"enemy_skin": spawn_skin
 		})
 
+func _start_swarm_wave(wave: Dictionary) -> void:
+	var swarm_cfg: Dictionary = _resolve_swarm_config()
+	var raw_enemy_id: String = str(wave.get("enemy_id", ""))
+	var enemy_id: String = raw_enemy_id
+	if enemy_id == "" or DataManager.get_enemy(enemy_id).is_empty():
+		var fallback_id: String = "swarmer" if not DataManager.get_enemy("swarmer").is_empty() else ""
+		push_error("[WaveManager] swarm wave#" + str(_current_wave_index) + " invalid enemy_id='" + raw_enemy_id + "' -> fallback='" + fallback_id + "'")
+		enemy_id = fallback_id
+
+	var count: int = maxi(1, int(wave.get("count", swarm_cfg.get("default_count", 35))))
+	var interval: float = maxf(0.01, float(wave.get("spawn_interval_sec", swarm_cfg.get("spawn_interval_sec", 0.15))))
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var zone_top_ratio: float = clampf(float(wave.get("zone_top_ratio", swarm_cfg.get("zone_top_ratio", 0.12))), 0.0, 0.95)
+	var zone_height_ratio: float = clampf(float(wave.get("zone_height_ratio", swarm_cfg.get("zone_height_ratio", 0.25))), 0.01, 1.0 - zone_top_ratio)
+	var zone_rect := Rect2(
+		0.0,
+		viewport_size.y * zone_top_ratio,
+		viewport_size.x,
+		viewport_size.y * zone_height_ratio
+	)
+	var entry_speed: float = maxf(1.0, float(wave.get("entry_speed_px_sec", swarm_cfg.get("entry_speed_px_sec", 900.0))))
+	var drift_speed_min: float = maxf(0.0, float(wave.get("drift_speed_min", swarm_cfg.get("drift_speed_min", 18.0))))
+	var drift_speed_max: float = maxf(drift_speed_min, float(wave.get("drift_speed_max", swarm_cfg.get("drift_speed_max", 42.0))))
+	var direction_change_min: float = maxf(0.05, float(wave.get("direction_change_interval_min", swarm_cfg.get("direction_change_interval_min", 0.8))))
+	var direction_change_max: float = maxf(direction_change_min, float(wave.get("direction_change_interval_max", swarm_cfg.get("direction_change_interval_max", 1.8))))
+
+	var enemy_skin: String = ""
+	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})
+	if enemy_overrides is Dictionary:
+		enemy_skin = str((enemy_overrides as Dictionary).get(enemy_id, ""))
+	if enemy_skin == "":
+		enemy_skin = str(wave.get("enemy_skin", ""))
+
+	var modifier_id: String = str(wave.get("enemy_modifier_id", ""))
+	print("[Wave] wave ", _current_wave_index + 1, " type=swarm enemy_id=", enemy_id, " count=", count, " interval=", interval)
+
+	for i in range(count):
+		var spawn_delay: float = float(i) * interval
+		if not _is_spawn_delay_allowed(spawn_delay):
+			break
+		var spawn_enemy_id: String = enemy_id
+		if enemy_id != "elite" and _override_elite_replacement_chance > 0.0:
+			if randf() <= _override_elite_replacement_chance and not DataManager.get_enemy("elite").is_empty():
+				spawn_enemy_id = "elite"
+		var spawn_skin: String = enemy_skin
+		if spawn_enemy_id != enemy_id:
+			spawn_skin = _resolve_enemy_skin_for_id(spawn_enemy_id)
+		var target_pos := Vector2(
+			randf_range(zone_rect.position.x, zone_rect.position.x + zone_rect.size.x),
+			randf_range(zone_rect.position.y, zone_rect.position.y + zone_rect.size.y)
+		)
+		var spawn_pos := Vector2(target_pos.x, -80.0)
+		_pending_spawns.append({
+			"delay": spawn_delay,
+			"enemy_id": spawn_enemy_id,
+			"pattern_id": "",
+			"modifier_id": modifier_id,
+			"enemy_skin": spawn_skin,
+			"spawn_pos": spawn_pos,
+			"movement_mode": "swarm",
+			"swarm_target_position": target_pos,
+			"swarm_zone_rect": zone_rect,
+			"swarm_entry_speed": entry_speed,
+			"swarm_drift_speed": randf_range(drift_speed_min, drift_speed_max),
+			"swarm_direction_change_interval_min": direction_change_min,
+			"swarm_direction_change_interval_max": direction_change_max
+		})
+
+func _start_tank_wave(wave: Dictionary) -> void:
+	var tank_cfg: Dictionary = _resolve_tank_wave_config()
+	var enemy_id: String = str(wave.get("enemy_id", "tank"))
+	if enemy_id == "" or DataManager.get_enemy(enemy_id).is_empty():
+		enemy_id = "tank"
+	if DataManager.get_enemy(enemy_id).is_empty():
+		push_error("[WaveManager] tank wave#" + str(_current_wave_index) + " could not resolve tank enemy.")
+		return
+
+	var interval: float = maxf(0.1, float(wave.get("interval", tank_cfg.get("default_interval_sec", 9.0))))
+	var count: int = maxi(1, int(wave.get("count", ceil(maxf(0.1, _resolve_spawn_cutoff_time()) / interval))))
+	var hp_multiplier: float = maxf(0.01, float(wave.get("hp_multiplier", tank_cfg.get("default_hp_multiplier", 1.35))))
+	var speed_px_sec: float = maxf(1.0, float(wave.get("speed_px_sec", tank_cfg.get("speed_px_sec", 150.0))))
+	var scale_multiplier: float = maxf(0.01, float(wave.get("scale_multiplier", tank_cfg.get("scale_multiplier", 2.0))))
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var center_ratio: float = clampf(float(wave.get("center_x_ratio", tank_cfg.get("center_x_ratio", 0.5))), 0.0, 1.0)
+	var jitter_ratio: float = clampf(float(wave.get("center_x_jitter_ratio", tank_cfg.get("center_x_jitter_ratio", 0.08))), 0.0, 0.45)
+	var spawn_y: float = float(wave.get("spawn_y", tank_cfg.get("spawn_y", -110.0)))
+	var base_x: float = viewport_size.x * center_ratio
+	var jitter_px: float = viewport_size.x * jitter_ratio
+
+	var enemy_skin: String = ""
+	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})
+	if enemy_overrides is Dictionary:
+		enemy_skin = str((enemy_overrides as Dictionary).get(enemy_id, ""))
+	if enemy_skin == "":
+		enemy_skin = str(wave.get("enemy_skin", ""))
+
+	var modifier_id: String = str(wave.get("enemy_modifier_id", ""))
+	print("[Wave] wave ", _current_wave_index + 1, " type=tank enemy_id=", enemy_id, " count=", count, " interval=", interval)
+
+	for i in range(count):
+		var spawn_delay: float = float(i) * interval
+		if not _is_spawn_delay_allowed(spawn_delay):
+			break
+		var spawn_x: float = clampf(base_x + randf_range(-jitter_px, jitter_px), 0.0, viewport_size.x)
+		_pending_spawns.append({
+			"delay": spawn_delay,
+			"enemy_id": enemy_id,
+			"pattern_id": "",
+			"modifier_id": modifier_id,
+			"enemy_skin": enemy_skin,
+			"spawn_pos": Vector2(spawn_x, spawn_y),
+			"movement_mode": "tank",
+			"tank_speed_px_sec": speed_px_sec,
+			"visual_scale_multiplier": scale_multiplier,
+			"hp_multiplier": hp_multiplier
+		})
+
+func _start_artillery_wave(wave: Dictionary) -> void:
+	var enemy_id: String = str(wave.get("enemy_id", "artillery"))
+	if enemy_id == "" or DataManager.get_enemy(enemy_id).is_empty():
+		enemy_id = "artillery"
+	if DataManager.get_enemy(enemy_id).is_empty():
+		push_error("[WaveManager] artillery wave#" + str(_current_wave_index) + " could not resolve artillery enemy.")
+		return
+
+	var rows: int = maxi(1, int(wave.get("rows", int(_world_wave_runtime_cfg.get("artillery_rows", ARTILLERY_WAVE_DEFAULT_ROWS)))))
+	var world_default_count: int = int(_world_wave_runtime_cfg.get("artillery_count", ARTILLERY_WAVE_DEFAULT_COUNT))
+	var requested_count: int = maxi(rows, int(wave.get("count", world_default_count)))
+	var count: int = int(ceil(float(requested_count) / float(rows))) * rows
+	var max_units: int = int(wave.get("max_units", int(_world_wave_runtime_cfg.get("artillery_max_units", 0))))
+	if max_units > 0:
+		var clamped_max_units: int = maxi(rows, int(floor(float(max_units) / float(rows))) * rows)
+		if clamped_max_units >= rows:
+			count = mini(count, clamped_max_units)
+	var spawn_interval: float = maxf(0.01, float(wave.get("spawn_interval_sec", _world_wave_runtime_cfg.get("artillery_spawn_interval_sec", ARTILLERY_WAVE_DEFAULT_SPAWN_INTERVAL_SEC))))
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var top_margin_ratio: float = clampf(float(wave.get("top_margin_ratio", 0.20)), 0.05, 0.8)
+	var horizontal_margin_ratio: float = clampf(float(wave.get("horizontal_margin_ratio", 0.12)), 0.0, 0.45)
+	var row_spacing_px: float = maxf(24.0, float(wave.get("row_spacing_px", 78.0)))
+	var entry_speed_px_sec: float = maxf(1.0, float(wave.get("entry_speed_px_sec", 1200.0)))
+	var spawn_y: float = float(wave.get("spawn_y", -140.0))
+	var recoil_distance_px: float = maxf(0.0, float(wave.get("recoil_distance_px", 16.0)))
+	var recoil_recover_speed_px_sec: float = maxf(1.0, float(wave.get("recoil_recover_speed_px_sec", 72.0)))
+	var fire_rate_sec: float = maxf(0.05, float(wave.get("fire_rate_sec", _world_wave_runtime_cfg.get("artillery_fire_rate_sec", ARTILLERY_WAVE_DEFAULT_FIRE_RATE_SEC))))
+
+	var enemy_skin: String = ""
+	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})
+	if enemy_overrides is Dictionary:
+		enemy_skin = str((enemy_overrides as Dictionary).get(enemy_id, ""))
+	if enemy_skin == "":
+		enemy_skin = str(wave.get("enemy_skin", ""))
+
+	var modifier_id: String = str(wave.get("enemy_modifier_id", ""))
+	print("[Wave] wave ", _current_wave_index + 1, " type=artillery enemy_id=", enemy_id, " count=", count, " rows=", rows)
+
+	var min_x: float = viewport_size.x * horizontal_margin_ratio
+	var max_x: float = viewport_size.x * (1.0 - horizontal_margin_ratio)
+	var row_count: int = int(count / rows)
+
+	var spawn_index: int = 0
+	for row_index in range(rows):
+		if row_count <= 0:
+			continue
+		var target_y: float = viewport_size.y * top_margin_ratio + float(row_index) * row_spacing_px
+		var step_x: float = 0.0 if row_count <= 1 else (max_x - min_x) / float(row_count - 1)
+		for column_index in range(row_count):
+			var target_x: float = viewport_size.x * 0.5 if row_count <= 1 else min_x + step_x * float(column_index)
+			var spawn_delay: float = float(spawn_index) * spawn_interval
+			if not _is_spawn_delay_allowed(spawn_delay):
+				break
+			_pending_spawns.append({
+				"delay": spawn_delay,
+				"enemy_id": enemy_id,
+				"pattern_id": "",
+				"modifier_id": modifier_id,
+				"enemy_skin": enemy_skin,
+				"spawn_pos": Vector2(target_x, spawn_y - float(row_index) * 26.0),
+				"movement_mode": "artillery",
+				"artillery_target_position": Vector2(target_x, target_y),
+				"artillery_entry_speed_px_sec": entry_speed_px_sec,
+				"artillery_recoil_distance_px": recoil_distance_px,
+				"artillery_recoil_recover_speed_px_sec": recoil_recover_speed_px_sec,
+				"fire_rate_override": fire_rate_sec
+			})
+			spawn_index += 1
+
 func _resolve_enemy_spawn_count(interval: float) -> int:
 	var safe_interval: float = maxf(0.05, interval)
-	var count: int = maxi(1, int(ceil(_current_wave_duration / safe_interval)))
+	var multiplier: float = _resolve_enemy_density_multiplier()
+	var spawn_window: float = maxf(0.1, _resolve_spawn_cutoff_time())
+	var base_count: int = maxi(1, int(ceil(spawn_window / safe_interval)))
+	var count: int = maxi(1, int(ceil(float(base_count) * multiplier)))
 	var max_count: int = maxi(1, int(_world_wave_runtime_cfg.get("enemy_max_spawns_per_wave", 160)))
+	var global_cap: int = _resolve_enemy_density_cap()
+	if global_cap > 0:
+		max_count = mini(max_count, global_cap)
 	return mini(count, max_count)
 
 func _resolve_enemy_spawn_interval(base_interval: float) -> float:
-	return clampf(maxf(0.05, base_interval), 0.05, _current_wave_duration)
+	var multiplier: float = _resolve_enemy_density_multiplier()
+	var scaled: float = maxf(0.05, base_interval) / maxf(0.01, multiplier)
+	return clampf(scaled, 0.05, _current_wave_duration)
+
+func _resolve_enemy_density_multiplier() -> float:
+	if DataManager == null:
+		return 1.0
+	var cfg: Dictionary = DataManager.get_game_config()
+	var gameplay_v: Variant = cfg.get("gameplay", {})
+	if not (gameplay_v is Dictionary):
+		return 1.0
+	return maxf(0.01, float((gameplay_v as Dictionary).get("enemy_density_multiplier", 1.0)))
+
+func _resolve_enemy_density_cap() -> int:
+	if DataManager == null:
+		return 0
+	var cfg: Dictionary = DataManager.get_game_config()
+	var gameplay_v: Variant = cfg.get("gameplay", {})
+	if not (gameplay_v is Dictionary):
+		return 0
+	return maxi(0, int((gameplay_v as Dictionary).get("enemy_density_max_per_wave", 0)))
 
 func _resolve_default_enemy_interval() -> float:
 	return maxf(0.05, float(_world_wave_runtime_cfg.get("enemy_target_interval_sec", 1.0)))
+
+func _resolve_swarm_config() -> Dictionary:
+	if DataManager == null:
+		return {}
+	return DataManager.get_wave_type_config("swarm")
+
+func _resolve_tank_wave_config() -> Dictionary:
+	if DataManager == null:
+		return {}
+	return DataManager.get_wave_type_config("tank")
 
 func _resolve_enemy_skin_for_id(enemy_id: String) -> String:
 	var enemy_overrides: Variant = _skin_overrides.get("enemies", {})
@@ -278,6 +920,7 @@ func _start_obstacle_wave(wave: Dictionary) -> void:
 	var payload: Dictionary = wave.duplicate(true)
 	if not payload.has("duration"):
 		payload["duration"] = _current_wave_duration
+	payload["spawn_cutoff_time"] = _resolve_spawn_cutoff_time()
 	spawner_node.setup(payload)
 	spawner_node.obstacle_spawn_request.connect(_on_obstacle_spawn_request)
 	spawner_node.finished.connect(_on_obstacle_spawner_finished.bind(spawner_node))
@@ -304,6 +947,158 @@ func _start_path_trial_wave(wave: Dictionary) -> void:
 			payload["pattern_data"] = pattern_data.duplicate(true)
 	payload["wave_index"] = _current_wave_index
 	spawn_path_trial.emit(payload)
+
+func _start_gate_runner_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = maxf(0.1, _resolve_gate_runner_default_duration(wave))
+	payload["wave_index"] = _current_wave_index
+	spawn_gate_runner.emit(payload)
+
+func _start_pong_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_pong_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_pong.emit(payload)
+
+func _resolve_pong_default_duration() -> float:
+	var pong_cfg: Dictionary = DataManager.get_pong_config() if DataManager else {}
+	return maxf(5.0, float(pong_cfg.get("duration_sec_default", 30.0)))
+
+func _start_breakout_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_breakout_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_breakout.emit(payload)
+
+func _resolve_breakout_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("breakout") if DataManager else {}
+	return maxf(5.0, float(cfg.get("duration_sec_default", 45.0)))
+
+func _start_ball_launcher_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_ball_launcher_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_ball_launcher.emit(payload)
+
+func _resolve_ball_launcher_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("ball_launcher") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 60.0)))
+
+func _start_vertical_climb_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_vertical_climb_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_vertical_climb.emit(payload)
+
+func _resolve_vertical_climb_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("vertical_climb") if DataManager else {}
+	return maxf(5.0, float(cfg.get("duration_sec_default", 40.0)))
+
+func _start_absorb_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_absorb_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_absorb.emit(payload)
+
+func _resolve_absorb_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("absorb") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 30.0)))
+
+func _start_lane_runner_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_lane_runner_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_lane_runner.emit(payload)
+
+func _resolve_lane_runner_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("lane_runner") if DataManager else {}
+	return maxf(8.0, float(cfg.get("duration_sec_default", 35.0)))
+
+func _start_slice_rush_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_slice_rush_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_slice_rush.emit(payload)
+
+func _resolve_slice_rush_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("slice_rush") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 30.0)))
+
+func _start_match3_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_match3_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_match3.emit(payload)
+
+func _resolve_match3_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("match3") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 45.0)))
+
+func _start_gravity_hole_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_gravity_hole_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_gravity_hole.emit(payload)
+
+func _resolve_gravity_hole_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("gravity_hole") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 40.0)))
+
+func _resolve_gravity_hole_transition_margin() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("gravity_hole") if DataManager else {}
+	return clampf(float(cfg.get("transition_margin_sec", 6.0)), 2.0, 20.0)
+
+func _start_star_drift_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_star_drift_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_star_drift.emit(payload)
+
+func _resolve_star_drift_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("star_drift") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 50.0)))
+
+func _start_asteroid_split_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_asteroid_split_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_asteroid_field.emit(payload)
+
+func _resolve_asteroid_split_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("asteroid_split") if DataManager else {}
+	return maxf(5.0, float(cfg.get("duration_sec_default", 35.0)))
+
+func _resolve_gate_runner_default_duration(wave: Dictionary) -> float:
+	# Default duration = last scheduled event time + buffer (if no explicit duration).
+	var forced_duration: float = float(_world_wave_runtime_cfg.get("force_duration_sec", -1.0))
+	if forced_duration > 0.0:
+		return forced_duration
+	var last_offset: float = 0.0
+	var gates_v: Variant = wave.get("gates", [])
+	if gates_v is Array:
+		for gate_variant in (gates_v as Array):
+			if gate_variant is Dictionary:
+				last_offset = maxf(last_offset, float((gate_variant as Dictionary).get("time_offset", 0.0)))
+	var swarm_v: Variant = wave.get("swarm", {})
+	if swarm_v is Dictionary:
+		last_offset = maxf(last_offset, float((swarm_v as Dictionary).get("time_offset", 0.0)))
+	elif swarm_v is Array:
+		for s_variant in (swarm_v as Array):
+			if s_variant is Dictionary:
+				last_offset = maxf(last_offset, float((s_variant as Dictionary).get("time_offset", 0.0)))
+	return last_offset + 10.0
 
 func _on_obstacle_spawn_request(obstacle_data: Dictionary, positions: Array, speed: float) -> void:
 	spawn_obstacle.emit(obstacle_data, positions, speed)
@@ -368,7 +1163,7 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 	var enemy_id: String = str(spawn_info.get("enemy_id", ""))
 	var enemy_data := DataManager.get_enemy(enemy_id).duplicate(false)
 	if enemy_data.is_empty():
-		push_warning("[WaveManager] Unknown enemy_id in wave: " + enemy_id)
+		push_error("[WaveManager] Unknown enemy_id at spawn time (wave#" + str(_current_wave_index) + "): '" + enemy_id + "' -> spawn skipped")
 		return
 		
 	# Override pattern si défini dans la vague
@@ -379,13 +1174,43 @@ func _trigger_spawn(spawn_info: Dictionary) -> void:
 	# Inject modifier if present
 	if spawn_info.get("modifier_id", "") != "":
 		enemy_data["modifier_id"] = spawn_info["modifier_id"]
+	if spawn_info.has("fire_rate_override"):
+		enemy_data["fire_rate"] = float(spawn_info.get("fire_rate_override", enemy_data.get("fire_rate", 2.0)))
+	if spawn_info.has("hp_multiplier"):
+		enemy_data["hp"] = int(round(float(enemy_data.get("hp", 50)) * maxf(0.01, float(spawn_info.get("hp_multiplier", 1.0)))))
+	if spawn_info.has("visual_scale_multiplier"):
+		var scale_multiplier: float = maxf(0.01, float(spawn_info.get("visual_scale_multiplier", 1.0)))
+		var size_v: Variant = enemy_data.get("size", {})
+		if size_v is Dictionary:
+			var size_dict: Dictionary = (size_v as Dictionary).duplicate(true)
+			size_dict["width"] = float(size_dict.get("width", 30.0)) * scale_multiplier
+			size_dict["height"] = float(size_dict.get("height", 30.0)) * scale_multiplier
+			enemy_data["size"] = size_dict
 
 	# Optional visual override per wave.
 	var enemy_skin: String = str(spawn_info.get("enemy_skin", ""))
 	_apply_enemy_skin_override(enemy_data, enemy_skin)
 
-	# Spawn position is now randomized per enemy spawn.
-	var spawn_pos: Vector2 = _get_random_spawn_position()
+	if str(spawn_info.get("movement_mode", "")) == "swarm":
+		enemy_data["_movement_mode"] = "swarm"
+		enemy_data["_swarm_target_position"] = spawn_info.get("swarm_target_position", Vector2.ZERO)
+		enemy_data["_swarm_zone_rect"] = spawn_info.get("swarm_zone_rect", Rect2())
+		enemy_data["_swarm_entry_speed"] = float(spawn_info.get("swarm_entry_speed", 900.0))
+		enemy_data["_swarm_drift_speed"] = float(spawn_info.get("swarm_drift_speed", 30.0))
+		enemy_data["_swarm_direction_change_interval_min"] = float(spawn_info.get("swarm_direction_change_interval_min", 0.8))
+		enemy_data["_swarm_direction_change_interval_max"] = float(spawn_info.get("swarm_direction_change_interval_max", 1.8))
+	elif str(spawn_info.get("movement_mode", "")) == "tank":
+		enemy_data["_movement_mode"] = "tank"
+		enemy_data["_tank_speed_px_sec"] = float(spawn_info.get("tank_speed_px_sec", 150.0))
+	elif str(spawn_info.get("movement_mode", "")) == "artillery":
+		enemy_data["_movement_mode"] = "artillery"
+		enemy_data["_artillery_target_position"] = spawn_info.get("artillery_target_position", Vector2.ZERO)
+		enemy_data["_artillery_entry_speed_px_sec"] = float(spawn_info.get("artillery_entry_speed_px_sec", 1200.0))
+		enemy_data["_artillery_recoil_distance_px"] = float(spawn_info.get("artillery_recoil_distance_px", 16.0))
+		enemy_data["_artillery_recoil_recover_speed_px_sec"] = float(spawn_info.get("artillery_recoil_recover_speed_px_sec", 72.0))
+
+	# Spawn position is randomized per enemy spawn unless a wave mode provides one.
+	var spawn_pos: Vector2 = spawn_info.get("spawn_pos", _get_random_spawn_position())
 
 	spawn_enemy.emit(enemy_data, spawn_pos)
 
@@ -467,7 +1292,7 @@ func _prewarm_wave_resources() -> void:
 			continue
 		var was_cached: bool = ResourceLoader.has_cached(path)
 		ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
-		if DEBUG_RESOURCE_WARMUP_LOG:
+		if DEBUG_RESOURCE_WARMUP_LOG and _log_resource_warmup_enabled:
 			print("[WaveManager] Warmup ", ("reused " if was_cached else "loaded "), path)
 
 func _collect_wave_visual_resources(target: Dictionary) -> void:
@@ -494,6 +1319,211 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			_add_warmup_path(target, str(defaults.get("default_hazard_asset", "")))
 			_add_warmup_path(target, str(defaults.get("default_hazard_start_asset", "")))
 			_add_warmup_path(target, str(defaults.get("default_path_asset", "")))
+			continue
+		if wave_type == "gate_runner":
+			var gr_cfg: Dictionary = DataManager.get_gate_runner_config() if DataManager else {}
+			_add_warmup_path(target, str(gr_cfg.get("splash_asset_path", "")))
+			var swarm_enemy_id: String = str(gr_cfg.get("swarm_enemy_id_default", "swarmer"))
+			var swarm_v: Variant = wave.get("swarm", {})
+			if swarm_v is Dictionary:
+				swarm_enemy_id = str((swarm_v as Dictionary).get("enemy_id", swarm_enemy_id))
+			var gr_enemy_data: Dictionary = DataManager.get_enemy(swarm_enemy_id)
+			if not gr_enemy_data.is_empty():
+				var gr_visual_v: Variant = gr_enemy_data.get("visual", {})
+				if gr_visual_v is Dictionary:
+					var gr_visual: Dictionary = gr_visual_v as Dictionary
+					_add_warmup_path(target, str(gr_visual.get("asset", "")))
+					_add_warmup_path(target, str(gr_visual.get("asset_anim", "")))
+			var gr_skin: String = str(enemy_overrides.get(swarm_enemy_id, ""))
+			if gr_skin != "":
+				_add_warmup_path(target, gr_skin)
+			continue
+		if wave_type == "pong":
+			var pong_cfg: Dictionary = DataManager.get_pong_config() if DataManager else {}
+			_add_warmup_path(target, str(wave.get("ball_asset", pong_cfg.get("ball_asset", ""))))
+			_add_warmup_path(target, str(wave.get("enemy_paddle_asset", pong_cfg.get("enemy_paddle_asset", ""))))
+			var paddle_enemy_id: String = str(pong_cfg.get("enemy_visual_enemy_id", "fighter"))
+			var paddle_enemy: Dictionary = DataManager.get_enemy(paddle_enemy_id)
+			if not paddle_enemy.is_empty():
+				var paddle_visual_v: Variant = paddle_enemy.get("visual", {})
+				if paddle_visual_v is Dictionary:
+					_add_warmup_path(target, str((paddle_visual_v as Dictionary).get("asset", "")))
+					_add_warmup_path(target, str((paddle_visual_v as Dictionary).get("asset_anim", "")))
+			var paddle_skin: String = str(enemy_overrides.get(paddle_enemy_id, ""))
+			if paddle_skin != "":
+				_add_warmup_path(target, paddle_skin)
+			continue
+		if wave_type == "asteroid_split":
+			var ast_cfg: Dictionary = DataManager.get_wave_type_config("asteroid_split") if DataManager else {}
+			var ast_assets_v: Variant = wave.get("assets", ast_cfg.get("assets", []))
+			if ast_assets_v is Array:
+				for asset_v in (ast_assets_v as Array):
+					_add_warmup_path(target, str(asset_v))
+			continue
+		if wave_type == "breakout":
+			var bk_cfg: Dictionary = DataManager.get_wave_type_config("breakout") if DataManager else {}
+			_add_warmup_path(target, str(wave.get("ball_asset", bk_cfg.get("ball_asset", ""))))
+			var bk_assets_v: Variant = wave.get("brick_assets", bk_cfg.get("brick_assets", []))
+			if bk_assets_v is Array:
+				for bk_asset_v in (bk_assets_v as Array):
+					_add_warmup_path(target, str(bk_asset_v))
+			continue
+		if wave_type == "ball_launcher":
+			var bl_cfg: Dictionary = DataManager.get_wave_type_config("ball_launcher") if DataManager else {}
+			_add_warmup_path(target, str(wave.get("ball_asset", bl_cfg.get("ball_asset", ""))))
+			var bl_blocks_v: Variant = wave.get("block_assets", bl_cfg.get("block_assets", []))
+			if bl_blocks_v is Array:
+				for bl_asset_v in (bl_blocks_v as Array):
+					_add_warmup_path(target, str(bl_asset_v))
+			var bl_tokens_v: Variant = wave.get("token_assets", bl_cfg.get("token_assets", []))
+			if bl_tokens_v is Array:
+				for bl_token_v in (bl_tokens_v as Array):
+					_add_warmup_path(target, str(bl_token_v))
+			continue
+		if wave_type == "vertical_climb":
+			var vc_cfg: Dictionary = DataManager.get_wave_type_config("vertical_climb") if DataManager else {}
+			_add_warmup_path(target, str(vc_cfg.get("lava_asset", "")))
+			_add_warmup_path(target, str(vc_cfg.get("crystal_asset", "")))
+			var vc_assets_v: Variant = wave.get("platform_assets", vc_cfg.get("platform_assets", []))
+			if vc_assets_v is Array:
+				for vc_asset_v in (vc_assets_v as Array):
+					_add_warmup_path(target, str(vc_asset_v))
+			continue
+		if wave_type == "lane_runner":
+			var lr_cfg: Dictionary = DataManager.get_wave_type_config("lane_runner") if DataManager else {}
+			var lr_wall_assets_v: Variant = wave.get("wall_assets", lr_cfg.get("wall_assets", []))
+			if lr_wall_assets_v is Array:
+				for lr_asset_v in (lr_wall_assets_v as Array):
+					_add_warmup_path(target, str(lr_asset_v))
+			var lr_col_assets_v: Variant = wave.get("collectible_assets", lr_cfg.get("collectible_assets", []))
+			if lr_col_assets_v is Array:
+				for lr_col_v in (lr_col_assets_v as Array):
+					_add_warmup_path(target, str(lr_col_v))
+			# World obstacle skins can replace the wall assets at runtime.
+			var lr_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
+			if lr_obs_overrides_v is Dictionary:
+				var lr_explosives_v: Variant = (lr_obs_overrides_v as Dictionary).get("explosives", [])
+				if lr_explosives_v is Array:
+					for lr_skin_v in (lr_explosives_v as Array):
+						_add_warmup_path(target, str(lr_skin_v))
+			continue
+		if wave_type == "slice_rush":
+			var sr_cfg: Dictionary = DataManager.get_wave_type_config("slice_rush") if DataManager else {}
+			var sr_types_v: Variant = wave.get("object_types", sr_cfg.get("object_types", []))
+			if sr_types_v is Array:
+				for sr_type_v in (sr_types_v as Array):
+					if not (sr_type_v is Dictionary):
+						continue
+					var sr_assets_v: Variant = (sr_type_v as Dictionary).get("assets", [])
+					if sr_assets_v is Array:
+						for sr_asset_v in (sr_assets_v as Array):
+							_add_warmup_path(target, str(sr_asset_v))
+			var sr_bomb_assets_v: Variant = wave.get("bomb_assets", sr_cfg.get("bomb_assets", []))
+			if sr_bomb_assets_v is Array:
+				for sr_bomb_v in (sr_bomb_assets_v as Array):
+					_add_warmup_path(target, str(sr_bomb_v))
+			_add_warmup_path(target, str(wave.get("bomb_aura_asset", sr_cfg.get("bomb_aura_asset", ""))))
+			_add_warmup_path(target, str(wave.get("slice_effect_anim", sr_cfg.get("slice_effect_anim", ""))))
+			_add_warmup_path(target, str(wave.get("explosion_anim", sr_cfg.get("explosion_anim", ""))))
+			# World obstacle skins can replace object textures at runtime.
+			var sr_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
+			if sr_obs_overrides_v is Dictionary:
+				var sr_explosives_v: Variant = (sr_obs_overrides_v as Dictionary).get("explosives", [])
+				if sr_explosives_v is Array:
+					for sr_skin_v in (sr_explosives_v as Array):
+						_add_warmup_path(target, str(sr_skin_v))
+			continue
+		if wave_type == "match3":
+			var m3_cfg: Dictionary = DataManager.get_wave_type_config("match3") if DataManager else {}
+			var m3_sets_v: Variant = wave.get("tile_sets", m3_cfg.get("tile_sets", []))
+			if m3_sets_v is Array:
+				for m3_set_v in (m3_sets_v as Array):
+					if not (m3_set_v is Dictionary):
+						continue
+					_add_warmup_path(target, str((m3_set_v as Dictionary).get("normal", "")))
+					_add_warmup_path(target, str((m3_set_v as Dictionary).get("special", "")))
+			_add_warmup_path(target, str(wave.get("explosion_anim", m3_cfg.get("explosion_anim", ""))))
+			_add_warmup_path(target, str(wave.get("glow_asset", m3_cfg.get("glow_asset", ""))))
+			_add_warmup_path(target, str(wave.get("special_aura_asset", m3_cfg.get("special_aura_asset", ""))))
+			continue
+		if wave_type == "gravity_hole":
+			var gh_cfg: Dictionary = DataManager.get_wave_type_config("gravity_hole") if DataManager else {}
+			_add_warmup_path(target, str(wave.get("transition_asset", gh_cfg.get("transition_asset", ""))))
+			_add_warmup_path(target, str(wave.get("aura_asset", gh_cfg.get("aura_asset", ""))))
+			# All candidate dimension backgrounds: loading a full-screen JPG at
+			# the cover frame would hitch, so warm every possible pick.
+			var gh_bgs_v: Variant = wave.get("bg_assets", gh_cfg.get("bg_assets", []))
+			if gh_bgs_v is Array:
+				for gh_bg_v in (gh_bgs_v as Array):
+					_add_warmup_path(target, str(gh_bg_v))
+			var gh_props_v: Variant = wave.get("props", gh_cfg.get("props", []))
+			if gh_props_v is Array:
+				for gh_prop_v in (gh_props_v as Array):
+					if gh_prop_v is Dictionary:
+						var gh_prop_assets_v: Variant = (gh_prop_v as Dictionary).get("assets", [])
+						if gh_prop_assets_v is Array:
+							for gh_asset_v in (gh_prop_assets_v as Array):
+								_add_warmup_path(target, str(gh_asset_v))
+			var gh_wave_assets_v: Variant = wave.get("prop_assets", [])
+			if gh_wave_assets_v is Array:
+				for gh_wa_v in (gh_wave_assets_v as Array):
+					_add_warmup_path(target, str(gh_wa_v))
+			var gh_core_assets_v: Variant = wave.get("final_core_assets", gh_cfg.get("final_core_assets", []))
+			if gh_core_assets_v is Array:
+				for gh_core_v in (gh_core_assets_v as Array):
+					_add_warmup_path(target, str(gh_core_v))
+			# World obstacle skins can replace prop textures at runtime.
+			var gh_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
+			if gh_obs_overrides_v is Dictionary:
+				var gh_explosives_v: Variant = (gh_obs_overrides_v as Dictionary).get("explosives", [])
+				if gh_explosives_v is Array:
+					for gh_skin_v in (gh_explosives_v as Array):
+						_add_warmup_path(target, str(gh_skin_v))
+			continue
+		if wave_type == "star_drift":
+			var sd_cfg: Dictionary = DataManager.get_wave_type_config("star_drift") if DataManager else {}
+			var sd_hazards_v: Variant = wave.get("hazard_types", sd_cfg.get("hazard_types", []))
+			if sd_hazards_v is Array:
+				for sd_hazard_v in (sd_hazards_v as Array):
+					if not (sd_hazard_v is Dictionary):
+						continue
+					var sd_hz_assets_v: Variant = (sd_hazard_v as Dictionary).get("assets", [])
+					if sd_hz_assets_v is Array:
+						for sd_hz_asset_v in (sd_hz_assets_v as Array):
+							_add_warmup_path(target, str(sd_hz_asset_v))
+			var sd_tiers_v: Variant = wave.get("pickup_tiers", sd_cfg.get("pickup_tiers", []))
+			if sd_tiers_v is Array:
+				for sd_tier_v in (sd_tiers_v as Array):
+					if not (sd_tier_v is Dictionary):
+						continue
+					var sd_tier_assets_v: Variant = (sd_tier_v as Dictionary).get("assets", [])
+					if sd_tier_assets_v is Array:
+						for sd_tier_asset_v in (sd_tier_assets_v as Array):
+							_add_warmup_path(target, str(sd_tier_asset_v))
+			# World obstacle skins feed the meteors (use_world_obstacles).
+			var sd_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
+			if sd_obs_overrides_v is Dictionary:
+				var sd_explosives_v: Variant = (sd_obs_overrides_v as Dictionary).get("explosives", [])
+				if sd_explosives_v is Array:
+					for sd_skin_v in (sd_explosives_v as Array):
+						_add_warmup_path(target, str(sd_skin_v))
+			continue
+		if wave_type == "absorb":
+			var ab_cfg: Dictionary = DataManager.get_wave_type_config("absorb") if DataManager else {}
+			var ab_assets_v: Variant = wave.get("prey_assets", ab_cfg.get("prey_assets", []))
+			if ab_assets_v is Array:
+				for ab_asset_v in (ab_assets_v as Array):
+					_add_warmup_path(target, str(ab_asset_v))
+			var ab_enemy_id: String = str(ab_cfg.get("enemy_visual_enemy_id", "fighter"))
+			var ab_enemy: Dictionary = DataManager.get_enemy(ab_enemy_id)
+			if not ab_enemy.is_empty():
+				var ab_visual_v: Variant = ab_enemy.get("visual", {})
+				if ab_visual_v is Dictionary:
+					_add_warmup_path(target, str((ab_visual_v as Dictionary).get("asset", "")))
+					_add_warmup_path(target, str((ab_visual_v as Dictionary).get("asset_anim", "")))
+			var ab_skin: String = str(enemy_overrides.get(ab_enemy_id, ""))
+			if ab_skin != "":
+				_add_warmup_path(target, ab_skin)
 			continue
 
 		var enemy_id: String = str(wave.get("enemy_id", ""))

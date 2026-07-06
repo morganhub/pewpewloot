@@ -13,10 +13,21 @@ var _tiles: Array[Node2D] = []
 var _viewport_size: Vector2 = Vector2.ZERO
 var _region_sprite: Sprite2D = null
 var _use_region_scroll: bool = false
+var _tile_height_viewport_multiplier: float = 1.0
+var _visual_scale: float = 1.0
+var _source_tile_height: float = 0.0
+var _source_tile_width: float = 0.0
+var _tile_x_offset: float = 0.0
 
 const REGION_SCROLL_EXTRA_HEIGHT_PX: float = 2.0
 
-func setup(resource: Resource, scroll_speed: float, viewport_size: Vector2, use_add_blend: bool = false) -> void:
+func setup(
+	resource: Resource,
+	scroll_speed: float,
+	viewport_size: Vector2,
+	use_add_blend: bool = false,
+	tile_height_viewport_multiplier: float = 1.0
+) -> void:
 	_speed = scroll_speed
 	_tile_height = 0.0
 	_tile_step = 0.0
@@ -24,6 +35,11 @@ func setup(resource: Resource, scroll_speed: float, viewport_size: Vector2, use_
 	_viewport_size = viewport_size
 	_region_sprite = null
 	_use_region_scroll = false
+	_tile_height_viewport_multiplier = maxf(0.01, tile_height_viewport_multiplier)
+	_visual_scale = 1.0
+	_source_tile_height = 0.0
+	_source_tile_width = 0.0
+	_tile_x_offset = 0.0
 	_clear_children()
 	_tiles.clear()
 
@@ -51,18 +67,19 @@ func _setup_texture_layer(texture: Texture2D, _viewport_size_arg: Vector2) -> vo
 		return
 
 	var texture_size: Vector2 = texture.get_size()
-	_tile_height = texture_size.y
-	if _tile_height <= 0.0:
+	if texture_size.y <= 0.0:
 		push_warning("[ScrollingLayer] Texture height is invalid.")
 		return
 
+	_configure_visual_tile_metrics(texture_size)
 	# Texture2D backgrounds use a single repeated region sprite.
-	# This removes tile joins (seams/overlaps) entirely.
+	# This removes tile joins (seams/overlaps) entirely while preserving a single scaled tile height.
 	_tile_step = maxf(1.0, _tile_height)
 	var s := Sprite2D.new()
 	s.texture = texture
 	s.centered = false
 	s.position = Vector2.ZERO
+	s.scale = Vector2(_visual_scale, _visual_scale)
 	s.region_enabled = true
 	s.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	if _add_material != null:
@@ -94,11 +111,12 @@ func _setup_sprite_frames_layer(frames: SpriteFrames, viewport_size: Vector2) ->
 		push_warning("[ScrollingLayer] SpriteFrames first frame is invalid.")
 		return
 
-	_tile_height = first_frame.get_size().y
-	if _tile_height <= 0.0:
+	var first_frame_size: Vector2 = first_frame.get_size()
+	if first_frame_size.y <= 0.0:
 		push_warning("[ScrollingLayer] SpriteFrames frame height is invalid.")
 		return
 
+	_configure_visual_tile_metrics(first_frame_size)
 	_tile_step = maxf(1.0, _tile_height)
 	var tile_count: int = maxi(3, int(ceil((viewport_size.y + _tile_height * 2.0) / _tile_step)))
 	for i in range(tile_count):
@@ -106,6 +124,7 @@ func _setup_sprite_frames_layer(frames: SpriteFrames, viewport_size: Vector2) ->
 		s.sprite_frames = frames
 		s.animation = anim
 		s.centered = false
+		s.scale = Vector2(_visual_scale, _visual_scale)
 		if _add_material != null:
 			s.material = _add_material
 		add_child(s)
@@ -119,12 +138,31 @@ func _clear_children() -> void:
 	for child in get_children():
 		child.queue_free()
 
+func _configure_visual_tile_metrics(source_size: Vector2) -> void:
+	_source_tile_width = maxf(1.0, source_size.x)
+	_source_tile_height = maxf(1.0, source_size.y)
+	var target_tile_height: float = _source_tile_height
+	if _viewport_size.y > 0.0:
+		target_tile_height = _viewport_size.y * _tile_height_viewport_multiplier
+	_visual_scale = maxf(0.01, target_tile_height / _source_tile_height)
+	_tile_height = _source_tile_height * _visual_scale
+	var visual_width: float = _source_tile_width * _visual_scale
+	_tile_x_offset = minf(0.0, (_viewport_size.x - visual_width) * 0.5)
+
 func _process(delta: float) -> void:
 	if _tile_height <= 0.0 or _tile_step <= 0.0:
 		return
 	var current_viewport_size: Vector2 = get_viewport_rect().size
 	if current_viewport_size != _viewport_size:
 		_viewport_size = current_viewport_size
+		if _source_tile_height > 0.0:
+			_configure_visual_tile_metrics(Vector2(_source_tile_width, _source_tile_height))
+			_tile_step = maxf(1.0, _tile_height)
+			if _region_sprite != null and is_instance_valid(_region_sprite):
+				_region_sprite.scale = Vector2(_visual_scale, _visual_scale)
+			for tile in _tiles:
+				if tile != null and is_instance_valid(tile):
+					tile.scale = Vector2(_visual_scale, _visual_scale)
 	if not is_zero_approx(_speed):
 		_scroll_offset = fposmod(_scroll_offset + (_speed * delta), _tile_step)
 
@@ -136,12 +174,13 @@ func _process(delta: float) -> void:
 func _apply_region_scroll() -> void:
 	if _region_sprite == null or not is_instance_valid(_region_sprite):
 		return
-	var width: float = maxf(1.0, _viewport_size.x)
-	var height: float = maxf(1.0, _viewport_size.y + REGION_SCROLL_EXTRA_HEIGHT_PX)
+	var width: float = maxf(1.0, _viewport_size.x / _visual_scale)
+	var height: float = maxf(1.0, (_viewport_size.y + REGION_SCROLL_EXTRA_HEIGHT_PX) / _visual_scale)
+	var source_x: float = maxf(0.0, (_source_tile_width - width) * 0.5)
 	# In region-scroll mode, sampling source Y has inverted visual direction.
 	# Keep positive speed = downward visual movement to match tiled layers.
-	var sample_y: float = fposmod(-_scroll_offset, _tile_step)
-	_region_sprite.region_rect = Rect2(0.0, sample_y, width, height)
+	var sample_y: float = fposmod(-_scroll_offset / _visual_scale, _source_tile_height)
+	_region_sprite.region_rect = Rect2(source_x, sample_y, width, height)
 
 func _apply_tiled_scroll_positions() -> void:
 	if _tiles.is_empty():
@@ -151,4 +190,4 @@ func _apply_tiled_scroll_positions() -> void:
 		var tile := _tiles[i]
 		if tile == null or not is_instance_valid(tile):
 			continue
-		tile.position = Vector2(0.0, -_tile_height + float(i) * _tile_step + _scroll_offset)
+		tile.position = Vector2(_tile_x_offset, -_tile_height + float(i) * _tile_step + _scroll_offset)

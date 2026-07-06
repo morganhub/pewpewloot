@@ -12,7 +12,7 @@
 				"color": "#FF4444",
 				"shape": "circle",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/forest/forest_swarmer.tres",
+				"asset_anim": "res://assets/enemies/forest/swarmer.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -36,7 +36,7 @@
 				"color": "#FF8844",
 				"shape": "triangle",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/forest/forest_fighter.tres",
+				"asset_anim": "res://assets/enemies/forest/fighter.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -60,7 +60,7 @@
 				"color": "#CC2222",
 				"shape": "square",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/forest/forest_tank.tres",
+				"asset_anim": "res://assets/enemies/forest/tank.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
@@ -84,15 +84,15 @@
 				"color": "#AA2222",
 				"shape": "hexagon",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/forest/forest_artillery.tres",
+				"asset_anim": "res://assets/enemies/forest/artillery.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},
 			"move_pattern_id": "stationary",
 			"base_speed": 0.0,
-			"missile_pattern_id": "spiral_continuous",
-			"missile_id": "missile_default",
-			"fire_rate": 10,
+			"missile_pattern_id": "artillery_barrage",
+			"missile_id": "missile_artillery_shell",
+			"fire_rate": 3.0,
 			"score": 40,
 			"loot_chance": 0.2
 		},
@@ -108,7 +108,7 @@
 				"color": "#880000",
 				"shape": "diamond",
 				"asset": "",
-				"asset_anim": "res://assets/enemies/forest/forest_elite.tres",
+				"asset_anim": "res://assets/enemies/forest/elite.tres",
 				"asset_anim_duration": 2.0,
 				"asset_anim_loop": true
 			},

@@ -43,6 +43,8 @@ const OFFSCREEN_MARGIN_BOTTOM: float = 500.0  # Trajectoire finit bien sous l'é
 const LIFETIME_TIMEOUT: float = 30.0  # Despawn de sécurité après 30 s
 const STRONG_RESOURCE_CACHE_MAX: int = 256
 const OBSTACLE_BLEND_MODE := CanvasItemMaterial.BLEND_MODE_MIX
+# Shared across all instances: identical per-node materials break 2D batching.
+static var _shared_blend_material: CanvasItemMaterial = null
 static var _strong_resource_cache: Dictionary = {}  # path -> Resource
 static var _first_frame_texture_cache: Dictionary = {}  # frame_key -> Texture2D
 
@@ -245,15 +247,28 @@ func _ensure_obstacle_blend_mode(node: CanvasItem) -> void:
 	if node.material != null and not (node.material is CanvasItemMaterial):
 		return
 
-	var mat: CanvasItemMaterial = null
-	if node.material is CanvasItemMaterial:
-		mat = node.material as CanvasItemMaterial
-	else:
-		mat = CanvasItemMaterial.new()
-		node.material = mat
-	mat.blend_mode = OBSTACLE_BLEND_MODE
+	# BLEND_MODE_MIX is the engine default: a null material is equivalent AND
+	# lets the sprite batch with the rest of the 2D scene (per-node
+	# CanvasItemMaterial instances break batching and allocate on spawn).
+	if OBSTACLE_BLEND_MODE == CanvasItemMaterial.BLEND_MODE_MIX:
+		if node.material is CanvasItemMaterial:
+			node.material = null
+		return
+	# Non-default blend: share ONE material instance across all obstacles.
+	if _shared_blend_material == null or _shared_blend_material.blend_mode != OBSTACLE_BLEND_MODE:
+		_shared_blend_material = CanvasItemMaterial.new()
+		_shared_blend_material.blend_mode = OBSTACLE_BLEND_MODE
+	if node.material != _shared_blend_material:
+		node.material = _shared_blend_material
 
 func _setup_drift(data: Dictionary) -> void:
+	# Free-form drift vector (px/s), used by asteroid_split children for their
+	# divergent cone trajectories (the 8 cardinal directions are too coarse).
+	var drift_vec_v: Variant = data.get("_drift_vector", null)
+	if drift_vec_v is Array and (drift_vec_v as Array).size() >= 2:
+		var vec: Array = drift_vec_v as Array
+		_drift_velocity = Vector2(float(vec[0]), float(vec[1]))
+		return
 	var drift_spd: float = float(data.get("_drift_speed", data.get("drift_speed", 0.0)))
 	var drift_dir_name: String = str(data.get("_drift_direction", ""))
 	if drift_spd > 0.0 and drift_dir_name != "" and DRIFT_DIR_VECTORS.has(drift_dir_name):

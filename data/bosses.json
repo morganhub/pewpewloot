@@ -7,7 +7,7 @@
 				"unique_root_amulet",
 				"unique_bark_shield"
 			],
-			"hp": 145000,
+			"hp": 45000,
 			"score": 3000,
 			"size": {
 				"width": 380,
@@ -72,7 +72,7 @@
 				"unique_thorn_blade",
 				"unique_vine_whip"
 			],
-			"hp": 160000,
+			"hp": 60000,
 			"score": 8000,
 			"size": {
 				"width": 300,
@@ -137,7 +137,7 @@
 				"unique_spore_ring",
 				"unique_mycelium_core"
 			],
-			"hp": 176500,
+			"hp": 76500,
 			"score": 5000,
 			"size": {
 				"width": 320,
@@ -202,7 +202,7 @@
 				"unique_heartwood_plate",
 				"unique_ancient_sap"
 			],
-			"hp": 194650,
+			"hp": 94650,
 			"score": 6500,
 			"size": {
 				"width": 350,
@@ -449,7 +449,7 @@
 				"unique_tidal_compass",
 				"unique_salt_ward"
 			],
-			"hp": 236576,
+			"hp": 276576,
 			"score": 7000,
 			"size": {
 				"width": 360,
@@ -513,7 +513,7 @@
 				"unique_abyssal_glyph",
 				"unique_echo_shell"
 			],
-			"hp": 259076,
+			"hp": 299076,
 			"score": 8200,
 			"size": {
 				"width": 340,
@@ -578,7 +578,7 @@
 				"unique_reef_tablet",
 				"unique_sunken_relic"
 			],
-			"hp": 283826,
+			"hp": 333826,
 			"score": 9000,
 			"size": {
 				"width": 350,
@@ -643,7 +643,7 @@
 				"unique_pressure_core",
 				"unique_abyss_anchor"
 			],
-			"hp": 311052,
+			"hp": 391052,
 			"score": 9800,
 			"size": {
 				"width": 370,
@@ -725,7 +725,7 @@
 				"unique_coral_spine",
 				"unique_foam_engine"
 			],
-			"hp": 340999,
+			"hp": 440999,
 			"score": 10800,
 			"size": {
 				"width": 380,
@@ -808,7 +808,7 @@
 				"unique_abyssal_crown",
 				"unique_maelstrom_core"
 			],
-			"hp": 373941,
+			"hp": 473941,
 			"score": 14500,
 			"size": {
 				"width": 420,

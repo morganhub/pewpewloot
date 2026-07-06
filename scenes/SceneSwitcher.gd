@@ -1,14 +1,17 @@
 extends Control
 
 ## SceneSwitcher — Point d'entrée et gestionnaire de transitions entre écrans.
-## Charge le dernier profil utilisé ou redirige vers ProfileSelect.
+## Charge le dernier profil utilisé, ProfileSelect si profils sans actif, sinon HomeScreen avec modal création si aucun profil.
 
 const MENU_PREWARM_SCENE_PATHS: PackedStringArray = [
 	"res://scenes/WorldSelect.tscn",
 	"res://scenes/ShipMenu.tscn",
+	"res://scenes/EquipmentMenu.tscn",
 	"res://scenes/SkillsMenu.tscn",
 	"res://scenes/OptionsMenu.tscn",
-	"res://scenes/LevelSelect.tscn"
+	"res://scenes/LevelSelect.tscn",
+	"res://scenes/GameModeSelect.tscn",
+	"res://scenes/FreeModeSelect.tscn"
 ]
 const MENU_PREWARM_YIELD_EVERY := 6
 
@@ -69,8 +72,8 @@ func _get_start_screen() -> String:
 	if ProfileManager.has_any_profile():
 		return "res://scenes/ProfileSelect.tscn"
 	
-	# Aucun profil, aller à ProfileSelect pour en créer un
-	return "res://scenes/ProfileSelect.tscn"
+	# Aucun profil : HomeScreen affiche le modal de création (sans passer par ProfileSelect)
+	return "res://scenes/HomeScreen.tscn"
 
 func goto_screen(scene_path: String, with_fade: bool = true) -> void:
 	# Only use LoadingScreen for entering the Game scene (slow load, preload needed)

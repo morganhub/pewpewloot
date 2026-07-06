@@ -240,6 +240,34 @@
 			"sound": "",
 			"explosion": {},
 			"fluid_id": ""
+		},
+		{
+			"id": "missile_artillery_shell",
+			"name": "Artillery Shell",
+			"type": "basic",
+			"speed": 340,
+			"acceleration": 0,
+			"animation_type": "loop",
+			"visual": {
+				"color": "#FFB347",
+				"shape": "circle",
+				"size": 12,
+				"width_pct": 0.025,
+				"height_pct": 0.04,
+				"pulsating": false,
+				"pulsating_size": 1.0,
+				"pulsating_frequency": 1.0,
+				"asset": "",
+				"asset_anim": "res://assets/missiles/red_energy_burst.tres",
+				"asset_anim_duration": 2.0,
+				"asset_anim_loop": true
+			},
+			"sound": "",
+			"explosion": {
+				"size": 24,
+				"color": "#FFAA55"
+			},
+			"fluid_id": ""
 		}
 	]
 }

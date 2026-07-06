@@ -135,6 +135,100 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="ShipTopHeader" type="Control" parent="MarginContainer/ScrollContainer/Content" unique_id=812374651]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 360)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ShipPreviewButton" type="TextureButton" parent="MarginContainer/ScrollContainer/Content/ShipTopHeader" unique_id=412567832]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 150.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ShipPreviewIcon" type="TextureRect" parent="MarginContainer/ScrollContainer/Content/ShipTopHeader/ShipPreviewButton" unique_id=908715623]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ShipPreviewAnim" type="AnimatedSprite2D" parent="MarginContainer/ScrollContainer/Content/ShipTopHeader/ShipPreviewButton" unique_id=271459081]
+unique_name_in_owner = true
+position = Vector2(150, 150)
+
+[node name="TapForDetailsLabel" type="Label" parent="MarginContainer/ScrollContainer/Content/ShipTopHeader" unique_id=617248312]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -36.0
+offset_right = 180.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 16
+text = "Touchez pour voir les détails"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SkillsBigButton" type="Button" parent="MarginContainer/ScrollContainer/Content/ShipTopHeader" unique_id=129873645]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 12.0
+offset_top = -48.0
+offset_right = 108.0
+offset_bottom = 48.0
+grow_vertical = 2
+theme_override_font_sizes/font_size = 16
+text = "SKILLS"
+clip_text = true
+
+[node name="EquipmentBigButton" type="Button" parent="MarginContainer/ScrollContainer/Content/ShipTopHeader" unique_id=824657193]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -108.0
+offset_top = -48.0
+offset_right = -12.0
+offset_bottom = 48.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_font_sizes/font_size = 14
+text = "ÉQUIPEMENT"
+clip_text = true
+
 [node name="PowersTitleLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=123456789]
 layout_mode = 2
 text = "POUVOIRS"
@@ -175,6 +269,24 @@ mouse_filter = 1
 text = "Select Power..."
 text_overrun_behavior = 3
 clip_text = true
+
+[node name="ShipGridSection" type="VBoxContainer" parent="MarginContainer/ScrollContainer/Content" unique_id=746128305]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ShipGridTitle" type="Label" parent="MarginContainer/ScrollContainer/Content/ShipGridSection" unique_id=638914271]
+layout_mode = 2
+text = "VAISSEAUX"
+horizontal_alignment = 1
+
+[node name="ShipGrid" type="GridContainer" parent="MarginContainer/ScrollContainer/Content/ShipGridSection" unique_id=512893461]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 4
 
 [node name="SlotsLabel" type="Label" parent="MarginContainer/ScrollContainer/Content" unique_id=945803165]
 layout_mode = 2
@@ -431,3 +543,104 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 40)
 layout_mode = 2
 text = "Annuler"
+
+[node name="ShipDetailsPopup" type="PanelContainer" parent="." unique_id=748192635]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -300.0
+offset_right = 260.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ShipDetailsPopup" unique_id=193847261]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="ShipDetailsPopup/MarginContainer" unique_id=823745192]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DetailsTitle" type="Label" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=394812758]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "DÉTAILS DU VAISSEAU"
+horizontal_alignment = 1
+
+[node name="DetailsSeparator" type="HSeparator" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=274183659]
+layout_mode = 2
+
+[node name="DetailsPreviewContainer" type="Control" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=619273584]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DetailsPreviewIcon" type="TextureRect" parent="ShipDetailsPopup/MarginContainer/VBox/DetailsPreviewContainer" unique_id=815362749]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DetailsPreviewAnim" type="AnimatedSprite2D" parent="ShipDetailsPopup/MarginContainer/VBox/DetailsPreviewContainer" unique_id=926147358]
+unique_name_in_owner = true
+position = Vector2(232, 80)
+
+[node name="DetailsName" type="Label" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=485719263]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Nom du vaisseau"
+horizontal_alignment = 1
+
+[node name="DetailsStarsRow" type="HBoxContainer" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=752619384]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="DetailsStatsScroll" type="ScrollContainer" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=638517294]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="DetailsStatsList" type="VBoxContainer" parent="ShipDetailsPopup/MarginContainer/VBox/DetailsStatsScroll" unique_id=947382615]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="DetailsButtons" type="HBoxContainer" parent="ShipDetailsPopup/MarginContainer/VBox" unique_id=152639847]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="DetailsActionBtn" type="Button" parent="ShipDetailsPopup/MarginContainer/VBox/DetailsButtons" unique_id=283619475]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+text = "SÉLECTIONNER"
+
+[node name="DetailsCloseBtn" type="Button" parent="ShipDetailsPopup/MarginContainer/VBox/DetailsButtons" unique_id=394827516]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+text = "Fermer"

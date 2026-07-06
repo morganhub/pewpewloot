@@ -154,16 +154,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 placeholder_text = "Entrez un nom..."
 
-[node name="PortraitLabel" type="Label" parent="CreatePopup/MarginContainer/PopupContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Portrait :"
-
-[node name="PortraitOption" type="OptionButton" parent="CreatePopup/MarginContainer/PopupContent"]
-custom_minimum_size = Vector2(0, 45)
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-
 [node name="Spacer2" type="Control" parent="CreatePopup/MarginContainer/PopupContent"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2

@@ -1,698 +1,751 @@
 {
-	"id": "world_7",
-	"name": "Domaine des Titans",
-	"description": "Les vestiges colossaux d'êtres titanesques flottent parmi les nuages cosmiques et la poussière d'étoiles.",
-	"order": 7,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-			"fighter": "res://assets/enemies/atlantis/fighter.tres",
-			"tank": "res://assets/enemies/atlantis/tank.tres",
-			"artillery": "res://assets/enemies/atlantis/artillery.tres",
-			"elite": "res://assets/enemies/atlantis/elite.tres"
-		},
-		"bosses": {
-			"boss_titan_1": "res://assets/bosses/titans/boss_1.png",
-			"boss_titan_1_animation_duration": 2.0,
-			"boss_titan_1_animation_frequency": 8.0,
-			"boss_titan_2": "res://assets/bosses/titans/boss_2.png",
-			"boss_titan_2_animation_duration": 2.0,
-			"boss_titan_2_animation_frequency": 8.0,
-			"boss_titan_3": "res://assets/bosses/titans/boss_3.png",
-			"boss_titan_3_animation_duration": 2.0,
-			"boss_titan_3_animation_frequency": 8.0,
-			"boss_titan_4": "res://assets/bosses/titans/boss_4.png",
-			"boss_titan_4_animation_duration": 2.0,
-			"boss_titan_4_animation_frequency": 8.0,
-			"boss_titan_5": "res://assets/bosses/titans/boss_5.png",
-			"boss_titan_5_animation_duration": 2.0,
-			"boss_titan_5_animation_frequency": 8.0,
-			"boss_titan_final": "res://assets/bosses/titans/boss_final.tres",
-			"boss_titan_final_animation_duration": 2.0,
-			"boss_titan_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/titans/obstacle_explosive_1.png",
-				"res://assets/obstacles/titans/obstacle_explosive_2.png",
-				"res://assets/obstacles/titans/obstacle_explosive_3.png",
-				"res://assets/obstacles/titans/obstacle_explosive_4.png",
-				"res://assets/obstacles/titans/obstacle_explosive_5.png",
-				"res://assets/obstacles/titans/obstacle_explosive_6.png",
-				"res://assets/obstacles/titans/obstacle_explosive_7.png"
-			]
-		}
-	},
-	"multipliers": {
-		"hp": 11.0,
-		"damage": 7.0,
-		"speed": 1.1
-	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/acceleration.ogg",
-		"color_palette": "#c0a060"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_7_lvl_0",
-			"name": "Pieds des Colosses",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/titans/titan_world_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/titans/titan_world_0.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_titan_1",
-			"score_1star": 1250,
-			"score_2stars": 2000,
-			"score_3stars": 2800
-		},
-		{
-			"index": 1,
-			"id": "world_7_lvl_1",
-			"name": "Épaules de Géants",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/titans/titan_world_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/titans/titan_world_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_titan_2",
-			"score_1star": 2750,
-			"score_2stars": 4500,
-			"score_3stars": 6250
-		},
-		{
-			"index": 2,
-			"id": "world_7_lvl_2",
-			"name": "Passerelles Célestes",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/titans/titan_world_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/titans/titan_world_2.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_titan_3",
-			"score_1star": 2550,
-			"score_2stars": 4200,
-			"score_3stars": 5800
-		},
-		{
-			"index": 3,
-			"id": "world_7_lvl_3",
-			"name": "Nuages d'Éther",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/titans/titan_world_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/titans/titan_world_3.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_titan_4",
-			"score_1star": 2800,
-			"score_2stars": 4600,
-			"score_3stars": 6400
-		},
-		{
-			"index": 4,
-			"id": "world_7_lvl_4",
-			"name": "Sommet du Titan",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/titans/titan_world_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/titans/titan_world_4.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_titan_5",
-			"score_1star": 4800,
-			"score_2stars": 7850,
-			"score_3stars": 10900
-		},
-		{
-			"index": 5,
-			"id": "world_7_lvl_5",
-			"name": "Le Colosse",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/titans/titan_world_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/titans/titan_world_5.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_titan_final",
-			"score_1star": 7150,
-			"score_2stars": 11750,
-			"score_3stars": 16300
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_6"
-	}
+  "id": "world_7",
+  "name": "Domaine des Titans",
+  "description": "Les vestiges colossaux d'êtres titanesques flottent parmi les nuages cosmiques et la poussière d'étoiles.",
+  "order": 7,
+  "skin_overrides": {
+    "enemies": {
+      "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+      "fighter": "res://assets/enemies/atlantis/fighter.tres",
+      "tank": "res://assets/enemies/atlantis/tank.tres",
+      "artillery": "res://assets/enemies/atlantis/artillery.tres",
+      "elite": "res://assets/enemies/atlantis/elite.tres"
+    },
+    "bosses": {
+      "boss_titan_1": "res://assets/bosses/titans/boss_1.png",
+      "boss_titan_1_animation_duration": 2.0,
+      "boss_titan_1_animation_frequency": 8.0,
+      "boss_titan_2": "res://assets/bosses/titans/boss_2.png",
+      "boss_titan_2_animation_duration": 2.0,
+      "boss_titan_2_animation_frequency": 8.0,
+      "boss_titan_3": "res://assets/bosses/titans/boss_3.png",
+      "boss_titan_3_animation_duration": 2.0,
+      "boss_titan_3_animation_frequency": 8.0,
+      "boss_titan_4": "res://assets/bosses/titans/boss_4.png",
+      "boss_titan_4_animation_duration": 2.0,
+      "boss_titan_4_animation_frequency": 8.0,
+      "boss_titan_5": "res://assets/bosses/titans/boss_5.png",
+      "boss_titan_5_animation_duration": 2.0,
+      "boss_titan_5_animation_frequency": 8.0,
+      "boss_titan_final": "res://assets/bosses/titans/boss_final.tres",
+      "boss_titan_final_animation_duration": 2.0,
+      "boss_titan_final_animation_frequency": 8.0
+    },
+    "obstacles": {
+      "explosives": [
+        "res://assets/obstacles/titans/obstacle_explosive_1.png",
+        "res://assets/obstacles/titans/obstacle_explosive_2.png",
+        "res://assets/obstacles/titans/obstacle_explosive_3.png",
+        "res://assets/obstacles/titans/obstacle_explosive_4.png",
+        "res://assets/obstacles/titans/obstacle_explosive_5.png",
+        "res://assets/obstacles/titans/obstacle_explosive_6.png",
+        "res://assets/obstacles/titans/obstacle_explosive_7.png"
+      ]
+    }
+  },
+  "multipliers": {
+    "hp": 11.0,
+    "damage": 7.0,
+    "speed": 1.1
+  },
+  "wave_runtime_defaults": {
+    "artillery_count": 18,
+    "artillery_rows": 3,
+    "artillery_spawn_interval_sec": 0.08,
+    "artillery_fire_rate_sec": 2.3
+  },
+  "theme": {
+    "background": "",
+    "music": "res://assets/music/acceleration.ogg",
+    "color_palette": "#c0a060"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "id": "world_7_lvl_0",
+      "name": "Pieds des Colosses",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/titans/titan_world_0.png",
+        "far_layer": "res://assets/backgrounds/worlds/titans/titan_world_0.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_titan_1",
+      "score_1star": 1250,
+      "score_2stars": 2000,
+      "score_3stars": 2800,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.55
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 240.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "artillery",
+          "enemy_id": "artillery",
+          "count": 6,
+          "rows": 2,
+          "spawn_interval_sec": 0.08,
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": "world_7_lvl_1",
+      "name": "Épaules de Géants",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/titans/titan_world_1.png",
+        "far_layer": "res://assets/backgrounds/worlds/titans/titan_world_1.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_titan_2",
+      "score_1star": 2750,
+      "score_2stars": 4500,
+      "score_3stars": 6250,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.55
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 270.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "vertical_climb",
+          "duration": 40,
+          "gravity_px_sec2": 1750,
+          "bounce_speed_px_sec": 780,
+          "platform_gap_y_min_px": 110,
+          "platform_gap_y_max_px": 150,
+          "lava_rise_px_sec": 6
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "world_7_lvl_2",
+      "name": "Passerelles Célestes",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/titans/titan_world_2.png",
+        "far_layer": "res://assets/backgrounds/worlds/titans/titan_world_2.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_titan_3",
+      "score_1star": 2550,
+      "score_2stars": 4200,
+      "score_3stars": 5800,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.55
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 240.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 560,
+          "enemy_paddle_speed_px_sec": 470,
+          "enemy_reaction_interval_sec": 0.2,
+          "enemy_aim_error_px": 24,
+          "crystals_per_point": 5
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "swarm",
+          "enemy_id": "swarmer",
+          "count": 50,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "world_7_lvl_3",
+      "name": "Nuages d'Éther",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/titans/titan_world_3.png",
+        "far_layer": "res://assets/backgrounds/worlds/titans/titan_world_3.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_titan_4",
+      "score_1star": 2800,
+      "score_2stars": 4600,
+      "score_3stars": 6400,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.55
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 290.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 560,
+          "enemy_paddle_speed_px_sec": 470,
+          "enemy_reaction_interval_sec": 0.2,
+          "enemy_aim_error_px": 24,
+          "crystals_per_point": 5
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 250,
+          "gap_width": 130,
+          "row_interval": 0.6,
+          "drift_speed": 25,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "id": "world_7_lvl_4",
+      "name": "Sommet du Titan",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/titans/titan_world_4.png",
+        "far_layer": "res://assets/backgrounds/worlds/titans/titan_world_4.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_titan_5",
+      "score_1star": 4800,
+      "score_2stars": 7850,
+      "score_3stars": 10900,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.55
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 270.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "type": "asteroid_split",
+          "duration": 35,
+          "count": 7,
+          "speed": 155,
+          "hp_multiplier": 2
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "id": "world_7_lvl_5",
+      "name": "Le Colosse",
+      "type": "boss",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/titans/titan_world_5.png",
+        "far_layer": "res://assets/backgrounds/worlds/titans/titan_world_5.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_titan_final",
+      "score_1star": 7150,
+      "score_2stars": 11750,
+      "score_3stars": 16300,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.55
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 310.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    }
+  ],
+  "unlock_condition": {
+    "type": "world_clear",
+    "world_id": "world_6"
+  }
 }

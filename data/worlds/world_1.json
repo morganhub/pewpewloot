@@ -49,7 +49,11 @@
 	"wave_runtime_defaults": {
 		"force_duration_sec": 20.0,
 		"enemy_max_spawns_per_wave": 220,
-		"enemy_target_interval_sec": 0.37
+		"enemy_target_interval_sec": 0.37,
+		"artillery_count": 18,
+		"artillery_rows": 3,
+		"artillery_spawn_interval_sec": 0.08,
+		"artillery_fire_rate_sec": 3.6
 	},
 	"theme": {
 		"background": "res://assets/backgrounds/worlds/forest/level_0.jpg",
@@ -68,26 +72,37 @@
 				"near_layer": []
 			},
 			"waves": [
+
 				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 100.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "",
-					"path_asset_override": ""
+					"enemy_id": "artillery",
+					"type": "artillery",
+					"count": 18,
+					"interval": 0.7,
+					"enemy_modifier_id": ""
+				},
+				{
+					"type": "gate_runner",
+					"duration": 40,
+					"gates": [
+						{ "time_offset": 2.0, "left": { "operation": "add", "value": 60 }, "right": { "operation": "multiply", "value": 2 } },
+						{ "time_offset": 9.0, "left": { "operation": "subtract", "value": 40 }, "right": { "operation": "multiply", "value": 3 } },
+						{ "time_offset": 16.0, "left": { "operation": "multiply", "value": 2 }, "right": { "operation": "add", "value": 100 } },
+						{ "time_offset": 23.0, "left": { "operation": "divide", "value": 2 }, "right": { "operation": "add", "value": 80 } }
+					],
+					"swarm": [
+						{ "time_offset": 5.0, "total_value": 350, "enemy_id": "swarmer" },
+						{ "time_offset": 12.0, "total_value": 450, "enemy_id": "swarmer" },
+						{ "time_offset": 19.0, "total_value": 550, "enemy_id": "swarmer" },
+						{ "time_offset": 26.0, "total_value": 650, "enemy_id": "swarmer" }
+					]
 				},
 				{
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
 					"speed": 180,
-					"gap_width": 100,
-					"row_interval": 0.4,
+					"gap_width": 80,
+					"row_interval": 0.3,
 					"drift_speed": 22,
 					"drift_directions": [
 						"SW",
@@ -96,22 +111,22 @@
 					]
 				},
 				{
+					"enemy_id": "tank",
+					"enemy_modifier_id": "",
+					"type": "tank",
+					"interval": 3,
+					"hp_multiplier": 1.85
+				},
+				{
 					"enemy_id": "fighter",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 100.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-					"path_asset_override": "res://assets/missiles/blue_energy.tres"
+					"type": "swarm",
+					"enemy_id": "swarmer",
+					"count": 39,
+					"enemy_modifier_id": ""
 				},
 				{
 					"type": "obstacle",
@@ -128,18 +143,8 @@
 					]
 				},
 				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
 					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
+					"interval": 1.5,
 					"enemy_modifier_id": ""
 				}
 			],
@@ -161,27 +166,16 @@
 			},
 			"waves": [
 				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
 					"enemy_id": "fighter",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 120.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-					"path_asset_override": "res://assets/missiles/blue_energy.tres"
+					"enemy_id": "tank",
+					"interval": 3.33,
+					"enemy_modifier_id": "",
+					"type": "tank",
+					"hp_multiplier": 1.25
 				},
 				{
 					"type": "obstacle",
@@ -198,17 +192,16 @@
 					]
 				},
 				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "pong",
+					"duration": 30,
+					"ball_speed_px_sec": 380,
+					"enemy_paddle_speed_px_sec": 280,
+					"enemy_reaction_interval_sec": 0.45,
+					"enemy_aim_error_px": 64,
+					"crystals_per_point": 3
 				},
 				{
 					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -225,16 +218,6 @@
 						"SW",
 						"SE"
 					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
@@ -262,21 +245,10 @@
 				},
 				{
 					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 120.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-					"path_asset_override": "res://assets/missiles/blue_energy.tres"
+					"interval": 3.33,
+					"enemy_modifier_id": "",
+					"type": "tank",
+					"hp_multiplier": 1.25
 				},
 				{
 					"type": "obstacle",
@@ -291,16 +263,6 @@
 						"SW",
 						"SE"
 					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
 				},
 				{
 					"enemy_id": "fighter",
@@ -322,12 +284,15 @@
 					]
 				},
 				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "asteroid_split",
+					"duration": 35,
+					"count": 4,
+					"speed": 110,
+					"hp_multiplier": 1
 				},
 				{
 					"enemy_id": "artillery",
+					"type": "artillery",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -349,11 +314,6 @@
 						"SW",
 						"SE"
 					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
@@ -380,21 +340,10 @@
 				},
 				{
 					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 120.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-					"path_asset_override": "res://assets/missiles/blue_energy.tres"
+					"interval": 3.33,
+					"enemy_modifier_id": "",
+					"type": "tank",
+					"hp_multiplier": 1.25
 				},
 				{
 					"type": "obstacle",
@@ -421,11 +370,6 @@
 					"enemy_modifier_id": ""
 				},
 				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
 					"type": "obstacle",
 					"obstacle_id": "asteroid_medium",
 					"pattern": "slalom",
@@ -441,16 +385,21 @@
 				},
 				{
 					"enemy_id": "artillery",
+					"type": "artillery",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
+				},
+				{
+					"type": "pong",
+					"duration": 30,
+					"ball_speed_px_sec": 380,
+					"enemy_paddle_speed_px_sec": 280,
+					"enemy_reaction_interval_sec": 0.45,
+					"enemy_aim_error_px": 64,
+					"crystals_per_point": 3
 				},
 				{
 					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -469,17 +418,7 @@
 					]
 				},
 				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
 					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				}
@@ -512,17 +451,11 @@
 					"enemy_modifier_id": ""
 				},
 				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 120.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-					"path_asset_override": "res://assets/missiles/blue_energy.tres"
+					"enemy_id": "tank",
+					"interval": 3.33,
+					"enemy_modifier_id": "",
+					"type": "tank",
+					"hp_multiplier": 1.25
 				},
 				{
 					"type": "obstacle",
@@ -540,6 +473,7 @@
 				},
 				{
 					"enemy_id": "artillery",
+					"type": "artillery",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -552,6 +486,14 @@
 					"enemy_id": "fighter",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
+				},
+				{
+					"type": "absorb",
+					"duration": 30,
+					"spawn_interval_sec": 1.7,
+					"descent_speed_px_sec": 100,
+					"shuffle_window": 2,
+					"final_mass_margin": 0.65
 				},
 				{
 					"type": "obstacle",
@@ -568,17 +510,8 @@
 					]
 				},
 				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
 					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
+					"type": "artillery",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -592,11 +525,6 @@
 				},
 				{
 					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
@@ -618,16 +546,6 @@
 						"SW",
 						"SE"
 					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
 				}
 			],
 			"events": [],
@@ -648,175 +566,162 @@
 			},
 			"waves": [
 				{
-					"enemy_id": "elite",
+					"type": "star_drift",
+					"duration": 45,
+					"scroll_speed_px_sec_start": 210,
+					"scroll_speed_px_sec_end": 340,
+					"hazard_interval_sec_start": 1.9,
+					"hazard_interval_sec_end": 1.2,
+					"max_active_hazards": 8,
+					"quasar_enabled": false,
+					"trail_chance": 1.0,
+					"near_miss_crystal_chance": 0.35,
+					"reward_multiplier": 1.0
+				},
+				{
+					"type": "ball_launcher",
+					"duration": 60,
+					"ball_count_start": 3,
+					"row_hp_base": 2,
+					"row_hp_growth_per_turn": 0.8,
+					"token_chance": 0.25,
+					"reward_multiplier": 1.0
+				},
+				{
+					"enemy_id": "fighter",
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
+					"type": "match3",
+					"duration": 40
+				},
+				{
+					"type": "lane_runner",
+					"duration": 30,
+					"wall_speed_px_sec_start": 340,
+					"wall_speed_px_sec_end": 520,
+					"row_interval_sec_start": 1.8,
+					"row_interval_sec_end": 1.2,
+					"double_wall_chance": 0.2,
+					"reward_multiplier": 1.0
+				},
+				{
+					"type": "slice_rush",
+					"duration": 30,
+					"bomb_chance": 0.1,
+					"burst_size_max": 3,
+					"reward_multiplier": 1.0
+				},
+				{
+					"type": "gravity_hole",
+					"duration": 32,
+					"max_active_props": 12,
+					"prop_weights": { "debris_small": 70, "wreck_medium": 25, "titan_large": 5 },
+					"oversize_contact_damage_percent": 0.08,
+					"final_core_efficiency_ratio": 0.45,
+					"reward_multiplier": 1.0
+				},
+				{
 					"type": "path_trial",
 					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
+					"speed": 170,
+					"tick_damage": 10,
 					"tick_interval_sec": 0.35,
-					"path_width": 120.0,
-					"warmup_sec": 7.5,
-					"head_length_px": 120.0,
-					"tail_length_px": 120.0,
+					"path_width": 130,
+					"warmup_sec": 1,
+					"head_length_px": 280,
+					"tail_length_px": 180,
 					"hazard_asset_override": "",
 					"path_asset_override": ""
 				},
 				{
-					"enemy_id": "tank",
-					"interval": 0.7,
+					"type": "swarm",
+					"enemy_id": "swarmer",
+					"count": 39,
 					"enemy_modifier_id": ""
 				},
 				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 190.0,
-					"tick_damage": 12,
-					"tick_interval_sec": 0.35,
-					"path_width": 120.0,
-					"warmup_sec": 1.0,
-					"head_length_px": 280.0,
-					"tail_length_px": 180.0,
-					"hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-					"path_asset_override": "res://assets/missiles/blue_energy.tres"
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "slalom",
-					"speed": 110,
-					"gap_width": 220,
-					"row_interval": 2.0,
-					"drift_speed": 12,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
+					"type": "gate_runner",
+					"duration": 40,
+					"gates": [
+						{ "time_offset": 2, "left": { "operation": "add", "value": 60 }, "right": { "operation": "multiply", "value": 2 } },
+						{ "time_offset": 9, "left": { "operation": "subtract", "value": 40 }, "right": { "operation": "multiply", "value": 3 } },
+						{ "time_offset": 16, "left": { "operation": "multiply", "value": 2 }, "right": { "operation": "add", "value": 100 } },
+						{ "time_offset": 23, "left": { "operation": "divide", "value": 2 }, "right": { "operation": "add", "value": 80 } }
+					],
+					"swarm": [
+						{ "time_offset": 5, "total_value": 350, "enemy_id": "swarmer" },
+						{ "time_offset": 12, "total_value": 450, "enemy_id": "swarmer" },
+						{ "time_offset": 19, "total_value": 550, "enemy_id": "swarmer" },
+						{ "time_offset": 26, "total_value": 650, "enemy_id": "swarmer" }
 					]
 				},
 				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "obstacle",
+					"obstacle_id": "asteroid_medium",
+					"pattern": "slalom",
+					"speed": 170,
+					"gap_width": 190,
+					"row_interval": 1.2,
+					"drift_speed": 10,
+					"drift_directions": ["SW", "S", "SE"]
+				},
+				{
+					"type": "pong",
+					"duration": 30,
+					"ball_speed_px_sec": 380,
+					"enemy_paddle_speed_px_sec": 280,
+					"enemy_reaction_interval_sec": 0.45,
+					"enemy_aim_error_px": 64,
+					"crystals_per_point": 3
+				},
+				{
+					"enemy_id": "tank",
+					"enemy_modifier_id": "",
+					"type": "tank",
+					"interval": 3,
+					"hp_multiplier": 1.85
+				},
+				{
+					"type": "breakout",
+					"duration": 45,
+					"rows": 4,
+					"cols": 5,
+					"row_hp": [2, 1, 1, 1],
+					"ball_speed_px_sec": 430,
+					"damage_percent_per_ball_lost": 0.15
 				},
 				{
 					"enemy_id": "artillery",
+					"type": "artillery",
+					"count": 18,
 					"interval": 0.7,
 					"enemy_modifier_id": ""
 				},
 				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "vertical_climb",
+					"duration": 35,
+					"gravity_px_sec2": 1550,
+					"bounce_speed_px_sec": 760,
+					"platform_gap_y_min_px": 100,
+					"platform_gap_y_max_px": 135,
+					"lava_rise_px_sec": 3
 				},
 				{
-					"type": "obstacle",
-					"obstacle_id": "debris_small",
-					"pattern": "rain",
-					"speed": 200,
-					"gap_width": 150,
-					"row_interval": 0.8,
-					"drift_speed": 20,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
+					"type": "asteroid_split",
+					"duration": 35,
+					"count": 4,
+					"speed": 110,
+					"hp_multiplier": 1
 				},
 				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "debris_small",
-					"pattern": "rain",
-					"speed": 200,
-					"gap_width": 150,
-					"row_interval": 0.8,
-					"drift_speed": 20,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
+					"type": "absorb",
+					"duration": 30,
+					"spawn_interval_sec": 1.7,
+					"descent_speed_px_sec": 100,
+					"shuffle_window": 2,
+					"final_mass_margin": 0.65
 				}
 			],
 			"events": [],

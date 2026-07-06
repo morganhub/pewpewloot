@@ -25,8 +25,26 @@ const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 const SCROLLING_LAYER_SCRIPT: Script = preload("res://scenes/ScrollingLayer.gd")
 const LEVEL_BACKGROUND_BASE_SPEED := 50.0
 const LEVEL_FAR_LAYER_SPEED_MULTIPLIER := 0.2
+## Mode d'affichage du menu :
+## - "ships": carrousel de vaisseaux + powers + stats + unlock (équipement masqué)
+## - "equipment": équipement + inventaire seuls (sélection vaisseau / powers masqués)
+@export var display_mode: String = "ships"
+
 var _item_card_size := Vector2(100, 75)
 var _ship_card_size := Vector2(100, 100)  # Ship cards size (3 visible at a time)
+
+# Caches pour eviter de recalculer puissance/etoiles a chaque ouverture du menu
+# ou a chaque carte de la grille. Invalides lors d'un equip/unequip/upgrade/recycle.
+var _ship_total_power_cache: Dictionary = {}
+var _ship_star_rating_cache: Dictionary = {}
+
+# Debounce du signal resized: Android emet plusieurs resize lors du boot (orientation,
+# safe area, keyboard). Sans debounce, _on_resized reconstruit toute l'UI plusieurs fois.
+const RESIZE_DEBOUNCE_DELAY := 0.1
+const RESIZE_MIN_DELTA_PX := 4.0
+var _resize_pending_timer: SceneTreeTimer = null
+var _last_resize_size: Vector2 = Vector2.ZERO
+
 var _ship_strip_height: float = 63.0  # Hauteur de la bande sous les cartes (config ou constante)
 var _ship_strip_button_height: float = 63.0  # Hauteur du bouton Sélectionner/Sélectionné (ou cristaux)
 var _ship_strip_margin_top: float = 0.0  # Marge entre la carte et le bouton
@@ -87,8 +105,36 @@ var _ship_carousel_fade_done: bool = false  # Fade-in carousel au premier charge
 @onready var popup_upgrade_btn: Button = %UpgradeButton
 @onready var popup_delete_btn: Button = %DeleteButton
 
+# --- Nouveau layout "ships" (sans carousel) ---
+@onready var ship_top_header: Control = %ShipTopHeader
+@onready var top_preview_button: TextureButton = %ShipPreviewButton
+@onready var top_preview_icon: TextureRect = %ShipPreviewIcon
+@onready var top_preview_anim: AnimatedSprite2D = %ShipPreviewAnim
+@onready var tap_for_details_label: Label = %TapForDetailsLabel
+var top_selected_ship_name_label: Label = null
+@onready var skills_big_button: Button = %SkillsBigButton
+@onready var equipment_big_button: Button = %EquipmentBigButton
+@onready var ship_grid_section: VBoxContainer = %ShipGridSection
+@onready var ship_grid: GridContainer = %ShipGrid
+
+# --- Popup détails vaisseau ---
+@onready var ship_details_popup: PanelContainer = %ShipDetailsPopup
+@onready var details_title: Label = %DetailsTitle
+@onready var details_separator: HSeparator = $ShipDetailsPopup/MarginContainer/VBox/DetailsSeparator
+@onready var details_vbox: VBoxContainer = $ShipDetailsPopup/MarginContainer/VBox
+@onready var details_preview_container: Control = %DetailsPreviewContainer
+@onready var details_preview_icon: TextureRect = %DetailsPreviewIcon
+@onready var details_preview_anim: AnimatedSprite2D = %DetailsPreviewAnim
+@onready var details_name: Label = %DetailsName
+@onready var details_stars_row: HBoxContainer = %DetailsStarsRow
+@onready var details_stats_scroll: ScrollContainer = $ShipDetailsPopup/MarginContainer/VBox/DetailsStatsScroll
+@onready var details_stats_list: VBoxContainer = %DetailsStatsList
+@onready var details_action_btn: Button = %DetailsActionBtn
+@onready var details_close_btn: Button = %DetailsCloseBtn
+
 var _filter_icon_buttons: Dictionary = {} # slot_id -> TextureButton
 var _ship_section_for_fade: CanvasItem = null  # Section vaisseaux pour fade-in au chargement
+var _details_popup_ship_id: String = ""  # Vaisseau actuellement affiche dans le popup details
 
 
 
@@ -245,6 +291,13 @@ func _ready() -> void:
 	# Handle resize
 	resized.connect(_on_resized)
 	
+	# Branche "ships" sans carrousel: top header + grid + popup details.
+	if display_mode == "ships":
+		_setup_ships_mode_top_header()
+		_setup_ship_details_popup_connections()
+	elif ProfileManager.has_method("mark_equipment_items_seen"):
+		ProfileManager.call("mark_equipment_items_seen")
+
 	# Initial load deferred to ensure correct size
 	call_deferred("_initial_layout")
 	if content: _fix_mobile_scroll_recursive(content)
@@ -326,6 +379,8 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenTouch:
 		var e := event as InputEventScreenTouch
+		if _is_inside_equipment_interaction_area(e.position):
+			return
 		if e.pressed:
 			_on_ship_carousel_pointer_down(e.index, e.position)
 		else:
@@ -333,6 +388,8 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenDrag:
 		var e := event as InputEventScreenDrag
+		if _is_inside_equipment_interaction_area(e.position):
+			return
 		_on_ship_carousel_pointer_drag(e.index, e.position)
 		return
 	if event is InputEventMouseButton:
@@ -340,6 +397,8 @@ func _input(event: InputEvent) -> void:
 		if e.button_index != MOUSE_BUTTON_LEFT:
 			return
 		var global_pos: Vector2 = get_global_mouse_position()
+		if _is_inside_equipment_interaction_area(global_pos):
+			return
 		if e.pressed:
 			_on_ship_carousel_pointer_down(-999, global_pos)
 		else:
@@ -347,7 +406,34 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion:
 		if _ship_pointer_down and _ship_pointer_id == -999:
-			_on_ship_carousel_pointer_drag(-999, get_global_mouse_position())
+			var global_pos: Vector2 = get_global_mouse_position()
+			if _is_inside_equipment_interaction_area(global_pos):
+				return
+			_on_ship_carousel_pointer_drag(-999, global_pos)
+
+func _is_inside_equipment_interaction_area(global_pos: Vector2) -> bool:
+	if display_mode != "equipment":
+		return false
+	var candidates: Array[Control] = []
+	if slots_grid != null:
+		candidates.append(slots_grid)
+	if inventory_grid != null:
+		candidates.append(inventory_grid)
+	if filters_container != null:
+		candidates.append(filters_container)
+	var content_node: Node = get_node_or_null("MarginContainer/ScrollContainer/Content")
+	if content_node != null:
+		for section_name in ["EquipmentSectionWrapper", "EquipmentSection", "InventorySectionWrapper", "InventorySection"]:
+			var section := content_node.get_node_or_null(section_name)
+			if section is Control:
+				candidates.append(section as Control)
+	for candidate in candidates:
+		if candidate == null or not is_instance_valid(candidate) or not candidate.visible:
+			continue
+		var rect := Rect2(candidate.global_position, candidate.size)
+		if rect.has_point(global_pos):
+			return true
+	return false
 
 func _on_ship_carousel_pointer_down(id: int, global_pos: Vector2) -> void:
 	if not _is_inside_ship_carousel(global_pos):
@@ -410,23 +496,39 @@ func _on_ship_carousel_pointer_up(id: int, global_pos: Vector2) -> void:
 func _initial_layout() -> void:
 	_calculate_layout_metrics()
 	_setup_visuals()
-	# Masquer la section vaisseaux pour éviter le "saut" au chargement, fade-in après recentrage
-	var content_node = $MarginContainer/ScrollContainer/Content
-	var ship_sec = content_node.get_node_or_null("ShipSectionWrapper/ShipSection")
-	if ship_sec == null:
-		ship_sec = content_node.get_node_or_null("ShipSection")
-	if ship_sec is CanvasItem:
-		(ship_sec as CanvasItem).modulate.a = 0.0
-		_ship_section_for_fade = ship_sec as CanvasItem
-	_load_ships()
+	_create_slot_buttons()
+	if display_mode == "ships":
+		# Mode "ships" (nouveau layout): pas de carrousel, on remplit la grille statique.
+		_hydrate_top_preview()
+		_load_ship_grid()
+		_update_powers_ui()
+	else:
+		# Mode "equipment" (heritage): on garde l'ancienne logique slots/inventaire.
+		# La section vaisseaux/carrousel est masquee par _apply_display_mode_visibility.
+		_load_ships()
 	_update_slot_buttons()
 	_update_inventory_grid()
 
 func _on_resized() -> void:
+	# Debounce: regroupe les multiples resize emis au boot par Android
+	# (orientation, safe area, keyboard) en un seul rebuild.
+	if absf(size.x - _last_resize_size.x) < RESIZE_MIN_DELTA_PX and absf(size.y - _last_resize_size.y) < RESIZE_MIN_DELTA_PX:
+		return
+	if _resize_pending_timer and is_instance_valid(_resize_pending_timer):
+		return  # Un rebuild est deja planifie pour la fin du debounce.
+	_resize_pending_timer = get_tree().create_timer(RESIZE_DEBOUNCE_DELAY)
+	_resize_pending_timer.timeout.connect(_apply_resize_rebuild)
+
+func _apply_resize_rebuild() -> void:
+	_resize_pending_timer = null
+	_last_resize_size = size
 	if _ship_track != null and not _ship_items.is_empty():
 		_apply_ship_track_offset()
 	_calculate_layout_metrics()
-	_load_ships()
+	if display_mode == "ships":
+		_load_ship_grid()
+	else:
+		_load_ships()
 	_update_inventory_grid()
 	_update_slot_buttons()
 	_setup_visuals()
@@ -531,6 +633,8 @@ func _setup_visuals() -> void:
 		_add_spacer(p_section, 10, "SpacerPowerBottom")
 		_apply_section_background(p_section.name, sections_cfg.get("powers", {}))
 
+	_apply_display_mode_visibility(content_vbox)
+
 	# 5. Section Titles Styling (ship_menu.title: font_size 30, letter_spacing 2, text_color #FFFFFF)
 	var title_cfg: Dictionary = _game_config.get("ship_menu", {}).get("title", {})
 	var t_font_sz: int = int(title_cfg.get("font_size", 30))
@@ -577,6 +681,16 @@ func _setup_visuals() -> void:
 		if item_popup: item_popup.add_theme_stylebox_override("panel", style)
 		if unlock_popup: unlock_popup.add_theme_stylebox_override("panel", style)
 		if unique_popup: unique_popup.add_theme_stylebox_override("panel", style)
+	
+	if ship_details_popup:
+		var ship_details_cfg: Dictionary = ship_config.get("ship_details", {}) if ship_config.get("ship_details") is Dictionary else {}
+		var details_bg_cfg: Dictionary = ship_details_cfg.get("background", {}) if ship_details_cfg.get("background") is Dictionary else popup_bg_cfg
+		var details_bg_asset: String = str(details_bg_cfg.get("asset", popup_bg_asset))
+		var details_style := UIStyle.build_texture_stylebox(details_bg_asset, details_bg_cfg, margin)
+		if details_style:
+			ship_details_popup.add_theme_stylebox_override("panel", details_style)
+		var details_bg_opacity: float = clampf(float(details_bg_cfg.get("opacity", 1.0)), 0.0, 1.0)
+		ship_details_popup.self_modulate = Color(1.0, 1.0, 1.0, details_bg_opacity)
 	
 	# 5. Popup Buttons Styling (Upgrade, Recycle, Close, Equip)
 	_update_popup_buttons_style()
@@ -636,15 +750,11 @@ func _setup_visuals() -> void:
 	
 	# 7. Sort Button Icon
 
-	
+
 	# 8. Shop Button Icon
 	# 9. Dropdown Styling
 	# 9. Dropdown Styling
 	# Removed Legacy SlotFilter styling
-	
-	_create_slot_buttons()
-	_update_slot_buttons()
-	_update_inventory_grid()
 
 func _ensure_group_node(group_name: String, nodes: Array) -> Control:
 	var content_vbox = $MarginContainer/ScrollContainer/Content
@@ -671,6 +781,68 @@ func _ensure_group_node(group_name: String, nodes: Array) -> Control:
 			node.reparent(group)
 			
 	return group
+
+func _apply_display_mode_visibility(content_vbox: Node) -> void:
+	if content_vbox == null:
+		return
+	var ships_mode: bool = (display_mode != "equipment")
+	var equipment_visible: bool = (display_mode == "equipment")
+	var inventory_visible: bool = (display_mode == "equipment")
+	var powers_visible: bool = ships_mode
+	# L'ancienne section "ShipSection" (carrousel + stats verticales) est REMPLACEE par
+	# le nouveau ShipTopHeader + ShipGridSection. On la cache donc dans les deux modes.
+	var ship_visible: bool = false
+
+	for section_name in ["ShipSection", "ShipSectionWrapper"]:
+		var node: Node = content_vbox.get_node_or_null(section_name)
+		if node and node is CanvasItem:
+			(node as CanvasItem).visible = ship_visible
+	for section_name in ["EquipmentSection", "EquipmentSectionWrapper"]:
+		var node2: Node = content_vbox.get_node_or_null(section_name)
+		if node2 and node2 is CanvasItem:
+			(node2 as CanvasItem).visible = equipment_visible
+	for section_name in ["InventorySection", "InventorySectionWrapper"]:
+		var node3: Node = content_vbox.get_node_or_null(section_name)
+		if node3 and node3 is CanvasItem:
+			(node3 as CanvasItem).visible = inventory_visible
+	for section_name in ["PowersSectionGroup", "PowersSectionGroupWrapper"]:
+		var node4: Node = content_vbox.get_node_or_null(section_name)
+		if node4 and node4 is CanvasItem:
+			(node4 as CanvasItem).visible = powers_visible
+
+	# Nouveaux noeuds: visibles uniquement en mode "ships".
+	for section_name in ["ShipTopHeader", "ShipGridSection"]:
+		var node5: Node = content_vbox.get_node_or_null(section_name)
+		if node5 and node5 is CanvasItem:
+			(node5 as CanvasItem).visible = ships_mode
+
+	# Cache aussi les noeuds orphelins (en cas où le wrapper n'a pas été créé).
+	if not ship_visible:
+		var orphans: Array[String] = ["ShipTitleLabel", "ShipContainer", "ShipStatsContainer", "ShipActionContainer", "ShipCountLabel"]
+		for n in orphans:
+			var orphan: Node = content_vbox.get_node_or_null(n)
+			if orphan and orphan is CanvasItem:
+				(orphan as CanvasItem).visible = false
+	if not powers_visible:
+		for n in ["PowersTitleLabel", "PowersSection"]:
+			var orphan: Node = content_vbox.get_node_or_null(n)
+			if orphan and orphan is CanvasItem:
+				(orphan as CanvasItem).visible = false
+	if not equipment_visible:
+		if slots_label and slots_label is CanvasItem:
+			slots_label.visible = false
+		if slots_grid and slots_grid is CanvasItem:
+			slots_grid.visible = false
+	if not inventory_visible:
+		if inventory_label and inventory_label is CanvasItem:
+			inventory_label.visible = false
+		if inventory_grid and inventory_grid is CanvasItem:
+			inventory_grid.visible = false
+		if filters_container and filters_container is CanvasItem:
+			filters_container.visible = false
+		var pagination_node: Node = content_vbox.get_node_or_null("PaginationContainer")
+		if pagination_node and pagination_node is CanvasItem:
+			(pagination_node as CanvasItem).visible = false
 
 func _apply_section_background(section_node_name: String, section_cfg: Dictionary) -> void:
 	var bg_path: String = str(section_cfg.get("background", ""))
@@ -812,6 +984,52 @@ func _update_popup_buttons_style() -> void:
 	for btn in buttons_map.values():
 		if btn and btn is Button and not btn.text.is_empty():
 			UIStyle.apply_button_shadow(btn, "medium")
+
+	_update_ship_details_buttons_style(global_btn_cfg, details_cfg, font_sz, text_col)
+
+func _update_ship_details_buttons_style(global_btn_cfg: Dictionary, details_cfg: Dictionary, font_sz: int, text_col: Color) -> void:
+	var detail_buttons_cfg: Dictionary = details_cfg.get("buttons", {}) if details_cfg.get("buttons") is Dictionary else details_cfg
+	_apply_ship_details_button_style(details_action_btn, "select", "equip", global_btn_cfg, detail_buttons_cfg, font_sz, text_col)
+	_apply_ship_details_button_style(details_close_btn, "close", "close", global_btn_cfg, detail_buttons_cfg, font_sz, text_col)
+
+func _apply_ship_details_button_style(
+	btn: Button,
+	key: String,
+	fallback_key: String,
+	global_btn_cfg: Dictionary,
+	detail_buttons_cfg: Dictionary,
+	font_sz: int,
+	text_col: Color
+) -> void:
+	if btn == null:
+		return
+	btn.add_theme_font_size_override("font_size", font_sz)
+	btn.add_theme_color_override("font_color", text_col)
+	btn.add_theme_color_override("font_pressed_color", text_col)
+	btn.add_theme_color_override("font_hover_color", text_col)
+	btn.add_theme_color_override("font_focus_color", text_col)
+	btn.add_theme_color_override("font_disabled_color", text_col)
+
+	var btn_cfg: Dictionary = {}
+	if detail_buttons_cfg.get(key) is Dictionary:
+		btn_cfg = detail_buttons_cfg.get(key) as Dictionary
+	elif detail_buttons_cfg.get(fallback_key) is Dictionary:
+		btn_cfg = detail_buttons_cfg.get(fallback_key) as Dictionary
+
+	var merged_cfg := global_btn_cfg.duplicate(true)
+	for cfg_key in btn_cfg.keys():
+		merged_cfg[cfg_key] = btn_cfg[cfg_key]
+
+	btn.custom_minimum_size = Vector2(int(merged_cfg.get("width", 140)), int(merged_cfg.get("height", 50)))
+	var style := UIStyle.build_texture_stylebox(str(merged_cfg.get("asset", "")), merged_cfg, 5)
+	if style:
+		btn.add_theme_stylebox_override("normal", style)
+		btn.add_theme_stylebox_override("hover", style)
+		btn.add_theme_stylebox_override("pressed", style)
+		btn.add_theme_stylebox_override("focus", style)
+		btn.add_theme_stylebox_override("disabled", style)
+		btn.flat = false
+	UIStyle.apply_button_shadow(btn, "medium")
 
 
 func _calculate_layout_metrics() -> void:
@@ -1651,7 +1869,7 @@ func _show_purchase_overlay(ship_id: String) -> void:
 		var price_label := Label.new()
 		price_label.text = str(price) + " cristaux"
 		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		price_label.add_theme_font_size_override("font_size", 20)
+		price_label.add_theme_font_size_override("font_size", int(_game_config.get("ship_menu", {}).get("shop_price_font_size", 20)))
 		vbox.add_child(price_label)
 
 		# Bouton Acheter
@@ -1950,84 +2168,79 @@ func _on_slot_pressed(slot_id: String) -> void:
 # =============================================================================
 
 func _update_inventory_grid() -> void:
-	# Nettoyer l'ancienne grille
-	for child in inventory_grid.get_children():
-		child.queue_free()
-	inventory_cards.clear()
-	
 	var filtered := _get_filtered_inventory()
-			
+
 	# Pagination
 	var start_idx := current_page * items_per_page
-	
+
 	# Mettre à jour le label
 	inventory_label.text = LocaleManager.translate("ship_menu_inventory")
-	
-	# Toujours 12 emplacements par page (4×3). Item à l'index ou placeholder (frame_common 0.4).
-	for i in range(items_per_page):
-		var item_idx := start_idx + i
-		if item_idx < filtered.size():
-			var item: Dictionary = filtered[item_idx]
-			var card := _create_item_card(item)
-			inventory_grid.add_child(card)
-			inventory_cards.append(card)
-		else:
-			var placeholder := _create_inventory_placeholder()
-			inventory_grid.add_child(placeholder)
-	
-	_update_page_label()
-	if inventory_grid: _fix_mobile_scroll_recursive(inventory_grid)
 
-	
-func _create_item_card(item: Dictionary) -> Control:
-	var card = ItemCardScene.instantiate()
-	card.custom_minimum_size = _item_card_size
-	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	
-	# Prepare config for ItemCard
+	# Pool: ajuster le nombre d'enfants au strict items_per_page une seule fois.
+	while inventory_grid.get_child_count() < items_per_page:
+		inventory_grid.add_child(_create_inventory_card_node())
+	while inventory_grid.get_child_count() > items_per_page:
+		var extra = inventory_grid.get_child(inventory_grid.get_child_count() - 1)
+		inventory_grid.remove_child(extra)
+		extra.queue_free()
+
+	# Prepare configs once outside the loop.
 	var ship_opts: Dictionary = _game_config.get("ship_options", {})
-	var config = {
+	var item_config := {
 		"rarity_frames": _game_config.get("rarity_frames", {}),
 		"rarity_colors": _game_config.get("rarity_colors", {}),
 		"level_assets": ship_opts.get("level_indicator_assets", {}),
 		"placeholders": ship_opts.get("item_placeholders", {}),
 		"slot_icons": ship_opts.get("slot_icons", {}),
 		"equipment_button": ship_opts.get("equipment_button", {}),
-		"show_upgrade": _is_upgrade(item)
+		"show_upgrade": false
 	}
-	
-	var slot_id = str(item.get("slot", ""))
-	card.setup_item(item, slot_id, config)
+	var placeholder_config := {
+		"rarity_frames": _game_config.get("rarity_frames", {})
+	}
 
-	# Keep swipe scrolling active even when dragging on card content.
+	inventory_cards.clear()
+	for i in range(items_per_page):
+		var card_node = inventory_grid.get_child(i)
+		if not card_node or not card_node.has_method("setup_placeholder"):
+			continue
+		card_node.custom_minimum_size = _item_card_size
+		var item_idx := start_idx + i
+		if item_idx < filtered.size():
+			var item: Dictionary = filtered[item_idx]
+			item_config["show_upgrade"] = _is_upgrade(item)
+			var slot_id_for_card := str(item.get("slot", ""))
+			card_node.setup_item(item, slot_id_for_card, item_config)
+			card_node.visible = true
+			inventory_cards.append(card_node)
+		else:
+			card_node.setup_placeholder(placeholder_config)
+			card_node.visible = true
+
+	_update_page_label()
+	if inventory_grid: _fix_mobile_scroll_recursive(inventory_grid)
+
+
+# Builds a fresh ItemCard node ready for use in the inventory grid pool.
+# Connections and mouse filters are set once; reuse is handled via setup_item/setup_placeholder.
+func _create_inventory_card_node() -> Control:
+	var card = ItemCardScene.instantiate()
+	card.custom_minimum_size = _item_card_size
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var card_content := card.get_node_or_null("Content")
 	if card_content is Control:
 		card_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var card_button := card.get_node_or_null("Button")
 	if card_button is Control:
 		card_button.mouse_filter = Control.MOUSE_FILTER_PASS
-	
-	# Connect signal
 	card.card_pressed.connect(_on_card_pressed)
-	
 	return card
 
-func _create_inventory_placeholder() -> Control:
-	var frame_path: String = str(_game_config.get("rarity_frames", {}).get("common", ""))
-	if frame_path == "" or not ResourceLoader.exists(frame_path):
-		frame_path = "res://assets/ui/frames/frame_common.png"
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = _item_card_size
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxTexture.new()
-	style.texture = load(frame_path)
-	panel.add_theme_stylebox_override("panel", style)
-	panel.modulate = Color(1.0, 1.0, 1.0, 0.4)
-	return panel
-
 func _on_card_pressed(item_id: String, slot_id: String) -> void:
+	# Guard: pool cards in placeholder mode emit with empty item_id.
+	if item_id == "":
+		return
 	# From Inventory -> Not equipped
 	_show_item_popup(item_id, false, slot_id)
 
@@ -2098,11 +2311,12 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 	if current_equipped != "":
 		# Unequip current (pass SLOT ID)
 		ProfileManager.unequip_item(selected_ship_id, target_slot)
-		
+
 	# Equip new
 	ProfileManager.equip_item(selected_ship_id, target_slot, item_id)
-	
-	
+
+	_invalidate_ship_stats_cache(selected_ship_id)
+
 	# Update UI then close popup
 	_update_slot_buttons()
 	_update_inventory_grid()
@@ -2114,8 +2328,9 @@ func _on_popup_equip_requested(item_id: String, slot_id: String) -> void:
 func _on_popup_unequip_requested(_item_id: String, slot_id: String) -> void:
 	# Correctly pass slot_id instead of item_id
 	ProfileManager.unequip_item(selected_ship_id, slot_id)
-	
-	
+
+	_invalidate_ship_stats_cache(selected_ship_id)
+
 	# Update UI then close popup
 	_update_slot_buttons()
 	_update_inventory_grid()
@@ -2164,6 +2379,8 @@ func _confirm_single_recycle(item_id: String, crystals_earned: int) -> void:
 	if crystals_earned > 0:
 		ProfileManager.add_crystals(crystals_earned)
 	ProfileManager.remove_item_from_inventory(item_id)
+
+	_invalidate_ship_stats_cache(selected_ship_id)
 
 	if _item_details_popup:
 		_item_details_popup.visible = false
@@ -3103,6 +3320,8 @@ func _on_popup_upgrade_pressed() -> void:
 			_item_details_popup.upgrade_btn.disabled = false
 		_apply_translations()
 		return
+
+	_invalidate_ship_stats_cache(selected_ship_id)
 	
 	# VISUAL FEEDBACK (Animation & Delay)
 	_show_upgrade_feedback(tier, tier_label)
@@ -3161,7 +3380,7 @@ func _show_upgrade_feedback(tier: String, label_text: String) -> void:
 	
 	var lbl = Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 28)
+	lbl.add_theme_font_size_override("font_size", int(_game_config.get("ship_menu", {}).get("upgrade_result_font_size", 28)))
 	lbl.add_theme_color_override("font_color", color)
 	lbl.add_theme_constant_override("outline_size", 8)
 	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -3710,3 +3929,581 @@ func _add_spacer(parent: Control, height: float, s_name: String, index: int = -1
 	if index >= 0:
 		parent.move_child(s, index)
 	return s
+
+
+# =============================================================================
+# NOUVEAU LAYOUT "SHIPS": ShipTopHeader + ShipGrid + ShipDetailsPopup
+# Carrousel horizontal remplace par un grid 4 colonnes + popup details au tap.
+# =============================================================================
+
+func _setup_ships_mode_top_header() -> void:
+	_ensure_top_selected_ship_name_label()
+	if tap_for_details_label:
+		tap_for_details_label.text = LocaleManager.translate("ship_menu_tap_for_details")
+	if skills_big_button:
+		skills_big_button.text = LocaleManager.translate("ship_menu_skills_button")
+		if not skills_big_button.pressed.is_connected(_on_skills_big_pressed):
+			skills_big_button.pressed.connect(_on_skills_big_pressed)
+	if equipment_big_button:
+		equipment_big_button.text = LocaleManager.translate("ship_menu_equipment_button")
+		if not equipment_big_button.pressed.is_connected(_on_equipment_big_pressed):
+			equipment_big_button.pressed.connect(_on_equipment_big_pressed)
+	if top_preview_button and not top_preview_button.pressed.is_connected(_on_top_preview_pressed):
+		top_preview_button.pressed.connect(_on_top_preview_pressed)
+
+func _ensure_top_selected_ship_name_label() -> void:
+	if top_selected_ship_name_label != null or ship_top_header == null:
+		return
+	var label := Label.new()
+	label.name = "SelectedShipNameLabel"
+	label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	label.offset_left = 24.0
+	label.offset_top = -86.0
+	label.offset_right = -24.0
+	label.offset_bottom = -42.0
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var title_cfg: Dictionary = _game_config.get("ship_menu", {}).get("title", {}) if _game_config.get("ship_menu") is Dictionary else {}
+	label.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", 40)))
+	label.add_theme_constant_override("letter_spacing", int(title_cfg.get("letter_spacing", 2)))
+	label.add_theme_color_override("font_color", Color.html(str(title_cfg.get("text_color", "#FFFFFF"))))
+	ship_top_header.add_child(label)
+	top_selected_ship_name_label = label
+
+func _setup_ship_details_popup_connections() -> void:
+	if details_close_btn and not details_close_btn.pressed.is_connected(_hide_ship_details_popup):
+		details_close_btn.pressed.connect(_hide_ship_details_popup)
+	if details_action_btn and not details_action_btn.pressed.is_connected(_on_details_action_pressed):
+		details_action_btn.pressed.connect(_on_details_action_pressed)
+
+func _on_skills_big_pressed() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/SkillsMenu.tscn")
+
+func _on_equipment_big_pressed() -> void:
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.goto_screen("res://scenes/EquipmentMenu.tscn")
+
+func _on_top_preview_pressed() -> void:
+	# Tap sur le vaisseau au centre = ouvrir les details du vaisseau actif.
+	var ship_id: String = ProfileManager.get_active_ship_id()
+	if ship_id == "":
+		ship_id = selected_ship_id
+	if ship_id != "":
+		_show_ship_details_popup(ship_id)
+
+func _hydrate_top_preview() -> void:
+	if not top_preview_button:
+		return
+	var ship_id: String = ProfileManager.get_active_ship_id()
+	if ship_id == "":
+		return
+	var ship_data: Dictionary = DataManager.get_ship(ship_id)
+	if ship_data.is_empty():
+		return
+	_hydrate_ship_into_preview(ship_data, top_preview_button.size, top_preview_icon, top_preview_anim)
+	_update_top_selected_ship_name(ship_id, ship_data)
+
+func _update_top_selected_ship_name(ship_id: String, ship_data: Dictionary) -> void:
+	_ensure_top_selected_ship_name_label()
+	if top_selected_ship_name_label == null:
+		return
+	var name_key := "ship." + ship_id + ".name"
+	var ship_name: String = LocaleManager.translate(name_key)
+	if ship_name == name_key:
+		ship_name = str(ship_data.get("name", ship_id))
+	top_selected_ship_name_label.text = ship_name.to_upper()
+
+## Hydrate un vaisseau dans une paire (TextureRect statique, AnimatedSprite2D anime).
+## Reutilise par le ShipTopHeader et le popup details.
+func _hydrate_ship_into_preview(
+	ship_data: Dictionary,
+	preview_size: Vector2,
+	icon_rect: TextureRect,
+	anim_sprite: AnimatedSprite2D
+) -> void:
+	if preview_size.x <= 0.0 or preview_size.y <= 0.0:
+		preview_size = Vector2(300, 300)
+	var visual: Dictionary = ship_data.get("visual", {}) if ship_data.get("visual") is Dictionary else {}
+	var visual_asset: String = str(visual.get("asset", ""))
+	var visual_anim: String = str(visual.get("asset_anim", ""))
+	var visual_anim_duration: float = maxf(0.0, float(visual.get("asset_anim_duration", 0.0)))
+	var visual_anim_loop: bool = bool(visual.get("asset_anim_loop", true))
+
+	if icon_rect:
+		icon_rect.visible = true
+		icon_rect.texture = null
+
+	var anim_frames: SpriteFrames = null
+	if visual_anim != "" and ResourceLoader.exists(visual_anim):
+		var anim_res: Resource = ResourceLoader.load(visual_anim, "", ResourceLoader.CACHE_MODE_REUSE)
+		if anim_res is SpriteFrames:
+			anim_frames = anim_res as SpriteFrames
+
+	var static_tex: Texture2D = null
+	if visual_asset != "" and ResourceLoader.exists(visual_asset):
+		var asset_res: Resource = ResourceLoader.load(visual_asset, "", ResourceLoader.CACHE_MODE_REUSE)
+		if asset_res is Texture2D:
+			static_tex = asset_res as Texture2D
+		elif asset_res is SpriteFrames and anim_frames == null:
+			anim_frames = asset_res as SpriteFrames
+
+	if anim_frames != null and anim_sprite:
+		var first_anim: StringName = _get_first_spriteframes_animation(anim_frames)
+		if first_anim != &"":
+			VFXManager.play_sprite_frames(
+				anim_sprite,
+				anim_frames,
+				first_anim,
+				visual_anim_loop,
+				visual_anim_duration
+			)
+			anim_sprite.position = preview_size * 0.5
+			var first_tex: Texture2D = anim_frames.get_frame_texture(first_anim, 0)
+			if first_tex:
+				var f_size: Vector2 = first_tex.get_size()
+				if f_size.x > 0 and f_size.y > 0:
+					var fit_scale: float = minf(preview_size.x / f_size.x, preview_size.y / f_size.y) * 0.85
+					anim_sprite.scale = Vector2(fit_scale, fit_scale)
+			anim_sprite.visible = true
+			if icon_rect:
+				icon_rect.visible = false
+			return
+
+	if anim_sprite:
+		anim_sprite.visible = false
+	if static_tex and icon_rect:
+		icon_rect.texture = static_tex
+		icon_rect.visible = true
+
+# =============================================================================
+# SHIP GRID (4 colonnes, cartes statiques avec etoiles + lock)
+# =============================================================================
+
+func _get_ship_grid_cfg() -> Dictionary:
+	var ship_menu_cfg: Dictionary = _game_config.get("ship_menu", {}) if _game_config.get("ship_menu") is Dictionary else {}
+	var grid_cfg: Variant = ship_menu_cfg.get("ship_grid", {})
+	return grid_cfg as Dictionary if grid_cfg is Dictionary else {}
+
+func _load_ship_grid() -> void:
+	if ship_grid == null:
+		return
+	for child in ship_grid.get_children():
+		child.queue_free()
+
+	var grid_cfg: Dictionary = _get_ship_grid_cfg()
+	var columns: int = int(grid_cfg.get("columns", 4))
+	ship_grid.columns = columns
+
+	var all_ships: Array = DataManager.get_ships()
+	if all_ships.size() == 0:
+		DataManager.reload_all()
+		all_ships = DataManager.get_ships()
+
+	var active_id: String = ProfileManager.get_active_ship_id()
+	var unlocked_ids: Array = ProfileManager.get_unlocked_ships()
+	if selected_ship_id == "":
+		selected_ship_id = active_id
+
+	for ship_v in all_ships:
+		if not (ship_v is Dictionary):
+			continue
+		var ship: Dictionary = ship_v as Dictionary
+		var s_id: String = str(ship.get("id", ""))
+		if s_id == "":
+			continue
+		var is_unlocked: bool = unlocked_ids.has(s_id)
+		var is_selected: bool = (s_id == active_id)
+		var card: Control = _create_ship_grid_card(ship, is_unlocked, is_selected)
+		if card:
+			ship_grid.add_child(card)
+
+func _create_ship_grid_card(ship_data: Dictionary, is_unlocked: bool, is_selected: bool) -> Control:
+	var grid_cfg: Dictionary = _get_ship_grid_cfg()
+	var card_w: int = int(grid_cfg.get("card_width", 130))
+	var card_h: int = int(grid_cfg.get("card_height", 130))
+	var s_id: String = str(ship_data.get("id", ""))
+
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(card_w, card_h)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	var style := StyleBoxFlat.new()
+	if is_selected:
+		style.bg_color = Color(0.22, 0.44, 0.78, 0.98)
+		style.border_color = Color(1.0, 0.90, 0.28)
+		style.set_border_width_all(4)
+	else:
+		style.bg_color = Color(0.08, 0.10, 0.16, 0.85)
+		style.border_color = Color(0.30, 0.35, 0.45)
+		style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	card.add_theme_stylebox_override("panel", style)
+
+	var stack := Control.new()
+	stack.name = "Stack"
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(stack)
+
+	# Vaisseau (texture statique uniquement - les cartes ne sont PAS animees).
+	var icon := TextureRect.new()
+	icon.name = "Icon"
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon.offset_top = 18
+	icon.offset_bottom = -22
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(icon)
+	icon.texture = _resolve_ship_static_thumbnail(ship_data)
+	if not is_unlocked:
+		icon.modulate = Color(0.18, 0.18, 0.20, 1.0)
+
+	# Etoiles en haut.
+	var stars_row := HBoxContainer.new()
+	stars_row.name = "Stars"
+	stars_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stars_row.add_theme_constant_override("separation", 1)
+	stars_row.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	stars_row.offset_top = 4
+	stars_row.offset_bottom = 18
+	stars_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(stars_row)
+	var stars_filled: int = _compute_ship_star_rating(s_id)
+	_populate_stars_row(stars_row, stars_filled, int(grid_cfg.get("star_size", 14)))
+
+	# Overlay lock.
+	if not is_unlocked:
+		var lock_label := Label.new()
+		lock_label.text = "🔒"
+		lock_label.add_theme_font_size_override("font_size", int(grid_cfg.get("lock_font_size", 36)))
+		lock_label.set_anchors_preset(Control.PRESET_CENTER)
+		lock_label.position = Vector2(-18, -22)
+		lock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.add_child(lock_label)
+
+	# Click overlay.
+	var btn := Button.new()
+	btn.flat = true
+	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.pressed.connect(_show_ship_details_popup.bind(s_id))
+	stack.add_child(btn)
+
+	return card
+
+func _resolve_ship_static_thumbnail(ship_data: Dictionary) -> Texture2D:
+	var visual: Dictionary = ship_data.get("visual", {}) if ship_data.get("visual") is Dictionary else {}
+	var asset_static: String = str(visual.get("asset", ""))
+	if asset_static != "" and ResourceLoader.exists(asset_static):
+		var res: Resource = ResourceLoader.load(asset_static, "", ResourceLoader.CACHE_MODE_REUSE)
+		if res is Texture2D:
+			return res as Texture2D
+		if res is SpriteFrames:
+			return _get_spriteframes_first_frame(res as SpriteFrames)
+	var asset_anim: String = str(visual.get("asset_anim", ""))
+	if asset_anim != "" and ResourceLoader.exists(asset_anim):
+		var anim_res: Resource = ResourceLoader.load(asset_anim, "", ResourceLoader.CACHE_MODE_REUSE)
+		if anim_res is SpriteFrames:
+			return _get_spriteframes_first_frame(anim_res as SpriteFrames)
+		if anim_res is Texture2D:
+			return anim_res as Texture2D
+	return null
+
+func _populate_stars_row(row: HBoxContainer, filled: int, star_size: int) -> void:
+	for child in row.get_children():
+		child.queue_free()
+	var grid_cfg: Dictionary = _get_ship_grid_cfg()
+	var max_stars: int = int(_game_config.get("ship_menu", {}).get("star_rating", {}).get("max_stars", 6))
+	var c_filled := Color(str(grid_cfg.get("star_color_filled", "#FFD54A")))
+	var c_empty := Color(str(grid_cfg.get("star_color_empty", "#3A4252")))
+	for i in range(max_stars):
+		var star_lbl := Label.new()
+		star_lbl.text = "★"
+		star_lbl.add_theme_font_size_override("font_size", maxi(8, star_size))
+		star_lbl.add_theme_color_override("font_color", c_filled if i < filled else c_empty)
+		row.add_child(star_lbl)
+
+# =============================================================================
+# CALCUL ETOILES (puissance totale)
+# =============================================================================
+
+## Calcule la "puissance totale" d'un vaisseau a partir des stats finales (StatsCalculator)
+## et des poids configures dans game.json -> ship_menu.star_rating.weights.
+func _compute_ship_total_power(ship_id: String) -> float:
+	if _ship_total_power_cache.has(ship_id):
+		return float(_ship_total_power_cache[ship_id])
+	var stats: Dictionary = _calculate_ship_stats(ship_id)
+	var sr_cfg: Dictionary = _game_config.get("ship_menu", {}).get("star_rating", {}) if _game_config.get("ship_menu") is Dictionary else {}
+	var weights_v: Variant = sr_cfg.get("weights", {})
+	if not (weights_v is Dictionary):
+		var fallback := float(stats.get("power", 0.0))
+		_ship_total_power_cache[ship_id] = fallback
+		return fallback
+	var weights: Dictionary = weights_v as Dictionary
+	var total: float = 0.0
+	for key in weights.keys():
+		var w: float = float(weights[key])
+		var v: float = float(stats.get(key, 0.0))
+		total += v * w
+	_ship_total_power_cache[ship_id] = total
+	return total
+
+## Retourne le nombre d'etoiles (1..max_stars) pour un vaisseau, base sur la puissance
+## totale et les seuils configures (game.json -> ship_menu.star_rating.thresholds).
+func _compute_ship_star_rating(ship_id: String) -> int:
+	if _ship_star_rating_cache.has(ship_id):
+		return int(_ship_star_rating_cache[ship_id])
+	var sr_cfg: Dictionary = _game_config.get("ship_menu", {}).get("star_rating", {}) if _game_config.get("ship_menu") is Dictionary else {}
+	var max_stars: int = int(sr_cfg.get("max_stars", 6))
+	var thresholds_v: Variant = sr_cfg.get("thresholds", [])
+	if not (thresholds_v is Array):
+		_ship_star_rating_cache[ship_id] = 1
+		return 1
+	var thresholds: Array = thresholds_v as Array
+	if thresholds.is_empty():
+		_ship_star_rating_cache[ship_id] = 1
+		return 1
+	var total: float = _compute_ship_total_power(ship_id)
+	var stars: int = 1
+	for i in range(thresholds.size()):
+		if total >= float(thresholds[i]):
+			stars = i + 1
+	var clamped := clampi(stars, 1, max_stars)
+	_ship_star_rating_cache[ship_id] = clamped
+	return clamped
+
+## Invalide les caches power/etoiles. A appeler lors d'un changement
+## de loadout, d'upgrade ou de recyclage qui modifie les stats finales.
+func _invalidate_ship_stats_cache(ship_id: String = "") -> void:
+	if ship_id == "":
+		_ship_total_power_cache.clear()
+		_ship_star_rating_cache.clear()
+	else:
+		_ship_total_power_cache.erase(ship_id)
+		_ship_star_rating_cache.erase(ship_id)
+
+# =============================================================================
+# POPUP DETAILS VAISSEAU
+# =============================================================================
+
+func _ensure_ship_details_popup_layout() -> void:
+	if details_vbox == null:
+		return
+	var ship_details_cfg: Dictionary = _game_config.get("ship_menu", {}).get("ship_details", {}) if _game_config.get("ship_menu") is Dictionary else {}
+
+	if details_title:
+		details_title.visible = false
+	if details_separator:
+		details_separator.visible = false
+
+	var header: HBoxContainer = details_vbox.get_node_or_null("DetailsHeaderColumns") as HBoxContainer
+	if header == null:
+		header = HBoxContainer.new()
+		header.name = "DetailsHeaderColumns"
+		header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		details_vbox.add_child(header)
+		details_vbox.move_child(header, 0)
+
+	header.add_theme_constant_override("separation", int(ship_details_cfg.get("header_column_gap", 20)))
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	if details_preview_container and details_preview_container.get_parent() != header:
+		var preview_parent := details_preview_container.get_parent()
+		if preview_parent:
+			preview_parent.remove_child(details_preview_container)
+		header.add_child(details_preview_container)
+
+	if details_preview_container:
+		details_preview_container.custom_minimum_size = Vector2(
+			float(ship_details_cfg.get("preview_column_width", 190.0)),
+			float(ship_details_cfg.get("preview_column_height", 170.0))
+		)
+		details_preview_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		details_preview_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	var text_col: VBoxContainer = header.get_node_or_null("DetailsTitleStarsColumn") as VBoxContainer
+	if text_col == null:
+		text_col = VBoxContainer.new()
+		text_col.name = "DetailsTitleStarsColumn"
+		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		text_col.alignment = BoxContainer.ALIGNMENT_CENTER
+		text_col.add_theme_constant_override("separation", 8)
+		header.add_child(text_col)
+
+	if details_name and details_name.get_parent() != text_col:
+		var name_parent := details_name.get_parent()
+		if name_parent:
+			name_parent.remove_child(details_name)
+		text_col.add_child(details_name)
+	if details_stars_row and details_stars_row.get_parent() != text_col:
+		var stars_parent := details_stars_row.get_parent()
+		if stars_parent:
+			stars_parent.remove_child(details_stars_row)
+		text_col.add_child(details_stars_row)
+
+	if details_stats_scroll and details_stats_list:
+		var padding_right: int = int(ship_details_cfg.get("stats_scroll_padding_right", 15))
+		var padding: MarginContainer = details_stats_scroll.get_node_or_null("DetailsStatsPadding") as MarginContainer
+		if padding == null:
+			padding = MarginContainer.new()
+			padding.name = "DetailsStatsPadding"
+			padding.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			padding.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			details_stats_scroll.add_child(padding)
+		padding.add_theme_constant_override("margin_right", padding_right)
+		if details_stats_list.get_parent() != padding:
+			var stats_parent := details_stats_list.get_parent()
+			if stats_parent:
+				stats_parent.remove_child(details_stats_list)
+			padding.add_child(details_stats_list)
+		details_stats_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+func _show_ship_details_popup(ship_id: String) -> void:
+	if not ship_details_popup:
+		return
+	var ship_data: Dictionary = DataManager.get_ship(ship_id)
+	if ship_data.is_empty():
+		return
+	_details_popup_ship_id = ship_id
+	_ensure_ship_details_popup_layout()
+
+	# Titre + Nom.
+	if details_title:
+		details_title.text = ""
+	if details_name:
+		var name_key := "ship." + ship_id + ".name"
+		var ship_name: String = LocaleManager.translate(name_key)
+		if ship_name == name_key:
+			ship_name = str(ship_data.get("name", ship_id))
+		details_name.text = ship_name.to_upper()
+
+	# Preview vaisseau (anime si possible).
+	if details_preview_container:
+		var preview_size: Vector2 = details_preview_container.size
+		if preview_size.x <= 0.0:
+			preview_size = details_preview_container.custom_minimum_size
+		if preview_size.x <= 0.0:
+			preview_size = Vector2(190, 170)
+		_hydrate_ship_into_preview(ship_data, preview_size, details_preview_icon, details_preview_anim)
+
+	# Etoiles.
+	if details_stars_row:
+		_populate_stars_row(details_stars_row, _compute_ship_star_rating(ship_id), 24)
+
+	# Stats listees.
+	_populate_details_stats(ship_id)
+
+	# Bouton d'action: Selectionner / Deja selectionne / Acheter.
+	_refresh_details_action_button(ship_id, ship_data)
+
+	# Bouton fermer (texte).
+	if details_close_btn:
+		UIStyle.set_button_shadow_text(details_close_btn, LocaleManager.translate("ship_menu_details_close"))
+
+	ship_details_popup.visible = true
+	ship_details_popup.move_to_front()
+
+func _hide_ship_details_popup() -> void:
+	if ship_details_popup:
+		ship_details_popup.visible = false
+	_details_popup_ship_id = ""
+
+func _populate_details_stats(ship_id: String) -> void:
+	if not details_stats_list:
+		return
+	for child in details_stats_list.get_children():
+		child.queue_free()
+	# Header puissance totale.
+	var ship_details_cfg: Dictionary = _game_config.get("ship_menu", {}).get("ship_details", {}) if _game_config.get("ship_menu") is Dictionary else {}
+	var total_font_size: int = int(ship_details_cfg.get("total_power_font_size", 24))
+	var stats_font_size: int = int(ship_details_cfg.get("stats_font_size", 22))
+	var total_power: float = _compute_ship_total_power(ship_id)
+	var total_lbl := Label.new()
+	total_lbl.text = LocaleManager.translate("ship_menu_details_total_power") + ": " + str(int(round(total_power)))
+	total_lbl.add_theme_font_size_override("font_size", total_font_size)
+	total_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.30))
+	details_stats_list.add_child(total_lbl)
+
+	var sep := HSeparator.new()
+	details_stats_list.add_child(sep)
+
+	# Stats listees.
+	var stats: Dictionary = _calculate_ship_stats(ship_id)
+	var order: Array[String] = _get_ship_stat_display_order()
+	for stat_key in order:
+		if stat_key == "missile_count":
+			continue
+		var value: float = float(stats.get(stat_key, 0.0))
+		if value == 0.0:
+			continue
+		var label_text: String = _resolve_ship_stat_label(stat_key)
+		var is_pct: bool = _is_ship_stat_percent(stat_key)
+		var formatted: String = ("%.1f" % value).trim_suffix(".0") if not is_pct else ("%d%%" % int(round(value)))
+		var row := HBoxContainer.new()
+		var name_lbl := Label.new()
+		name_lbl.text = label_text
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_font_size_override("font_size", stats_font_size)
+		row.add_child(name_lbl)
+		var val_lbl := Label.new()
+		val_lbl.text = formatted
+		val_lbl.add_theme_font_size_override("font_size", stats_font_size)
+		val_lbl.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
+		row.add_child(val_lbl)
+		details_stats_list.add_child(row)
+
+func _refresh_details_action_button(ship_id: String, ship_data: Dictionary) -> void:
+	if not details_action_btn:
+		return
+	var unlocked: Array = ProfileManager.get_unlocked_ships()
+	var is_unlocked: bool = unlocked.has(ship_id)
+	var active_id: String = ProfileManager.get_active_ship_id()
+
+	if not is_unlocked:
+		var price: int = int(ship_data.get("crystal_price", 0))
+		var template: String = LocaleManager.translate("ship_menu_details_buy")
+		UIStyle.set_button_shadow_text(details_action_btn, template.replace("{price}", str(price)))
+		details_action_btn.disabled = false
+		return
+
+	if ship_id == active_id:
+		UIStyle.set_button_shadow_text(details_action_btn, LocaleManager.translate("ship_menu_details_selected"))
+		details_action_btn.disabled = true
+		return
+
+	UIStyle.set_button_shadow_text(details_action_btn, LocaleManager.translate("ship_menu_details_select"))
+	details_action_btn.disabled = false
+
+func _on_details_action_pressed() -> void:
+	if _details_popup_ship_id == "":
+		return
+	var sid: String = _details_popup_ship_id
+	var ship_data: Dictionary = DataManager.get_ship(sid)
+	if ship_data.is_empty():
+		return
+	var unlocked: Array = ProfileManager.get_unlocked_ships()
+	if not unlocked.has(sid):
+		# Acheter.
+		var price: int = int(ship_data.get("crystal_price", 0))
+		if ProfileManager.spend_crystals(price):
+			ProfileManager.unlock_ship(sid)
+			ProfileManager.set_active_ship(sid)
+			selected_ship_id = sid
+			_load_ship_grid()
+			_hydrate_top_preview()
+			_refresh_details_action_button(sid, ship_data)
+			_update_powers_ui()
+		return
+	# Selectionner.
+	ProfileManager.set_active_ship(sid)
+	selected_ship_id = sid
+	_hide_ship_details_popup()
+	_load_ship_grid()
+	_hydrate_top_preview()
+	_update_powers_ui()

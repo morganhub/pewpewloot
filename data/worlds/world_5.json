@@ -1,722 +1,803 @@
 {
-	"id": "world_5",
-	"name": "Mines Oubliées",
-	"description": "Des galeries abandonnées creusées dans la roche, parsemées de cristaux luminescents et de veines minérales.",
-	"order": 5,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-			"fighter": "res://assets/enemies/atlantis/fighter.tres",
-			"tank": "res://assets/enemies/atlantis/tank.tres",
-			"artillery": "res://assets/enemies/atlantis/artillery.tres",
-			"elite": "res://assets/enemies/atlantis/elite.tres"
-		},
-		"bosses": {
-			"boss_mine_1": "res://assets/bosses/mine/boss_1.png",
-			"boss_mine_1_animation_duration": 2.0,
-			"boss_mine_1_animation_frequency": 8.0,
-			"boss_mine_2": "res://assets/bosses/mine/boss_2.png",
-			"boss_mine_2_animation_duration": 2.0,
-			"boss_mine_2_animation_frequency": 8.0,
-			"boss_mine_3": "res://assets/bosses/mine/boss_3.png",
-			"boss_mine_3_animation_duration": 2.0,
-			"boss_mine_3_animation_frequency": 8.0,
-			"boss_mine_4": "res://assets/bosses/mine/boss_4.png",
-			"boss_mine_4_animation_duration": 2.0,
-			"boss_mine_4_animation_frequency": 8.0,
-			"boss_mine_5": "res://assets/bosses/mine/boss_5.png",
-			"boss_mine_5_animation_duration": 2.0,
-			"boss_mine_5_animation_frequency": 8.0,
-			"boss_mine_final": "res://assets/bosses/mine/boss_final.tres",
-			"boss_mine_final_animation_duration": 2.0,
-			"boss_mine_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/mine/obstacle_explosive_1.png",
-				"res://assets/obstacles/mine/obstacle_explosive_2.png",
-				"res://assets/obstacles/mine/obstacle_explosive_3.png",
-				"res://assets/obstacles/mine/obstacle_explosive_4.png",
-				"res://assets/obstacles/mine/obstacle_explosive_5.png",
-				"res://assets/obstacles/mine/obstacle_explosive_6.png",
-				"res://assets/obstacles/mine/obstacle_explosive_7.png"
-			]
-		}
-	},
-	"multipliers": {
-		"hp": 6.0,
-		"damage": 4.0,
-		"speed": 1.1
-	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/neon.ogg",
-		"color_palette": "#4a3728"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_5_lvl_0",
-			"name": "Entrée de la Mine",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/mine/world_mine_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_0.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_mine_1",
-			"score_1star": 2150,
-			"score_2stars": 3500,
-			"score_3stars": 4900
-		},
-		{
-			"index": 1,
-			"id": "world_5_lvl_1",
-			"name": "Galeries Effondrées",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/mine/world_mine_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_mine_2",
-			"score_1star": 2550,
-			"score_2stars": 4150,
-			"score_3stars": 5750
-		},
-		{
-			"index": 2,
-			"id": "world_5_lvl_2",
-			"name": "Veine de Cristaux",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/mine/world_mine_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_2.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_mine_3",
-			"score_1star": 3950,
-			"score_2stars": 6450,
-			"score_3stars": 9000
-		},
-		{
-			"index": 3,
-			"id": "world_5_lvl_3",
-			"name": "Lac Souterrain",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/mine/world_mine_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_3.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "debris_small",
-					"pattern": "rain",
-					"speed": 200,
-					"gap_width": 150,
-					"row_interval": 0.8,
-					"drift_speed": 20,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_mine_4",
-			"score_1star": 2800,
-			"score_2stars": 4550,
-			"score_3stars": 6350
-		},
-		{
-			"index": 4,
-			"id": "world_5_lvl_4",
-			"name": "Noyau Minéral",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/mine/world_mine_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_4.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 250,
-					"gap_width": 130,
-					"row_interval": 0.6,
-					"drift_speed": 25,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_mine_5",
-			"score_1star": 5150,
-			"score_2stars": 8450,
-			"score_3stars": 11750
-		},
-		{
-			"index": 5,
-			"id": "world_5_lvl_5",
-			"name": "Le Golem",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/mine/world_mine_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/mine/world_mine_5.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "slalom",
-					"speed": 110,
-					"gap_width": 220,
-					"row_interval": 2.0,
-					"drift_speed": 12,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "debris_small",
-					"pattern": "rain",
-					"speed": 200,
-					"gap_width": 150,
-					"row_interval": 0.8,
-					"drift_speed": 20,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_mine_final",
-			"score_1star": 6000,
-			"score_2stars": 9850,
-			"score_3stars": 13700
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_4"
-	}
+  "id": "world_5",
+  "name": "Mines Oubliées",
+  "description": "Des galeries abandonnées creusées dans la roche, parsemées de cristaux luminescents et de veines minérales.",
+  "order": 5,
+  "skin_overrides": {
+    "enemies": {
+      "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
+      "fighter": "res://assets/enemies/atlantis/fighter.tres",
+      "tank": "res://assets/enemies/atlantis/tank.tres",
+      "artillery": "res://assets/enemies/atlantis/artillery.tres",
+      "elite": "res://assets/enemies/atlantis/elite.tres"
+    },
+    "bosses": {
+      "boss_mine_1": "res://assets/bosses/mine/boss_1.png",
+      "boss_mine_1_animation_duration": 2.0,
+      "boss_mine_1_animation_frequency": 8.0,
+      "boss_mine_2": "res://assets/bosses/mine/boss_2.png",
+      "boss_mine_2_animation_duration": 2.0,
+      "boss_mine_2_animation_frequency": 8.0,
+      "boss_mine_3": "res://assets/bosses/mine/boss_3.png",
+      "boss_mine_3_animation_duration": 2.0,
+      "boss_mine_3_animation_frequency": 8.0,
+      "boss_mine_4": "res://assets/bosses/mine/boss_4.png",
+      "boss_mine_4_animation_duration": 2.0,
+      "boss_mine_4_animation_frequency": 8.0,
+      "boss_mine_5": "res://assets/bosses/mine/boss_5.png",
+      "boss_mine_5_animation_duration": 2.0,
+      "boss_mine_5_animation_frequency": 8.0,
+      "boss_mine_final": "res://assets/bosses/mine/boss_final.tres",
+      "boss_mine_final_animation_duration": 2.0,
+      "boss_mine_final_animation_frequency": 8.0
+    },
+    "obstacles": {
+      "explosives": [
+        "res://assets/obstacles/mine/obstacle_explosive_1.png",
+        "res://assets/obstacles/mine/obstacle_explosive_2.png",
+        "res://assets/obstacles/mine/obstacle_explosive_3.png",
+        "res://assets/obstacles/mine/obstacle_explosive_4.png",
+        "res://assets/obstacles/mine/obstacle_explosive_5.png",
+        "res://assets/obstacles/mine/obstacle_explosive_6.png",
+        "res://assets/obstacles/mine/obstacle_explosive_7.png"
+      ]
+    }
+  },
+  "multipliers": {
+    "hp": 6.0,
+    "damage": 4.0,
+    "speed": 1.1
+  },
+  "wave_runtime_defaults": {
+    "artillery_count": 18,
+    "artillery_rows": 3,
+    "artillery_spawn_interval_sec": 0.08,
+    "artillery_fire_rate_sec": 2.7
+  },
+  "theme": {
+    "background": "",
+    "music": "res://assets/music/neon.ogg",
+    "color_palette": "#4a3728"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "id": "world_5_lvl_0",
+      "name": "Entrée de la Mine",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/mine/world_mine_0.png",
+        "far_layer": "res://assets/backgrounds/worlds/mine/world_mine_0.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_mine_1",
+      "score_1star": 2150,
+      "score_2stars": 3500,
+      "score_3stars": 4900,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "interval": 3.33,
+          "hp_multiplier": 1.45
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 220.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 500,
+          "enemy_paddle_speed_px_sec": 400,
+          "enemy_reaction_interval_sec": 0.28,
+          "enemy_aim_error_px": 36,
+          "crystals_per_point": 4
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": "world_5_lvl_1",
+      "name": "Galeries Effondrées",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/mine/world_mine_1.png",
+        "far_layer": "res://assets/backgrounds/worlds/mine/world_mine_1.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_mine_2",
+      "score_1star": 2550,
+      "score_2stars": 4150,
+      "score_3stars": 5750,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "swarm",
+          "enemy_id": "swarmer",
+          "count": 49,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.45
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 250.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "world_5_lvl_2",
+      "name": "Veine de Cristaux",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/mine/world_mine_2.png",
+        "far_layer": "res://assets/backgrounds/worlds/mine/world_mine_2.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_mine_3",
+      "score_1star": 3950,
+      "score_2stars": 6450,
+      "score_3stars": 9000,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.45
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 220.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "asteroid_split",
+          "duration": 35,
+          "count": 6,
+          "speed": 140,
+          "hp_multiplier": 1.6
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "world_5_lvl_3",
+      "name": "Lac Souterrain",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/mine/world_mine_3.png",
+        "far_layer": "res://assets/backgrounds/worlds/mine/world_mine_3.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_mine_4",
+      "score_1star": 2800,
+      "score_2stars": 4550,
+      "score_3stars": 6350,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "debris_small",
+          "pattern": "rain",
+          "speed": 200,
+          "gap_width": 150,
+          "row_interval": 0.8,
+          "drift_speed": 20,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.45
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 270.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 500,
+          "enemy_paddle_speed_px_sec": 400,
+          "enemy_reaction_interval_sec": 0.28,
+          "enemy_aim_error_px": 36,
+          "crystals_per_point": 4
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "id": "world_5_lvl_4",
+      "name": "Noyau Minéral",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/mine/world_mine_4.png",
+        "far_layer": "res://assets/backgrounds/worlds/mine/world_mine_4.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_mine_5",
+      "score_1star": 5150,
+      "score_2stars": 8450,
+      "score_3stars": 11750,
+      "waves": [
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.45
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 250.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "vertical_climb",
+          "duration": 40,
+          "gravity_px_sec2": 1650,
+          "bounce_speed_px_sec": 760,
+          "platform_gap_y_min_px": 105,
+          "platform_gap_y_max_px": 145,
+          "lava_rise_px_sec": 4.5
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 250,
+          "gap_width": 130,
+          "row_interval": 0.6,
+          "drift_speed": 25,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "id": "world_5_lvl_5",
+      "name": "Le Golem",
+      "type": "boss",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/mine/world_mine_5.png",
+        "far_layer": "res://assets/backgrounds/worlds/mine/world_mine_5.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_mine_final",
+      "score_1star": 6000,
+      "score_2stars": 9850,
+      "score_3stars": 13700,
+      "waves": [
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.45
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 290.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "slalom",
+          "speed": 110,
+          "gap_width": 220,
+          "row_interval": 2.0,
+          "drift_speed": 12,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "debris_small",
+          "pattern": "rain",
+          "speed": 200,
+          "gap_width": 150,
+          "row_interval": 0.8,
+          "drift_speed": 20,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        }
+      ]
+    }
+  ],
+  "unlock_condition": {
+    "type": "world_clear",
+    "world_id": "world_4"
+  }
 }

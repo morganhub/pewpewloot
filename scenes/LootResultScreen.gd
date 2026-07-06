@@ -21,8 +21,15 @@ var _secondary_nav_label: String = "Sélection niveau"
 var _menu_nav_label: String = "Menu"
 var _item_details_popup: Control = null
 var _item_popup_input_blocker: Control = null
-var _boss_featured_row: HBoxContainer = null
 var _score_cfg: Dictionary = {}
+var _loot_drag_tracking: bool = false
+var _loot_drag_start_x: float = 0.0
+var _loot_drag_start_y: float = 0.0
+
+const LOOT_CARD_SIZE := 108.0
+const LOOT_CARD_SEPARATION := 8
+const LOOT_GRID_VISIBLE_WIDTH := 340.0
+const LOOT_SWIPE_THRESHOLD_PX := 48.0
 
 @onready var item_name_label: Label = %ItemNameLabel
 @onready var item_type_label: Label = %ItemTypeLabel
@@ -44,13 +51,13 @@ var _score_cfg: Dictionary = {}
 @onready var next_btn: Button = %NextButton
 @onready var session_container: VBoxContainer = %SessionLootContainer
 @onready var title_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Title
-@onready var top_separator: HSeparator = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator
+@onready var top_separator: HSeparator = get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator")
 @onready var item_stats_panel: Panel = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Panel
 @onready var item_spacer: Control = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Spacer
 @onready var boss_buttons_container: HBoxContainer = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonsContainer
-@onready var mid_separator: HSeparator = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator2
+@onready var mid_separator: HSeparator = get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator2")
 @onready var session_title_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SessionLootContainer/SessionTitle
-@onready var bottom_separator: HSeparator = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator3
+@onready var bottom_separator: HSeparator = get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HSeparator3")
 
 func setup(item: Dictionary, session_loot: Array = [], is_victory: bool = true) -> void:
 	_item = item
@@ -82,6 +89,52 @@ func setup(item: Dictionary, session_loot: Array = [], is_victory: bool = true) 
 	if not next_btn.pressed.is_connected(_on_next_page):
 		next_btn.pressed.connect(_on_next_page)
 
+func _input(event: InputEvent) -> void:
+	if _item_details_popup != null:
+		return
+	if items_grid == null or session_container == null or not session_container.visible:
+		return
+
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_start_loot_drag(touch.position)
+		else:
+			_finish_loot_drag(touch.position)
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		if mouse.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mouse.pressed:
+			_start_loot_drag(mouse.position)
+		else:
+			_finish_loot_drag(mouse.position)
+
+func _start_loot_drag(position: Vector2) -> void:
+	if _is_position_in_loot_nav_area(position):
+		_loot_drag_tracking = true
+		_loot_drag_start_x = position.x
+		_loot_drag_start_y = position.y
+
+func _finish_loot_drag(position: Vector2) -> void:
+	if not _loot_drag_tracking:
+		return
+	_loot_drag_tracking = false
+	var drag_delta := Vector2(position.x - _loot_drag_start_x, position.y - _loot_drag_start_y)
+	if absf(drag_delta.x) < LOOT_SWIPE_THRESHOLD_PX or absf(drag_delta.x) <= absf(drag_delta.y):
+		return
+	if drag_delta.x < 0.0:
+		_on_next_page()
+	else:
+		_on_prev_page()
+	get_viewport().set_input_as_handled()
+
+func _is_position_in_loot_nav_area(position: Vector2) -> bool:
+	var inventory_hbox := items_grid.get_parent() as Control
+	if inventory_hbox:
+		return inventory_hbox.get_global_rect().has_point(position)
+	return items_grid.get_global_rect().has_point(position)
+
 func _sort_session_loot() -> void:
 	var priority = {
 		"unique": 5,
@@ -103,6 +156,7 @@ func _load_assets() -> void:
 		if json.parse(file.get_as_text()) == OK:
 			_game_config = json.data
 	_score_cfg = _game_config.get("score_parameters", {}) if _game_config.get("score_parameters") is Dictionary else {}
+	var loot_result_cfg: Dictionary = _get_loot_result_config()
 	
 	var reward_config: Dictionary = _game_config.get("reward_screen", {})
 	var popup_config: Dictionary = _game_config.get("popups", {})
@@ -128,6 +182,12 @@ func _load_assets() -> void:
 		var title_cfg = popup_config.get("background", {})
 		title_label.add_theme_font_size_override("font_size", int(title_cfg.get("font_size", 32)))
 		title_label.add_theme_color_override("font_color", Color.html(str(title_cfg.get("text_color", "#FFFFFF"))))
+	if item_name_label:
+		item_name_label.add_theme_font_size_override("font_size", int(loot_result_cfg.get("item_name_font_size", 28)))
+	if item_type_label:
+		item_type_label.add_theme_font_size_override("font_size", int(loot_result_cfg.get("item_type_font_size", 18)))
+	if session_title_label:
+		session_title_label.add_theme_font_size_override("font_size", int(loot_result_cfg.get("session_title_font_size", 14)))
 
 	# Buttons — default style for all, then validation on the primary action only
 	var default_btn_cfg := UIStyle.get_default_button_style()
@@ -166,6 +226,15 @@ func _load_assets() -> void:
 	if disassemble_btn and not disassemble_btn.text.is_empty():
 		UIStyle.apply_button_shadow(disassemble_btn, "medium")
 	_update_levelup_skills_button()
+
+func _get_loot_result_config() -> Dictionary:
+	var screens_v: Variant = _game_config.get("screens", {})
+	if screens_v is Dictionary:
+		var screen_cfg_v: Variant = (screens_v as Dictionary).get("loot_result", {})
+		if screen_cfg_v is Dictionary:
+			return screen_cfg_v as Dictionary
+	var root_v: Variant = _game_config.get("loot_result", {})
+	return root_v if root_v is Dictionary else {}
 
 func _apply_button_style(btn: Button, cfg: Dictionary) -> void:
 	if not btn or cfg.is_empty(): return
@@ -280,7 +349,7 @@ func _add_stat_row(stat_key: String, value: Variant) -> void:
 		val_str = str(value)
 		
 	lbl.text = pretty_key + " : " + val_str
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", int(_get_loot_result_config().get("stat_row_font_size", 18)))
 	
 	# Match popup text color
 	var pop_cfg = _game_config.get("popups", {}).get("background", {})
@@ -298,15 +367,15 @@ func _get_rarity_color_from_config(rarity: String) -> Color:
 	return DataManager.get_rarity_color(rarity)
 
 func _update_inventory_ui() -> void:
-	var has_boss_loot := _is_victory and not _item.is_empty()
-	if _session_loot.is_empty() and not has_boss_loot:
+	var display_loot: Array = _get_display_loot_items()
+	if display_loot.is_empty():
 		session_container.visible = false
-		_clear_boss_featured_row()
 		return
 	
 	session_container.visible = true
 	if session_title_label:
 		session_title_label.visible = true
+		session_title_label.text = "BUTIN"
 	
 	var item_card_scene_res: Resource = load("res://scenes/components/ItemCard.tscn")
 	if not (item_card_scene_res is PackedScene):
@@ -321,30 +390,27 @@ func _update_inventory_ui() -> void:
 		"hide_badges": true
 	}
 
-	_update_boss_featured_row(item_card_scene, inv_config)
-
 	# Clear grid
 	for child in items_grid.get_children():
 		child.queue_free()
 
 	var inventory_hbox := items_grid.get_parent()
 	if inventory_hbox:
-		inventory_hbox.visible = not _session_loot.is_empty()
-	if _session_loot.is_empty():
-		prev_btn.visible = false
-		next_btn.visible = false
-		return
+		inventory_hbox.visible = true
+	items_grid.custom_minimum_size = Vector2(LOOT_GRID_VISIBLE_WIDTH, LOOT_CARD_SIZE)
+	items_grid.add_theme_constant_override("separation", LOOT_CARD_SEPARATION)
 	
 	# Paginate
+	var max_page := maxi(0, int(ceil(float(display_loot.size()) / float(_items_per_page))) - 1)
+	_current_page = clampi(_current_page, 0, max_page)
 	var start = _current_page * _items_per_page
-	var end = min(start + _items_per_page, _session_loot.size())
+	var end = min(start + _items_per_page, display_loot.size())
 	
 	for i in range(start, end):
-		var item_data: Dictionary = _session_loot[i]
+		var item_data: Dictionary = display_loot[i]
 		var card = item_card_scene.instantiate()
 		items_grid.add_child(card)
-		# Agrandir les aperçus de loot de session (~30% et plus visibles)
-		card.custom_minimum_size = Vector2(120, 120)
+		card.custom_minimum_size = Vector2(LOOT_CARD_SIZE, LOOT_CARD_SIZE)
 		card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		var slot_id = str(item_data.get("slot", "primary"))
 		card.setup_item(item_data, slot_id, inv_config)
@@ -357,49 +423,26 @@ func _update_inventory_ui() -> void:
 	
 	# Update buttons
 	prev_btn.disabled = (_current_page == 0)
-	var max_page = ceil(float(_session_loot.size()) / _items_per_page) - 1
 	next_btn.disabled = (_current_page >= max_page)
 	
 	# Hide buttons if only 1 page
-	prev_btn.visible = (_session_loot.size() > _items_per_page)
-	next_btn.visible = (_session_loot.size() > _items_per_page)
+	prev_btn.visible = (display_loot.size() > _items_per_page)
+	next_btn.visible = (display_loot.size() > _items_per_page)
 
-func _clear_boss_featured_row() -> void:
-	if _boss_featured_row and is_instance_valid(_boss_featured_row):
-		_boss_featured_row.queue_free()
-	_boss_featured_row = null
-
-func _update_boss_featured_row(item_card_scene: PackedScene, inv_config: Dictionary) -> void:
-	_clear_boss_featured_row()
-	if not _is_victory or _item.is_empty():
-		return
-
-	_boss_featured_row = HBoxContainer.new()
-	_boss_featured_row.name = "BossLootHeroRow"
-	_boss_featured_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_boss_featured_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	session_container.add_child(_boss_featured_row)
-
-	var inventory_hbox := items_grid.get_parent()
-	if inventory_hbox:
-		session_container.move_child(_boss_featured_row, inventory_hbox.get_index())
-
-	var hero_card = item_card_scene.instantiate()
-	if not hero_card:
-		return
-	_boss_featured_row.add_child(hero_card)
-	# Agrandir l'aperçu du loot de boss (~30% par rapport à la base 132)
-	hero_card.custom_minimum_size = Vector2(172, 172) # 132 * 1.3 arrondi
-
-	var hero_cfg: Dictionary = inv_config.duplicate(true)
-	hero_cfg["hide_badges"] = true
-	var boss_slot := str(_item.get("slot", "primary"))
-	hero_card.setup_item(_item, boss_slot, hero_cfg)
-
-	var boss_item_copy: Dictionary = _item.duplicate(true)
-	hero_card.card_pressed.connect(func(id: String, slot: String) -> void:
-		_on_item_clicked(id, slot, boss_item_copy)
-	)
+func _get_display_loot_items() -> Array:
+	var result: Array = []
+	var boss_item_id: String = ""
+	if _is_victory and not _item.is_empty():
+		boss_item_id = str(_item.get("id", ""))
+		result.append(_item)
+	for loot_variant in _session_loot:
+		if not (loot_variant is Dictionary):
+			continue
+		var loot_item: Dictionary = loot_variant as Dictionary
+		if boss_item_id != "" and str(loot_item.get("id", "")) == boss_item_id:
+			continue
+		result.append(loot_item)
+	return result
 
 func _on_prev_page() -> void:
 	if _current_page > 0:
@@ -407,7 +450,8 @@ func _on_prev_page() -> void:
 		_update_inventory_ui()
 
 func _on_next_page() -> void:
-	var max_page = ceil(float(_session_loot.size()) / _items_per_page) - 1
+	var display_loot: Array = _get_display_loot_items()
+	var max_page := maxi(0, int(ceil(float(display_loot.size()) / float(_items_per_page))) - 1)
 	if _current_page < max_page:
 		_current_page += 1
 		_update_inventory_ui()
@@ -625,33 +669,36 @@ func _build_score_section() -> void:
 	score_label.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_normal", "#FFFFFF"))))
 	score_section.add_child(score_label)
 
-	var stars_row := HBoxContainer.new()
-	stars_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	stars_row.add_theme_constant_override("separation", 10)
-	score_section.add_child(stars_row)
 	_score_star_nodes.clear()
+	# No thresholds at all (free mode runs) = no star system for this session:
+	# skip the row instead of showing three permanently empty stars.
+	if not _score_thresholds.is_empty() or _score_stars > 0:
+		var stars_row := HBoxContainer.new()
+		stars_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		stars_row.add_theme_constant_override("separation", 10)
+		score_section.add_child(stars_row)
 
-	var star_size_cfg: Dictionary = _score_cfg.get("star_size", {}) if _score_cfg.get("star_size") is Dictionary else {}
-	var star_size := Vector2(
-		float(star_size_cfg.get("x", 52)),
-		float(star_size_cfg.get("y", 52))
-	)
-	var empty_path: String = str(_score_cfg.get("star_empty_asset", ""))
-	var filled_path: String = str(_score_cfg.get("star_filled_asset", ""))
-	var empty_tex: Texture2D = load(empty_path) as Texture2D if empty_path != "" and ResourceLoader.exists(empty_path) else null
-	var filled_tex: Texture2D = load(filled_path) as Texture2D if filled_path != "" and ResourceLoader.exists(filled_path) else null
+		var star_size_cfg: Dictionary = _score_cfg.get("star_size", {}) if _score_cfg.get("star_size") is Dictionary else {}
+		var star_size := Vector2(
+			float(star_size_cfg.get("x", 52)),
+			float(star_size_cfg.get("y", 52))
+		)
+		var empty_path: String = str(_score_cfg.get("star_empty_asset", ""))
+		var filled_path: String = str(_score_cfg.get("star_filled_asset", ""))
+		var empty_tex: Texture2D = load(empty_path) as Texture2D if empty_path != "" and ResourceLoader.exists(empty_path) else null
+		var filled_tex: Texture2D = load(filled_path) as Texture2D if filled_path != "" and ResourceLoader.exists(filled_path) else null
 
-	for i in range(3):
-		var filled: bool = i < _score_stars
-		var star_control: Control = _build_star_widget(filled, star_size, empty_tex, filled_tex)
-		stars_row.add_child(star_control)
-		_score_star_nodes.append(star_control)
+		for i in range(3):
+			var filled: bool = i < _score_stars
+			var star_control: Control = _build_star_widget(filled, star_size, empty_tex, filled_tex)
+			stars_row.add_child(star_control)
+			_score_star_nodes.append(star_control)
 
 	var is_new_record: bool = _score_total > 0 and _score_best_after > _score_best_before and _score_best_after == _score_total
 	if is_new_record:
 		var record_label := Label.new()
 		record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		record_label.add_theme_font_size_override("font_size", 17)
+		record_label.add_theme_font_size_override("font_size", int(_score_cfg.get("font_size_record", 17)))
 		record_label.text = "%s: %d" % [_tr("score_personal_best_label", "Meilleur score"), _score_best_after]
 		record_label.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_record", "#FFD700"))))
 		score_section.add_child(record_label)
@@ -743,14 +790,14 @@ func _build_xp_section() -> void:
 	# XP gained text
 	_xp_gained_label = Label.new()
 	_xp_gained_label.text = "⭐ XP gagné: +" + str(_xp_gained)
-	_xp_gained_label.add_theme_font_size_override("font_size", 18)
+	_xp_gained_label.add_theme_font_size_override("font_size", int(_get_loot_result_config().get("xp_gained_font_size", 18)))
 	_xp_gained_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
 	_xp_gained_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	xp_section.add_child(_xp_gained_label)
 	
 	# Level up notification (hidden initially, shown during animation)
 	_xp_levelup_label = Label.new()
-	_xp_levelup_label.add_theme_font_size_override("font_size", 16)
+	_xp_levelup_label.add_theme_font_size_override("font_size", int(_get_loot_result_config().get("xp_levelup_font_size", 16)))
 	_xp_levelup_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
 	_xp_levelup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_xp_levelup_label.visible = false

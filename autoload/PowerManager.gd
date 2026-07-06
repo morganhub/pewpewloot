@@ -241,6 +241,9 @@ func _handle_projectiles(source: Node2D, proj_data: Dictionary) -> void:
 	var default_damage: int = DEFAULT_PLAYER_POWER_PROJECTILE_DAMAGE if is_player_source else DEFAULT_BOSS_POWER_PROJECTILE_DAMAGE
 	var projectile_speed: float = maxf(1.0, float(proj_data.get("speed", default_speed)))
 	var projectile_damage: int = maxi(1, int(round(float(proj_data.get("damage", default_damage)))))
+	var source_special_scale: float = float(proj_data.get("source_special_damage_scale", 0.0))
+	if is_player_source and source_special_scale != 0.0 and "special_damage" in source:
+		projectile_damage = maxi(1, int(round(float(projectile_damage) + (float(source.get("special_damage")) * source_special_scale))))
 	var targeting_data: Dictionary = _extract_targeting_data(proj_data)
 	if targeting_data.is_empty() and bool(proj_data.get("aim_target", false)):
 		targeting_data = {"mode": "single_target", "prioritize_boss": true, "require_on_screen": true} if is_player_source else {"mode": "player"}

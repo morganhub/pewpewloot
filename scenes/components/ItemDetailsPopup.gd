@@ -29,6 +29,28 @@ var _show_upgrade_recycle: bool = true
 var _first_open_layout_pending: bool = true
 var _setup_serial: int = 0
 
+# Strong static caches shared across all ItemDetailsPopup instances.
+# Pattern aligned with scenes/Enemy.gd and scenes/LootDrop.gd (performance_improvements.md).
+static var _resource_cache: Dictionary = {}
+static var _missing_paths: Dictionary = {}
+
+static func _load_cached_resource(path: String) -> Resource:
+	if path == "":
+		return null
+	if _resource_cache.has(path):
+		return _resource_cache[path] as Resource
+	if _missing_paths.has(path):
+		return null
+	if not ResourceLoader.exists(path):
+		_missing_paths[path] = true
+		return null
+	var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if res != null:
+		_resource_cache[path] = res
+	else:
+		_missing_paths[path] = true
+	return res
+
 func _ensure_nodes() -> void:
 	if not icon_rect: icon_rect = %Icon
 	if not name_label: name_label = %NameLabel
@@ -100,22 +122,25 @@ func setup(
 	
 	# Icon
 	var final_path = asset
-	
+	var final_res: Resource = _load_cached_resource(final_path)
+
 	# Try DataManager lookup if asset missing
-	if final_path == "" or not ResourceLoader.exists(final_path):
+	if final_res == null:
 		var s_data = DataManager.get_slot(effective_slot_id)
 		var icon_def = s_data.get("icon")
 		if icon_def is Dictionary:
 			final_path = str(icon_def.get(rarity, icon_def.get("common", "")))
 		elif icon_def is String:
 			final_path = icon_def
-			
+		final_res = _load_cached_resource(final_path)
+
 	# Fallback to placeholder
-	if final_path == "" or not ResourceLoader.exists(final_path):
+	if final_res == null:
 		var placeholders = config.get("placeholders", {})
 		final_path = str(placeholders.get(effective_slot_id, ""))
-	
-	_update_icon(final_path)
+		final_res = _load_cached_resource(final_path)
+
+	_update_icon(final_path, final_res)
 	
 	# Name & Rarity
 	var slot_data = DataManager.get_slot(effective_slot_id)
@@ -375,35 +400,37 @@ func _on_recycle_pressed() -> void:
 func _on_close_pressed() -> void:
 	close_requested.emit()
 
-func _update_icon(path: String) -> void:
+func _update_icon(path: String, preloaded_res: Resource = null) -> void:
 	# Clean up previous animation
 	var existing = icon_rect.get_node_or_null("AnimSprite")
 	if existing: existing.queue_free()
-	
-	if path != "" and ResourceLoader.exists(path):
+
+	var res: Resource = preloaded_res if preloaded_res != null else _load_cached_resource(path)
+	if res != null:
 		icon_rect.visible = true
-		
+
 		# Check for AnimatedSprite2D resource (SpriteFrames)
-		if path.ends_with(".tres") or path.ends_with(".res"):
-			var res = load(path)
-			if res is SpriteFrames:
-				icon_rect.texture = null
-				var anim = AnimatedSprite2D.new()
-				anim.name = "AnimSprite"
-				anim.sprite_frames = res
-				anim.play("default")
-				anim.centered = true
-				icon_rect.add_child(anim)
-				
-				anim.position = icon_rect.size / 2.0
-				if not icon_rect.resized.is_connected(_on_icon_resized):
-					icon_rect.resized.connect(_on_icon_resized)
-				return
-		
+		if res is SpriteFrames:
+			icon_rect.texture = null
+			var anim = AnimatedSprite2D.new()
+			anim.name = "AnimSprite"
+			anim.sprite_frames = res
+			anim.play("default")
+			anim.centered = true
+			icon_rect.add_child(anim)
+
+			anim.position = icon_rect.size / 2.0
+			if not icon_rect.resized.is_connected(_on_icon_resized):
+				icon_rect.resized.connect(_on_icon_resized)
+			return
+
 		# Fallback / Normal Texture
 		if icon_rect.resized.is_connected(_on_icon_resized):
 			icon_rect.resized.disconnect(_on_icon_resized)
-		icon_rect.texture = load(path)
+		if res is Texture2D:
+			icon_rect.texture = res as Texture2D
+		else:
+			icon_rect.visible = false
 	else:
 		icon_rect.visible = false
 

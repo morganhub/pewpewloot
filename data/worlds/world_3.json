@@ -1,692 +1,719 @@
 {
-	"id": "world_3",
-	"name": "Complexe Industriel",
-	"description": "Une gigantesque station industrielle aux mécanismes encore actifs et aux corridors labyrinthiques.",
-	"order": 3,
-	"skin_overrides": {
-		"enemies": {
-			"swarmer": "res://assets/enemies/industrial/swarmer.tres",
-			"fighter": "res://assets/enemies/industrial/fighter.tres",
-			"tank": "res://assets/enemies/industrial/tank.tres",
-			"artillery": "res://assets/enemies/industrial/artillery.tres",
-			"elite": "res://assets/enemies/industrial/elite.tres"
-		},
-		"bosses": {
-			"boss_industrial_1": "res://assets/bosses/industrial/boss_1.tres",
-			"boss_industrial_1_animation_duration": 2.0,
-			"boss_industrial_1_animation_frequency": 8.0,
-			"boss_industrial_2": "res://assets/bosses/industrial/boss_2.tres",
-			"boss_industrial_2_animation_duration": 2.0,
-			"boss_industrial_2_animation_frequency": 8.0,
-			"boss_industrial_3": "res://assets/bosses/industrial/boss_3.tres",
-			"boss_industrial_3_animation_duration": 2.0,
-			"boss_industrial_3_animation_frequency": 8.0,
-			"boss_industrial_4": "res://assets/bosses/industrial/boss_4.tres",
-			"boss_industrial_4_animation_duration": 2.0,
-			"boss_industrial_4_animation_frequency": 8.0,
-			"boss_industrial_5": "res://assets/bosses/industrial/boss_5.tres",
-			"boss_industrial_5_animation_duration": 2.0,
-			"boss_industrial_5_animation_frequency": 8.0,
-			"boss_industrial_final": "res://assets/bosses/industrial/boss_final.tres",
-			"boss_industrial_final_animation_duration": 2.0,
-			"boss_industrial_final_animation_frequency": 8.0
-		},
-		"obstacles": {
-			"explosives": [
-				"res://assets/obstacles/industrial/obstacle_explosive_1.png",
-				"res://assets/obstacles/industrial/obstacle_explosive_2.png",
-				"res://assets/obstacles/industrial/obstacle_explosive_3.png",
-				"res://assets/obstacles/industrial/obstacle_explosive_4.png",
-				"res://assets/obstacles/industrial/obstacle_explosive_5.png",
-				"res://assets/obstacles/industrial/obstacle_explosive_6.png",
-				"res://assets/obstacles/industrial/obstacle_explosive_7.png"
-			]
-		}
-	},
-	"multipliers": {
-		"hp": 2.5,
-		"damage": 2.0,
-		"speed": 1.1
-	},
-	"theme": {
-		"background": "",
-		"music": "res://assets/music/starlight.ogg",
-		"color_palette": "#5d5d5d"
-	},
-	"levels": [
-		{
-			"index": 0,
-			"id": "world_3_lvl_0",
-			"name": "Dock d'Amarrage",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_0.png",
-				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_0.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "slalom",
-					"speed": 110,
-					"gap_width": 220,
-					"row_interval": 2.0,
-					"drift_speed": 12,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_industrial_1",
-			"score_1star": 1400,
-			"score_2stars": 2250,
-			"score_3stars": 3100
-		},
-		{
-			"index": 1,
-			"id": "world_3_lvl_1",
-			"name": "Couloirs de Maintenance",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_1.png",
-				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_1.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_industrial_2",
-			"score_1star": 2200,
-			"score_2stars": 3550,
-			"score_3stars": 4950
-		},
-		{
-			"index": 2,
-			"id": "world_3_lvl_2",
-			"name": "Salle des Machines",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_2.png",
-				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_2.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "slalom",
-					"speed": 110,
-					"gap_width": 220,
-					"row_interval": 2.0,
-					"drift_speed": 12,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 160,
-					"gap_width": 180,
-					"row_interval": 1.8
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_industrial_3",
-			"score_1star": 3450,
-			"score_2stars": 5700,
-			"score_3stars": 7900
-		},
-		{
-			"index": 3,
-			"id": "world_3_lvl_3",
-			"name": "Réacteur Central",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_3.png",
-				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_3.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 90,
-					"gap_width": 260,
-					"row_interval": 2.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "debris_small",
-					"pattern": "rain",
-					"speed": 200,
-					"gap_width": 150,
-					"row_interval": 0.8,
-					"drift_speed": 20,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_industrial_4",
-			"score_1star": 4850,
-			"score_2stars": 7950,
-			"score_3stars": 11050
-		},
-		{
-			"index": 4,
-			"id": "world_3_lvl_4",
-			"name": "Zone Interdite",
-			"type": "normal",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_4.png",
-				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_4.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "slalom",
-					"speed": 70,
-					"gap_width": 300,
-					"row_interval": 3.0,
-					"drift_speed": 5,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_small",
-					"pattern": "rain",
-					"speed": 180,
-					"gap_width": 160,
-					"row_interval": 1.0,
-					"drift_speed": 15,
-					"drift_directions": [
-						"S",
-						"SW",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_industrial_5",
-			"score_1star": 4300,
-			"score_2stars": 7050,
-			"score_3stars": 9800
-		},
-		{
-			"index": 5,
-			"id": "world_3_lvl_5",
-			"name": "L'Automate",
-			"type": "boss",
-			"backgrounds": {
-				"card": "res://assets/backgrounds/worlds/industrial/world_industrial_5.png",
-				"far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_5.png",
-				"near_layer": []
-			},
-			"waves": [
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "fighter",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "artillery",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 170,
-					"gap_width": 190,
-					"row_interval": 1.2,
-					"drift_speed": 10,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "slalom",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 1.5
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_medium",
-					"pattern": "gates",
-					"speed": 150,
-					"gap_width": 200,
-					"row_interval": 2.0
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "elite",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"enemy_id": "tank",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				},
-				{
-					"type": "obstacle",
-					"obstacle_id": "asteroid_large",
-					"pattern": "rain",
-					"speed": 130,
-					"gap_width": 200,
-					"row_interval": 2.0,
-					"drift_speed": 8,
-					"drift_directions": [
-						"SW",
-						"S",
-						"SE"
-					]
-				},
-				{
-					"enemy_id": "swarmer",
-					"interval": 0.7,
-					"enemy_modifier_id": ""
-				}
-			],
-			"events": [],
-			"boss_id": "boss_industrial_final",
-			"score_1star": 5600,
-			"score_2stars": 9200,
-			"score_3stars": 12800
-		}
-	],
-	"unlock_condition": {
-		"type": "world_clear",
-		"world_id": "world_2"
-	}
+  "id": "world_3",
+  "name": "Complexe Industriel",
+  "description": "Une gigantesque station industrielle aux mécanismes encore actifs et aux corridors labyrinthiques.",
+  "order": 3,
+  "skin_overrides": {
+    "enemies": {
+      "swarmer": "res://assets/enemies/industrial/swarmer.tres",
+      "fighter": "res://assets/enemies/industrial/fighter.tres",
+      "tank": "res://assets/enemies/industrial/tank.tres",
+      "artillery": "res://assets/enemies/industrial/artillery.tres",
+      "elite": "res://assets/enemies/industrial/elite.tres"
+    },
+    "bosses": {
+      "boss_industrial_1": "res://assets/bosses/industrial/boss_1.tres",
+      "boss_industrial_1_animation_duration": 2.0,
+      "boss_industrial_1_animation_frequency": 8.0,
+      "boss_industrial_2": "res://assets/bosses/industrial/boss_2.tres",
+      "boss_industrial_2_animation_duration": 2.0,
+      "boss_industrial_2_animation_frequency": 8.0,
+      "boss_industrial_3": "res://assets/bosses/industrial/boss_3.tres",
+      "boss_industrial_3_animation_duration": 2.0,
+      "boss_industrial_3_animation_frequency": 8.0,
+      "boss_industrial_4": "res://assets/bosses/industrial/boss_4.tres",
+      "boss_industrial_4_animation_duration": 2.0,
+      "boss_industrial_4_animation_frequency": 8.0,
+      "boss_industrial_5": "res://assets/bosses/industrial/boss_5.tres",
+      "boss_industrial_5_animation_duration": 2.0,
+      "boss_industrial_5_animation_frequency": 8.0,
+      "boss_industrial_final": "res://assets/bosses/industrial/boss_final.tres",
+      "boss_industrial_final_animation_duration": 2.0,
+      "boss_industrial_final_animation_frequency": 8.0
+    },
+    "obstacles": {
+      "explosives": [
+        "res://assets/obstacles/industrial/obstacle_explosive_1.png",
+        "res://assets/obstacles/industrial/obstacle_explosive_2.png",
+        "res://assets/obstacles/industrial/obstacle_explosive_3.png",
+        "res://assets/obstacles/industrial/obstacle_explosive_4.png",
+        "res://assets/obstacles/industrial/obstacle_explosive_5.png",
+        "res://assets/obstacles/industrial/obstacle_explosive_6.png",
+        "res://assets/obstacles/industrial/obstacle_explosive_7.png"
+      ]
+    }
+  },
+  "multipliers": {
+    "hp": 2.5,
+    "damage": 2.0,
+    "speed": 1.1
+  },
+  "wave_runtime_defaults": {
+    "artillery_count": 18,
+    "artillery_rows": 3,
+    "artillery_spawn_interval_sec": 0.08,
+    "artillery_fire_rate_sec": 3.1
+  },
+  "theme": {
+    "background": "",
+    "music": "res://assets/music/starlight.ogg",
+    "color_palette": "#5d5d5d"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "id": "world_3_lvl_0",
+      "name": "Dock d'Amarrage",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/industrial/world_industrial_0.png",
+        "far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_0.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_industrial_1",
+      "score_1star": 1400,
+      "score_2stars": 2250,
+      "score_3stars": 3100,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "slalom",
+          "speed": 110,
+          "gap_width": 220,
+          "row_interval": 2.0,
+          "drift_speed": 12,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.35
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 200.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": "world_3_lvl_1",
+      "name": "Couloirs de Maintenance",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/industrial/world_industrial_1.png",
+        "far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_1.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_industrial_2",
+      "score_1star": 2200,
+      "score_2stars": 3550,
+      "score_3stars": 4950,
+      "waves": [
+        {
+          "type": "swarm",
+          "enemy_id": "swarmer",
+          "count": 49,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.35
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 230.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 440,
+          "enemy_paddle_speed_px_sec": 340,
+          "enemy_reaction_interval_sec": 0.36,
+          "enemy_aim_error_px": 48,
+          "crystals_per_point": 3
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "world_3_lvl_2",
+      "name": "Salle des Machines",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/industrial/world_industrial_2.png",
+        "far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_2.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_industrial_3",
+      "score_1star": 3450,
+      "score_2stars": 5700,
+      "score_3stars": 7900,
+      "waves": [
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "interval": 3.33,
+          "hp_multiplier": 1.35
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 200.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "slalom",
+          "speed": 110,
+          "gap_width": 220,
+          "row_interval": 2.0,
+          "drift_speed": 12,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 1.5
+        },
+        {
+          "type": "asteroid_split",
+          "duration": 35,
+          "count": 5,
+          "speed": 125,
+          "hp_multiplier": 1.3
+        },
+        {
+          "type": "star_drift",
+          "duration": 50,
+          "quasar_first_delay_sec": 15,
+          "reward_multiplier": 1.2
+        },
+        {
+          "type": "ball_launcher",
+          "duration": 60,
+          "ball_count_start": 3,
+          "row_hp_base": 3,
+          "row_hp_growth_per_turn": 1.0,
+          "token_chance": 0.22,
+          "reward_multiplier": 1.2
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 160,
+          "gap_width": 180,
+          "row_interval": 1.8
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "world_3_lvl_3",
+      "name": "Réacteur Central",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/industrial/world_industrial_3.png",
+        "far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_3.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_industrial_4",
+      "score_1star": 4850,
+      "score_2stars": 7950,
+      "score_3stars": 11050,
+      "waves": [
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 90,
+          "gap_width": 260,
+          "row_interval": 2.5
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.35
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 250.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "type": "pong",
+          "duration": 30,
+          "ball_speed_px_sec": 440,
+          "enemy_paddle_speed_px_sec": 340,
+          "enemy_reaction_interval_sec": 0.36,
+          "enemy_aim_error_px": 48,
+          "crystals_per_point": 3
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "debris_small",
+          "pattern": "rain",
+          "speed": 200,
+          "gap_width": 150,
+          "row_interval": 0.8,
+          "drift_speed": 20,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "id": "world_3_lvl_4",
+      "name": "Zone Interdite",
+      "type": "normal",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/industrial/world_industrial_4.png",
+        "far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_4.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_industrial_5",
+      "score_1star": 4300,
+      "score_2stars": 7050,
+      "score_3stars": 9800,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.35
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 230.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "slalom",
+          "speed": 70,
+          "gap_width": 300,
+          "row_interval": 3.0,
+          "drift_speed": 5,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_small",
+          "pattern": "rain",
+          "speed": 180,
+          "gap_width": 160,
+          "row_interval": 1.0,
+          "drift_speed": 15,
+          "drift_directions": [
+            "S",
+            "SW",
+            "SE"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "id": "world_3_lvl_5",
+      "name": "L'Automate",
+      "type": "boss",
+      "backgrounds": {
+        "card": "res://assets/backgrounds/worlds/industrial/world_industrial_5.png",
+        "far_layer": "res://assets/backgrounds/worlds/industrial/world_industrial_5.png",
+        "near_layer": []
+      },
+      "events": [],
+      "boss_id": "boss_industrial_final",
+      "score_1star": 5600,
+      "score_2stars": 9200,
+      "score_3stars": 12800,
+      "waves": [
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "fighter",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "tank",
+          "interval": 3.33,
+          "enemy_modifier_id": "",
+          "type": "tank",
+          "hp_multiplier": 1.35
+        },
+        {
+          "type": "path_trial",
+          "pattern_id": "dna_helix",
+          "speed": 270.0,
+          "tick_damage": 12,
+          "tick_interval_sec": 0.35,
+          "path_width": 120.0,
+          "warmup_sec": 1.0,
+          "head_length_px": 280.0,
+          "tail_length_px": 180.0,
+          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
+          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "artillery",
+          "type": "artillery",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 170,
+          "gap_width": 190,
+          "row_interval": 1.2,
+          "drift_speed": 10,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "slalom",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 1.5
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_medium",
+          "pattern": "gates",
+          "speed": 150,
+          "gap_width": 200,
+          "row_interval": 2.0
+        },
+        {
+          "enemy_id": "elite",
+          "interval": 0.7,
+          "enemy_modifier_id": ""
+        },
+        {
+          "type": "obstacle",
+          "obstacle_id": "asteroid_large",
+          "pattern": "rain",
+          "speed": 130,
+          "gap_width": 200,
+          "row_interval": 2.0,
+          "drift_speed": 8,
+          "drift_directions": [
+            "SW",
+            "S",
+            "SE"
+          ]
+        }
+      ]
+    }
+  ],
+  "unlock_condition": {
+    "type": "world_clear",
+    "world_id": "world_2"
+  }
 }

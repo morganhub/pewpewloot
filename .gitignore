@@ -2,3 +2,5 @@
 android/build/
 .godot/
 /assets/
+# Documentation de travail (locale, non synchronisee sur GitHub) — index dans CLAUDE.md
+/markdown/

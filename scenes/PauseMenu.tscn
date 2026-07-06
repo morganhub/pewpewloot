@@ -61,6 +61,25 @@ text = "Changer de Niveau"
 layout_mode = 2
 text = "Quitter"
 
+[node name="ResumeCountdown" type="CenterContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CountdownLabel" type="Label" parent="ResumeCountdown"]
+custom_minimum_size = Vector2(420, 320)
+layout_mode = 2
+theme_override_font_sizes/font_size = 240
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
+pivot_offset = Vector2(210, 160)
+
 [connection signal="pressed" from="Panel/Margin/VBox/ResumeButton" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/RestartButton" to="." method="_on_restart_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/LevelSelectButton" to="." method="_on_level_select_pressed"]

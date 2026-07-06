@@ -1,79 +1,139 @@
 {
 	"powers": [
 		{
-			"id": "power_paint_sweep",
-			"name": "Paint Sweep",
-			"description": "A massive wave of paint splashes across the screen.",
-			"duration": 2.4,
+			"id": "power_furnace_nova",
+			"name": "Furnace Nova",
+			"description": "A slow armored sweep that releases heavy fire bursts around the ship.",
+			"duration": 3.0,
 			"invincibility": true,
 			"ship_movement": {
 				"type": "horizontal_sweep",
 				"distance_pct": 100,
-				"speed": 500
+				"speed": 420
 			},
 			"projectile": {
-				"count": 24,
+				"count": 18,
 				"trajectory": "radial",
-				"size": 34,
-				"waves": 4,
-				"wave_delay": 0.22,
-				"speed": 470,
-				"damage": 66,
-				"despawn_after_sec": 5.5,
-				"rotation_speed": 130,
-				"color": "#FF33CC",
-				"asset_anim": "res://assets/missiles/gradient_energy_burst.tres",
-				"asset_anim_duration": 0.0,
+				"size": 38,
+				"waves": 3,
+				"wave_delay": 0.35,
+				"speed": 360,
+				"damage": 40,
+				"source_special_damage_scale": 0.75,
+				"despawn_after_sec": 5.0,
+				"rotation_speed": 80,
+				"color": "#FF5A1F",
+				"asset_anim": "res://assets/missiles/fire_energy.tres",
+				"asset_anim_duration": 1.2,
 				"asset_anim_loop": true
 			}
 		},
 		{
-			"id": "power_barrel_roll",
-			"name": "Barrel Roll",
-			"description": "Dodge everything with a quick roll.",
-			"duration": 1.2,
+			"id": "power_greyhound_roll",
+			"name": "Greyhound Roll",
+			"description": "A short evasive roll that fires fast homing bolts.",
+			"duration": 1.1,
 			"invincibility": true,
 			"ship_movement": {
 				"type": "horizontal_dodge",
 				"distance_pct": 50,
-				"speed": 800
+				"speed": 900
 			},
 			"projectile": {
-				"count": 10,
-				"trajectory": "radial",
-				"size": 22,
-				"waves": 1,
-				"wave_delay": 0.0,
-				"speed": 520,
-				"damage": 58,
-				"despawn_after_sec": 3.5,
+				"count": 8,
+				"trajectory": "homing",
+				"aim_target": true,
+				"homing_turn_rate": 8.0,
+				"homing_duration": 1.6,
+				"size": 18,
+				"waves": 2,
+				"wave_delay": 0.12,
+				"speed": 720,
+				"damage": 18,
+				"source_special_damage_scale": 0.45,
+				"despawn_after_sec": 2.8,
 				"color": "#56E0FF",
-				"asset": "res://assets/missiles/blue_energy.tres"
+				"asset_anim": "res://assets/missiles/blue_energy_burst.tres",
+				"asset_anim_duration": 0.8,
+				"asset_anim_loop": true
 			}
 		},
 		{
-			"id": "power_witch_circle",
-			"name": "Witch Circle",
-			"description": "Spinning burst of magic.",
-			"duration": 3.2,
+			"id": "power_sting_lancer",
+			"name": "Sting Lancer",
+			"description": "A focused sequence of piercing guided shots against priority targets.",
+			"duration": 1.6,
+			"invincibility": true,
+			"ship_movement": {
+				"type": "dash_forward",
+				"speed": 520
+			},
+			"projectile": {
+				"count": 1,
+				"trajectory": "homing",
+				"aim_target": true,
+				"homing_turn_rate": 12.0,
+				"homing_duration": 2.2,
+				"size": 42,
+				"waves": 4,
+				"wave_delay": 0.18,
+				"speed": 820,
+				"damage": 30,
+				"source_special_damage_scale": 1.0,
+				"despawn_after_sec": 3.2,
+				"color": "#FFD34D",
+				"asset_anim": "res://assets/missiles/orange_energy_burst.tres",
+				"asset_anim_duration": 0.6,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_tossy_barrage",
+			"name": "Tossy Barrage",
+			"description": "A chaotic rain of toxic shots falls from above the battlefield.",
+			"duration": 2.2,
+			"invincibility": false,
+			"projectile": {
+				"count": 12,
+				"trajectory": "rain_down",
+				"size": 22,
+				"waves": 5,
+				"wave_delay": 0.2,
+				"speed": 610,
+				"damage": 20,
+				"source_special_damage_scale": 0.4,
+				"despawn_after_sec": 3.8,
+				"color": "#66FF44",
+				"asset_anim": "res://assets/missiles/green_energy.tres",
+				"asset_anim_duration": 0.8,
+				"asset_anim_loop": true
+			}
+		},
+		{
+			"id": "power_wave_resonance",
+			"name": "Wave Resonance",
+			"description": "The ship centers briefly and emits layered spiral waves.",
+			"duration": 3.4,
 			"invincibility": true,
 			"ship_movement": {
 				"type": "spin_center",
-				"speed": 300
+				"speed": 260
 			},
 			"projectile": {
-				"count": 14,
+				"count": 16,
 				"trajectory": "spiral",
-				"size": 28,
+				"size": 26,
 				"waves": 6,
-				"wave_delay": 0.35,
-				"speed": 440,
-				"damage": 72,
-				"despawn_after_sec": 6.0,
-				"rotation_speed": 170,
-				"color": "#AA44FF",
-				"asset": "res://assets/missiles/gradient_energy_burst.tres",
-				"missile_id": "missile_default"
+				"wave_delay": 0.3,
+				"speed": 430,
+				"damage": 26,
+				"source_special_damage_scale": 0.55,
+				"despawn_after_sec": 5.5,
+				"rotation_speed": 210,
+				"color": "#44C8FF",
+				"asset_anim": "res://assets/missiles/gradient_energy_burst.tres",
+				"asset_anim_duration": 1.0,
+				"asset_anim_loop": true
 			}
 		}
 	]

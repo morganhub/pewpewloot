@@ -1,7 +1,5 @@
 {
   "respec_cost_base": 100,
-  "xp_curve_base": 100,
-  "xp_curve_exponent": 1.5,
   "trees": {
 	"magic": {
 	  "exclusive": true,
@@ -363,6 +361,7 @@
 			  "id": "fire_straight",
 			  "type": "fire_pattern",
 			  "cost": 1,
+			  "rank_costs": [1, 2, 3, 4, 5],
 			  "max_rank": 5,
 			  "prerequisite": "",
 			  "params": {
@@ -375,12 +374,13 @@
 			  "id": "fire_cone",
 			  "type": "fire_pattern",
 			  "cost": 1,
+			  "rank_costs": [1, 2, 3, 4, 5],
 			  "max_rank": 5,
 			  "prerequisite": "",
 			  "params": {
 				"base_pattern": "triple_spread",
 				"projectile_counts": [2, 3, 4, 5, 6],
-				"spread_angles": [10, 18, 23, 30, 35],
+				"spread_angles": [7, 12, 16, 21, 24],
 				"cone_bend_start_distance_px": 20
 			  }
 			},
@@ -388,6 +388,7 @@
 			  "id": "fire_360",
 			  "type": "fire_pattern",
 			  "cost": 1,
+			  "rank_costs": [1, 2, 3, 4, 5],
 			  "max_rank": 5,
 			  "prerequisite": "",
 			  "params": {
@@ -401,6 +402,7 @@
 			  "id": "fire_aura",
 			  "type": "fire_pattern",
 			  "cost": 1,
+			  "rank_costs": [1, 2, 3, 4, 5],
 			  "max_rank": 5,
 			  "prerequisite": "",
 			  "params": {

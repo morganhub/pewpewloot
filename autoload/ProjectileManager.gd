@@ -19,12 +19,28 @@ var _projectile_container: Node2D = null
 var _last_enemy_pool_warning_ms: int = -10000
 var _enemy_projectile_speed_multiplier: float = 1.0
 
+# Pool expansion is spread over frames: instantiating a full expand_step in the
+# middle of a gameplay frame is a visible hitch (cf. performance_improvements.md).
+const POOL_EXPAND_IMMEDIATE: int = 8
+const POOL_EXPAND_PER_FRAME: int = 4
+var _enemy_pool_expand_remaining: int = 0
+
 # =============================================================================
 # INIT
 # =============================================================================
 
 func _ready() -> void:
+	set_process(false)
 	call_deferred("_init_pools")
+
+func _process(_delta: float) -> void:
+	# Background top-up of the enemy pool, a few instances per frame.
+	if _enemy_pool_expand_remaining <= 0:
+		set_process(false)
+		return
+	var batch: int = mini(POOL_EXPAND_PER_FRAME, _enemy_pool_expand_remaining)
+	_enemy_pool_expand_remaining -= batch
+	_expand_enemy_pool(batch)
 
 func set_container(container: Node2D) -> void:
 	_projectile_container = container
@@ -42,6 +58,7 @@ func _init_pools() -> void:
 	for i in range(pool_player):
 		var projectile := PROJECTILE_SCENE.instantiate()
 		projectile.is_player_projectile = true
+		projectile.set_meta("pooled", true)
 		projectile.projectile_deactivated.connect(_on_projectile_deactivated)
 		_player_pool.append(projectile)
 
@@ -49,6 +66,7 @@ func _init_pools() -> void:
 	for i in range(pool_enemy):
 		var projectile := PROJECTILE_SCENE.instantiate()
 		projectile.is_player_projectile = false
+		projectile.set_meta("pooled", true)
 		projectile.projectile_deactivated.connect(_on_projectile_deactivated)
 		_enemy_pool.append(projectile)
 
@@ -63,11 +81,9 @@ func spawn_player_projectile(pos: Vector2, direction: Vector2, speed: float, dam
 	if _player_pool.is_empty():
 		push_warning("[ProjectileManager] Player pool empty!")
 		return
-	
-	if _player_pool.size() < 10:
-		print("[ProjectileManager] ⚠️ Player pool low: ", _player_pool.size(), " remaining")
-	
+
 	var projectile: Area2D = _player_pool.pop_back() # Cast explicite
+	projectile.set_meta("pooled", false)
 	_active_player_projectiles.append(projectile)
 	
 	var vp_size = get_viewport().get_visible_rect().size
@@ -98,15 +114,21 @@ func spawn_enemy_projectile(pos: Vector2, direction: Vector2, speed: float, dama
 	if _enemy_pool.is_empty():
 		var cfg: Dictionary = DataManager.get_game_config().get("projectile_pools", {}) if DataManager else {}
 		var expand_step: int = maxi(1, int(cfg.get("enemy_pool_expand_step", 64)))
-		_expand_enemy_pool(expand_step)
+		# Instantiate just enough to serve the current volley; the rest of the
+		# step is topped up a few per frame in _process (no one-frame spike).
+		_expand_enemy_pool(mini(POOL_EXPAND_IMMEDIATE, expand_step))
+		_enemy_pool_expand_remaining += maxi(0, expand_step - POOL_EXPAND_IMMEDIATE)
+		if _enemy_pool_expand_remaining > 0:
+			set_process(true)
 		if _enemy_pool.is_empty():
 			var now_ms: int = Time.get_ticks_msec()
 			if now_ms - _last_enemy_pool_warning_ms > 1000:
 				push_warning("[ProjectileManager] Enemy pool empty!")
 				_last_enemy_pool_warning_ms = now_ms
 			return
-	
+
 	var projectile: Area2D = _enemy_pool.pop_back() # Cast explicite
+	projectile.set_meta("pooled", false)
 	_active_enemy_projectiles.append(projectile)
 	var final_speed: float = speed * _enemy_projectile_speed_multiplier
 	
@@ -138,6 +160,7 @@ func _expand_enemy_pool(count: int) -> void:
 	for i in range(count):
 		var projectile := PROJECTILE_SCENE.instantiate()
 		projectile.is_player_projectile = false
+		projectile.set_meta("pooled", true)
 		projectile.projectile_deactivated.connect(_on_projectile_deactivated)
 		_enemy_pool.append(projectile)
 
@@ -183,12 +206,15 @@ func _return_to_pool(projectile: Area2D) -> void:
 	if projectile.get_parent():
 		projectile.get_parent().remove_child(projectile)
 		
+	# O(1) double-insert guard: a linear "in pool" scan over hundreds of
+	# entries on every deactivation adds up on busy frames.
+	if projectile.get_meta("pooled", false):
+		return
+	projectile.set_meta("pooled", true)
 	if projectile.is_player_projectile:
-		if projectile not in _player_pool:
-			_player_pool.append(projectile)
+		_player_pool.append(projectile)
 	else:
-		if projectile not in _enemy_pool:
-			_enemy_pool.append(projectile)
+		_enemy_pool.append(projectile)
 
 func clear_all_projectiles() -> void:
 	# Désactive tous les projectiles actifs

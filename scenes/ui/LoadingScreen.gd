@@ -349,7 +349,10 @@ func _perform_bootstrap_loading() -> void:
 		else:
 			target_screen_path = "res://scenes/ProfileSelect.tscn"
 	else:
-		target_screen_path = "res://scenes/ProfileSelect.tscn"
+		if ProfileManager.has_any_profile():
+			target_screen_path = "res://scenes/ProfileSelect.tscn"
+		else:
+			target_screen_path = "res://scenes/HomeScreen.tscn"
 
 	_update_progress(TOTAL_STEPS, TOTAL_STEPS, "Done")
 	await get_tree().process_frame
