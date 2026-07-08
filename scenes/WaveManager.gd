@@ -150,7 +150,12 @@ func build_free_mode_wave(level: int) -> Dictionary:
 	var wave: Dictionary = {
 		"type": _free_mode_wave_type,
 		"countdown_hidden": true,
-		"duration": round_duration
+		"duration": round_duration,
+		# Progression 0->1 du level (1->max_level). En continuous, la durée est
+		# quasi infinie : les rampes temporelles *_start->*_end des managers
+		# (elapsed/duration) resteraient figées à 0 — ils substituent cette
+		# valeur à _ramp_t() pour que les clés *_end restent effectives.
+		"_free_level_progress": clampf(float(level - 1) / float(maxi(1, _free_max_level - 1)), 0.0, 1.0)
 	}
 	var base_v: Variant = _free_mode_cfg.get("base_wave", {})
 	if base_v is Dictionary:

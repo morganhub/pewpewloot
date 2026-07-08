@@ -1,5 +1,5 @@
 {
-	"_readme": "Mode Libre : un seul wave_type joue en boucle infinie. Le level monte au temps : leveling.level_time_steps[] = paliers {until_level, seconds} (le passage au level L coute les 'seconds' du premier palier dont until_level >= L ; fallback seconds_per_level). A chaque iteration N, la vague envoyee au manager = defauts wave_types.json + base_wave + (level-1) * per_level[cle], puis wave.duration = round_duration_sec. loop_style 'continuous' (ex. pong) : une seule iteration quasi infinie, la difficulte est poussee EN PLACE au manager via update_free_mode_config au changement de level (pas de reengagement d'etat) ; defaut 'restart' = la vague est regeneree a chaque round_duration_sec. Les cles per_level sont TOUJOURS redeclarees dans base_wave sous leur nom de cle de vague (les managers pong/breakout/vertical_climb/absorb/asteroid_split lisent des noms differents des *_default de wave_types.json). Si base_wave contient pattern_ids[], le code pioche un pattern_id au hasard a chaque iteration. Fond du niveau en run : pioche dans wave_types.json > <type> > level_backgrounds[] (fallback tile_background). tile_background = image de la tuile du menu.",
+	"_readme": "Mode Libre : un seul wave_type joue en boucle infinie. Le level monte au temps : leveling.level_time_steps[] = paliers {until_level, seconds} (le passage au level L coute les 'seconds' du premier palier dont until_level >= L ; fallback seconds_per_level). A chaque iteration N, la vague envoyee au manager = defauts wave_types.json + base_wave + (level-1) * per_level[cle], puis wave.duration = round_duration_sec. loop_style 'continuous' (DEFAUT DE FAIT : tous les modes sans round naturel) : une seule iteration quasi infinie (86400s), AUCUNE coupe au timer, la difficulte est poussee EN PLACE au manager via update_free_mode_config au changement de level (pas de reengagement d'etat, pas de reset de position). Les rampes temporelles *_start->*_end des managers sont pilotees par _free_level_progress (progression 0->1 du level) au lieu du temps. loop_style 'restart' : reserve aux modes a round intrinseque qui self-finish avant le timer (absorb, gravity_hole, path_trial) — la vague est regeneree a chaque fin de round au level courant. Les cles per_level sont TOUJOURS redeclarees dans base_wave sous leur nom de cle de vague (les managers pong/breakout/vertical_climb/absorb/asteroid_split lisent des noms differents des *_default de wave_types.json). Si base_wave contient pattern_ids[], le code pioche un pattern_id au hasard a chaque iteration. Fond du niveau en run : pioche dans wave_types.json > <type> > level_backgrounds[] (fallback tile_background). tile_background = image de la tuile du menu.",
 	"leveling": {
 		"max_level": 20,
 		"seconds_per_level": 45,
@@ -32,7 +32,7 @@
 			}
 		},
 		"breakout": {
-			"round_duration_sec": 45,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/mine/tile_mine_2.jpg",
 			"base_wave": {
 				"ball_speed_px_sec": 460.0,
@@ -48,7 +48,7 @@
 			}
 		},
 		"ball_launcher": {
-			"round_duration_sec": 60,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/titans/tile_titans_1.jpg",
 			"base_wave": {
 				"row_hp_base": 2.0,
@@ -66,7 +66,7 @@
 			}
 		},
 		"vertical_climb": {
-			"round_duration_sec": 40,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/lava/tile_lava_1.jpg",
 			"base_wave": {
 				"gravity_px_sec2": 1650.0,
@@ -84,7 +84,7 @@
 			}
 		},
 		"absorb": {
-			"_note": "Mort possible uniquement via contacts oversize (15% fixe, cle _cfg-only) : lente mais reelle. Le scaling descente/spawn multiplie les contacts forces.",
+			"_note": "Mort possible uniquement via contacts oversize (15% fixe, cle _cfg-only) : lente mais reelle. Le scaling descente/spawn multiplie les contacts forces. RESTE en restart : le round est intrinseque (schedule de proies dimensionne par la duree, climax Devourer) — le manager self-finish avant le timer, la 'coupe' est le climax, pas une interruption.",
 			"round_duration_sec": 40,
 			"tile_background": "res://assets/backgrounds/worlds/alien/tile_alien_1.jpg",
 			"base_wave": {
@@ -101,7 +101,7 @@
 			}
 		},
 		"lane_runner": {
-			"round_duration_sec": 35,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/far_layer/canyon.jpg",
 			"base_wave": {
 				"wall_speed_px_sec_start": 380.0,
@@ -119,7 +119,7 @@
 			}
 		},
 		"slice_rush": {
-			"round_duration_sec": 30,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/forest/tile_forest_2.jpg",
 			"base_wave": {
 				"bomb_chance": 0.14,
@@ -138,7 +138,7 @@
 		},
 		"match3": {
 			"_note": "AUCUN vecteur de mort (le manager n'inflige aucun degat). Parade retenue : quitter pour valider le score ; le scaling ne fait que reduire le score/minute.",
-			"round_duration_sec": 45,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/magical/tile_magical_1.jpg",
 			"base_wave": {
 				"tile_type_count": 5,
@@ -150,7 +150,7 @@
 			}
 		},
 		"gravity_hole": {
-			"_note": "oversize_never_lethal force a false pour rendre le mode letal (defaut wave_types = true).",
+			"_note": "oversize_never_lethal force a false pour rendre le mode letal (defaut wave_types = true). RESTE en restart : round intrinseque (final core spawne a duration-final_reserve, outro cover) — une duree continuous supprimerait le climax/jackpot.",
 			"round_duration_sec": 40,
 			"tile_background": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_3.jpg",
 			"base_wave": {
@@ -168,7 +168,7 @@
 			}
 		},
 		"star_drift": {
-			"round_duration_sec": 50,
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/far_layer/space.jpg",
 			"base_wave": {
 				"scroll_speed_px_sec_start": 240.0,
@@ -186,6 +186,7 @@
 			}
 		},
 		"path_trial": {
+			"_note": "RESTE en restart : la courbe est pre-cuite sur speed*duration (continuous = courbe gigantesque) et la rotation de pattern par iteration est le coeur du mode ; la transition se fait en fondu, pas de reset de position joueur.",
 			"round_duration_sec": 30,
 			"tile_background": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_1.jpg",
 			"base_wave": {
@@ -210,7 +211,8 @@
 			}
 		},
 		"asteroid_split": {
-			"round_duration_sec": 35,
+			"_note": "continuous = pas de coupe au timer ; le champ boucle naturellement par clear-detection (asteroides detruits ou sortis d'ecran), chaque nouveau champ relit le level courant.",
+			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/titans/tile_titans_3.jpg",
 			"base_wave": {
 				"speed": 120.0,

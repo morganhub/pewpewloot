@@ -117,6 +117,14 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 func _get_conf(key: String, fallback: Variant) -> Variant:
 	return _config.get(key, _cfg.get(key, fallback))
 
+## Mode libre "continuous" : la difficulté de la partie EN COURS est re-scalée
+## au changement de level — plateau et cascades préservés. Les nouvelles valeurs
+## s'appliquent aux prochains refills (tuiles existantes inchangées).
+func update_free_mode_config(cfg: Dictionary) -> void:
+	_tile_type_count = clampi(int(cfg.get("tile_type_count", _tile_type_count)), 3, 6)
+	if cfg.has("special_chance"):
+		_config["special_chance"] = cfg["special_chance"]
+
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_match3"):
 		var merged: Dictionary = _cfg.duplicate(true)

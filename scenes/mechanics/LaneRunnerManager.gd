@@ -95,6 +95,16 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 func _get_conf(key: String, fallback: Variant) -> Variant:
 	return _config.get(key, _cfg.get(key, fallback))
 
+## Mode libre "continuous" : la difficulté de la course EN COURS est re-scalée
+## au changement de level — lane du joueur, murs et collectibles préservés.
+## Toutes les clés sont lues live via _get_conf : il suffit de les merger.
+func update_free_mode_config(cfg: Dictionary) -> void:
+	for key in ["wall_speed_px_sec_start", "wall_speed_px_sec_end",
+		"row_interval_sec_start", "row_interval_sec_end",
+		"double_wall_chance", "_free_level_progress"]:
+		if cfg.has(key):
+			_config[key] = cfg[key]
+
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_lane_runner"):
 		var merged: Dictionary = _cfg.duplicate(true)
@@ -122,8 +132,14 @@ func _lane_width() -> float:
 func _lane_center_x(lane: int) -> float:
 	return _lane_side_margin_px + _lane_width() * (float(clampi(lane, 0, _lane_count - 1)) + 0.5)
 
-## Difficulty ramp position (0 at wave start -> 1 at wave end).
+## Difficulty ramp position (0 at wave start -> 1 at wave end). En mode libre
+## "continuous", _duration est quasi infinie (la rampe temporelle resterait
+## figée à 0) : _free_level_progress (progression 0->1 du level) la remplace,
+## les clés *_end restent donc effectives.
 func _ramp_t() -> float:
+	var progress_v: Variant = _config.get("_free_level_progress", null)
+	if progress_v is float or progress_v is int:
+		return clampf(float(progress_v), 0.0, 1.0)
 	return clampf(_elapsed / maxf(1.0, _duration), 0.0, 1.0)
 
 func _current_speed() -> float:

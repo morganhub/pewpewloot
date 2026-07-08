@@ -103,6 +103,18 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_state_timer = maxf(0.05, float(_cfg.get("intro_tween_sec", 0.6)))
 	set_process(true)
 
+## Mode libre "continuous" : la difficulté de la partie EN COURS est re-scalée
+## au changement de level — balle et mur préservés (aucun re-service). rows/cols
+## scalés s'appliquent au prochain mur (reconstruit au clear, itération naturelle).
+func update_free_mode_config(cfg: Dictionary) -> void:
+	_ball_base_speed = maxf(60.0, float(cfg.get("ball_speed_px_sec", _ball_base_speed)))
+	_ball_speed_max = maxf(_ball_base_speed, float(_cfg.get("ball_speed_max_px_sec", 900.0)))
+	if _ball_speed < _ball_base_speed:
+		_ball_speed = _ball_base_speed
+		if _ball_velocity != Vector2.ZERO:
+			_ball_velocity = _ball_velocity.normalized() * _ball_speed
+	_damage_percent = clampf(float(cfg.get("damage_percent_per_ball_lost", _damage_percent)), 0.0, 1.0)
+
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_pong"):
 		# Reuses the pong paddle mode: Y locked at the paddle line, visual squash.

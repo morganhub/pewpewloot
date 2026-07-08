@@ -160,6 +160,16 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 func _get_conf(key: String, fallback: Variant) -> Variant:
 	return _config.get(key, _cfg.get(key, fallback))
 
+## Mode libre "continuous" : la difficulté de la partie EN COURS est re-scalée
+## au changement de level — grille, tour et compte de balles préservés. Les
+## nouvelles valeurs s'appliquent aux prochaines rangées spawnnées.
+func update_free_mode_config(cfg: Dictionary) -> void:
+	_row_hp_base = maxf(1.0, float(cfg.get("row_hp_base", _row_hp_base)))
+	_row_hp_growth = maxf(0.0, float(cfg.get("row_hp_growth_per_turn", _row_hp_growth)))
+	_row_fill_max = clampf(float(cfg.get("row_fill_ratio_max", _row_fill_max)), _row_fill_min, 1.0)
+	_turn_time_max = maxf(2.0, float(cfg.get("turn_time_max_sec", _turn_time_max)))
+	_damage_percent_row = clampf(float(cfg.get("damage_percent_per_row_crossed", _damage_percent_row)), 0.0, 1.0)
+
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_ball_launcher"):
 		var merged: Dictionary = _cfg.duplicate(true)

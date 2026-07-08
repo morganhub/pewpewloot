@@ -112,6 +112,17 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_state_timer = maxf(0.05, float(_cfg.get("intro_tween_sec", 0.8)))
 	set_process(true)
 
+## Mode libre "continuous" : la difficulté de l'ascension EN COURS est re-scalée
+## au changement de level — position, plateformes et lave préservées. Les gaps
+## scalés s'appliquent aux prochaines plateformes générées vers le haut.
+func update_free_mode_config(cfg: Dictionary) -> void:
+	_gravity = maxf(200.0, float(cfg.get("gravity_px_sec2", _gravity)))
+	_bounce_speed = maxf(120.0, float(cfg.get("bounce_speed_px_sec", _bounce_speed)))
+	_boost_bounce_speed = maxf(_bounce_speed, float(_cfg.get("boost_bounce_speed_px_sec", 1150.0)))
+	_gap_min = maxf(40.0, float(cfg.get("platform_gap_y_min_px", _gap_min)))
+	_gap_max = maxf(_gap_min, float(cfg.get("platform_gap_y_max_px", _gap_max)))
+	_lava_rise = maxf(0.0, float(cfg.get("lava_rise_px_sec", _lava_rise)))
+
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_climb"):
 		_player.call("begin_climb")

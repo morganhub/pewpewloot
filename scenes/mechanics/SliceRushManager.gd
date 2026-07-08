@@ -110,6 +110,16 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 func _get_conf(key: String, fallback: Variant) -> Variant:
 	return _config.get(key, _cfg.get(key, fallback))
 
+## Mode libre "continuous" : la difficulté de la session EN COURS est re-scalée
+## au changement de level — objets en vol et combo préservés. Toutes les clés
+## sont lues live via _get_conf : il suffit de les merger.
+func update_free_mode_config(cfg: Dictionary) -> void:
+	for key in ["bomb_chance", "burst_size_max",
+		"burst_pause_sec_min", "burst_pause_sec_max",
+		"bomb_damage_percent", "_free_level_progress"]:
+		if cfg.has(key):
+			_config[key] = cfg[key]
+
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_slice_rush"):
 		var merged: Dictionary = _cfg.duplicate(true)
@@ -434,7 +444,12 @@ func _tick_spawner(dt: float) -> void:
 	else:
 		_spawn_timer = maxf(0.03, float(_get_conf("burst_object_interval_sec", 0.14)))
 
+## En mode libre "continuous", _duration est quasi infinie (rampe temporelle
+## figée à 0) : _free_level_progress (progression 0->1 du level) la remplace.
 func _ramp_t() -> float:
+	var progress_v: Variant = _config.get("_free_level_progress", null)
+	if progress_v is float or progress_v is int:
+		return clampf(float(progress_v), 0.0, 1.0)
 	return clampf(_elapsed / maxf(1.0, _duration), 0.0, 1.0)
 
 func _count_launchables() -> int:
