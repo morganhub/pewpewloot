@@ -2916,7 +2916,7 @@ func _show_recycle_confirmation_popup(message_text: String, on_confirm: Callable
 	var btn_cfg = pop_cfg.get("button", {}) if pop_cfg.get("button") is Dictionary else {}
 	var recycle_cfg = pop_cfg.get("recycle", {})
 	
-	var bg_asset = str(bg_cfg.get("asset", "res://assets/ui/popup_background.jpg"))
+	var bg_asset = str(bg_cfg.get("asset", "res://assets/ui/popup_background.png"))
 	var popup_style := UIStyle.build_texture_stylebox(bg_asset, bg_cfg, int(pop_cfg.get("margin", 35)))
 	if popup_style:
 		popup.add_theme_stylebox_override("panel", popup_style)

@@ -306,7 +306,7 @@ func _add_stat_row(stat_key: String, value: Variant) -> void:
 		"fire_rate": "res://assets/ui/icons/missile.png",
 		"missile_speed_pct": "res://assets/ui/icons/missile.png",
 		"missile_damage": "res://assets/ui/icons/missile.png",
-		"damage_reduction": "res://assets/ui/icons/hp.png",
+		"damage_reduction": "res://assets/ui/icons/heart.png",
 		"special_cd": "res://assets/ui/icons/special.png",
 		"special_damage": "res://assets/ui/icons/special.png",
 		"shield_capacity": "res://assets/ui/icons/shield.png",
@@ -467,7 +467,6 @@ func _on_item_clicked(_id: String, _slot: String, item_data: Dictionary) -> void
 	# Modal input blocker so clicks do not leak to LootResultScreen controls.
 	_item_popup_input_blocker = Control.new()
 	_item_popup_input_blocker.name = "ItemPopupInputBlocker"
-	_item_popup_input_blocker.layout_mode = 1
 	_item_popup_input_blocker.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_item_popup_input_blocker.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_item_popup_input_blocker.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -506,7 +505,7 @@ func _on_item_clicked(_id: String, _slot: String, item_data: Dictionary) -> void
 
 	# Simplified actions in result screen: Equip or Close only.
 	_item_details_popup.close_requested.connect(_close_item_details_popup)
-	_item_details_popup.equip_requested.connect(func(id, slot):
+	_item_details_popup.equip_requested.connect(func(_emitted_id, slot):
 		var resolved_item_id := _ensure_item_in_inventory(item_data)
 		if resolved_item_id == "":
 			return

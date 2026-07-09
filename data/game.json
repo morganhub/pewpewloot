@@ -213,10 +213,13 @@
 		"head_length_px": 120.0,
 		"tail_length_px": 120.0
 	},
+	"floating_text": {
+		"font_size": 32
+	},
 	"explosions": {
 		"player_missile_impact": {
-			"asset": "",
-			"asset_anim": "res://assets/vfx/mine_explosion.tres",
+			"asset": "res://assets/vfx/missile_impact_spark.png",
+			"asset_anim": "",
 			"asset_anim_duration": 0.18,
 			"asset_anim_loop": false,
 			"size": 16.0,
@@ -231,8 +234,8 @@
 			"scale_middle_ratio": 0.42
 		},
 		"enemy_death": {
-			"asset": "",
-			"asset_anim": "res://assets/vfx/boss_explosion.tres",
+			"asset": "res://assets/vfx/enemy_death_small.png",
+			"asset_anim": "",
 			"asset_anim_duration": 0.26,
 			"asset_anim_loop": false,
 			"size": 28.0,
@@ -638,7 +641,7 @@
 			"crit_damage": "res://assets/ui/icons/crit.png",
 			"special_cd": "res://assets/ui/icons/special.png",
 			"special_damage": "res://assets/ui/icons/special.png",
-			"damage_reduction": "res://assets/ui/icons/hp.png",
+			"damage_reduction": "res://assets/ui/icons/heart.png",
 			"shield_capacity": "res://assets/ui/icons/shield.png",
 			"shield_regen": "res://assets/ui/icons/shield.png",
 			"loot_radius": "res://assets/ui/icons/all.png",
@@ -680,7 +683,7 @@
 				"animation_repeat_seconds": 0
 			},
 			"level": {
-				"icon_asset": "res://assets/ui/icons/level.png",
+				"icon_asset": "res://assets/ui/icons/trophy.png",
 				"icon_height": 30,
 				"icon_width": 30,
 				"font_size": 22,
@@ -708,7 +711,7 @@
 				"animation_repeat_seconds": 10
 			},
 			"hp": {
-				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_asset": "res://assets/ui/icons/heart.png",
 				"icon_height": 24,
 				"icon_width": 24,
 				"font_size": 20,
@@ -717,7 +720,7 @@
 				"animation_repeat_seconds": 0
 			},
 			"max_hp": {
-				"icon_asset": "res://assets/ui/icons/hp.png",
+				"icon_asset": "res://assets/ui/icons/heart.png",
 				"icon_height": 24,
 				"icon_width": 24,
 				"font_size": 20,
@@ -1107,14 +1110,14 @@
 			"primary": "res://assets/ui/icons/primary.png"
 		},
 		"item_placeholders": {
-			"reactor": "res://assets/items/engine.png",
-			"engine": "res://assets/items/engine.png",
-			"armor": "res://assets/items/engine.png",
-			"shield": "res://assets/items/engine.png",
-			"missiles": "res://assets/items/engine.png",
-			"targeting": "res://assets/items/engine.png",
-			"utility": "res://assets/items/engine.png",
-			"primary": "res://assets/items/engine.png"
+			"reactor": "res://assets/items/slot_reactor.png",
+			"engine": "res://assets/items/slot_engine.png",
+			"armor": "res://assets/items/slot_armor.png",
+			"shield": "res://assets/items/slot_shield.png",
+			"missiles": "res://assets/items/slot_missiles.png",
+			"targeting": "res://assets/items/slot_targeting.png",
+			"utility": "res://assets/items/slot_utility.png",
+			"primary": "res://assets/items/slot_primary.png"
 		},
 		"level_indicator_assets": {
 			"1-2": "res://assets/ui/frame_level_bronze.png",
@@ -1572,7 +1575,7 @@
 			"drift_enabled": true,
 			"drift_speed": 6,
 			"shield": {
-				"asset": "res://assets/ui/icons/shield.png",
+				"asset": "res://assets/pickups/pickup_shield.png",
 				"width": 70,
 				"height": 70,
 				"shield_absorb": 100,
@@ -1589,7 +1592,7 @@
 				}
 			},
 			"rapid_fire": {
-				"asset": "res://assets/ui/icons/missile.png",
+				"asset": "res://assets/pickups/pickup_rapid_fire.png",
 				"width": 70,
 				"height": 70,
 				"bonus": 250
@@ -1633,8 +1636,8 @@
 		},
 		"explosions": {
 			"player_missile_impact": {
-				"asset": "",
-				"asset_anim": "res://assets/vfx/mine_explosion.tres",
+				"asset": "res://assets/vfx/missile_impact_spark.png",
+				"asset_anim": "",
 				"asset_anim_duration": 0.18,
 				"asset_anim_loop": false,
 				"size": 16.0,
@@ -1649,8 +1652,8 @@
 				"scale_middle_ratio": 0.42
 			},
 			"enemy_death": {
-				"asset": "",
-				"asset_anim": "res://assets/vfx/boss_explosion.tres",
+				"asset": "res://assets/vfx/enemy_death_small.png",
+				"asset_anim": "",
 				"asset_anim_duration": 0.26,
 				"asset_anim_loop": false,
 				"size": 28.0,
@@ -1907,7 +1910,7 @@
 				"fall_speed_px_sec": 220.0,
 				"spawn_offset_y": 10.0,
 				"use_pooling": false,
-				"default_asset": "res://assets/ui/icons/crystal.tres",
+				"default_asset": "res://assets/pickups/pickup_bonus_crystal.png",
 				"drop_table": {
 					"normal_enemy_drop_chance": 0.12,
 					"elite_enemy_drop_chance": 0.25,
@@ -1919,21 +1922,21 @@
 						"type": "score_crystal",
 						"weight": 70,
 						"score_value": 100,
-						"asset": "res://assets/ui/icons/crystal.tres"
+						"asset": "res://assets/pickups/pickup_bonus_crystal.png"
 					},
 					{
 						"id": "score_crystal_big",
 						"type": "score_crystal",
 						"weight": 25,
 						"score_value": 300,
-						"asset": "res://assets/ui/icons/crystal.tres"
+						"asset": "res://assets/pickups/pickup_bonus_crystal.png"
 					},
 					{
 						"id": "streak_time_crystal",
 						"type": "streak_time_crystal",
 						"weight": 5,
 						"time_bonus_sec": 0.5,
-						"asset": "res://assets/ui/icons/crystal.tres"
+						"asset": "res://assets/pickups/pickup_bonus_crystal.png"
 					}
 				]
 			}
@@ -2068,7 +2071,7 @@
 				"perfection": {
 					"background": "#402312",
 					"title": {
-						"icon_asset": "res://assets/ui/buttons/branch_perfection.png",
+						"icon_asset": "res://assets/ui/skills/branch_perfection.png",
 						"text_size": 28,
 						"text_color": "#FF8A3D"
 					},
@@ -2187,7 +2190,7 @@
 			"fall_speed_px_sec": 220.0,
 			"spawn_offset_y": 10.0,
 			"use_pooling": false,
-			"default_asset": "res://assets/ui/icons/crystal.tres",
+			"default_asset": "res://assets/pickups/pickup_bonus_crystal.png",
 			"drop_table": {
 				"normal_enemy_drop_chance": 0.12,
 				"elite_enemy_drop_chance": 0.25,
@@ -2199,21 +2202,21 @@
 					"type": "score_crystal",
 					"weight": 70,
 					"score_value": 100,
-					"asset": "res://assets/ui/icons/crystal.tres"
+					"asset": "res://assets/pickups/pickup_bonus_crystal.png"
 				},
 				{
 					"id": "score_crystal_big",
 					"type": "score_crystal",
 					"weight": 25,
 					"score_value": 300,
-					"asset": "res://assets/ui/icons/crystal.tres"
+					"asset": "res://assets/pickups/pickup_bonus_crystal.png"
 				},
 				{
 					"id": "streak_time_crystal",
 					"type": "streak_time_crystal",
 					"weight": 5,
 					"time_bonus_sec": 0.5,
-					"asset": "res://assets/ui/icons/crystal.tres"
+					"asset": "res://assets/pickups/pickup_bonus_crystal.png"
 				}
 			]
 		}
@@ -2635,6 +2638,22 @@
 					"row_span": 1,
 					"font_preset": "large"
 				},
+				"continue_story": {
+					"asset": "res://assets/ui/button_regular.png",
+					"asset_anim": "",
+					"show_text": true,
+					"text_color": "#FFFFFF",
+					"text_size": 24,
+					"letter_spacing": 1,
+					"shadow_size": "large",
+					"min_width": 0,
+					"min_height": 64,
+					"grid_col": 0,
+					"grid_row": 1,
+					"col_span": 2,
+					"row_span": 1,
+					"font_preset": "large"
+				},
 				"ship": {
 					"asset": "",
 					"asset_anim": "",
@@ -2654,7 +2673,7 @@
 					"min_width": 0,
 					"min_height": 62,
 					"grid_col": 0,
-					"grid_row": 1,
+					"grid_row": 2,
 					"col_span": 1,
 					"row_span": 1
 				},
@@ -2669,7 +2688,7 @@
 					"min_width": 0,
 					"min_height": 62,
 					"grid_col": 1,
-					"grid_row": 1,
+					"grid_row": 2,
 					"col_span": 1,
 					"row_span": 1
 				},
@@ -2684,7 +2703,7 @@
 					"min_width": 0,
 					"min_height": 56,
 					"grid_col": 0,
-					"grid_row": 2,
+					"grid_row": 3,
 					"col_span": 1,
 					"row_span": 1
 				},
@@ -2699,7 +2718,7 @@
 					"min_width": 0,
 					"min_height": 56,
 					"grid_col": 1,
-					"grid_row": 2,
+					"grid_row": 3,
 					"col_span": 1,
 					"row_span": 1
 				},
@@ -2714,7 +2733,7 @@
 					"min_width": 0,
 					"min_height": 56,
 					"grid_col": 0,
-					"grid_row": 3,
+					"grid_row": 4,
 					"col_span": 2,
 					"row_span": 1
 				},
@@ -3074,7 +3093,7 @@
 				"crit_damage": "res://assets/ui/icons/crit.png",
 				"special_cd": "res://assets/ui/icons/special.png",
 				"special_damage": "res://assets/ui/icons/special.png",
-				"damage_reduction": "res://assets/ui/icons/hp.png",
+				"damage_reduction": "res://assets/ui/icons/heart.png",
 				"shield_capacity": "res://assets/ui/icons/shield.png",
 				"shield_regen": "res://assets/ui/icons/shield.png",
 				"loot_radius": "res://assets/ui/icons/all.png",
@@ -3116,7 +3135,7 @@
 					"animation_repeat_seconds": 0
 				},
 				"level": {
-					"icon_asset": "res://assets/ui/icons/level.png",
+					"icon_asset": "res://assets/ui/icons/trophy.png",
 					"icon_height": 30,
 					"icon_width": 30,
 					"font_size": 22,
@@ -3144,7 +3163,7 @@
 					"animation_repeat_seconds": 10
 				},
 				"hp": {
-					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_asset": "res://assets/ui/icons/heart.png",
 					"icon_height": 24,
 					"icon_width": 24,
 					"font_size": 20,
@@ -3153,7 +3172,7 @@
 					"animation_repeat_seconds": 0
 				},
 				"max_hp": {
-					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_asset": "res://assets/ui/icons/heart.png",
 					"icon_height": 24,
 					"icon_width": 24,
 					"font_size": 20,
@@ -3532,7 +3551,7 @@
 				"crit_damage": "res://assets/ui/icons/crit.png",
 				"special_cd": "res://assets/ui/icons/special.png",
 				"special_damage": "res://assets/ui/icons/special.png",
-				"damage_reduction": "res://assets/ui/icons/hp.png",
+				"damage_reduction": "res://assets/ui/icons/heart.png",
 				"shield_capacity": "res://assets/ui/icons/shield.png",
 				"shield_regen": "res://assets/ui/icons/shield.png",
 				"loot_radius": "res://assets/ui/icons/all.png",
@@ -3574,7 +3593,7 @@
 					"animation_repeat_seconds": 0
 				},
 				"level": {
-					"icon_asset": "res://assets/ui/icons/level.png",
+					"icon_asset": "res://assets/ui/icons/trophy.png",
 					"icon_height": 30,
 					"icon_width": 30,
 					"font_size": 22,
@@ -3602,7 +3621,7 @@
 					"animation_repeat_seconds": 10
 				},
 				"hp": {
-					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_asset": "res://assets/ui/icons/heart.png",
 					"icon_height": 24,
 					"icon_width": 24,
 					"font_size": 20,
@@ -3611,7 +3630,7 @@
 					"animation_repeat_seconds": 0
 				},
 				"max_hp": {
-					"icon_asset": "res://assets/ui/icons/hp.png",
+					"icon_asset": "res://assets/ui/icons/heart.png",
 					"icon_height": 24,
 					"icon_width": 24,
 					"font_size": 20,
@@ -3900,7 +3919,7 @@
 					"perfection": {
 						"background": "#402312",
 						"title": {
-							"icon_asset": "res://assets/ui/buttons/branch_perfection.png",
+							"icon_asset": "res://assets/ui/skills/branch_perfection.png",
 							"text_size": 28,
 							"text_color": "#FF8A3D"
 						},
@@ -4078,14 +4097,14 @@
 				"primary": "res://assets/ui/icons/primary.png"
 			},
 			"item_placeholders": {
-				"reactor": "res://assets/items/engine.png",
-				"engine": "res://assets/items/engine.png",
-				"armor": "res://assets/items/engine.png",
-				"shield": "res://assets/items/engine.png",
-				"missiles": "res://assets/items/engine.png",
-				"targeting": "res://assets/items/engine.png",
-				"utility": "res://assets/items/engine.png",
-				"primary": "res://assets/items/engine.png"
+				"reactor": "res://assets/items/slot_reactor.png",
+				"engine": "res://assets/items/slot_engine.png",
+				"armor": "res://assets/items/slot_armor.png",
+				"shield": "res://assets/items/slot_shield.png",
+				"missiles": "res://assets/items/slot_missiles.png",
+				"targeting": "res://assets/items/slot_targeting.png",
+				"utility": "res://assets/items/slot_utility.png",
+				"primary": "res://assets/items/slot_primary.png"
 			},
 			"level_indicator_assets": {
 				"1-2": "res://assets/ui/frame_level_bronze.png",

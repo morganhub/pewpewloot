@@ -134,6 +134,14 @@ var _ball_launcher_lock_tween: Tween = null
 var _slice_rush_active: bool = false
 var _slice_rush_lock_pos: Vector2 = Vector2.ZERO
 var _slice_rush_lock_tween: Tween = null
+# Claw boss wave: full X+Y lock — le vaisseau est le point d'attache de la pince.
+var _claw_boss_active: bool = false
+var _claw_boss_lock_pos: Vector2 = Vector2.ZERO
+var _claw_boss_lock_tween: Tween = null
+# Suika up wave: full X+Y lock — le vaisseau borde le réacteur et tire sur le boss.
+var _suika_up_active: bool = false
+var _suika_up_lock_pos: Vector2 = Vector2.ZERO
+var _suika_up_lock_tween: Tween = null
 
 # Match3 wave state: the ship is a jokered tile inside the 9x9 board — fully
 # locked, shrunk to cell size, position driven by the Match3Manager through
@@ -1183,6 +1191,64 @@ func is_slice_rush_active() -> bool:
 	return _slice_rush_active
 
 # =============================================================================
+# CLAW BOSS WAVE
+# =============================================================================
+
+## Enters claw-boss mode: the ship tweens to the mid-screen anchor and stays
+## fully locked (X and Y) — it becomes the claw's attach/transform point. The
+## ClawBossManager reads the raw touches itself; shooting is cut by Game.
+func begin_claw_boss(cfg: Dictionary) -> void:
+	_claw_boss_active = true
+	_claw_boss_lock_pos = global_position
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var target := Vector2(
+		viewport_size.x * clampf(float(cfg.get("ship_lock_x_ratio", 0.5)), 0.05, 0.95),
+		viewport_size.y * clampf(float(cfg.get("ship_lock_y_ratio", 0.42)), 0.15, 0.8)
+	)
+	if _claw_boss_lock_tween and _claw_boss_lock_tween.is_valid():
+		_claw_boss_lock_tween.kill()
+	var intro_sec: float = maxf(0.05, float(cfg.get("intro_arrival_sec", 1.0)))
+	_claw_boss_lock_tween = create_tween()
+	_claw_boss_lock_tween.tween_property(self, "_claw_boss_lock_pos", target, intro_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Leaves claw-boss mode: unlocks the ship.
+func end_claw_boss() -> void:
+	if _claw_boss_lock_tween and _claw_boss_lock_tween.is_valid():
+		_claw_boss_lock_tween.kill()
+	_claw_boss_lock_tween = null
+	_claw_boss_active = false
+
+# =============================================================================
+# SUIKA UP WAVE
+# =============================================================================
+
+## Enters suika-up mode: the ship tweens to the boss/reactor border and stays
+## fully locked (X and Y). The SuikaUpManager reads the raw touches itself;
+## shooting is cut by Game — the ship only fires when a shape is consumed.
+func begin_suika_up(cfg: Dictionary) -> void:
+	_suika_up_active = true
+	_suika_up_lock_pos = global_position
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var target := Vector2(
+		viewport_size.x * clampf(float(cfg.get("ship_lock_x_ratio", 0.5)), 0.05, 0.95),
+		viewport_size.y * clampf(float(cfg.get("ship_lock_y_ratio", 0.36)), 0.15, 0.8)
+	)
+	if _suika_up_lock_tween and _suika_up_lock_tween.is_valid():
+		_suika_up_lock_tween.kill()
+	var intro_sec: float = maxf(0.05, float(cfg.get("intro_arrival_sec", 1.0)))
+	_suika_up_lock_tween = create_tween()
+	_suika_up_lock_tween.tween_property(self, "_suika_up_lock_pos", target, intro_sec) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Leaves suika-up mode: unlocks the ship.
+func end_suika_up() -> void:
+	if _suika_up_lock_tween and _suika_up_lock_tween.is_valid():
+		_suika_up_lock_tween.kill()
+	_suika_up_lock_tween = null
+	_suika_up_active = false
+
+# =============================================================================
 # MATCH 3 WAVE
 # =============================================================================
 
@@ -1875,6 +1941,20 @@ func _handle_movement(delta: float) -> void:
 		velocity = Vector2.ZERO
 		_external_displacement = Vector2.ZERO
 		global_position = _match3_lock_pos
+		return
+
+	# Claw boss wave: same full lock — the ship is the claw's anchor point.
+	if _claw_boss_active:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position = _claw_boss_lock_pos
+		return
+
+	# Suika up wave: same full lock — the ship borders the reactor.
+	if _suika_up_active:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position = _suika_up_lock_pos
 		return
 
 	# Ball launcher wave: Y locked on the launch line, X glides toward the

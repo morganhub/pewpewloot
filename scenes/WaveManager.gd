@@ -18,6 +18,8 @@ signal spawn_match3(config: Dictionary)
 signal spawn_gravity_hole(config: Dictionary)
 signal spawn_star_drift(config: Dictionary)
 signal spawn_asteroid_field(config: Dictionary)
+signal spawn_claw_boss(config: Dictionary)
+signal spawn_suika_up(config: Dictionary)
 signal level_completed
 signal wave_started(wave_index: int)
 signal story_check_before_wave(wave_index: int)
@@ -77,6 +79,14 @@ const FREE_MODE_CONTINUOUS_DURATION_SEC: float = 86400.0
 var _free_mode_active: bool = false
 var _free_mode_wave_type: String = ""
 var _free_mode_cfg: Dictionary = {} # bloc freemode.json > modes.<type>
+# Mode FIESTA : enchaîne des rounds de TOUS les mini-jeux débloqués (type
+# différent à chaque round), le level persiste entre les rounds. Les modes
+# "continuous" sont forcés en rounds réels (timer visible).
+var _free_mode_fiesta: bool = false
+var _fiesta_cfg: Dictionary = {} # bloc freemode.json > fiesta
+var _fiesta_modes_cfg: Dictionary = {} # freemode.json > modes (complet)
+var _fiesta_pool: Array = [] # wave_types débloqués par le profil
+var _fiesta_current_type: String = ""
 var _free_seconds_per_level: float = 45.0
 var _free_max_level: int = 20
 var _free_round_duration_default: float = 40.0
@@ -98,6 +108,21 @@ func set_free_mode(wave_type: String, freemode_cfg: Dictionary) -> void:
 		var mode_v: Variant = (modes_v as Dictionary).get(wave_type, {})
 		if mode_v is Dictionary:
 			_free_mode_cfg = (mode_v as Dictionary).duplicate(true)
+	_free_mode_fiesta = wave_type == "fiesta"
+	_fiesta_pool.clear()
+	_fiesta_current_type = ""
+	if _free_mode_fiesta:
+		var fiesta_v: Variant = freemode_cfg.get("fiesta", {})
+		_fiesta_cfg = (fiesta_v as Dictionary).duplicate(true) if fiesta_v is Dictionary else {}
+		_fiesta_modes_cfg = (modes_v as Dictionary).duplicate(true) if modes_v is Dictionary else {}
+		# Pool = mini-jeux DÉBLOQUÉS du profil (∩ modes freemode existants).
+		if DataManager:
+			for id_v in DataManager.get_freemode_mode_ids():
+				if ProfileManager == null or ProfileManager.is_wave_type_unlocked(str(id_v)):
+					_fiesta_pool.append(str(id_v))
+		if _fiesta_pool.is_empty() and DataManager:
+			_fiesta_pool = DataManager.get_freemode_mode_ids() # garde-fou
+		_fiesta_advance_type()
 	var level_steps: Array = []
 	var leveling_v: Variant = freemode_cfg.get("leveling", {})
 	if leveling_v is Dictionary:
@@ -136,6 +161,26 @@ func _seconds_for_level_up(target_level: int, level_steps: Array) -> float:
 func get_free_mode_level() -> int:
 	return _free_level
 
+## Type de vague en cours (utilisé par Game pour le splash/tir coupé en mode
+## libre : le niveau synthétique ne porte qu'un placeholder).
+func get_current_wave_type() -> String:
+	return _current_wave_type
+
+## Fiesta : tire le mini-jeu du prochain round (jamais deux fois de suite le
+## même) et charge sa config (base_wave/per_level du type).
+func _fiesta_advance_type() -> void:
+	if _fiesta_pool.is_empty():
+		return
+	if _fiesta_pool.size() == 1:
+		_fiesta_current_type = str(_fiesta_pool[0])
+	else:
+		var next_type: String = _fiesta_current_type
+		while next_type == _fiesta_current_type:
+			next_type = str(_fiesta_pool[randi() % _fiesta_pool.size()])
+		_fiesta_current_type = next_type
+	var mode_v: Variant = _fiesta_modes_cfg.get(_fiesta_current_type, {})
+	_free_mode_cfg = (mode_v as Dictionary).duplicate(true) if mode_v is Dictionary else {}
+
 ## Vague du mode libre au level donné : {type, duration, countdown_hidden}
 ## + base_wave, puis chaque clé numérique de per_level ajoutée en
 ## (level-1) x delta sur la valeur de base_wave. Les listes pattern_ids[]
@@ -144,12 +189,21 @@ func build_free_mode_wave(level: int) -> Dictionary:
 	# loop_style "continuous" : une seule itération quasi infinie, la montée de
 	# difficulté est poussée en place au manager (update_free_mode_config) — pas
 	# de réengagement d'état (indispensable pour pong et les modes à match).
-	var continuous: bool = str(_free_mode_cfg.get("loop_style", "restart")) == "continuous"
+	# FIESTA : jamais continuous — chaque mini-jeu joue un round RÉEL puis passe
+	# au suivant (comme des vagues story), le timer de round reste visible.
+	var continuous: bool = not _free_mode_fiesta \
+		and str(_free_mode_cfg.get("loop_style", "restart")) == "continuous"
 	var round_duration: float = FREE_MODE_CONTINUOUS_DURATION_SEC if continuous \
 		else maxf(10.0, float(_free_mode_cfg.get("round_duration_sec", _free_round_duration_default)))
+	if _free_mode_fiesta:
+		# Durée du round : celle du MODE s'il en déclare une (rounds
+		# intrinsèques : absorb, gravity_hole, path_trial, claw_boss), sinon la
+		# durée fiesta.
+		round_duration = maxf(10.0, float(_free_mode_cfg.get("round_duration_sec",
+			_fiesta_cfg.get("round_duration_sec", _free_round_duration_default))))
 	var wave: Dictionary = {
-		"type": _free_mode_wave_type,
-		"countdown_hidden": true,
+		"type": _fiesta_current_type if _free_mode_fiesta else _free_mode_wave_type,
+		"countdown_hidden": not _free_mode_fiesta,
 		"duration": round_duration,
 		# Progression 0->1 du level (1->max_level). En continuous, la durée est
 		# quasi infinie : les rampes temporelles *_start->*_end des managers
@@ -333,7 +387,10 @@ func _complete_current_wave() -> void:
 	if next_wave_index >= _waves.size():
 		if _free_mode_active:
 			# Boucle infinie : régénérer la vague au level courant et repartir
-			# au lieu de terminer le niveau.
+			# au lieu de terminer le niveau. En fiesta, le prochain round change
+			# de mini-jeu (le level, lui, persiste : difficulté croissante).
+			if _free_mode_fiesta:
+				_fiesta_advance_type()
 			_waves = [build_free_mode_wave(_free_level)]
 			_current_wave_index = 0
 			_queue_wave_start(0)
@@ -435,6 +492,22 @@ func notify_star_drift_finished() -> void:
 		return
 	_complete_current_wave()
 
+## Called by Game when the ClawBossManager reports the boss died or escaped.
+func notify_claw_boss_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "claw_boss":
+		return
+	_complete_current_wave()
+
+## Called by Game when the SuikaUpManager reports the boss died or escaped.
+func notify_suika_up_finished() -> void:
+	if not _is_wave_running:
+		return
+	if _current_wave_type != "suika_up":
+		return
+	_complete_current_wave()
+
 func _should_advance_cleared_wave(delta: float) -> bool:
 	if _current_wave_type == "path_trial" or _current_wave_type == "gate_runner" \
 		or _current_wave_type == "pong" or _current_wave_type == "breakout" \
@@ -442,7 +515,8 @@ func _should_advance_cleared_wave(delta: float) -> bool:
 		or _current_wave_type == "vertical_climb" or _current_wave_type == "absorb" \
 		or _current_wave_type == "lane_runner" or _current_wave_type == "slice_rush" \
 		or _current_wave_type == "match3" or _current_wave_type == "gravity_hole" \
-		or _current_wave_type == "star_drift":
+		or _current_wave_type == "star_drift" or _current_wave_type == "claw_boss" \
+		or _current_wave_type == "suika_up":
 		_clear_advance_timer = 0.0
 		return false
 	if not _pending_spawns.is_empty():
@@ -490,16 +564,11 @@ func _start_wave(wave: Dictionary) -> void:
 	var t0_usec: int = Time.get_ticks_usec()
 	if DEBUG_WAVE_LIFECYCLE_LOG:
 		print("[WaveManager] Starting wave idx: ", _current_wave_index)
-	wave_started.emit(_current_wave_index)
-	
-	_pending_spawns.clear()
-	_current_wave_duration = maxf(0.1, _resolve_wave_duration(wave))
-	_current_wave_elapsed = 0.0
-	_clear_advance_timer = 0.0
-	_is_wave_running = true
 
 	# Defensive auto-correction: an obstacle/path_trial wave declared without explicit type
 	# would silently fall through to the enemy branch and produce an empty 20s wave.
+	# Résolu AVANT wave_started : Game lit get_current_wave_type() au signal
+	# (splash/tir coupé du type réel — indispensable en mode libre fiesta).
 	var wave_type: String = str(wave.get("type", ""))
 	if wave_type == "":
 		if wave.has("obstacle_id"):
@@ -513,7 +582,15 @@ func _start_wave(wave: Dictionary) -> void:
 		else:
 			wave_type = "enemy"
 	_current_wave_type = wave_type
-	
+
+	wave_started.emit(_current_wave_index)
+
+	_pending_spawns.clear()
+	_current_wave_duration = maxf(0.1, _resolve_wave_duration(wave))
+	_current_wave_elapsed = 0.0
+	_clear_advance_timer = 0.0
+	_is_wave_running = true
+
 	match wave_type:
 		"obstacle":
 			_start_obstacle_wave(wave)
@@ -541,6 +618,10 @@ func _start_wave(wave: Dictionary) -> void:
 			_start_gravity_hole_wave(wave)
 		"star_drift":
 			_start_star_drift_wave(wave)
+		"claw_boss":
+			_start_claw_boss_wave(wave)
+		"suika_up":
+			_start_suika_up_wave(wave)
 		"asteroid_split":
 			_start_asteroid_split_wave(wave)
 		"swarm":
@@ -570,7 +651,8 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 	if wave_type == "pong" or wave_type == "breakout" or wave_type == "ball_launcher" \
 		or wave_type == "vertical_climb" \
 		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
-		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift":
+		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift" \
+		or wave_type == "claw_boss" or wave_type == "suika_up":
 		honor_explicit_duration = true
 		if not wave.has("duration"):
 			match wave_type:
@@ -592,12 +674,24 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 					duration = _resolve_gravity_hole_default_duration()
 				"star_drift":
 					duration = _resolve_star_drift_default_duration()
+				"claw_boss":
+					duration = _resolve_claw_boss_default_duration()
+				"suika_up":
+					duration = _resolve_suika_up_default_duration()
 				_:
 					duration = _resolve_absorb_default_duration()
 	if forced_duration > 0.0 and not honor_explicit_duration:
 		duration = forced_duration
 	if wave_type == "path_trial":
 		duration += _resolve_path_trial_start_delay(wave)
+	if wave_type == "claw_boss":
+		# Le manager self-finish (mort/fuite du boss) ; la fuite n'est déclenchée
+		# que depuis AIM/COOLDOWN, un grab en cours se termine toujours (~8 s de
+		# débord max) : marge pour que le timeout dur ne coupe jamais un cycle.
+		duration += 12.0
+	if wave_type == "suika_up":
+		# Self-finish (mort/fuite) : marge pour l'anim de fuite + tirs en vol.
+		duration += 6.0
 	if wave_type == "gravity_hole":
 		# The manager plays `duration` seconds of gameplay PLUS the intro/outro
 		# cover choreography: pad the WaveManager clock so the hard timeout
@@ -834,7 +928,8 @@ func _start_artillery_wave(wave: Dictionary) -> void:
 
 	var min_x: float = viewport_size.x * horizontal_margin_ratio
 	var max_x: float = viewport_size.x * (1.0 - horizontal_margin_ratio)
-	var row_count: int = int(count / rows)
+	@warning_ignore("integer_division")
+	var row_count: int = count / rows
 
 	var spawn_index: int = 0
 	for row_index in range(rows):
@@ -991,6 +1086,28 @@ func _start_ball_launcher_wave(wave: Dictionary) -> void:
 
 func _resolve_ball_launcher_default_duration() -> float:
 	var cfg: Dictionary = DataManager.get_wave_type_config("ball_launcher") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 60.0)))
+
+func _start_claw_boss_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_claw_boss_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_claw_boss.emit(payload)
+
+func _resolve_claw_boss_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("claw_boss") if DataManager else {}
+	return maxf(10.0, float(cfg.get("duration_sec_default", 60.0)))
+
+func _start_suika_up_wave(wave: Dictionary) -> void:
+	var payload: Dictionary = wave.duplicate(true)
+	if not payload.has("duration"):
+		payload["duration"] = _resolve_suika_up_default_duration()
+	payload["wave_index"] = _current_wave_index
+	spawn_suika_up.emit(payload)
+
+func _resolve_suika_up_default_duration() -> float:
+	var cfg: Dictionary = DataManager.get_wave_type_config("suika_up") if DataManager else {}
 	return maxf(10.0, float(cfg.get("duration_sec_default", 60.0)))
 
 func _start_vertical_climb_wave(wave: Dictionary) -> void:
@@ -1289,6 +1406,7 @@ func _resolve_enemy_skin_type(enemy_skin: String) -> String:
 func _prewarm_wave_resources() -> void:
 	var seen_paths: Dictionary = {}
 	_collect_wave_visual_resources(seen_paths)
+	_collect_fiesta_pool_resources(seen_paths)
 	_collect_move_pattern_resources(seen_paths)
 
 	for path_variant in seen_paths.keys():
@@ -1299,6 +1417,20 @@ func _prewarm_wave_resources() -> void:
 		ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
 		if DEBUG_RESOURCE_WARMUP_LOG and _log_resource_warmup_enabled:
 			print("[WaveManager] Warmup ", ("reused " if was_cached else "loaded "), path)
+
+## Fiesta : prewarm des assets de TOUS les mini-jeux du pool (le type change à
+## chaque round — sans ça, hitch au premier spawn de chaque nouveau mode).
+## Réutilise _collect_wave_visual_resources via un swap temporaire de _waves.
+func _collect_fiesta_pool_resources(target: Dictionary) -> void:
+	if not _free_mode_fiesta or _fiesta_pool.is_empty():
+		return
+	var saved_waves: Array = _waves
+	var pseudo_waves: Array = []
+	for type_v in _fiesta_pool:
+		pseudo_waves.append({"type": str(type_v)})
+	_waves = pseudo_waves
+	_collect_wave_visual_resources(target)
+	_waves = saved_waves
 
 func _collect_wave_visual_resources(target: Dictionary) -> void:
 	var enemy_overrides: Dictionary = {}
@@ -1357,6 +1489,18 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			var paddle_skin: String = str(enemy_overrides.get(paddle_enemy_id, ""))
 			if paddle_skin != "":
 				_add_warmup_path(target, paddle_skin)
+			# Powerups pong : icônes, missiles, portails, briques du mur central.
+			var pong_pool_v: Variant = wave.get("powerup_pool", pong_cfg.get("powerup_pool", []))
+			if pong_pool_v is Array:
+				for pong_powerup_v in (pong_pool_v as Array):
+					if pong_powerup_v is Dictionary:
+						_add_warmup_path(target, str((pong_powerup_v as Dictionary).get("asset", "")))
+			for pong_asset_key in ["armed_missile_asset", "portal_entry_asset", "portal_exit_asset"]:
+				_add_warmup_path(target, str(wave.get(pong_asset_key, pong_cfg.get(pong_asset_key, ""))))
+			var pong_bricks_v: Variant = wave.get("wall_brick_assets", pong_cfg.get("wall_brick_assets", []))
+			if pong_bricks_v is Array:
+				for pong_brick_v in (pong_bricks_v as Array):
+					_add_warmup_path(target, str(pong_brick_v))
 			continue
 		if wave_type == "asteroid_split":
 			var ast_cfg: Dictionary = DataManager.get_wave_type_config("asteroid_split") if DataManager else {}
@@ -1384,6 +1528,56 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if bl_tokens_v is Array:
 				for bl_token_v in (bl_tokens_v as Array):
 					_add_warmup_path(target, str(bl_token_v))
+			continue
+		if wave_type == "suika_up":
+			var su_cfg: Dictionary = DataManager.get_wave_type_config("suika_up") if DataManager else {}
+			var su_levels_v: Variant = wave.get("levels", su_cfg.get("levels", {}))
+			if su_levels_v is Dictionary:
+				for su_level_v in (su_levels_v as Dictionary).values():
+					if su_level_v is Dictionary:
+						_add_warmup_path(target, str((su_level_v as Dictionary).get("asset", "")))
+			var su_bombs_v: Variant = wave.get("boss_bomb_levels", su_cfg.get("boss_bomb_levels", {}))
+			if su_bombs_v is Dictionary:
+				for su_bomb_v in (su_bombs_v as Dictionary).values():
+					if su_bomb_v is Dictionary:
+						_add_warmup_path(target, str((su_bomb_v as Dictionary).get("asset", "")))
+			var su_bosses_v: Variant = wave.get("bosses", su_cfg.get("bosses", []))
+			if su_bosses_v is Array:
+				for su_boss_v in (su_bosses_v as Array):
+					if su_boss_v is Dictionary:
+						_add_warmup_path(target, str((su_boss_v as Dictionary).get("asset_anim", "")))
+			for su_asset_key in ["trajectory_dot_asset", "redline_asset", "reactor_frame_asset", "reactor_background_asset", "launcher_socket_asset", "power_gauge_asset", "merge_fx_anim"]:
+				_add_warmup_path(target, str(wave.get(su_asset_key, su_cfg.get(su_asset_key, ""))))
+			for su_expl_key in ["boss_hit_explosion", "boss_death_explosion"]:
+				var su_expl_v: Variant = wave.get(su_expl_key, su_cfg.get(su_expl_key, {}))
+				if su_expl_v is Dictionary:
+					_add_warmup_path(target, str((su_expl_v as Dictionary).get("asset", "")))
+					_add_warmup_path(target, str((su_expl_v as Dictionary).get("asset_anim", "")))
+			continue
+		if wave_type == "claw_boss":
+			var cb_cfg: Dictionary = DataManager.get_wave_type_config("claw_boss") if DataManager else {}
+			var cb_items_v: Variant = wave.get("items", cb_cfg.get("items", []))
+			if cb_items_v is Array:
+				for cb_item_v in (cb_items_v as Array):
+					if cb_item_v is Dictionary:
+						var cb_item: Dictionary = cb_item_v as Dictionary
+						_add_warmup_path(target, str(cb_item.get("asset_anim", "")))
+						var cb_assets_v: Variant = cb_item.get("assets", [])
+						if cb_assets_v is Array:
+							for cb_asset_v in (cb_assets_v as Array):
+								_add_warmup_path(target, str(cb_asset_v))
+			var cb_bosses_v: Variant = wave.get("bosses", cb_cfg.get("bosses", []))
+			if cb_bosses_v is Array:
+				for cb_boss_v in (cb_bosses_v as Array):
+					if cb_boss_v is Dictionary:
+						_add_warmup_path(target, str((cb_boss_v as Dictionary).get("asset_anim", "")))
+			_add_warmup_path(target, str(wave.get("claw_frames_asset", cb_cfg.get("claw_frames_asset", ""))))
+			_add_warmup_path(target, str(wave.get("cable_asset", cb_cfg.get("cable_asset", ""))))
+			for cb_expl_key in ["boss_hit_explosion", "boss_death_explosion"]:
+				var cb_expl_v: Variant = wave.get(cb_expl_key, cb_cfg.get(cb_expl_key, {}))
+				if cb_expl_v is Dictionary:
+					_add_warmup_path(target, str((cb_expl_v as Dictionary).get("asset", "")))
+					_add_warmup_path(target, str((cb_expl_v as Dictionary).get("asset_anim", "")))
 			continue
 		if wave_type == "vertical_climb":
 			var vc_cfg: Dictionary = DataManager.get_wave_type_config("vertical_climb") if DataManager else {}

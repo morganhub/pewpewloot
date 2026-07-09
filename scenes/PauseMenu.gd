@@ -83,8 +83,8 @@ func _apply_pause_menu_config() -> void:
 	var btn_max_w: int = int(cfg.get("button_max_width", 0))
 	if btn_max_w > 0:
 		btn_w = mini(btn_w, btn_max_w)
-	for name in ["ResumeButton", "RestartButton", "LevelSelectButton", "QuitButton"]:
-		var btn: Button = panel.get_node_or_null("Margin/VBox/" + name) as Button
+	for btn_name in ["ResumeButton", "RestartButton", "LevelSelectButton", "QuitButton"]:
+		var btn: Button = panel.get_node_or_null("Margin/VBox/" + btn_name) as Button
 		if btn:
 			btn.add_theme_font_size_override("font_size", btn_font_sz)
 			btn.custom_minimum_size = Vector2(btn_w, btn_h)
@@ -131,8 +131,8 @@ func _apply_button_styles() -> void:
 	var btn_max_w: int = int(cfg.get("button_max_width", 0))
 	if btn_max_w > 0:
 		btn_w = mini(btn_w, btn_max_w)
-	for name in ["ResumeButton", "RestartButton", "LevelSelectButton", "QuitButton"]:
-		var btn: Button = panel.get_node_or_null("Margin/VBox/" + name) as Button
+	for btn_name in ["ResumeButton", "RestartButton", "LevelSelectButton", "QuitButton"]:
+		var btn: Button = panel.get_node_or_null("Margin/VBox/" + btn_name) as Button
 		if btn:
 			btn.custom_minimum_size = Vector2(btn_w, btn_h)
 			if btn_max_w > 0:

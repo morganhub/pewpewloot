@@ -13,22 +13,22 @@
 			"elite": "res://assets/enemies/forest/elite.tres"
 		},
 		"bosses": {
-			"boss_forest_1": "res://assets/bosses/forest/boss_1.tres",
+			"boss_forest_1": "res://assets/bosses/forest/forest_boss_1.tres",
 			"boss_forest_1_animation_duration": 2.0,
 			"boss_forest_1_animation_frequency": 8.0,
-			"boss_forest_2": "res://assets/bosses/forest/boss_2.tres",
+			"boss_forest_2": "res://assets/bosses/forest/forest_boss_2.tres",
 			"boss_forest_2_animation_duration": 2.0,
 			"boss_forest_2_animation_frequency": 8.0,
-			"boss_forest_3": "res://assets/bosses/forest/boss_3.tres",
+			"boss_forest_3": "res://assets/bosses/forest/forest_boss_3.tres",
 			"boss_forest_3_animation_duration": 2.0,
 			"boss_forest_3_animation_frequency": 8.0,
-			"boss_forest_4": "res://assets/bosses/forest/boss_4.tres",
+			"boss_forest_4": "res://assets/bosses/forest/forest_boss_4.tres",
 			"boss_forest_4_animation_duration": 2.0,
 			"boss_forest_4_animation_frequency": 8.0,
-			"boss_forest_5": "res://assets/bosses/forest/boss_5.tres",
+			"boss_forest_5": "res://assets/bosses/forest/forest_boss_5.tres",
 			"boss_forest_5_animation_duration": 2.0,
 			"boss_forest_5_animation_frequency": 8.0,
-			"boss_forest_final": "res://assets/bosses/forest/boss_final.tres",
+			"boss_forest_final": "res://assets/bosses/forest/forest_boss_final.tres",
 			"boss_forest_final_animation_duration": 2.0,
 			"boss_forest_final_animation_frequency": 8.0
 		},
@@ -722,6 +722,25 @@
 					"descent_speed_px_sec": 100,
 					"shuffle_window": 2,
 					"final_mass_margin": 0.65
+				},
+				{
+					"type": "suika_up",
+					"duration": 60,
+					"boss_id": "suika_core_guardian",
+					"boss_toughness_mult": 1.0,
+					"boss_pattern_interval_sec": 8.0,
+					"overflow_damage_percent": 0.25,
+					"max_launch_speed_px_sec": 1250.0,
+					"reward_multiplier": 1.0
+				},
+				{
+					"type": "claw_boss",
+					"duration": 60,
+					"boss_id": "forest_guardian",
+					"attack_pickups_to_kill": 10,
+					"grab_countdown_sec": 5.0,
+					"item_pool_overrides": { "scrap_junk": 10, "bomb": 4 },
+					"reward_multiplier": 1.0
 				}
 			],
 			"events": [],

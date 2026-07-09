@@ -361,13 +361,13 @@ func _setup_boss_debug_ui() -> void:
 func _on_next_boss_pressed() -> void:
 	next_boss_requested.emit()
 
-func set_boss_debug_visible(visible: bool) -> void:
+func set_boss_debug_visible(debug_visible: bool) -> void:
 	if _boss_debug_label:
-		_boss_debug_label.visible = visible
-		if not visible:
+		_boss_debug_label.visible = debug_visible
+		if not debug_visible:
 			_boss_debug_label.text = ""
 	if _next_boss_button:
-		_next_boss_button.visible = visible
+		_next_boss_button.visible = debug_visible
 
 func update_boss_debug_info(boss_name: String, boss_id: String, power_id: String, missile_id: String) -> void:
 	if not _boss_debug_label:
@@ -620,6 +620,12 @@ func show_boss_health(boss_name: String, max_hp: int) -> void:
 		boss_hp_bar.max_value = max_hp
 		boss_hp_bar.value = max_hp
 	_update_boss_bar_color(1.0)
+
+## Masquage explicite (claw_boss : le boss peut s'enfuir avec des HP > 0 —
+## update_boss_health ne masque le container qu'à 0).
+func hide_boss_health() -> void:
+	if boss_container:
+		boss_container.visible = false
 
 func update_boss_health(current_hp: int, max_hp: int) -> void:
 	if boss_hp_bar:
@@ -1336,7 +1342,7 @@ func _apply_label_background_from_config(label: Label, cfg: Dictionary, node_nam
 		label.size_flags_horizontal = 0
 		label.size_flags_vertical = 0
 
-func _parse_horizontal_alignment(value: String) -> int:
+func _parse_horizontal_alignment(value: String) -> HorizontalAlignment:
 	match value.strip_edges().to_lower():
 		"left":
 			return HORIZONTAL_ALIGNMENT_LEFT
@@ -1347,7 +1353,7 @@ func _parse_horizontal_alignment(value: String) -> int:
 		_:
 			return HORIZONTAL_ALIGNMENT_CENTER
 
-func _parse_vertical_alignment(value: String) -> int:
+func _parse_vertical_alignment(value: String) -> VerticalAlignment:
 	match value.strip_edges().to_lower():
 		"top":
 			return VERTICAL_ALIGNMENT_TOP
@@ -1358,7 +1364,7 @@ func _parse_vertical_alignment(value: String) -> int:
 		_:
 			return VERTICAL_ALIGNMENT_CENTER
 
-func _parse_label_bg_stretch_mode(mode_name: String) -> int:
+func _parse_label_bg_stretch_mode(mode_name: String) -> TextureRect.StretchMode:
 	var normalized: String = mode_name.strip_edges().to_lower()
 	match normalized:
 		"scale":

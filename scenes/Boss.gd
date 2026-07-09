@@ -169,7 +169,7 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	var asset_path: String = ""
 	var asset_anim: String = ""
 	var asset_anim_duration: float = 0.0
-	var asset_anim_loop: bool = true
+	var _asset_anim_loop: bool = true
 	var color_hex: String = "#AA44FF"
 	var shape_type: String = "hexagon"
 	
@@ -182,7 +182,7 @@ func _setup_visual(boss_data: Dictionary) -> void:
 		_boss_anim_frequency = maxf(0.0, float(v_dict.get("asset_anim_frequency", 8.0)))
 		_boss_anim_timer = 0.0 # Force immediate first play
 		_boss_anim_is_playing = false
-		asset_anim_loop = false # Force false for boss animations
+		_asset_anim_loop = false # Force false for boss animations
 		color_hex = str(v_dict.get("color", "#AA44FF"))
 		shape_type = str(v_dict.get("shape", "hexagon"))
 	
@@ -298,7 +298,7 @@ func _setup_visual(boss_data: Dictionary) -> void:
 	collision_layer = 4 # Layer 3: Enemy
 	collision_mask = 1 + 8 # World + PlayerProjectiles (No Player)
 
-func _load_cached_resource(path: String, debug_label: String = "") -> Resource:
+func _load_cached_resource(path: String, _debug_label: String = "") -> Resource:
 	if path == "":
 		return null
 	if _strong_resource_cache.has(path):

@@ -139,6 +139,9 @@ func _build_content() -> void:
 	_tiles_grid.add_theme_constant_override("v_separation", 12)
 	content_box.add_child(_tiles_grid)
 
+	# Tuile FIESTA en tout premier : enchaîne tous les mini-jeux débloqués
+	# (grisée tant que le profil n'a pas min_unlocked_modes mini-jeux).
+	_tiles_grid.add_child(_create_mode_tile("fiesta"))
 	for id_v in mode_ids:
 		var wave_type: String = str(id_v)
 		_tiles_grid.add_child(_create_mode_tile(wave_type))
@@ -146,6 +149,11 @@ func _build_content() -> void:
 func _create_mode_tile(wave_type: String) -> Control:
 	var mode_cfg: Dictionary = DataManager.get_freemode_mode_config(wave_type)
 	var unlocked: bool = ProfileManager.is_wave_type_unlocked(wave_type)
+	if wave_type == "fiesta":
+		# Config racine freemode.json > fiesta (pas un bloc modes.<type>) ;
+		# déblocage = au moins min_unlocked_modes mini-jeux débloqués.
+		mode_cfg = _get_fiesta_cfg()
+		unlocked = _is_fiesta_unlocked()
 	var best_score: int = ProfileManager.get_free_mode_best_score(wave_type)
 
 	var wrapper := Control.new()
@@ -272,10 +280,25 @@ func _on_tile_gui_input(event: InputEvent, wave_type: String, unlocked: bool) ->
 	if not _is_primary_press(event):
 		return
 	if not unlocked:
-		_show_message_popup(LocaleManager.translate("free_mode_locked_hint"))
+		if wave_type == "fiesta":
+			_show_message_popup(LocaleManager.translate("free_mode_fiesta_locked_hint",
+				{"count": str(_fiesta_min_unlocked())}))
+		else:
+			_show_message_popup(LocaleManager.translate("free_mode_locked_hint"))
 		get_viewport().set_input_as_handled()
 		return
 	_launch_free_mode(wave_type)
+
+func _get_fiesta_cfg() -> Dictionary:
+	var fiesta_v: Variant = DataManager.get_freemode_config().get("fiesta", {})
+	return (fiesta_v as Dictionary) if fiesta_v is Dictionary else {}
+
+func _fiesta_min_unlocked() -> int:
+	return maxi(1, int(_get_fiesta_cfg().get("min_unlocked_modes", 2)))
+
+func _is_fiesta_unlocked() -> bool:
+	var mode_ids: Array = DataManager.get_freemode_mode_ids()
+	return ProfileManager.get_unlocked_wave_type_count(mode_ids) >= _fiesta_min_unlocked()
 
 func _launch_free_mode(wave_type: String) -> void:
 	App.free_mode_active = true

@@ -110,7 +110,7 @@ func _on_door_body_entered(body: Node2D, operation: String, value: float) -> voi
 func _disable_doors() -> void:
 	for child in get_children():
 		if child is Area2D:
-			(child as Area2D).monitoring = false
+			(child as Area2D).set_deferred("monitoring", false)
 
 func _process(delta: float) -> void:
 	position.y += _door_speed * delta

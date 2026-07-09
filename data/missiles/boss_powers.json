@@ -397,7 +397,8 @@
 				"sweep_speed_deg": 24,
 				"follow_source": true,
 				"track_player_on_activate": true,
-				"asset_anim": "res://assets/missiles/gradient_energy_burst.tres",
+				"asset": "res://assets/vfx/boss_cone.png",
+				"asset_anim": "",
 				"asset_anim_loop": true,
 				"telegraph_color": "#FF9F6A",
 				"active_color": "#FF3B1D"

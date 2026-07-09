@@ -3,6 +3,7 @@
 	"leveling": {
 		"max_level": 20,
 		"seconds_per_level": 45,
+		"full_heal_on_level_up": true,
 		"level_time_steps": [
 			{ "until_level": 5, "seconds": 20 },
 			{ "until_level": 10, "seconds": 30 },
@@ -11,6 +12,12 @@
 	},
 	"defaults": {
 		"round_duration_sec": 40
+	},
+	"fiesta": {
+		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (absorb/gravity_hole/path_trial/claw_boss), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
+		"min_unlocked_modes": 2,
+		"round_duration_sec": 40,
+		"tile_background": "res://assets/ui/main_menu_bg.jpg"
 	},
 	"modes": {
 		"pong": {
@@ -48,21 +55,79 @@
 			}
 		},
 		"ball_launcher": {
+			"_note": "Plus de turn_time_max : les balles vivent tant qu'elles touchent des blocs (fade 4s+2s). sticky/chest montent avec le level ; boss_respawn_interval descend (boss plus frequents).",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/titans/tile_titans_1.jpg",
 			"base_wave": {
 				"row_hp_base": 2.0,
 				"row_hp_growth_per_turn": 0.8,
 				"row_fill_ratio_max": 0.75,
-				"turn_time_max_sec": 9.0,
-				"damage_percent_per_row_crossed": 0.15
+				"damage_percent_per_row_crossed": 0.15,
+				"sticky_chance": 0.05,
+				"explosive_chance": 0.05,
+				"chest_chance": 0.015,
+				"boss_spawn_max_wait_sec": 60.0,
+				"boss_respawn_interval_sec": 90.0
 			},
 			"per_level": {
-				"row_hp_base": 0.35,
-				"row_hp_growth_per_turn": 0.06,
+				"row_hp_base": 0.9,
+				"row_hp_growth_per_turn": 0.12,
 				"row_fill_ratio_max": 0.012,
-				"turn_time_max_sec": -0.15,
-				"damage_percent_per_row_crossed": 0.005
+				"damage_percent_per_row_crossed": 0.005,
+				"sticky_chance": 0.004,
+				"chest_chance": 0.0012,
+				"boss_respawn_interval_sec": -1.5
+			}
+		},
+		"claw_boss": {
+			"_note": "Restart : 1 round = 1 boss (mort ou fuite a 60 s) -> notify -> regen au level courant, upgrades de pince reset. per_level ne scale QUE des cles plates : difficulte via attack_pickups_to_kill (boss plus tanky), bomb/junk_pool_weight_bonus (ajoutes par-dessus items[].pool_weight par id), countdown reduit (clamp grab_countdown_min_sec cote manager), feed accelere. Ne PAS utiliser item_pool_overrides ici (remplace en bloc, pas scalable).",
+			"loop_style": "restart",
+			"round_duration_sec": 60,
+			"tile_background": "res://assets/backgrounds/worlds/forest/tile_forest_5.jpg",
+			"base_wave": {
+				"attack_pickups_to_kill": 10,
+				"grab_countdown_sec": 5.0,
+				"runtime_feed_interval_sec": 1.2,
+				"bomb_pool_weight_bonus": 0.0,
+				"junk_pool_weight_bonus": 0.0,
+				"drop_chance_on_raise_base": 0.1,
+				"target_items_in_pit": 90,
+				"max_items_in_pit": 108,
+				"reward_multiplier": 1.0
+			},
+			"per_level": {
+				"attack_pickups_to_kill": 1.2,
+				"grab_countdown_sec": -0.12,
+				"runtime_feed_interval_sec": -0.02,
+				"bomb_pool_weight_bonus": 0.35,
+				"junk_pool_weight_bonus": 0.4,
+				"drop_chance_on_raise_base": 0.004,
+				"target_items_in_pit": 0.3,
+				"max_items_in_pit": 0.3,
+				"reward_multiplier": 0.06
+			}
+		},
+		"suika_up": {
+			"_note": "Restart : 1 round = 1 boss (mort ou fuite a 60 s) -> notify -> regen au level courant. La frequence de tir du boss (boss_shot_interval_sec) et le countdown des bombes (boss_bomb_countdown_sec) sont reduits en POURCENTAGE avec le level via _free_level_progress x freemode_time_reduction_max_pct (wave_types.json), avec seuils boss_shot_interval_min_sec (2.5) / boss_bomb_countdown_min_sec (1.0). per_level ne scale QUE des cles plates : boss_toughness_mult (clamp min 0.5), patterns plus frequents (clamp min 3 s), grace overflow reduite (clamp min 0.8 s). Ne PAS scaler levels{}/boss_patterns[]/next_pool[] (structures remplacees en bloc).",
+			"loop_style": "restart",
+			"round_duration_sec": 60,
+			"tile_background": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_2.jpg",
+			"base_wave": {
+				"boss_toughness_mult": 1.0,
+				"boss_pattern_interval_sec": 7.0,
+				"overflow_grace_sec": 2.0,
+				"overflow_damage_percent": 0.35,
+				"max_launch_speed_px_sec": 1350.0,
+				"max_shapes_active": 42,
+				"reward_multiplier": 1.0
+			},
+			"per_level": {
+				"boss_toughness_mult": 0.12,
+				"boss_pattern_interval_sec": -0.15,
+				"overflow_grace_sec": -0.035,
+				"overflow_damage_percent": 0.004,
+				"max_launch_speed_px_sec": 5.0,
+				"reward_multiplier": 0.06
 			}
 		},
 		"vertical_climb": {

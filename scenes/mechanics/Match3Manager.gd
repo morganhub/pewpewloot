@@ -272,6 +272,7 @@ func _build_grid() -> void:
 	_grid_root.z_index = 10
 	add_child(_grid_root)
 
+	@warning_ignore("integer_division")
 	_ship_cell = Vector2i(_grid_size / 2, _grid_size / 2)
 	_grid = []
 	for row in range(_grid_size):
@@ -938,15 +939,15 @@ func _spawn_effect_visual(fx: Dictionary, delay: float) -> void:
 ## Line sweep: width grows 0 -> line_effect_width_px, then fades out.
 func _play_line_effect(a: Vector2, b: Vector2, delay: float) -> void:
 	var entry: Dictionary = _acquire_pooled(_line_pool, LINE_POOL_SIZE, func() -> Node2D:
-		var line := Line2D.new()
-		line.joint_mode = Line2D.LINE_JOINT_ROUND
-		line.begin_cap_mode = Line2D.LINE_CAP_ROUND
-		line.end_cap_mode = Line2D.LINE_CAP_ROUND
-		line.material = _add_material
-		line.z_as_relative = false
-		line.z_index = 55
-		add_child(line)
-		return line
+		var new_line := Line2D.new()
+		new_line.joint_mode = Line2D.LINE_JOINT_ROUND
+		new_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		new_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		new_line.material = _add_material
+		new_line.z_as_relative = false
+		new_line.z_index = 55
+		add_child(new_line)
+		return new_line
 	)
 	var line_v: Variant = entry.get("node", null)
 	if not (line_v is Line2D) or not is_instance_valid(line_v):
@@ -971,17 +972,17 @@ func _play_line_effect(a: Vector2, b: Vector2, delay: float) -> void:
 ## Circle burst: unit polygon scaled 0 -> radius, then fades out.
 func _play_circle_effect(center: Vector2, delay: float) -> void:
 	var entry: Dictionary = _acquire_pooled(_circle_pool, CIRCLE_POOL_SIZE, func() -> Node2D:
-		var circle := Polygon2D.new()
+		var new_circle := Polygon2D.new()
 		var points := PackedVector2Array()
 		for i in range(24):
 			var angle: float = TAU * float(i) / 24.0
 			points.append(Vector2(cos(angle), sin(angle)))
-		circle.polygon = points
-		circle.material = _add_material
-		circle.z_as_relative = false
-		circle.z_index = 54
-		add_child(circle)
-		return circle
+		new_circle.polygon = points
+		new_circle.material = _add_material
+		new_circle.z_as_relative = false
+		new_circle.z_index = 54
+		add_child(new_circle)
+		return new_circle
 	)
 	var circle_v: Variant = entry.get("node", null)
 	if not (circle_v is Polygon2D) or not is_instance_valid(circle_v):

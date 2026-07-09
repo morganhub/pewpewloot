@@ -16,6 +16,10 @@ var _is_collected: bool = false
 var _auto_collect_delay_sec: float = 0.0
 var _auto_collect_speed: float = 900.0
 var _auto_collect_timer: float = 0.0
+# Auto-collect positionnel (opt-in, e.g. ball_launcher) : franchir la ligne Y
+# = le drop file vers le vaisseau et se collecte. 0 = disabled. Latché.
+var _auto_collect_below_y: float = 0.0
+var _below_y_latched: bool = false
 var _drift_velocity: Vector2 = Vector2.ZERO
 var _viewport_width: float = 0.0
 var _sprite_node: Sprite2D = null
@@ -56,6 +60,8 @@ func setup(loot_item: Dictionary, pos: Vector2) -> void:
 	_auto_collect_delay_sec = maxf(0.0, float(item_data.get("auto_collect_delay_sec", 0.0)))
 	_auto_collect_speed = maxf(50.0, float(item_data.get("auto_collect_speed_px_sec", 900.0)))
 	_auto_collect_timer = _auto_collect_delay_sec
+	_auto_collect_below_y = maxf(0.0, float(item_data.get("auto_collect_below_y", 0.0)))
+	_below_y_latched = false
 
 	var is_powerup := str(item_data.get("type", "")) == "powerup"
 	var default_size: float = 56.0 if is_powerup else 32.0
@@ -260,19 +266,25 @@ func _process(delta: float) -> void:
 	if _is_collected:
 		return
 
-	# Timed auto-collect homing: replaces fall/drift/magnet once the delay is up.
+	# Auto-collect homing: replaces fall/drift/magnet. Déclenché par le timer
+	# (opt-in) OU par le franchissement de la ligne Y (opt-in, latché).
+	var homing: bool = false
 	if _auto_collect_delay_sec > 0.0:
 		_auto_collect_timer -= delta
 		if _auto_collect_timer <= 0.0:
-			var home_target: Node = get_tree().get_first_node_in_group("player")
-			if home_target is Node2D:
-				var to_ship: Vector2 = (home_target as Node2D).global_position - global_position
-				var dist: float = to_ship.length()
-				if dist <= 24.0:
-					_collect()
-					return
-				global_position += to_ship.normalized() * minf(_auto_collect_speed * delta, dist)
+			homing = true
+	if not _below_y_latched and _auto_collect_below_y > 0.0 and global_position.y >= _auto_collect_below_y:
+		_below_y_latched = true
+	if homing or _below_y_latched:
+		var home_target: Node = get_tree().get_first_node_in_group("player")
+		if home_target is Node2D:
+			var to_ship: Vector2 = (home_target as Node2D).global_position - global_position
+			var dist: float = to_ship.length()
+			if dist <= 24.0:
+				_collect()
 				return
+			global_position += to_ship.normalized() * minf(_auto_collect_speed * delta, dist)
+			return
 
 	global_position.y += fall_speed * delta
 	

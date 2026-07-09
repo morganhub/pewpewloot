@@ -736,13 +736,12 @@ func _build_skill_node(
 	hbox.add_theme_constant_override("separation", 12)
 	node_panel.add_child(hbox)
 
-	var icon_added := false
 	var skill_icon_asset := str(node_data.get("icon", ""))
 	if skill_icon_asset == "":
 		skill_icon_asset = str(branch_data.get("icon", ""))
 	if skill_icon_asset == "":
 		skill_icon_asset = str(block_cfg.get("title", {}).get("icon_asset", ""))
-	icon_added = _add_icon_texture(hbox, skill_icon_asset, icon_w, icon_h)
+	_add_icon_texture(hbox, skill_icon_asset, icon_w, icon_h)
 
 
 	var text_col := VBoxContainer.new()

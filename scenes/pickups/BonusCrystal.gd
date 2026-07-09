@@ -33,6 +33,11 @@ var size_px: float = 28.0
 # Forced magnet after a delay (opt-in, e.g. slice_rush where the ship cannot
 # move to the crystal): 0 = disabled, standard proximity magnet only.
 var _force_magnet_after_sec: float = 0.0
+# Forced magnet past a Y line (opt-in, e.g. ball_launcher : franchir la barre
+# limite en bas = auto-pickup vers le vaisseau). 0 = disabled. Latché : une
+# fois la ligne franchie, l'aspiration ne se relâche plus.
+var _force_magnet_below_y: float = 0.0
+var _below_y_latched: bool = false
 var _time_left: float = 0.0
 var _base_fall_speed: float = 420.0
 var _float_amplitude: float = 6.0
@@ -52,6 +57,8 @@ func setup(data: Dictionary, player_ref: Node2D) -> void:
 	size_px = maxf(8.0, float(crystal_data.get("size_px", 28.0)))
 	_base_fall_speed = maxf(40.0, float(crystal_data.get("fall_speed_px_sec", 420.0)))
 	_force_magnet_after_sec = maxf(0.0, float(crystal_data.get("force_magnet_after_sec", 0.0)))
+	_force_magnet_below_y = maxf(0.0, float(crystal_data.get("force_magnet_below_y", 0.0)))
+	_below_y_latched = false
 	_time_left = despawn_time_sec
 	_age = 0.0
 	_apply_visual()
@@ -117,9 +124,16 @@ func _process(delta: float) -> void:
 		return
 
 	_age += delta
-	var wave_offset: float = sin(_age * _float_freq) * _float_amplitude
-	global_position.y += _base_fall_speed * delta
-	global_position.x += wave_offset * delta
+	if not _below_y_latched and _force_magnet_below_y > 0.0 and global_position.y >= _force_magnet_below_y:
+		_below_y_latched = true
+	var force_magnet: bool = _below_y_latched \
+		or (_force_magnet_after_sec > 0.0 and _age >= _force_magnet_after_sec)
+	# La chute est coupée pendant l'aspiration forcée (sinon elle peut annuler
+	# la remontée vers le vaisseau).
+	if not force_magnet:
+		var wave_offset: float = sin(_age * _float_freq) * _float_amplitude
+		global_position.y += _base_fall_speed * delta
+		global_position.x += wave_offset * delta
 
 	if _player and is_instance_valid(_player):
 		var dist: float = global_position.distance_to(_player.global_position)
@@ -128,6 +142,5 @@ func _process(delta: float) -> void:
 			queue_free()
 			return
 		var to_player: Vector2 = (_player.global_position - global_position)
-		var force_magnet: bool = _force_magnet_after_sec > 0.0 and _age >= _force_magnet_after_sec
 		if (dist <= pickup_radius * 6.0 or force_magnet) and to_player != Vector2.ZERO:
 			global_position += to_player.normalized() * magnet_speed * delta

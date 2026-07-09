@@ -5,11 +5,11 @@
   "order": 5,
   "skin_overrides": {
     "enemies": {
-      "swarmer": "res://assets/enemies/atlantis/swarmer.tres",
-      "fighter": "res://assets/enemies/atlantis/fighter.tres",
-      "tank": "res://assets/enemies/atlantis/tank.tres",
-      "artillery": "res://assets/enemies/atlantis/artillery.tres",
-      "elite": "res://assets/enemies/atlantis/elite.tres"
+      "swarmer": "res://assets/enemies/mine/swarmer.png",
+      "fighter": "res://assets/enemies/mine/fighter.png",
+      "tank": "res://assets/enemies/mine/tank.png",
+      "artillery": "res://assets/enemies/mine/artillery.png",
+      "elite": "res://assets/enemies/mine/elite.png"
     },
     "bosses": {
       "boss_mine_1": "res://assets/bosses/mine/boss_1.png",

@@ -492,6 +492,19 @@ func spawn_impact(pos: Vector2, size: float, container: Node) -> void:
 # otherwise allocate a Label + theme override per event on gameplay frames.
 const FLOATING_LABEL_POOL_MAX: int = 24
 var _floating_label_pool: Array[Label] = []
+var _floating_text_font_size: int = -1 # lazy: résolu depuis game.json au 1er spawn
+
+## game.json racine > floating_text.font_size (réglage global, tous modes).
+func _resolve_floating_text_font_size() -> int:
+	if _floating_text_font_size > 0:
+		return _floating_text_font_size
+	var size: int = 32
+	if typeof(DataManager) != TYPE_NIL and DataManager:
+		var ft_v: Variant = DataManager.get_game_data().get("floating_text", {})
+		if ft_v is Dictionary:
+			size = maxi(8, int((ft_v as Dictionary).get("font_size", 32)))
+	_floating_text_font_size = size
+	return size
 
 func spawn_floating_text(pos: Vector2, text: String, color: Color, container: Node) -> void:
 	if container == null or not is_instance_valid(container):
@@ -507,7 +520,9 @@ func spawn_floating_text(pos: Vector2, text: String, color: Color, container: No
 	if label == null:
 		label = Label.new()
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.add_theme_font_size_override("font_size", 16)
+	var font_size: int = _resolve_floating_text_font_size()
+	# Ré-appliqué à chaque spawn (labels poolés, taille configurable).
+	label.add_theme_font_size_override("font_size", font_size)
 	label.text = text
 	label.modulate = color
 	if label.get_parent() != container:
@@ -515,7 +530,8 @@ func spawn_floating_text(pos: Vector2, text: String, color: Color, container: No
 			label.get_parent().remove_child(label)
 		container.add_child(label)
 	label.visible = true
-	label.global_position = pos + Vector2(-20, -20) # Centrer approximativement
+	# Centrage approximatif proportionnel à la taille de police.
+	label.global_position = pos + Vector2(-1.25, -1.25) * float(font_size)
 
 	var tween := create_tween()
 	tween.set_parallel(true)

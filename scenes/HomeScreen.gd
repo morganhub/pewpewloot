@@ -25,6 +25,9 @@ const LEGACY_HOME_BUTTONS_SECTION := "home_buttons"
 @onready var options_button: Button = $BottomSection/SecondaryRow/OptionsButton
 @onready var change_profile_button: Button = $BottomSection/SecondaryRow/ChangeProfileButton
 @onready var quit_button: Button = $BottomSection/SecondaryRow/QuitButton
+# "Continuer l'histoire" : créé par code (lance directement le dernier niveau
+# débloqué du mode Histoire, sans passer par WorldSelect/LevelSelect).
+var continue_story_button: Button = null
 var _game_config: Dictionary = {}
 var _button_grid: Control = null
 var _skills_alert_icon: TextureRect = null
@@ -37,6 +40,7 @@ var _first_profile_layer: CanvasLayer = null
 
 func _ready() -> void:
 	_load_game_config()
+	_ensure_continue_story_button()
 	App.play_menu_music()
 	_setup_background()
 	_apply_home_button_styles()
@@ -54,6 +58,8 @@ func _ready() -> void:
 		ship_preview_button.pressed.connect(_on_ship_pressed)
 	if play_button and not play_button.pressed.is_connected(_on_play_pressed):
 		play_button.pressed.connect(_on_play_pressed)
+	if continue_story_button and not continue_story_button.pressed.is_connected(_on_continue_story_pressed):
+		continue_story_button.pressed.connect(_on_continue_story_pressed)
 	if skills_button and not skills_button.pressed.is_connected(_on_skills_pressed):
 		skills_button.pressed.connect(_on_skills_pressed)
 	if equipment_button and not equipment_button.pressed.is_connected(_on_equipment_pressed):
@@ -66,6 +72,7 @@ func _ready() -> void:
 		quit_button.pressed.connect(_on_quit_pressed)
 
 	_update_change_profile_visibility()
+	_update_continue_story_visibility()
 	_maybe_show_first_profile_modal()
 
 func _notification(what: int) -> void:
@@ -76,6 +83,9 @@ func _notification(what: int) -> void:
 			menu_header.refresh()
 		_setup_ship_preview()
 		_refresh_alert_icons()
+		# Réévalué à chaque retour sur l'accueil : l'histoire peut se terminer
+		# (bouton retiré) ou être reset (bouton de retour).
+		_update_continue_story_visibility()
 	if what == NOTIFICATION_RESIZED and is_node_ready():
 		_apply_home_grid_layout()
 		_refresh_alert_icons()
@@ -138,8 +148,21 @@ func _get_home_button_config(button_key: String) -> Dictionary:
 			cfg[key] = (button_cfg as Dictionary)[key]
 	return cfg
 
+## Bouton "Continuer l'histoire" : même famille visuelle que "Jouer" mais avec
+## son propre asset (game.json > screens.home.buttons.continue_story).
+func _ensure_continue_story_button() -> void:
+	if continue_story_button != null and is_instance_valid(continue_story_button):
+		return
+	continue_story_button = Button.new()
+	continue_story_button.name = "ContinueStoryButton"
+	if bottom_section_exists():
+		$BottomSection.add_child(continue_story_button)
+	else:
+		add_child(continue_story_button)
+
 func _apply_home_button_styles() -> void:
 	_apply_home_button_style(play_button, "play")
+	_apply_home_button_style(continue_story_button, "continue_story")
 	_apply_home_button_style(skills_button, "skills")
 	_apply_home_button_style(equipment_button, "equipment")
 	_apply_home_button_style(options_button, "options")
@@ -186,12 +209,35 @@ func _apply_home_grid_layout() -> void:
 
 	var button_map: Dictionary = {
 		"play": play_button,
+		"continue_story": continue_story_button,
 		"skills": skills_button,
 		"equipment": equipment_button,
 		"options": options_button,
 		"change_profile": change_profile_button,
 		"quit": quit_button
 	}
+	# Compaction calée en BAS de l'écran : seules les rangées contenant au
+	# moins un bouton VISIBLE comptent, empilées depuis le bas de la grille.
+	# Si "Continuer l'histoire" est masqué (histoire terminée), sa rangée
+	# disparaît et "Jouer" descend se coller à Compétences/Équipement.
+	var visible_rows: Dictionary = {}
+	for button_key in button_map:
+		var node_v: Variant = button_map[button_key]
+		if not (node_v is Button) or not (node_v as Button).visible:
+			continue
+		var cfg_v: Variant = buttons_cfg.get(button_key, {})
+		if not (cfg_v is Dictionary):
+			continue
+		var cfg := cfg_v as Dictionary
+		if not cfg.has("grid_col") and not cfg.has("grid_row"):
+			continue
+		visible_rows[int(cfg.get("grid_row", 0))] = true
+	var sorted_rows: Array = visible_rows.keys()
+	sorted_rows.sort()
+	var rows_from_bottom: Dictionary = {} # grid_row -> rang depuis le bas (0 = rangée du bas)
+	for i in range(sorted_rows.size()):
+		rows_from_bottom[sorted_rows[i]] = sorted_rows.size() - 1 - i
+
 	for button_key in button_map:
 		var node_v: Variant = button_map[button_key]
 		if not (node_v is Button):
@@ -205,12 +251,12 @@ func _apply_home_grid_layout() -> void:
 			continue
 		if button.get_parent() != _button_grid:
 			button.reparent(_button_grid)
-		_place_button_in_grid(button, cfg, grid_cfg)
+		_place_button_in_grid(button, cfg, grid_cfg, rows_from_bottom)
 	if bottom_section_exists():
 		$BottomSection.visible = false
 	_refresh_alert_icons()
 
-func _place_button_in_grid(button: Button, cfg: Dictionary, grid_cfg: Dictionary) -> void:
+func _place_button_in_grid(button: Button, cfg: Dictionary, grid_cfg: Dictionary, rows_from_bottom: Dictionary) -> void:
 	var columns: int = maxi(1, int(grid_cfg.get("columns", 2)))
 	var rows: int = maxi(1, int(grid_cfg.get("rows", 4)))
 	var spacing_x: float = maxf(0.0, float(grid_cfg.get("spacing_x", 24.0)))
@@ -220,9 +266,16 @@ func _place_button_in_grid(button: Button, cfg: Dictionary, grid_cfg: Dictionary
 	var col_span: int = clampi(int(cfg.get("col_span", 1)), 1, columns - col)
 	var row_span: int = clampi(int(cfg.get("row_span", 1)), 1, rows - row)
 	var cell_w: float = (_button_grid.size.x - spacing_x * float(columns - 1)) / float(columns)
+	# La hauteur de cellule reste basée sur le nombre de rangées CONFIGURÉ :
+	# masquer une rangée ne dilate pas les boutons, elle libère de l'air en haut.
 	var cell_h: float = (_button_grid.size.y - spacing_y * float(rows - 1)) / float(rows)
-	button.position = Vector2(float(col) * (cell_w + spacing_x), float(row) * (cell_h + spacing_y))
-	button.size = Vector2(cell_w * float(col_span) + spacing_x * float(col_span - 1), cell_h * float(row_span) + spacing_y * float(row_span - 1))
+	var height: float = cell_h * float(row_span) + spacing_y * float(row_span - 1)
+	# Ancrage BAS : rang 0 = collé au bas de la grille (elle-même calée au bas
+	# de l'écran via bottom_margin) — robuste sur les petits écrans.
+	var from_bottom: int = int(rows_from_bottom.get(row, 0))
+	var y: float = _button_grid.size.y - height - float(from_bottom) * (cell_h + spacing_y)
+	button.position = Vector2(float(col) * (cell_w + spacing_x), y)
+	button.size = Vector2(cell_w * float(col_span) + spacing_x * float(col_span - 1), height)
 	button.size_flags_horizontal = Control.SIZE_FILL
 	button.size_flags_vertical = Control.SIZE_FILL
 
@@ -395,6 +448,9 @@ func _apply_translations() -> void:
 	if play_button:
 		play_button.text = LocaleManager.translate("home_play")
 		_apply_home_button_shadow(play_button, "play")
+	if continue_story_button:
+		continue_story_button.text = LocaleManager.translate("home_continue_story")
+		_apply_home_button_shadow(continue_story_button, "continue_story")
 	if skills_button:
 		skills_button.text = LocaleManager.translate("home_skills_button")
 		_apply_home_button_shadow(skills_button, "skills")
@@ -428,6 +484,44 @@ func _goto_from_home(scene_path: String) -> void:
 func _on_play_pressed() -> void:
 	_goto_from_home("res://scenes/GameModeSelect.tscn")
 
+## "Continuer l'histoire" : lance directement le dernier niveau débloqué du
+## mode Histoire (dernier monde débloqué -> son max_unlocked_level), même
+## chemin de lancement que LevelSelect._on_play_pressed.
+func _on_continue_story_pressed() -> void:
+	var target: Dictionary = _find_story_continue_target()
+	if target.is_empty():
+		# Aucune progression lisible : retomber sur le flux classique.
+		_goto_from_home("res://scenes/GameModeSelect.tscn")
+		return
+	var world_id: String = str(target.get("world_id", "world_1"))
+	App.free_mode_active = false
+	App.free_mode_wave_type = ""
+	App.current_world_id = world_id
+	App.set_active_override_protocols(ProfileManager.get_world_active_override_protocols(world_id))
+	App.current_level_index = int(target.get("level_index", 0))
+	_goto_from_home("res://scenes/Game.tscn")
+
+## Dernier monde débloqué (dans l'ordre des mondes) -> son niveau max débloqué.
+func _find_story_continue_target() -> Dictionary:
+	var target: Dictionary = {"world_id": "world_1", "level_index": 0}
+	if App == null or not App.has_method("get_worlds"):
+		return target
+	for world_v in App.get_worlds():
+		if not (world_v is Dictionary):
+			continue
+		var world_id: String = str((world_v as Dictionary).get("id", ""))
+		if world_id == "":
+			continue
+		var progress: Dictionary = ProfileManager.get_world_progress(world_id)
+		if not bool(progress.get("unlocked", world_id == "world_1")):
+			continue
+		var level_count: int = maxi(1, App.get_world_level_count(world_id))
+		target = {
+			"world_id": world_id,
+			"level_index": clampi(int(progress.get("max_unlocked_level", 0)), 0, level_count - 1)
+		}
+	return target
+
 func _on_ship_pressed() -> void:
 	_goto_from_home("res://scenes/ShipMenu.tscn")
 
@@ -451,7 +545,38 @@ func _on_change_profile_pressed() -> void:
 
 func _update_change_profile_visibility() -> void:
 	if change_profile_button:
-		change_profile_button.visible = ProfileManager.has_any_profile()
+		var should_show: bool = ProfileManager.has_any_profile()
+		if change_profile_button.visible != should_show:
+			change_profile_button.visible = should_show
+			_apply_home_grid_layout()
+
+## "Continuer l'histoire" disparaît quand l'histoire est terminée ; un reset de
+## progression (profil, debug) le fait réapparaître au prochain passage ici.
+## Le changement de visibilité recompacte la grille (ancrage bas).
+func _update_continue_story_visibility() -> void:
+	if continue_story_button == null or not is_instance_valid(continue_story_button):
+		return
+	var should_show: bool = not _is_story_completed()
+	if continue_story_button.visible == should_show:
+		return
+	continue_story_button.visible = should_show
+	_apply_home_grid_layout()
+
+## Histoire terminée = boss final du DERNIER monde tué (boss_killed est posé
+## par complete_level quand le dernier niveau d'un monde est terminé).
+func _is_story_completed() -> bool:
+	if App == null or not App.has_method("get_worlds"):
+		return false
+	var worlds: Array = App.get_worlds()
+	if worlds.is_empty():
+		return false
+	var last_world_v: Variant = worlds[worlds.size() - 1]
+	if not (last_world_v is Dictionary):
+		return false
+	var world_id: String = str((last_world_v as Dictionary).get("id", ""))
+	if world_id == "":
+		return false
+	return ProfileManager.is_world_cleared(world_id)
 
 func _maybe_show_first_profile_modal() -> void:
 	if ProfileManager.has_any_profile():
@@ -657,6 +782,7 @@ func _show_first_profile_modal() -> void:
 			layer.queue_free()
 		_first_profile_layer = null
 		_update_change_profile_visibility()
+		_update_continue_story_visibility()
 		if menu_header != null and menu_header.has_method("refresh"):
 			menu_header.refresh()
 		_setup_ship_preview()

@@ -284,14 +284,17 @@ func _spawn_wave(
 	projectile_speed: float,
 	projectile_damage: int,
 	safe_zones: Variant = null,
-	target_node: Node2D = null
+	target_node: Variant = null
 ) -> void:
 	if not is_instance_valid(source): return
-	
+	# target_node est passé via call_deferred et peut avoir été libéré entre-temps ;
+	# le typer Variant évite le crash de marshalling Object->Node2D, on le revalide ici.
+	var valid_target: Node2D = target_node if is_instance_valid(target_node) else null
+
 	var center := source.global_position
 	var is_player := source.is_in_group("player")
 	var fallback_direction: Vector2 = Vector2.UP if is_player else Vector2.DOWN
-	var target_direction: Vector2 = _get_target_direction(center, target_node, fallback_direction)
+	var target_direction: Vector2 = _get_target_direction(center, valid_target, fallback_direction)
 	
 	if trajectory == "radial":
 		# Safe Zones Calculation
@@ -347,7 +350,7 @@ func _spawn_wave(
 	else:
 		# Default burst
 		for j in range(count):
-			var dir := target_direction if target_node and is_instance_valid(target_node) else fallback_direction.rotated(randf_range(-0.5, 0.5))
+			var dir := target_direction if valid_target != null else fallback_direction.rotated(randf_range(-0.5, 0.5))
 			_spawn(center, dir, is_player, pattern, projectile_speed, projectile_damage)
 
 func _spawn(
