@@ -77,6 +77,18 @@ var _armed: Dictionary = {}
 var _armed_fire_timers: Dictionary = {}
 var _giant: Dictionary = {}
 var _giant_scale: float = 2.0
+# Rétrécissement de la raquette ADVERSE du collecteur : side -> secondes.
+var _shrink: Dictionary = {}
+var _shrink_scale: float = 0.5
+# Effet balle courbe : les balles dont hitter == side serpentent.
+var _curve: Dictionary = {}
+var _curve_strength: float = 2200.0
+var _curve_freq: float = 1.4
+# Barrières électriques derrière la ligne du propriétaire :
+# side -> { "time": float, "lines": Array[Line2D] }.
+var _shields: Dictionary = {}
+# Matériau additif PARTAGÉ par toutes les couches de glow (un seul, batching).
+var _shield_material: CanvasItemMaterial = null
 var _enemy_stun: float = 0.0
 var _armed_fire_interval: float = 0.8
 var _armed_missile_speed: float = 520.0
@@ -91,6 +103,8 @@ var _portal: Dictionary = {}
 var _bricks: Array = []
 # Glow visuel de la raquette géante du joueur (suit le vaisseau).
 var _player_giant_glow: Polygon2D = null
+# Overlay rouge matérialisant la hitbox RÉDUITE du joueur (shrink adverse).
+var _player_shrink_overlay: Polygon2D = null
 
 # Enemy paddle: a light Node2D driven here, NOT an Enemy.gd instance
 # (no HP, no shooting, no "enemies" group, no physics collision).
@@ -151,8 +165,8 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 
 	# Powerups (pool pondéré data, PH procéduraux si assets vides).
 	_powerup_interval = maxf(3.0, float(_get_conf("powerup_interval_sec", 20.0)))
-	_powerup_despawn = maxf(2.0, float(_get_conf("powerup_despawn_sec", 10.0)))
-	_powerup_radius = maxf(8.0, float(_get_conf("powerup_radius_px", 22.0)))
+	_powerup_despawn = maxf(2.0, float(_get_conf("powerup_despawn_sec", 30.0)))
+	_powerup_radius = maxf(8.0, float(_get_conf("powerup_radius_px", 66.0)))
 	_powerup_timer = _powerup_interval
 	var pool_v: Variant = _get_conf("powerup_pool", [])
 	_powerup_pool = (pool_v as Array).duplicate(true) if pool_v is Array else []
@@ -163,6 +177,8 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_armed_missile_speed = maxf(80.0, float(_get_conf("armed_missile_speed_px_sec", 520.0)))
 	_armed_stun_sec = maxf(0.1, float(_get_conf("armed_stun_sec", 1.5)))
 	_armed_player_damage_pct = clampf(float(_get_conf("armed_missile_player_damage_percent", 0.05)), 0.0, 1.0)
+	_curve_strength = maxf(0.0, float(_get_conf("curve_strength_px_sec2", 2200.0)))
+	_curve_freq = maxf(0.05, float(_get_conf("curve_frequency_hz", 1.4)))
 
 	_begin_player_mode()
 	_spawn_enemy_paddle()
@@ -316,7 +332,8 @@ func _spawn_ball(pos: Vector2, vel: Vector2, hitter: String) -> Dictionary:
 		"vel": vel,
 		"speed": maxf(vel.length(), _ball_base_speed) if vel != Vector2.ZERO else _ball_base_speed,
 		"hitter": hitter,
-		"portal_cd": 0.0
+		"portal_cd": 0.0,
+		"curve_phase": randf() * TAU
 	}
 	_balls.append(ball)
 	return ball
@@ -417,6 +434,9 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 	if node == null or not is_instance_valid(node):
 		return false
 	var vel: Vector2 = ball.get("vel", Vector2.ZERO)
+	# Balle courbe : nudge perpendiculaire AVANT l'intégration pour que murs,
+	# raquettes et write-back voient tous la vélocité courbée.
+	vel = _apply_curve_to_vel(ball, vel, step)
 	var pos: Vector2 = node.global_position + vel * step
 
 	# Side walls: reflect and re-seat on the wall to avoid double bounces.
@@ -456,6 +476,8 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 	pos = _apply_portal_to_ball(ball, pos)
 	# Powerups : collectés par la balle pour le compte du dernier frappeur.
 	_collect_powerups_at(ball, pos)
+	# Barrières électriques : réflexion derrière la ligne du propriétaire.
+	pos = _apply_shields_to_ball(ball, pos)
 	node.global_position = pos
 
 	# Goals: the ball fully leaves the screen behind a paddle.
@@ -467,12 +489,20 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 		return false
 	return true
 
-## Demi-dimensions effectives d'une raquette (giant_paddle : largeur x mult).
+## Multiplicateur net de largeur d'une raquette (giant × shrink cumulables —
+## source UNIQUE : hitbox, offset de rebond, clamp IA, missiles et visuels).
+func _paddle_width_mult(side: String) -> float:
+	var mult: float = 1.0
+	if float(_giant.get(side, 0.0)) > 0.0:
+		mult *= _giant_scale
+	if float(_shrink.get(side, 0.0)) > 0.0:
+		mult *= _shrink_scale
+	return mult
+
+## Demi-dimensions effectives d'une raquette (largeur × mult net).
 func _paddle_half_extents(side: String) -> Vector2:
 	var base: Vector2 = _player_half_extents if side == "player" else _enemy_half_extents
-	if float(_giant.get(side, 0.0)) > 0.0:
-		return Vector2(base.x * _giant_scale, base.y)
-	return base
+	return Vector2(base.x * _paddle_width_mult(side), base.y)
 
 func _circle_hits_paddle(ball_pos: Vector2, paddle_center: Vector2, half_extents: Vector2) -> bool:
 	var dx: float = absf(ball_pos.x - paddle_center.x)
@@ -488,6 +518,21 @@ func _bounce_off_paddle(ball: Dictionary, ball_x: float, paddle_x: float, half_w
 	var speed: float = minf(float(ball.get("speed", _ball_base_speed)) + _ball_speed_increase, _ball_speed_max)
 	ball["speed"] = speed
 	return dir * speed
+
+## Balle courbe : nudge perpendiculaire sinusoïdal puis renormalisation à la
+## vitesse scalaire de la balle (aucune dérive possible, le bookkeeping
+## d'accélération des rebonds est préservé). La courbe suit le hitter COURANT :
+## une réflexion de barrière re-taggue la balle et transfère (ou coupe) l'effet.
+## La phase n'est pas reset au rebond — le perp suit vel, zigzag miroir naturel.
+func _apply_curve_to_vel(ball: Dictionary, vel: Vector2, step: float) -> Vector2:
+	var side: String = str(ball.get("hitter", ""))
+	if side == "" or float(_curve.get(side, 0.0)) <= 0.0 or vel.length_squared() < 1.0:
+		return vel
+	var phase: float = float(ball.get("curve_phase", 0.0)) + step * TAU * _curve_freq
+	ball["curve_phase"] = phase
+	var perp := Vector2(-vel.y, vel.x).normalized()
+	return (vel + perp * sin(phase) * _curve_strength * step).normalized() \
+		* float(ball.get("speed", _ball_base_speed))
 
 ## Reactivity = retarget sampling interval + aim error: the paddle only refreshes
 ## its target every _enemy_reaction_interval seconds, with a random offset.
@@ -595,7 +640,8 @@ func _spawn_powerup() -> void:
 		visual = circle
 	node.add_child(visual)
 	var label := Label.new()
-	label.text = str(def.get("id", "?")).left(1).to_upper()
+	# `label` du def en priorité (désambiguïse shield_orb/shrink_enemy).
+	label.text = str(def.get("label", str(def.get("id", "?")).left(1))).to_upper()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", int(_powerup_radius))
@@ -649,7 +695,7 @@ func _collect_powerups_at(ball: Dictionary, pos: Vector2) -> void:
 		_apply_powerup(def, hitter_id, ball, pos)
 
 func _apply_powerup(def: Dictionary, hitter_id: String, ball: Dictionary, at_pos: Vector2) -> void:
-	var duration: float = maxf(0.5, float(def.get("duration_sec", 6.0)))
+	var duration: float = maxf(0.5, float(def.get("duration_sec", 15.0)))
 	match str(def.get("id", "")):
 		"multiball":
 			# La balle qui touche se dédouble (miroir x + léger angle).
@@ -667,9 +713,18 @@ func _apply_powerup(def: Dictionary, hitter_id: String, ball: Dictionary, at_pos
 		"giant_paddle":
 			_giant_scale = maxf(1.1, float(def.get("scale_mult", 2.0)))
 			_giant[hitter_id] = duration
-			_refresh_giant_visuals()
+			_refresh_paddle_visuals()
+		"shield_orb":
+			_spawn_shield(hitter_id, duration)
+		"shrink_enemy":
+			# Rétrécit la raquette ADVERSE du collecteur.
+			_shrink_scale = clampf(float(def.get("scale_mult", 0.5)), 0.1, 0.95)
+			_shrink["enemy" if hitter_id == "player" else "player"] = duration
+			_refresh_paddle_visuals()
+		"curve_ball":
+			_curve[hitter_id] = duration
 		"portals":
-			_spawn_portal_pair(duration)
+			_spawn_portal_pair(duration, hitter_id)
 		"brick_wall":
 			_spawn_brick_wall()
 		_:
@@ -677,8 +732,8 @@ func _apply_powerup(def: Dictionary, hitter_id: String, ball: Dictionary, at_pos
 	if VFXManager:
 		VFXManager.spawn_impact(at_pos, 14.0, self)
 
-## Décrémente les effets temporisés (armed/giant) et pilote le tir des
-## raquettes armées.
+## Décrémente les effets temporisés (armed/giant/shrink/curve/shield) et
+## pilote le tir des raquettes armées.
 func _update_effect_timers(delta: float) -> void:
 	for side_v in ["player", "enemy"]:
 		var side: String = side_v
@@ -695,11 +750,30 @@ func _update_effect_timers(delta: float) -> void:
 			_giant[side] = float(_giant[side]) - delta
 			if float(_giant[side]) <= 0.0:
 				_giant.erase(side)
-				_refresh_giant_visuals()
-	# Le glow de la raquette géante du joueur suit le vaisseau.
+				_refresh_paddle_visuals()
+		if _shrink.has(side):
+			_shrink[side] = float(_shrink[side]) - delta
+			if float(_shrink[side]) <= 0.0:
+				_shrink.erase(side)
+				_refresh_paddle_visuals()
+		if _curve.has(side):
+			_curve[side] = float(_curve[side]) - delta
+			if float(_curve[side]) <= 0.0:
+				_curve.erase(side)
+		if _shields.has(side):
+			var shield: Dictionary = _shields[side]
+			shield["time"] = float(shield.get("time", 0.0)) - delta
+			if float(shield["time"]) <= 0.0:
+				_free_shield(side)
+	# Les visuels de hitbox du joueur (glow géant / overlay réduit) suivent le
+	# vaisseau ; les barrières se ré-échantillonnent chaque frame (électricité).
 	if _player_giant_glow and is_instance_valid(_player_giant_glow) \
 		and _player and is_instance_valid(_player):
 		_player_giant_glow.global_position = _player.global_position
+	if _player_shrink_overlay and is_instance_valid(_player_shrink_overlay) \
+		and _player and is_instance_valid(_player):
+		_player_shrink_overlay.global_position = _player.global_position
+	_animate_shields()
 
 # =============================================================================
 # RAQUETTES ARMÉES (missiles : détruisent les powerups, stun l'adversaire)
@@ -793,41 +867,68 @@ func _update_missiles(delta: float) -> void:
 
 ## Glow visuel de la raquette géante (l'ennemi scale son node ; le joueur est
 ## un vaisseau écrasé par begin_pong -> on matérialise la hitbox élargie).
-func _refresh_giant_visuals() -> void:
+## Visuels de largeur des raquettes — writer UNIQUE de _enemy_paddle.scale.
+## Le net giant × shrink pilote tout : > 1 = glow vert (hitbox élargie),
+## < 1 = overlay rouge (hitbox réduite), ≈ 1 = rien (effets qui s'annulent).
+func _refresh_paddle_visuals() -> void:
 	if _enemy_paddle and is_instance_valid(_enemy_paddle):
-		_enemy_paddle.scale = Vector2(_giant_scale if _giant.has("enemy") else 1.0, 1.0)
-	if _giant.has("player"):
-		if _player_giant_glow == null or not is_instance_valid(_player_giant_glow):
-			_player_giant_glow = Polygon2D.new()
-			var half := Vector2(_player_half_extents.x * _giant_scale, _player_half_extents.y)
-			_player_giant_glow.polygon = PackedVector2Array([
-				Vector2(-half.x, -half.y), Vector2(half.x, -half.y),
-				Vector2(half.x, half.y), Vector2(-half.x, half.y)
-			])
-			_player_giant_glow.color = Color(0.5, 0.9, 0.55, 0.4)
-			_player_giant_glow.z_as_relative = false
-			_player_giant_glow.z_index = 9
-			add_child(_player_giant_glow)
-	elif _player_giant_glow and is_instance_valid(_player_giant_glow):
+		_enemy_paddle.scale = Vector2(_paddle_width_mult("enemy"), 1.0)
+	if _player_giant_glow and is_instance_valid(_player_giant_glow):
 		_player_giant_glow.queue_free()
-		_player_giant_glow = null
+	_player_giant_glow = null
+	if _player_shrink_overlay and is_instance_valid(_player_shrink_overlay):
+		_player_shrink_overlay.queue_free()
+	_player_shrink_overlay = null
+	var net: float = _paddle_width_mult("player")
+	if net > 1.001:
+		_player_giant_glow = _build_hitbox_overlay(net, Color(0.5, 0.9, 0.55, 0.4))
+	elif net < 0.999:
+		var overlay_color := Color(str(_get_conf("shrink_overlay_color", "#FF3D5A73")))
+		_player_shrink_overlay = _build_hitbox_overlay(net, overlay_color)
+
+## Rectangle translucide matérialisant la hitbox effective du joueur (le
+## vaisseau écrasé ne peut pas être re-scalé : c'est l'overlay qui informe).
+func _build_hitbox_overlay(width_mult: float, color: Color) -> Polygon2D:
+	var overlay := Polygon2D.new()
+	var half := Vector2(_player_half_extents.x * width_mult, _player_half_extents.y)
+	overlay.polygon = PackedVector2Array([
+		Vector2(-half.x, -half.y), Vector2(half.x, -half.y),
+		Vector2(half.x, half.y), Vector2(-half.x, half.y)
+	])
+	overlay.color = color
+	overlay.z_as_relative = false
+	overlay.z_index = 9
+	add_child(overlay)
+	if _player and is_instance_valid(_player):
+		overlay.global_position = _player.global_position
+	return overlay
 
 # =============================================================================
 # PORTAILS DIMENSIONNELS (entrée orange -> sortie bleue, vélocité conservée)
 # =============================================================================
 
-func _spawn_portal_pair(duration: float) -> void:
+## L'entrée (orange) apparaît dans la moitié de l'ACTIVATEUR : joueur -> bas,
+## CPU -> haut (les deux ratios Y sont simplement échangés).
+func _spawn_portal_pair(duration: float, owner: String = "player") -> void:
 	_clear_portal()
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var portal_size := Vector2(
-		maxf(20.0, float(_get_conf("portal_width_px", 110.0))),
-		maxf(6.0, float(_get_conf("portal_height_px", 18.0))))
+		maxf(20.0, float(_get_conf("portal_width_px", 137.5))),
+		maxf(6.0, float(_get_conf("portal_height_px", 22.5))))
 	var entry: Node2D = _build_portal_node(str(_get_conf("portal_entry_asset", "")),
 		Color(str(_get_conf("portal_entry_color", "#FF8A2A"))), portal_size)
 	var exit: Node2D = _build_portal_node(str(_get_conf("portal_exit_asset", "")),
 		Color(str(_get_conf("portal_exit_color", "#4AA8FF"))), portal_size)
-	entry.global_position = Vector2(viewport_size.x * randf_range(0.25, 0.75), viewport_size.y * 0.62)
-	exit.global_position = Vector2(viewport_size.x * randf_range(0.25, 0.75), viewport_size.y * 0.36)
+	var entry_ratio: float = clampf(float(_get_conf("portal_entry_y_ratio", 0.62)), 0.05, 0.95)
+	var exit_ratio: float = clampf(float(_get_conf("portal_exit_y_ratio", 0.36)), 0.05, 0.95)
+	if owner == "enemy":
+		var swap: float = entry_ratio
+		entry_ratio = exit_ratio
+		exit_ratio = swap
+	var x_min: float = clampf(float(_get_conf("portal_x_min_ratio", 0.25)), 0.0, 1.0)
+	var x_max: float = maxf(x_min, clampf(float(_get_conf("portal_x_max_ratio", 0.75)), 0.0, 1.0))
+	entry.global_position = Vector2(viewport_size.x * randf_range(x_min, x_max), viewport_size.y * entry_ratio)
+	exit.global_position = Vector2(viewport_size.x * randf_range(x_min, x_max), viewport_size.y * exit_ratio)
 	_portal = {
 		"entry": entry, "exit": exit,
 		"size": portal_size,
@@ -904,6 +1005,123 @@ func _apply_portal_to_ball(ball: Dictionary, pos: Vector2) -> Vector2:
 			VFXManager.spawn_impact(e, 12.0, self)
 			VFXManager.spawn_impact(exit.global_position, 12.0, self)
 		return exit.global_position + out_dir * (half.y + _ball_radius + 4.0)
+	return pos
+
+# =============================================================================
+# BARRIÈRES ÉLECTRIQUES (shield_orb : mur de renvoi derrière sa propre ligne)
+# =============================================================================
+
+## Ligne multi-couches (glow additifs + core opaque) — recette StarDrift.
+func _build_shield_line(width: float, color: Color, additive: bool, z: int) -> Line2D:
+	var line := Line2D.new()
+	line.width = maxf(1.0, width)
+	line.default_color = color
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.z_as_relative = false
+	line.z_index = z
+	if additive:
+		if _shield_material == null:
+			_shield_material = CanvasItemMaterial.new()
+			_shield_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		line.material = _shield_material
+	add_child(line)
+	return line
+
+## Re-collect du même camp = simple reset du temps restant.
+func _spawn_shield(side: String, duration: float) -> void:
+	if _shields.has(side):
+		var existing: Dictionary = _shields[side]
+		existing["time"] = duration
+		return
+	var layers_v: Variant = _get_conf("shield_line_layers", [])
+	var lines: Array = []
+	if layers_v is Array:
+		var idx: int = 0
+		for layer_v in (layers_v as Array):
+			if not (layer_v is Dictionary):
+				continue
+			var layer: Dictionary = layer_v as Dictionary
+			var color := Color(str(layer.get("color", "#4FA8FF")))
+			var width: float = float(layer.get("width_px", 8.0))
+			var additive: bool = bool(layer.get("additive", true))
+			lines.append(_build_shield_line(width, color, additive, 12 + idx))
+			idx += 1
+	if lines.is_empty():
+		lines.append(_build_shield_line(6.0, Color("#5CE8FF"), false, 12))
+	_shields[side] = { "time": duration, "lines": lines }
+	_animate_shields()
+
+func _free_shield(side: String) -> void:
+	var shield_v: Variant = _shields.get(side, {})
+	if shield_v is Dictionary:
+		for line_v in ((shield_v as Dictionary).get("lines", []) as Array):
+			if line_v is Line2D and is_instance_valid(line_v):
+				(line_v as Line2D).queue_free()
+	_shields.erase(side)
+
+## Y de la barrière d'un camp : entre la raquette et son but.
+func _shield_line_y(side: String) -> float:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var offset_ratio: float = clampf(float(_get_conf("shield_offset_from_goal_ratio", 0.045)), 0.005, 0.2)
+	if side == "player":
+		return viewport_size.y * (1.0 - offset_ratio)
+	return viewport_size.y * offset_ratio
+
+## Ré-échantillonne chaque frame : sinusoïde qui défile + jitter aléatoire par
+## point = arc électrique. Le MÊME tracé est assigné à toutes les couches.
+func _animate_shields() -> void:
+	if _shields.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var segments: int = maxi(4, int(_get_conf("shield_segments", 24)))
+	var amplitude: float = maxf(0.0, float(_get_conf("shield_wave_amplitude_px", 6.0)))
+	var speed: float = float(_get_conf("shield_wave_speed", 7.0))
+	var freq: float = float(_get_conf("shield_wave_frequency", 0.045))
+	var jitter: float = maxf(0.0, float(_get_conf("shield_jitter_px", 2.5)))
+	var x_start: float = _wall_margin
+	var x_end: float = viewport_size.x - _wall_margin
+	for side_v in _shields.keys():
+		var side: String = str(side_v)
+		var y0: float = _shield_line_y(side)
+		var points := PackedVector2Array()
+		for i in range(segments + 1):
+			var x: float = lerpf(x_start, x_end, float(i) / float(segments))
+			var y: float = y0 + sin(x * freq + _elapsed * speed) * amplitude \
+				+ randf_range(-jitter, jitter)
+			points.append(Vector2(x, y))
+		for line_v in ((_shields[side] as Dictionary).get("lines", []) as Array):
+			if line_v is Line2D and is_instance_valid(line_v):
+				(line_v as Line2D).points = points
+
+## Réflexion : une balle qui franchit la ligne vers le but du propriétaire est
+## renvoyée (renvois illimités pendant la durée). Le camp sauvé devient le
+## dernier frappeur. Les missiles des raquettes armées TRAVERSENT la barrière
+## (accordée à la balle uniquement). Écrit ball["vel"] (les briques mutent le
+## dict après le write-back local de _step_ball).
+func _apply_shields_to_ball(ball: Dictionary, pos: Vector2) -> Vector2:
+	if _shields.is_empty():
+		return pos
+	var vel: Vector2 = ball.get("vel", Vector2.ZERO)
+	if _shields.has("player") and vel.y > 0.0:
+		var y_player: float = _shield_line_y("player")
+		if pos.y + _ball_radius >= y_player and pos.y - _ball_radius <= y_player:
+			vel.y = -absf(vel.y)
+			ball["vel"] = vel
+			ball["hitter"] = "player"
+			pos.y = y_player - _ball_radius
+			if VFXManager:
+				VFXManager.spawn_impact(Vector2(pos.x, y_player), 14.0, self)
+	if _shields.has("enemy") and vel.y < 0.0:
+		var y_enemy: float = _shield_line_y("enemy")
+		if pos.y - _ball_radius <= y_enemy and pos.y + _ball_radius >= y_enemy:
+			vel.y = absf(vel.y)
+			ball["vel"] = vel
+			ball["hitter"] = "enemy"
+			pos.y = y_enemy + _ball_radius
+			if VFXManager:
+				VFXManager.spawn_impact(Vector2(pos.x, y_enemy), 14.0, self)
 	return pos
 
 # =============================================================================

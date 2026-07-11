@@ -38,6 +38,18 @@ var _enemy_skins: Dictionary = {} # world-level skin overrides: enemy_id -> skin
 var _value_label: Label = null
 var _finished_emitted: bool = false
 
+# Murs à brèche (mode libre) : formations de drones "manual" pilotées ici —
+# [{ "drones": Array, "base_x": Array, "y": float, "phase": float,
+#    "amp": float, "speed": float }]. Contacts/despawn passent par _drones.
+var _walls: Array = []
+# Défi "cible exacte" : le scanner final bloque le self-finish tant qu'il
+# n'est pas résolu (jackpot si |HP - cible| <= tolérance).
+var _target_pending: bool = false
+var _target_value: float = 0.0
+var _target_line: Dictionary = {} # { "core": Line2D, "glow": Line2D, "label": Label, "y": float }
+var _target_label: Label = null
+var _target_material: CanvasItemMaterial = null
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
@@ -53,14 +65,25 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_enemy_skins = (skins_v as Dictionary) if skins_v is Dictionary else {}
 	_duration = maxf(1.0, float(_config.get("duration", 20.0)))
 	_elapsed = 0.0
+	if not _has_authored_content():
+		_generate_content()
 	_build_event_schedule()
 	_begin_player_mode()
 	_ensure_value_label()
+	if _target_pending:
+		# La cible est annoncée dès le début du round : le joueur choisit ses
+		# portes pour ATTERRIR dessus, pas pour maximiser.
+		_ensure_target_label()
 	set_process(true)
 
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_gate_runner"):
-		_player.call("begin_gate_runner", _cfg)
+		# Cfg fusionné : la clé de continuité de la vague (freemode base_wave)
+		# doit atteindre le Player — _cfg seul est le bloc global du type.
+		var player_cfg: Dictionary = _cfg.duplicate(true)
+		player_cfg["hp_clamp_on_wave_end"] = bool(_config.get("hp_clamp_on_wave_end",
+			_cfg.get("hp_clamp_on_wave_end", true)))
+		_player.call("begin_gate_runner", player_cfg)
 	if _hud and is_instance_valid(_hud) and _hud.has_method("set_hp_bar_hidden"):
 		_hud.call("set_hp_bar_hidden", true)
 
@@ -105,9 +128,178 @@ func _build_event_schedule() -> void:
 				})
 				_swarm_scheduled = true
 
+	# Murs à brèche (mode libre ; scriptable en story via walls[]) : ils
+	# alimentent _drones comme les nuées -> même chemin de fin anticipée.
+	var walls_v: Variant = _config.get("walls", [])
+	if walls_v is Array:
+		for wall_variant in (walls_v as Array):
+			if wall_variant is Dictionary:
+				_events.append({
+					"time": maxf(0.0, float((wall_variant as Dictionary).get("time_offset", 0.0))),
+					"kind": "wall",
+					"data": wall_variant
+				})
+				_swarm_scheduled = true
+
+	# Scanner "cible exacte" : un seul par round, bloque le self-finish
+	# jusqu'à sa résolution (_target_pending).
+	var target_v: Variant = _config.get("target", {})
+	if target_v is Dictionary and not (target_v as Dictionary).is_empty():
+		_events.append({
+			"time": maxf(0.0, float((target_v as Dictionary).get("time_offset", 0.0))),
+			"kind": "target",
+			"data": target_v
+		})
+		_target_pending = true
+		_target_value = maxf(1.0, float((target_v as Dictionary).get("target_value", 1.0)))
+
 	_events.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a.get("time", 0.0)) < float(b.get("time", 0.0))
 	)
+
+## Vague scriptée (story) : gates[] ou swarm[] présents dans la vague — le
+## générateur ne touche à rien, le contenu auteuré gagne toujours.
+func _has_authored_content() -> bool:
+	var gates_v: Variant = _config.get("gates", [])
+	if gates_v is Array and not (gates_v as Array).is_empty():
+		return true
+	var swarm_v: Variant = _config.get("swarm", {})
+	if swarm_v is Dictionary and not (swarm_v as Dictionary).is_empty():
+		return true
+	if swarm_v is Array and not (swarm_v as Array).is_empty():
+		return true
+	return false
+
+## Résolution des knobs gen_* : vague (base_wave + per_level du mode libre) >
+## défauts du type (wave_types.json > gate_runner) > fallback code.
+func _gen_f(key: String, default_value: float) -> float:
+	return float(_config.get(key, _cfg.get(key, default_value)))
+
+## Mode libre : synthétise gates[]/swarm[]/walls[]/target depuis les knobs
+## scalaires gen_* (scalés par level via per_level). Cadence story : une paire
+## de portes toutes les gen_gate_interval_sec, la nuée suit sa porte de
+## gen_swarm_offset_sec ; plus rien après duration - gen_tail_margin_sec (la
+## dernière nuée doit être nettoyée avant le timeout dur pour laisser le
+## self-finish clore le round). CONTINUITÉ : les ratios gen_*_hp_ratio (> 0 en
+## libre, 0 en story) font suivre nuées et portes sur la ressource COURANTE du
+## joueur, lue ICI à la génération du round — le risk/reward tient même riche.
+func _generate_content() -> void:
+	var first: float = maxf(0.5, _gen_f("gen_first_gate_offset_sec", 2.0))
+	var interval: float = maxf(_gen_f("gen_gate_interval_min_sec", 2.5), _gen_f("gen_gate_interval_sec", 7.0))
+	var swarm_offset: float = maxf(0.5, _gen_f("gen_swarm_offset_sec", 3.0))
+	var cutoff: float = maxf(first + swarm_offset, _duration - maxf(0.0, _gen_f("gen_tail_margin_sec", 12.0)))
+	var player_hp: float = 0.0
+	if _player and is_instance_valid(_player):
+		player_hp = maxf(0.0, float(_player.get("current_hp")))
+	var total: float = maxf(1.0, _gen_f("gen_swarm_total_base", 350.0))
+	var swarm_ratio: float = maxf(0.0, _gen_f("gen_swarm_hp_ratio", 0.0))
+	if swarm_ratio > 0.0:
+		total = maxf(total, player_hp * swarm_ratio)
+	var step: float = maxf(0.0, _gen_f("gen_swarm_total_step", 100.0))
+	step = maxf(step, total * maxf(0.0, _gen_f("gen_swarm_step_ratio", 0.0)))
+	var add_base: float = maxf(1.0, _gen_f("gen_gate_add_value", 60.0))
+	var add_ratio: float = maxf(0.0, _gen_f("gen_gate_add_hp_ratio", 0.0))
+	if add_ratio > 0.0:
+		add_base = maxf(add_base, player_hp * add_ratio)
+	var sub_base: float = maxf(1.0, _gen_f("gen_gate_sub_value", 40.0))
+	var sub_ratio: float = maxf(0.0, _gen_f("gen_gate_sub_hp_ratio", 0.0))
+	if sub_ratio > 0.0:
+		sub_base = maxf(sub_base, player_hp * sub_ratio)
+	var wall_chance: float = clampf(_gen_f("gen_wall_chance", 0.0), 0.0, 1.0)
+	var shift_chance: float = clampf(_gen_f("gen_shifting_gate_chance", 0.0), 0.0, 1.0)
+	var gates: Array = []
+	var swarms: Array = []
+	var walls: Array = []
+	var t: float = first
+	# >= 1 slot garanti même avec des knobs dégénérés : _swarm_scheduled
+	# reste vrai et la fin anticipée (plus de drones) fonctionne toujours.
+	while t + swarm_offset <= cutoff or (gates.is_empty() and walls.is_empty()):
+		# Un slot peut devenir un mur à brèche (jamais le premier : le round
+		# s'ouvre toujours sur un choix de portes).
+		if wall_chance > 0.0 and randf() < wall_chance and not (gates.is_empty() and walls.is_empty()):
+			walls.append({ "time_offset": t, "total_value": total })
+		else:
+			var gate: Dictionary = _generate_gate(t, add_base, sub_base)
+			if shift_chance > 0.0 and randf() < shift_chance:
+				gate["shift_interval_sec"] = maxf(0.4, _gen_f("gen_shift_interval_sec", 1.5))
+			gates.append(gate)
+			# enemy_id omis : _spawn_swarm retombe sur swarm_enemy_id_default.
+			swarms.append({ "time_offset": t + swarm_offset, "total_value": total })
+		total += step
+		t += interval
+	_config["gates"] = gates
+	_config["swarm"] = swarms
+	_config["walls"] = walls
+	# Défi "cible exacte" : la cible est SIMULÉE sur les portes générées ->
+	# toujours atteignable en jouant le bon chemin (les permutations n'altèrent
+	# pas l'ensemble des opérations disponibles, juste leur côté).
+	var target_chance: float = clampf(_gen_f("gen_target_chance", 0.0), 0.0, 1.0)
+	if target_chance > 0.0 and randf() < target_chance and not gates.is_empty() and player_hp > 0.0:
+		var last_event_time: float = t - interval + swarm_offset
+		_config["target"] = {
+			"time_offset": last_event_time + maxf(1.0, _gen_f("gen_target_time_margin_sec", 4.0)),
+			"target_value": _simulate_target_value(player_hp, gates)
+		}
+
+## Une paire de portes : [add | multiply] (double bonus), [subtract | divide]
+## (double malus — jamais [subtract | subtract] : divide fait int(round(hp/2))
+## >= 1 côté Player, donc chaque porte garde une option survivable), sinon
+## mixte bonus/malus. add_base/sub_base = valeurs déjà scalées level/ressource.
+func _generate_gate(time_offset: float, add_base: float, sub_base: float) -> Dictionary:
+	var p_malus: float = clampf(_gen_f("gen_double_malus_chance", 0.0), 0.0, 1.0)
+	var p_bonus: float = clampf(_gen_f("gen_double_bonus_chance", 0.5), 0.0, 1.0 - p_malus)
+	var bonus_doors: Array = [
+		{ "operation": "add", "value": _gen_value_from(add_base) },
+		{ "operation": "multiply", "value": maxf(1.1, _gen_f("gen_gate_mult_value", 2.0)) }
+	]
+	var malus_doors: Array = [
+		{ "operation": "subtract", "value": _gen_value_from(sub_base) },
+		{ "operation": "divide", "value": maxf(1.1, _gen_f("gen_gate_div_value", 2.0)) }
+	]
+	var doors: Array = []
+	var roll: float = randf()
+	if roll < p_malus:
+		doors = malus_doors
+	elif roll < p_malus + p_bonus:
+		doors = bonus_doors
+	else:
+		doors = [bonus_doors.pick_random(), malus_doors.pick_random()]
+	doors.shuffle()
+	return { "time_offset": time_offset, "left": doors[0], "right": doors[1] }
+
+## Valeur de porte add/subtract : jitter aléatoire puis arrondi au pas
+## (gen_value_round_step) pour garder des chiffres lisibles sur les portes.
+func _gen_value_from(base_value: float) -> float:
+	var jitter: float = clampf(_gen_f("gen_gate_value_jitter", 0.25), 0.0, 0.9)
+	var step: float = maxf(1.0, _gen_f("gen_value_round_step", 5.0))
+	return maxf(step, snappedf(base_value * randf_range(1.0 - jitter, 1.0 + jitter), step))
+
+## Simule un chemin aléatoire à travers les paires générées (mêmes arrondis
+## que Player.apply_gate_operation, plancher 1) : le résultat sert de cible —
+## atteignable par construction, la tolérance absorbe les dégâts de drones.
+func _simulate_target_value(start_hp: float, gates: Array) -> float:
+	var hp: float = maxf(1.0, start_hp)
+	for gate_v in gates:
+		if not (gate_v is Dictionary):
+			continue
+		var side: String = "left" if randf() < 0.5 else "right"
+		var door_v: Variant = (gate_v as Dictionary).get(side, {})
+		if not (door_v is Dictionary):
+			continue
+		var door: Dictionary = door_v as Dictionary
+		var value: float = float(door.get("value", 0.0))
+		match str(door.get("operation", "")):
+			"add":
+				hp += value
+			"subtract":
+				hp -= value
+			"multiply":
+				hp *= value
+			"divide":
+				if absf(value) > 0.0001:
+					hp /= value
+		hp = maxf(1.0, float(int(round(hp))))
+	return hp
 
 func _process(delta: float) -> void:
 	_elapsed += delta
@@ -120,20 +312,29 @@ func _process(delta: float) -> void:
 				_spawn_gate(event.get("data", {}))
 			"swarm":
 				_spawn_swarm(event.get("data", {}))
+			"wall":
+				_spawn_wall(event.get("data", {}))
+			"target":
+				_spawn_target(event.get("data", {}))
 
 	while not _drone_spawn_queue.is_empty() and float((_drone_spawn_queue[0] as Dictionary).get("time", 0.0)) <= _elapsed:
 		var pending: Dictionary = _drone_spawn_queue.pop_front()
 		_pending_drone_spawns = maxi(0, _pending_drone_spawns - 1)
 		_spawn_single_drone(pending.get("data", {}), float(pending.get("pv", 1.0)))
 
+	# Positionner les formations AVANT le test de contact.
+	_update_walls(delta)
 	_update_drone_contacts()
+	_update_target(delta)
 	_update_value_label()
 
 	# General rule: end the wave as soon as there are no more enemy ships on
 	# screen (and nothing left to spawn), to avoid an idle period. Only applies
 	# once every scripted event has been dispatched and a swarm was scheduled.
+	# Un scanner de cible non résolu retient la fin (il doit passer le joueur).
 	var all_events_dispatched: bool = _next_event_idx >= _events.size()
-	if all_events_dispatched and _swarm_scheduled and _pending_drone_spawns <= 0 and _drones.is_empty():
+	if all_events_dispatched and _swarm_scheduled and _pending_drone_spawns <= 0 \
+		and _drones.is_empty() and not _target_pending:
 		_finish()
 		return
 
@@ -159,7 +360,11 @@ func _spawn_gate(gate_data: Dictionary) -> void:
 			"door_speed": float(gate_data.get("door_speed", _cfg.get("default_door_speed", 170.0))) * _speed_mult,
 			"band_height": float(_cfg.get("gate_band_height_px", 96.0)),
 			"spawn_y": float(_cfg.get("gate_spawn_y", -120.0)),
-			"colors": _cfg.get("colors", {})
+			"colors": _cfg.get("colors", {}),
+			# > 0 = paire permutante : les opérations échangent de côté à
+			# intervalle régulier (flash télégraphié).
+			"shift_interval_sec": float(gate_data.get("shift_interval_sec", 0.0)),
+			"shift_telegraph_sec": float(_cfg.get("gate_shift_telegraph_sec", 0.5))
 		})
 
 func _on_gate_passed(operation: String, value: float) -> void:
@@ -251,6 +456,209 @@ func _spawn_single_drone(enemy_data_base: Dictionary, pv: float) -> void:
 
 	var entry: Dictionary = { "node": drone, "pv": pv }
 	_drones.append(entry)
+
+# =============================================================================
+# MUR À BRÈCHE (esquive pure : rangée pleine largeur, ouverture mobile)
+# =============================================================================
+
+## Rangée de drones en formation (mode "manual" : positions pilotées ici), une
+## brèche au centre de la FORMATION — l'offset sinusoïdal global la promène
+## sur l'écran. Les drones passent par _drones : contact = pv de dégâts,
+## sortie par le bas = cristal d'esquive, fin de vague inchangée.
+func _spawn_wall(wall_data: Dictionary) -> void:
+	_swarm_spawned = true
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var total_value: float = maxf(1.0, float(wall_data.get("total_value", 350.0)))
+	var enemy_id: String = str(wall_data.get("enemy_id", _cfg.get("swarm_enemy_id_default", "swarmer")))
+	var enemy_data_base: Dictionary = DataManager.get_enemy(enemy_id)
+	if enemy_data_base.is_empty():
+		enemy_data_base = DataManager.get_enemy("swarmer")
+	if enemy_data_base.is_empty():
+		return
+	var enemy_skin: String = str(_enemy_skins.get(enemy_id, ""))
+	if enemy_skin == "":
+		enemy_skin = str(_enemy_skins.get("swarmer", ""))
+	_apply_skin(enemy_data_base, enemy_skin)
+
+	var gap_width: float = maxf(80.0, float(_cfg.get("gen_wall_gap_width_px", 360.0)))
+	var spacing: float = maxf(24.0, float(_cfg.get("gen_wall_spacing_px", 64.0)))
+	var margin: float = 40.0
+	var amp: float = maxf(0.0, (viewport_size.x - gap_width) * 0.5 - margin)
+	# Colonnes couvrant l'écran + l'amplitude d'oscillation (la formation
+	# déborde latéralement pour que l'écran reste muré pendant la dérive).
+	var base_xs: Array = []
+	var x: float = -amp + margin
+	while x <= viewport_size.x + amp - margin:
+		if absf(x - viewport_size.x * 0.5) > gap_width * 0.5:
+			base_xs.append(x)
+		x += spacing
+	if base_xs.is_empty():
+		return
+	var ent_cap: int = maxi(1, int(_cfg.get("swarm_entity_cap", 80)))
+	while base_xs.size() > ent_cap:
+		base_xs.remove_at(randi() % base_xs.size())
+	var pv: float = ceil(total_value / float(base_xs.size()))
+
+	var spawn_y: float = float(_cfg.get("swarm_spawn_y", -90.0))
+	var drones: Array = []
+	for bx in base_xs:
+		drones.append(_spawn_wall_drone(enemy_data_base, pv, Vector2(float(bx), spawn_y)))
+	_walls.append({
+		"drones": drones,
+		"base_x": base_xs,
+		"y": spawn_y,
+		"phase": randf() * TAU,
+		"amp": amp,
+		"speed": maxf(1.0, float(_cfg.get("swarm_descent_speed_px_sec", 210.0))) * _speed_mult
+	})
+
+func _spawn_wall_drone(enemy_data_base: Dictionary, pv: float, at_pos: Vector2) -> CharacterBody2D:
+	if ENEMY_SCENE == null:
+		return null
+	var enemy_data: Dictionary = enemy_data_base.duplicate(true)
+	enemy_data["hp"] = int(maxf(1.0, pv))
+	enemy_data["score"] = 0
+	enemy_data["loot_chance"] = 0.0
+	enemy_data["_movement_mode"] = "manual"
+	var node: Node = ENEMY_SCENE.instantiate()
+	if not (node is CharacterBody2D):
+		return null
+	var drone: CharacterBody2D = node as CharacterBody2D
+	add_child(drone)
+	drone.global_position = at_pos
+	if drone.has_method("setup"):
+		drone.call("setup", enemy_data)
+	# Comme les drones de nuée : pas de tir subi/émis, contact résolu ici.
+	drone.collision_layer = 0
+	drone.collision_mask = 0
+	_drones.append({ "node": drone, "pv": pv })
+	return drone
+
+## Descend chaque formation et fait dériver sa brèche (offset sinusoïdal
+## commun). Les drones consommés (contact) ou sortis (bas) sont despawnés par
+## _update_drone_contacts — ici on ne positionne que les survivants.
+func _update_walls(delta: float) -> void:
+	if _walls.is_empty():
+		return
+	var drift_hz: float = maxf(0.01, float(_cfg.get("gen_wall_gap_drift_hz", 0.12)))
+	var bottom_y: float = get_viewport_rect().size.y
+	for i in range(_walls.size() - 1, -1, -1):
+		var wall: Dictionary = _walls[i]
+		wall["y"] = float(wall.get("y", 0.0)) + float(wall.get("speed", 210.0)) * delta
+		wall["phase"] = float(wall.get("phase", 0.0)) + delta * TAU * drift_hz
+		var offset_x: float = sin(float(wall["phase"])) * float(wall.get("amp", 0.0))
+		var drones: Array = wall.get("drones", [])
+		var base_x: Array = wall.get("base_x", [])
+		var alive: int = 0
+		for j in range(mini(drones.size(), base_x.size())):
+			var drone_v: Variant = drones[j]
+			if not (drone_v is Node2D) or not is_instance_valid(drone_v):
+				continue
+			alive += 1
+			(drone_v as Node2D).global_position = Vector2(float(base_x[j]) + offset_x, float(wall["y"]))
+		if alive == 0 or float(wall["y"]) > bottom_y + 120.0:
+			_walls.remove_at(i)
+
+# =============================================================================
+# CIBLE EXACTE (scanner final : finir à ±tolérance de la cible = jackpot)
+# =============================================================================
+
+## Label persistant "CIBLE : N" en haut d'écran, affiché dès le début du round.
+func _ensure_target_label() -> void:
+	if _target_label and is_instance_valid(_target_label):
+		return
+	_target_label = Label.new()
+	_target_label.name = "TargetValueLabel"
+	_target_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_target_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_target_label.add_theme_font_size_override("font_size", int(_cfg.get("target_label_font_size", 30)))
+	_target_label.add_theme_color_override("font_color", Color(str(_cfg.get("target_label_color", "#7FE8FF"))))
+	_target_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_target_label.add_theme_constant_override("outline_size", 5)
+	_target_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_target_label.z_as_relative = false
+	_target_label.z_index = 60
+	add_child(_target_label)
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_target_label.size = Vector2(viewport_size.x, 40.0)
+	_target_label.position = Vector2(0.0, viewport_size.y * 0.085)
+	_target_label.text = LocaleManager.translate("gate_runner_target") % int(round(_target_value))
+
+## Le scanner : ligne core+glow pleine largeur qui descend à la vitesse des
+## portes et se résout au passage du vaisseau.
+func _spawn_target(target_data: Dictionary) -> void:
+	_target_value = maxf(1.0, float(target_data.get("target_value", _target_value)))
+	if _target_material == null:
+		_target_material = CanvasItemMaterial.new()
+		_target_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var glow := Line2D.new()
+	glow.width = 18.0
+	glow.default_color = Color("#39C8FF66")
+	glow.material = _target_material
+	glow.z_as_relative = false
+	glow.z_index = 55
+	add_child(glow)
+	var core := Line2D.new()
+	core.width = 4.0
+	core.default_color = Color("#D8F6FF")
+	core.z_as_relative = false
+	core.z_index = 56
+	add_child(core)
+	_target_line = { "core": core, "glow": glow, "y": float(_cfg.get("gate_spawn_y", -120.0)) }
+
+func _update_target(delta: float) -> void:
+	if _target_line.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var speed: float = maxf(10.0, float(_cfg.get("default_door_speed", 170.0))) * _speed_mult
+	var y: float = float(_target_line.get("y", 0.0)) + speed * delta
+	_target_line["y"] = y
+	var points := PackedVector2Array([Vector2(0.0, y), Vector2(viewport_size.x, y)])
+	for key in ["core", "glow"]:
+		var line_v: Variant = _target_line.get(key, null)
+		if line_v is Line2D and is_instance_valid(line_v):
+			(line_v as Line2D).points = points
+	# Résolution : la ligne franchit le vaisseau (ou sort de l'écran sans lui).
+	var resolved: bool = false
+	var hit: bool = false
+	if _player and is_instance_valid(_player) and y >= _player.global_position.y:
+		resolved = true
+		var hp: float = maxf(0.0, float(_player.get("current_hp")))
+		var tolerance: float = maxf(1.0, _target_value * clampf(float(_cfg.get("gen_target_tolerance_ratio", 0.1)), 0.01, 0.9))
+		hit = absf(hp - _target_value) <= tolerance
+	elif y > viewport_size.y + 60.0:
+		resolved = true
+	if not resolved:
+		return
+	if hit:
+		_grant_target_reward()
+	_clear_target_line()
+	_target_pending = false
+	if _target_label and is_instance_valid(_target_label):
+		_target_label.visible = false
+
+func _grant_target_reward() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var at: Vector2 = _player.global_position if (_player and is_instance_valid(_player)) else viewport_size * 0.5
+	var crystals: int = maxi(0, int(_cfg.get("gen_target_crystals", 10)))
+	if _game and is_instance_valid(_game):
+		# Pluie GARANTIE (spawn_gate_runner_crystal roulerait la chance dodge).
+		if crystals > 0 and _game.has_method("spawn_reward_crystals_from_top"):
+			_game.call("spawn_reward_crystals_from_top", crystals)
+		var score: int = int(round(float(_cfg.get("gen_target_score", 2500)) \
+			* maxf(0.0, float(_config.get("reward_multiplier", 1.0)))))
+		if score > 0 and _game.has_method("add_wave_bonus_score"):
+			_game.call("add_wave_bonus_score", score, at)
+	if VFXManager:
+		VFXManager.spawn_floating_text(at + Vector2(0.0, -80.0),
+			LocaleManager.translate("gate_runner_target_hit"), Color("#7FE8FF"), self)
+
+func _clear_target_line() -> void:
+	for key in ["core", "glow"]:
+		var line_v: Variant = _target_line.get(key, null)
+		if line_v is Line2D and is_instance_valid(line_v):
+			(line_v as Line2D).queue_free()
+	_target_line = {}
 
 func _update_drone_contacts() -> void:
 	if _drones.is_empty():

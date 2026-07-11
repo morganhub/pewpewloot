@@ -599,10 +599,10 @@
 				{
 					"type": "lane_runner",
 					"duration": 30,
-					"wall_speed_px_sec_start": 340,
-					"wall_speed_px_sec_end": 520,
-					"row_interval_sec_start": 1.8,
-					"row_interval_sec_end": 1.2,
+					"wall_speed_px_sec_start": 408,
+					"wall_speed_px_sec_end": 624,
+					"row_interval_sec_start": 1.5,
+					"row_interval_sec_end": 1.0,
 					"double_wall_chance": 0.2,
 					"reward_multiplier": 1.0
 				},
@@ -732,22 +732,13 @@
 					"overflow_damage_percent": 0.25,
 					"max_launch_speed_px_sec": 1250.0,
 					"reward_multiplier": 1.0
-				},
-				{
-					"type": "claw_boss",
-					"duration": 60,
-					"boss_id": "forest_guardian",
-					"attack_pickups_to_kill": 10,
-					"grab_countdown_sec": 5.0,
-					"item_pool_overrides": { "scrap_junk": 10, "bomb": 4 },
-					"reward_multiplier": 1.0
 				}
 			],
 			"events": [],
 			"boss_id": "boss_forest_final",
-			"score_1star": 12700,
-			"score_2stars": 20750,
-			"score_3stars": 28850
+			"score_1star": 10600,
+			"score_2stars": 17250,
+			"score_3stars": 24000
 		}
 	],
 	"unlock_condition": {

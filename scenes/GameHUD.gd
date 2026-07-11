@@ -621,7 +621,7 @@ func show_boss_health(boss_name: String, max_hp: int) -> void:
 		boss_hp_bar.value = max_hp
 	_update_boss_bar_color(1.0)
 
-## Masquage explicite (claw_boss : le boss peut s'enfuir avec des HP > 0 —
+## Masquage explicite (suika_up : le boss peut s'enfuir avec des HP > 0 —
 ## update_boss_health ne masque le container qu'à 0).
 func hide_boss_health() -> void:
 	if boss_container:

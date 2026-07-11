@@ -33,8 +33,7 @@ liens: [slug_doc_lié, ...]   # nom de fichier sans .md
 | [project_standby.md](markdown/project_standby.md) | backlog | à jour | Chantiers ouverts, TODOs code, priorités (audit mai 2026) |
 | [world_setup.md](markdown/world_setup.md) | spec | à jour | Structure mondes/niveaux/vagues, skin_overrides, backgrounds, checklist d'ajout |
 | [wave_types.md](markdown/wave_types.md) | spec | à jour | Tous les types de vagues (dont lane_runner) + pipeline d'intégration + TODO |
-| [gateRunner.md](markdown/gateRunner.md) | spec | à jour | Spec dédiée du type de vague gate_runner (portes math, essaim de clones) |
-| [wave_type_claw_boss.md](markdown/wave_type_claw_boss.md) | spec | livré | Spec d'origine du type claw_boss (machine à pince) — implémenté, source de vérité = wave_types.md |
+| [gateRunner.md](markdown/gateRunner.md) | spec | à jour | Spec dédiée du type de vague gate_runner (portes math, essaim de clones, générateur mode libre) |
 | [wave_type_suika_up](markdown/wave_type_suika_up) | spec | livré | Spec d'origine du type suika_up (Suika inversé) — implémenté, source de vérité = wave_types.md |
 | [pathtrial.md](markdown/pathtrial.md) | reference | livré | Mécanique PathTrial (safe path, dégâts par ticks) |
 | [freemode.md](markdown/freemode.md) | spec | à jour | Mode Libre : mini-jeux en boucle infinie, levels 1→20, déblocage/achat, freemode.json |

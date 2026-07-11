@@ -1,5 +1,5 @@
 {
-	"_readme": "Mode Libre : un seul wave_type joue en boucle infinie. Le level monte au temps : leveling.level_time_steps[] = paliers {until_level, seconds} (le passage au level L coute les 'seconds' du premier palier dont until_level >= L ; fallback seconds_per_level). A chaque iteration N, la vague envoyee au manager = defauts wave_types.json + base_wave + (level-1) * per_level[cle], puis wave.duration = round_duration_sec. loop_style 'continuous' (DEFAUT DE FAIT : tous les modes sans round naturel) : une seule iteration quasi infinie (86400s), AUCUNE coupe au timer, la difficulte est poussee EN PLACE au manager via update_free_mode_config au changement de level (pas de reengagement d'etat, pas de reset de position). Les rampes temporelles *_start->*_end des managers sont pilotees par _free_level_progress (progression 0->1 du level) au lieu du temps. loop_style 'restart' : reserve aux modes a round intrinseque qui self-finish avant le timer (absorb, gravity_hole, path_trial) — la vague est regeneree a chaque fin de round au level courant. Les cles per_level sont TOUJOURS redeclarees dans base_wave sous leur nom de cle de vague (les managers pong/breakout/vertical_climb/absorb/asteroid_split lisent des noms differents des *_default de wave_types.json). Si base_wave contient pattern_ids[], le code pioche un pattern_id au hasard a chaque iteration. Fond du niveau en run : pioche dans wave_types.json > <type> > level_backgrounds[] (fallback tile_background). tile_background = image de la tuile du menu.",
+	"_readme": "Mode Libre : un seul wave_type joue en boucle infinie. Le level monte au temps : leveling.level_time_steps[] = paliers {until_level, seconds} (le passage au level L coute les 'seconds' du premier palier dont until_level >= L ; fallback seconds_per_level). A chaque iteration N, la vague envoyee au manager = defauts wave_types.json + base_wave + (level-1) * per_level[cle], puis wave.duration = round_duration_sec. loop_style 'continuous' (DEFAUT DE FAIT : tous les modes sans round naturel) : une seule iteration quasi infinie (86400s), AUCUNE coupe au timer, la difficulte est poussee EN PLACE au manager via update_free_mode_config au changement de level (pas de reengagement d'etat, pas de reset de position). Les rampes temporelles *_start->*_end des managers sont pilotees par _free_level_progress (progression 0->1 du level) au lieu du temps. loop_style 'restart' : reserve aux modes a round intrinseque qui self-finish avant le timer (absorb, gravity_hole, path_trial, gate_runner) — la vague est regeneree a chaque fin de round au level courant. Les cles per_level sont TOUJOURS redeclarees dans base_wave sous leur nom de cle de vague (les managers pong/breakout/vertical_climb/absorb/asteroid_split lisent des noms differents des *_default de wave_types.json). Si base_wave contient pattern_ids[], le code pioche un pattern_id au hasard a chaque iteration. Fond du niveau en run : pioche dans wave_types.json > <type> > level_backgrounds[] (fallback tile_background). tile_background = image de la tuile du menu.",
 	"leveling": {
 		"max_level": 20,
 		"seconds_per_level": 45,
@@ -14,7 +14,7 @@
 		"round_duration_sec": 40
 	},
 	"fiesta": {
-		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (absorb/gravity_hole/path_trial/claw_boss), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
+		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (absorb/gravity_hole/path_trial/gate_runner), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
 		"min_unlocked_modes": 2,
 		"round_duration_sec": 40,
 		"tile_background": "res://assets/ui/main_menu_bg.jpg"
@@ -79,32 +79,42 @@
 				"boss_respawn_interval_sec": -1.5
 			}
 		},
-		"claw_boss": {
-			"_note": "Restart : 1 round = 1 boss (mort ou fuite a 60 s) -> notify -> regen au level courant, upgrades de pince reset. per_level ne scale QUE des cles plates : difficulte via attack_pickups_to_kill (boss plus tanky), bomb/junk_pool_weight_bonus (ajoutes par-dessus items[].pool_weight par id), countdown reduit (clamp grab_countdown_min_sec cote manager), feed accelere. Ne PAS utiliser item_pool_overrides ici (remplace en bloc, pas scalable).",
+		"gate_runner": {
+			"_note": "Restart : contenu AUTO-GENERE par GateRunnerManager quand la vague ne porte pas de gates[]/swarm[] (knobs gen_*, defaults fixes dans wave_types.json > gate_runner). Self-finish au nettoyage de la derniere nuee ; ne JAMAIS mettre duration dans base_wave (ecraserait round_duration_sec). CONTINUITE : hp_clamp_on_wave_end=false -> la ressource HP/essaim PERSISTE de round en round (mort a 0 = fin de run) ; les ratios gen_*_hp_ratio font suivre nuees/portes sur les HP courants (lus a la GENERATION du round) pour que le risk/reward tienne meme riche. Defis : gen_wall_chance (mur de drones a breche mobile, remplace un slot porte+nuee), gen_shifting_gate_chance (paires qui permutent leurs operations, telegraph), gen_target_chance (scanner final : finir a +-tolerance de la cible = jackpot ; cible SIMULEE sur les portes generees, toujours atteignable). Level 1 = vague story world_1 en un peu plus lent (speed 1.1 vs 1.2).",
 			"loop_style": "restart",
-			"round_duration_sec": 60,
+			"round_duration_sec": 40,
 			"tile_background": "res://assets/backgrounds/worlds/forest/tile_forest_5.jpg",
 			"base_wave": {
-				"attack_pickups_to_kill": 10,
-				"grab_countdown_sec": 5.0,
-				"runtime_feed_interval_sec": 1.2,
-				"bomb_pool_weight_bonus": 0.0,
-				"junk_pool_weight_bonus": 0.0,
-				"drop_chance_on_raise_base": 0.1,
-				"target_items_in_pit": 90,
-				"max_items_in_pit": 108,
-				"reward_multiplier": 1.0
+				"hp_clamp_on_wave_end": false,
+				"speed_multiplier": 1.1,
+				"gen_gate_interval_sec": 7.0,
+				"gen_swarm_total_base": 350.0,
+				"gen_swarm_total_step": 100.0,
+				"gen_gate_add_value": 60.0,
+				"gen_gate_sub_value": 40.0,
+				"gen_double_bonus_chance": 0.5,
+				"gen_double_malus_chance": 0.0,
+				"gen_swarm_hp_ratio": 0.5,
+				"gen_gate_add_hp_ratio": 0.15,
+				"gen_gate_sub_hp_ratio": 0.18,
+				"gen_wall_chance": 0.12,
+				"gen_shifting_gate_chance": 0.1,
+				"gen_target_chance": 0.35
 			},
 			"per_level": {
-				"attack_pickups_to_kill": 1.2,
-				"grab_countdown_sec": -0.12,
-				"runtime_feed_interval_sec": -0.02,
-				"bomb_pool_weight_bonus": 0.35,
-				"junk_pool_weight_bonus": 0.4,
-				"drop_chance_on_raise_base": 0.004,
-				"target_items_in_pit": 0.3,
-				"max_items_in_pit": 0.3,
-				"reward_multiplier": 0.06
+				"speed_multiplier": 0.04,
+				"gen_gate_interval_sec": -0.12,
+				"gen_swarm_total_base": 40.0,
+				"gen_swarm_total_step": 8.0,
+				"gen_gate_add_value": 8.0,
+				"gen_gate_sub_value": 7.0,
+				"gen_double_bonus_chance": -0.02,
+				"gen_double_malus_chance": 0.02,
+				"gen_swarm_hp_ratio": 0.02,
+				"gen_gate_sub_hp_ratio": 0.004,
+				"gen_wall_chance": 0.012,
+				"gen_shifting_gate_chance": 0.015,
+				"gen_target_chance": 0.005
 			}
 		},
 		"suika_up": {
@@ -166,21 +176,24 @@
 			}
 		},
 		"lane_runner": {
+			"_note": "Tourelles (motifs de tir diagonaux) : LIBRE uniquement — turret_chance 0 en story (fallback code), monte avec le level ET gate turret_min_level_progress (0.45, wave_types.json) -> rien avant ~L9 puis rarete decroissante. turret_chance est dans la whitelist update_free_mode_config du manager.",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/far_layer/canyon.jpg",
 			"base_wave": {
-				"wall_speed_px_sec_start": 380.0,
-				"wall_speed_px_sec_end": 600.0,
-				"row_interval_sec_start": 1.7,
-				"row_interval_sec_end": 1.05,
-				"double_wall_chance": 0.3
+				"wall_speed_px_sec_start": 456.0,
+				"wall_speed_px_sec_end": 720.0,
+				"row_interval_sec_start": 1.42,
+				"row_interval_sec_end": 0.88,
+				"double_wall_chance": 0.3,
+				"turret_chance": 0.0
 			},
 			"per_level": {
 				"wall_speed_px_sec_start": 12.0,
 				"wall_speed_px_sec_end": 15.0,
 				"row_interval_sec_start": -0.03,
 				"row_interval_sec_end": -0.025,
-				"double_wall_chance": 0.015
+				"double_wall_chance": 0.015,
+				"turret_chance": 0.03
 			}
 		},
 		"slice_rush": {

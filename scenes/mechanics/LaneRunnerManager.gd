@@ -11,6 +11,20 @@ extends Node2D
 ## vague/du monde) et une chance de cristal. Tir coupe, contacts manuels par
 ## distance (pas de physics engine). La vitesse et la cadence des rangees
 ## montent progressivement pendant la vague.
+##
+## Elements speciaux (12 juillet 2026, un seul par rangee — exclusifs) :
+## - PORTAIL : paire entree orange / sortie bleue sur deux voies distinctes,
+##   la sortie plus haut a l'ecran — entrer = teleportation instantanee de voie
+##   (Player.set_lane_runner_lane) + breve invulnerabilite.
+## - BELIER (pickup) : les ram_charges prochains murs touches EXPLOSENT au lieu
+##   d'infliger des degats (bulldozer, shake).
+## - PEW PEW (pickup) : canon temporaire — missiles maison droit devant sur sa
+##   voie, un missile detruit un mur (le joueur creuse son chemin).
+## - TOURELLES (mode LIBRE hauts levels uniquement, jamais story) : salves de
+##   projectiles ennemis lents en diagonale a travers les voies
+##   (ProjectileManager.spawn_enemy_projectile, gate _free_level_progress).
+## La voie sure est aussi anti-monotone : jamais plus de safe_lane_max_static_sec
+## sans etre FORCEE de changer de colonne.
 
 signal finished
 
@@ -47,8 +61,25 @@ var _collectible_score: int = 15
 # Alive walls. Entries: { "node": Node2D, "lane": int, "half_height": float,
 # "hit": bool, "passed": bool }
 var _walls: Array = []
-# Alive collectibles. Entries: { "node": Node2D, "lane": int, "pulse": float }
+# Alive collectibles. Entries: { "node": Node2D, "lane": int, "pulse": float,
+# "kind": String } — kind "coin" (defaut), "ram" ou "pew" (pickups speciaux).
 var _collectibles: Array = []
+
+# Anti-monotonie : temps cumule sans changement de voie sure (forcage a seuil).
+var _safe_lane_static_sec: float = 0.0
+# Portails : { "entry_node", "exit_node", "entry_lane": int, "exit_lane": int,
+# "pulse": float } — les deux nodes descendent au speed commun.
+var _portals: Array = []
+# Bonus belier : murs restants a detruire au contact.
+var _ram_charges: int = 0
+# Bonus pew pew : canon temporaire + missiles maison { "node", "lane": int }.
+var _pew_time_left: float = 0.0
+var _pew_fire_timer: float = 0.0
+var _pew_missiles: Array = []
+# Tourelles (libre hauts levels) : tirs differes { "time", "pos", "dir" }.
+var _turret_timer: float = 0.0
+var _turret_shots: Array = []
+var _turret_any_fired: bool = false
 
 var _hit_invuln_timer: float = 0.0
 var _countdown_label: Label = null
@@ -101,7 +132,7 @@ func _get_conf(key: String, fallback: Variant) -> Variant:
 func update_free_mode_config(cfg: Dictionary) -> void:
 	for key in ["wall_speed_px_sec_start", "wall_speed_px_sec_end",
 		"row_interval_sec_start", "row_interval_sec_end",
-		"double_wall_chance", "_free_level_progress"]:
+		"double_wall_chance", "turret_chance", "_free_level_progress"]:
 		if cfg.has(key):
 			_config[key] = cfg[key]
 
@@ -177,7 +208,23 @@ func _next_row_blocked_lanes() -> Array:
 			_update_last_free_lane_from_blocked(scripted)
 			return scripted
 	# Procedural: move the safe lane by at most one step, then block others.
-	var free_lane: int = clampi(_last_free_lane + (randi() % 3) - 1, 0, _lane_count - 1)
+	# Anti-monotonie : au-dela de safe_lane_max_static_sec sans bouger, le pas
+	# est FORCE a +-1 (direction valide aux bords) — le joueur DOIT changer de
+	# colonne au moins toutes les ~5 s.
+	var step: int = (randi() % 3) - 1
+	var max_static: float = maxf(0.0, float(_get_conf("safe_lane_max_static_sec", 5.0)))
+	if max_static > 0.0 and _safe_lane_static_sec + _current_row_interval() >= max_static:
+		if _last_free_lane <= 0:
+			step = 1
+		elif _last_free_lane >= _lane_count - 1:
+			step = -1
+		else:
+			step = 1 if randf() < 0.5 else -1
+	var free_lane: int = clampi(_last_free_lane + step, 0, _lane_count - 1)
+	if free_lane == _last_free_lane:
+		_safe_lane_static_sec += _current_row_interval()
+	else:
+		_safe_lane_static_sec = 0.0
 	_last_free_lane = free_lane
 	var candidates: Array = []
 	for i in range(_lane_count):
@@ -205,6 +252,10 @@ func _update_last_free_lane_from_blocked(blocked: Array) -> void:
 	for lane_v in free_lanes:
 		if absi(int(lane_v) - _last_free_lane) < absi(best - _last_free_lane):
 			best = int(lane_v)
+	if best != _last_free_lane:
+		_safe_lane_static_sec = 0.0
+	else:
+		_safe_lane_static_sec += _current_row_interval()
 	_last_free_lane = best
 
 func _spawn_row() -> void:
@@ -228,9 +279,19 @@ func _spawn_row() -> void:
 			"hit": false,
 			"passed": false
 		})
-	var trail_chance: float = clampf(float(_get_conf("collectible_trail_chance", 0.75)), 0.0, 1.0)
-	if randf() <= trail_chance:
-		_spawn_collectible_trail(_last_free_lane, spawn_y - wall_height)
+	# Un seul element special par rangee (exclusifs : portail > belier > pew),
+	# sinon la trainee de pieces habituelle.
+	var special_base_y: float = spawn_y - wall_height
+	if randf() <= clampf(float(_get_conf("portal_chance", 0.0)), 0.0, 1.0):
+		_spawn_portal(special_base_y)
+	elif randf() <= clampf(float(_get_conf("ram_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("ram", _last_free_lane, special_base_y)
+	elif randf() <= clampf(float(_get_conf("pew_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("pew", _last_free_lane, special_base_y)
+	else:
+		var trail_chance: float = clampf(float(_get_conf("collectible_trail_chance", 0.75)), 0.0, 1.0)
+		if randf() <= trail_chance:
+			_spawn_collectible_trail(_last_free_lane, special_base_y)
 
 ## A vertical trail of collectibles in the safe lane, laid out above the row it
 ## escorts so the player scoops it right after the dodge.
@@ -251,8 +312,128 @@ func _spawn_collectible_trail(lane: int, base_y: float) -> void:
 		_collectibles.append({
 			"node": node,
 			"lane": lane,
-			"pulse": randf() * TAU
+			"pulse": randf() * TAU,
+			"kind": "coin"
 		})
+
+# =============================================================================
+# ÉLÉMENTS SPÉCIAUX (portails, pickups bélier / pew pew)
+# =============================================================================
+
+## Paire de portails : entrée orange sur une voie, sortie bleue sur une AUTRE
+## voie, plus haut à l'écran (« gauche -> droite un peu plus haut » généralisé).
+## Les deux descendent au speed commun ; entrer téléporte instantanément.
+func _spawn_portal(base_y: float) -> void:
+	var entry_lane: int = randi() % _lane_count
+	var exit_lane: int = (entry_lane + 1 + (randi() % (_lane_count - 1))) % _lane_count
+	var size_px: float = maxf(24.0, float(_get_conf("portal_size_px", 56.0)))
+	var y_offset: float = maxf(0.0, float(_get_conf("portal_exit_y_offset_px", 140.0)))
+	var entry_node: Node2D = _build_portal_visual(size_px,
+		Color(str(_get_conf("portal_entry_color", "#FF8A2A"))), str(_get_conf("portal_entry_asset", "")))
+	entry_node.position = Vector2(_lane_center_x(entry_lane), base_y)
+	add_child(entry_node)
+	var exit_node: Node2D = _build_portal_visual(size_px,
+		Color(str(_get_conf("portal_exit_color", "#4AA8FF"))), str(_get_conf("portal_exit_asset", "")))
+	exit_node.position = Vector2(_lane_center_x(exit_lane), base_y - y_offset)
+	add_child(exit_node)
+	_portals.append({
+		"entry_node": entry_node,
+		"exit_node": exit_node,
+		"entry_lane": entry_lane,
+		"exit_lane": exit_lane,
+		"pulse": randf() * TAU
+	})
+
+## Anneau procédural (Line2D fermée) + coeur translucide ; clé d'asset prête.
+func _build_portal_visual(size_px: float, color: Color, asset_path: String) -> Node2D:
+	var root := Node2D.new()
+	root.name = "LanePortal"
+	root.z_as_relative = false
+	root.z_index = 11
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var res: Resource = load(asset_path)
+		if res is Texture2D:
+			var sprite := Sprite2D.new()
+			sprite.texture = res as Texture2D
+			var tex_size: Vector2 = (res as Texture2D).get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				sprite.scale = Vector2.ONE * (size_px / maxf(tex_size.x, tex_size.y))
+			sprite.modulate = color
+			root.add_child(sprite)
+			return root
+	var core := Polygon2D.new()
+	var core_pts := PackedVector2Array()
+	for i in range(20):
+		var a: float = TAU * float(i) / 20.0
+		core_pts.append(Vector2(cos(a), sin(a)) * size_px * 0.5)
+	core.polygon = core_pts
+	core.color = Color(color.r, color.g, color.b, 0.22)
+	root.add_child(core)
+	var ring := Line2D.new()
+	ring.width = 6.0
+	ring.default_color = color
+	ring.closed = true
+	ring.points = core_pts
+	root.add_child(ring)
+	return root
+
+## Pickup spécial dans la voie sûre (remplace la traînée de sa rangée) : cercle
+## coloré pulsant, collecté par le test de contact des collectibles (kind).
+func _spawn_special_pickup(kind: String, lane: int, y: float) -> void:
+	var size_px: float = maxf(12.0, float(_get_conf("collectible_size_px", 42.0))) * 1.25
+	var color_key: String = "ram_pickup_color" if kind == "ram" else "pew_pickup_color"
+	var asset_key: String = "ram_pickup_asset" if kind == "ram" else "pew_pickup_asset"
+	var tint := Color(str(_get_conf(color_key, "#FF8A5C" if kind == "ram" else "#8FD3FF")))
+	var node := Node2D.new()
+	node.name = "LaneSpecialPickup"
+	node.z_as_relative = false
+	node.z_index = 12
+	node.position = Vector2(_lane_center_x(lane), y - size_px)
+	var asset_path: String = str(_get_conf(asset_key, ""))
+	var built: bool = false
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var res: Resource = load(asset_path)
+		if res is Texture2D:
+			var sprite := Sprite2D.new()
+			sprite.texture = res as Texture2D
+			sprite.modulate = tint
+			var tex_size: Vector2 = (res as Texture2D).get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				sprite.scale = Vector2.ONE * (size_px / maxf(tex_size.x, tex_size.y))
+			node.add_child(sprite)
+			built = true
+	if not built:
+		var circle := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for i in range(20):
+			var a: float = TAU * float(i) / 20.0
+			pts.append(Vector2(cos(a), sin(a)) * size_px * 0.5)
+		circle.polygon = pts
+		circle.color = tint
+		node.add_child(circle)
+	add_child(node)
+	_collectibles.append({
+		"node": node,
+		"lane": lane,
+		"pulse": randf() * TAU,
+		"kind": kind
+	})
+
+## Applique l'effet d'un pickup spécial collecté.
+func _apply_special_pickup(kind: String, at_pos: Vector2) -> void:
+	if kind == "ram":
+		_ram_charges = maxi(1, int(_get_conf("ram_charges", 3)))
+		if VFXManager:
+			VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
+				LocaleManager.translate("lane_runner_ram"), Color("#FF8A5C"), self)
+	elif kind == "pew":
+		_pew_time_left = maxf(0.5, float(_get_conf("pew_duration_sec", 6.0)))
+		_pew_fire_timer = 0.0 # premier tir immédiat
+		if VFXManager:
+			VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
+				LocaleManager.translate("lane_runner_pew"), Color("#8FD3FF"), self)
+	if VFXManager and _player and is_instance_valid(_player):
+		VFXManager.flash_sprite(_player, Color(1.0, 1.0, 1.0), 0.15)
 
 # =============================================================================
 # VISUALS
@@ -372,6 +553,10 @@ func _process(delta: float) -> void:
 	var speed: float = _current_speed()
 	_update_walls(dt, speed)
 	_update_collectibles(dt, speed)
+	_update_portals(dt, speed)
+	_update_pew(dt)
+	_update_pew_missiles(dt)
+	_update_turrets(dt)
 
 	if _elapsed >= _duration:
 		_finish()
@@ -403,13 +588,23 @@ func _update_walls(dt: float, speed: float) -> void:
 		var half_height: float = float(entry.get("half_height", 44.0))
 
 		# Contact: same lane + vertical overlap with the ship band.
-		if not bool(entry.get("hit", false)) and _hit_invuln_timer <= 0.0 \
+		if not bool(entry.get("hit", false)) \
 			and int(entry.get("lane", -1)) == player_lane \
 			and absf(node.position.y - player_y) <= half_height + PLAYER_HALF_HEIGHT_PX:
-			entry["hit"] = true
-			_walls[i] = entry
-			_on_wall_hit()
-			continue
+			# Bélier : le mur explose au lieu de blesser (même pendant l'invuln).
+			if _ram_charges > 0:
+				_ram_charges -= 1
+				_destroy_wall_at(i, str(_get_conf("ram_explosion_anim", "res://assets/vfx/boss_explosion.tres")),
+					int(_get_conf("ram_wall_score", 25)), _lane_width() * 0.9)
+				if VFXManager:
+					VFXManager.screen_shake(float(_get_conf("ram_shake_intensity", 8.0)),
+						maxf(0.05, float(_get_conf("ram_shake_sec", 0.3))))
+				continue
+			if _hit_invuln_timer <= 0.0:
+				entry["hit"] = true
+				_walls[i] = entry
+				_on_wall_hit()
+				continue
 
 		# Fully passed the ship line: near-miss check, once per wall.
 		if not bool(entry.get("passed", false)) and node.position.y - half_height > player_y + PLAYER_HALF_HEIGHT_PX:
@@ -472,9 +667,13 @@ func _update_collectibles(dt: float, speed: float) -> void:
 
 		if int(entry.get("lane", -1)) == player_lane and absf(node.position.y - player_y) <= pickup_radius:
 			var at_pos: Vector2 = node.global_position
+			var kind: String = str(entry.get("kind", "coin"))
 			node.queue_free()
 			_collectibles.remove_at(i)
-			_collect(at_pos)
+			if kind == "coin":
+				_collect(at_pos)
+			else:
+				_apply_special_pickup(kind, at_pos)
 			continue
 
 		if node.position.y > viewport_size.y + 60.0:
@@ -492,6 +691,203 @@ func _collect(at_pos: Vector2) -> void:
 			_game.call("spawn_reward_crystal_at", at_pos)
 	if VFXManager and _player and is_instance_valid(_player):
 		VFXManager.flash_sprite(_player, Color(1.0, 0.9, 0.55), 0.1)
+
+## Détruit le mur d'index donné (bélier / missile pew pew) : explosion animée,
+## score bonus, retrait immédiat des collisions.
+func _destroy_wall_at(index: int, explosion_anim: String, base_score: int, explosion_size: float) -> void:
+	if index < 0 or index >= _walls.size():
+		return
+	var entry: Dictionary = _walls[index]
+	var node_v: Variant = entry.get("node", null)
+	var at_pos: Vector2 = Vector2.ZERO
+	if node_v is Node2D and is_instance_valid(node_v):
+		at_pos = (node_v as Node2D).global_position
+		(node_v as Node2D).queue_free()
+	_walls.remove_at(index)
+	if VFXManager:
+		VFXManager.spawn_explosion(at_pos, explosion_size, Color(1.0, 0.55, 0.3), self,
+			"", explosion_anim, -1.0, 0.3, 0.6, false)
+	var points: int = int(round(float(base_score) * _reward_multiplier))
+	if points > 0 and _game and is_instance_valid(_game) and _game.has_method("add_wave_bonus_score"):
+		_game.call("add_wave_bonus_score", points, at_pos)
+
+# =============================================================================
+# PORTAILS (téléportation instantanée de voie)
+# =============================================================================
+
+func _update_portals(dt: float, speed: float) -> void:
+	if _portals.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var player_lane: int = _player_lane()
+	var player_y: float = _player.global_position.y
+	var pickup_radius: float = maxf(16.0, float(_get_conf("pickup_radius_px", 48.0)))
+	for i in range(_portals.size() - 1, -1, -1):
+		var portal: Dictionary = _portals[i]
+		var entry_v: Variant = portal.get("entry_node", null)
+		var exit_v: Variant = portal.get("exit_node", null)
+		if not (entry_v is Node2D) or not is_instance_valid(entry_v):
+			_free_portal(i)
+			continue
+		var entry_node: Node2D = entry_v as Node2D
+		entry_node.position.y += speed * dt
+		var pulse: float = 1.0 + sin(_time * TAU * 2.2 + float(portal.get("pulse", 0.0))) * 0.1
+		entry_node.scale = Vector2.ONE * pulse
+		if exit_v is Node2D and is_instance_valid(exit_v):
+			(exit_v as Node2D).position.y += speed * dt
+			(exit_v as Node2D).scale = Vector2.ONE * pulse
+		# Entrée touchée sur la voie du joueur -> blink vers la voie de sortie.
+		if int(portal.get("entry_lane", -1)) == player_lane \
+			and absf(entry_node.position.y - player_y) <= pickup_radius:
+			_teleport_player(portal)
+			_free_portal(i)
+			continue
+		if entry_node.position.y > viewport_size.y + 60.0:
+			_free_portal(i)
+
+func _teleport_player(portal: Dictionary) -> void:
+	var exit_lane: int = int(portal.get("exit_lane", 0))
+	var from_pos: Vector2 = _player.global_position
+	if _player.has_method("set_lane_runner_lane"):
+		_player.call("set_lane_runner_lane", exit_lane)
+	# Brève invulnérabilité : un mur peut arriver sur la voie de sortie sans
+	# que le joueur ait pu le lire — le blink ne doit jamais être un piège.
+	var invuln: float = maxf(0.0, float(_get_conf("portal_invuln_sec", 0.5)))
+	if invuln > 0.0:
+		_hit_invuln_timer = maxf(_hit_invuln_timer, invuln)
+		if _player.has_method("set_invincible"):
+			_player.call("set_invincible", true)
+	if VFXManager:
+		VFXManager.spawn_impact(from_pos, 18.0, self)
+		VFXManager.spawn_impact(_player.global_position, 18.0, self)
+		VFXManager.flash_sprite(_player, Color(0.65, 0.85, 1.0), 0.18)
+
+func _free_portal(index: int) -> void:
+	var portal: Dictionary = _portals[index]
+	for key in ["entry_node", "exit_node"]:
+		var node_v: Variant = portal.get(key, null)
+		if node_v is Node2D and is_instance_valid(node_v):
+			(node_v as Node2D).queue_free()
+	_portals.remove_at(index)
+
+# =============================================================================
+# PEW PEW (canon temporaire : un missile détruit un mur de sa voie)
+# =============================================================================
+
+func _update_pew(dt: float) -> void:
+	if _pew_time_left <= 0.0:
+		return
+	_pew_time_left -= dt
+	_pew_fire_timer -= dt
+	if _pew_fire_timer <= 0.0:
+		_pew_fire_timer = maxf(0.1, float(_get_conf("pew_fire_interval_sec", 0.35)))
+		_fire_pew_missile()
+
+func _fire_pew_missile() -> void:
+	var lane: int = _player_lane()
+	if lane < 0:
+		return
+	var size_v: Variant = _get_conf("pew_missile_size_px", [8, 22])
+	var missile_w: float = 8.0
+	var missile_h: float = 22.0
+	if size_v is Array and (size_v as Array).size() >= 2:
+		missile_w = maxf(2.0, float((size_v as Array)[0]))
+		missile_h = maxf(6.0, float((size_v as Array)[1]))
+	var node := Node2D.new()
+	node.name = "PewMissile"
+	node.z_as_relative = false
+	node.z_index = 13
+	var body := Polygon2D.new()
+	body.polygon = PackedVector2Array([
+		Vector2(-missile_w * 0.5, missile_h * 0.5), Vector2(0.0, -missile_h * 0.5),
+		Vector2(missile_w * 0.5, missile_h * 0.5)
+	])
+	body.color = Color(str(_get_conf("pew_missile_color", "#8FD3FF")))
+	node.add_child(body)
+	node.position = _player.global_position + Vector2(0.0, -30.0)
+	add_child(node)
+	_pew_missiles.append({ "node": node, "lane": lane })
+
+func _update_pew_missiles(dt: float) -> void:
+	if _pew_missiles.is_empty():
+		return
+	var missile_speed: float = maxf(100.0, float(_get_conf("pew_missile_speed_px_sec", 900.0)))
+	for i in range(_pew_missiles.size() - 1, -1, -1):
+		var missile: Dictionary = _pew_missiles[i]
+		var node_v: Variant = missile.get("node", null)
+		if not (node_v is Node2D) or not is_instance_valid(node_v):
+			_pew_missiles.remove_at(i)
+			continue
+		var node: Node2D = node_v as Node2D
+		node.position.y -= missile_speed * dt
+		var lane: int = int(missile.get("lane", -1))
+		var consumed: bool = false
+		for j in range(_walls.size() - 1, -1, -1):
+			var wall: Dictionary = _walls[j]
+			if int(wall.get("lane", -1)) != lane:
+				continue
+			var wall_node_v: Variant = wall.get("node", null)
+			if not (wall_node_v is Node2D) or not is_instance_valid(wall_node_v):
+				continue
+			if absf((wall_node_v as Node2D).position.y - node.position.y) \
+				<= float(wall.get("half_height", 44.0)) + 12.0:
+				_destroy_wall_at(j, str(_get_conf("pew_explosion_anim", "res://assets/vfx/mine_explosion.tres")),
+					int(_get_conf("pew_wall_score", 15)), _lane_width() * 0.7)
+				consumed = true
+				break
+		if consumed or node.position.y < -60.0:
+			node.queue_free()
+			_pew_missiles.remove_at(i)
+
+# =============================================================================
+# TOURELLES (mode LIBRE hauts levels : projectiles lents en diagonale)
+# =============================================================================
+
+## Story : jamais (pas de _free_level_progress ET turret_chance 0). Libre :
+## gate par la progression de level PUIS proba par salve — rare puis croissant.
+func _update_turrets(dt: float) -> void:
+	# Tirs différés d'une salve en cours (échelonnés, pausables).
+	while not _turret_shots.is_empty() and float((_turret_shots[0] as Dictionary).get("time", 0.0)) <= _time:
+		var shot: Dictionary = _turret_shots.pop_front()
+		_fire_turret_shot(shot.get("pos", Vector2.ZERO), shot.get("dir", Vector2.DOWN))
+	var progress_v: Variant = _config.get("_free_level_progress", null)
+	if not (progress_v is float or progress_v is int):
+		return
+	if float(progress_v) < clampf(float(_get_conf("turret_min_level_progress", 0.45)), 0.0, 1.0):
+		return
+	_turret_timer -= dt
+	if _turret_timer > 0.0:
+		return
+	_turret_timer = maxf(1.0, float(_get_conf("turret_interval_sec", 6.0)))
+	if randf() < clampf(float(_get_conf("turret_chance", 0.0)), 0.0, 1.0):
+		_queue_turret_volley()
+
+func _queue_turret_volley() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var from_left: bool = randf() < 0.5
+	var pos := Vector2(-20.0 if from_left else viewport_size.x + 20.0,
+		viewport_size.y * randf_range(0.15, 0.45))
+	var dir := Vector2(0.55 if from_left else -0.55, 0.83).normalized()
+	if VFXManager:
+		VFXManager.spawn_impact(Vector2(clampf(pos.x, 10.0, viewport_size.x - 10.0), pos.y), 20.0, self)
+	var count: int = maxi(1, int(_get_conf("turret_volley_count", 3)))
+	var spacing: float = maxf(0.05, float(_get_conf("turret_volley_spacing_sec", 0.25)))
+	for i in range(count):
+		_turret_shots.append({
+			"time": _time + 0.3 + spacing * float(i),
+			"pos": pos,
+			"dir": dir.rotated(deg_to_rad(-3.0 + 3.0 * float(i)))
+		})
+
+func _fire_turret_shot(pos: Vector2, dir: Vector2) -> void:
+	var max_hp_v: Variant = _player.get("max_hp") if (_player and is_instance_valid(_player)) else 100
+	var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
+	var pct: float = clampf(float(_get_conf("turret_damage_percent", 0.1)), 0.0, 1.0)
+	var damage: int = maxi(1, int(ceil(float(max_hp) * pct)))
+	var speed: float = maxf(40.0, float(_get_conf("turret_bullet_speed_px_sec", 180.0)))
+	if ProjectileManager:
+		ProjectileManager.spawn_enemy_projectile(pos, dir, speed, damage)
+		_turret_any_fired = true
 
 # =============================================================================
 # HUD
@@ -533,10 +929,14 @@ func _finish() -> void:
 	_finished_emitted = true
 	_state = State.DONE
 	set_process(false)
+	# Les balles de tourelles vivent dans le pool global : purge (aucun autre
+	# projectile n'est légitime pendant une vague lane_runner).
+	if _turret_any_fired and ProjectileManager:
+		ProjectileManager.clear_all_projectiles()
 	# Restore the player BEFORE notifying the wave chain.
 	_restore_player_mode()
 	finished.emit()
-	queue_free() # walls and collectibles are children -> freed together
+	queue_free() # walls, collectibles, portails et missiles sont enfants -> freed together
 
 func finish_now() -> void:
 	_finish()

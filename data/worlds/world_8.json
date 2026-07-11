@@ -241,10 +241,10 @@
 		{
 		  "type": "lane_runner",
 		  "duration": 38,
-		  "wall_speed_px_sec_start": 480,
-		  "wall_speed_px_sec_end": 760,
-		  "row_interval_sec_start": 1.3,
-		  "row_interval_sec_end": 0.8,
+		  "wall_speed_px_sec_start": 576,
+		  "wall_speed_px_sec_end": 912,
+		  "row_interval_sec_start": 1.08,
+		  "row_interval_sec_end": 0.67,
 		  "double_wall_chance": 0.55,
 		  "reward_multiplier": 2.0
 		},

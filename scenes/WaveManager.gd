@@ -18,7 +18,6 @@ signal spawn_match3(config: Dictionary)
 signal spawn_gravity_hole(config: Dictionary)
 signal spawn_star_drift(config: Dictionary)
 signal spawn_asteroid_field(config: Dictionary)
-signal spawn_claw_boss(config: Dictionary)
 signal spawn_suika_up(config: Dictionary)
 signal level_completed
 signal wave_started(wave_index: int)
@@ -197,7 +196,7 @@ func build_free_mode_wave(level: int) -> Dictionary:
 		else maxf(10.0, float(_free_mode_cfg.get("round_duration_sec", _free_round_duration_default)))
 	if _free_mode_fiesta:
 		# Durée du round : celle du MODE s'il en déclare une (rounds
-		# intrinsèques : absorb, gravity_hole, path_trial, claw_boss), sinon la
+		# intrinsèques : absorb, gravity_hole, path_trial, gate_runner), sinon la
 		# durée fiesta.
 		round_duration = maxf(10.0, float(_free_mode_cfg.get("round_duration_sec",
 			_fiesta_cfg.get("round_duration_sec", _free_round_duration_default))))
@@ -492,14 +491,6 @@ func notify_star_drift_finished() -> void:
 		return
 	_complete_current_wave()
 
-## Called by Game when the ClawBossManager reports the boss died or escaped.
-func notify_claw_boss_finished() -> void:
-	if not _is_wave_running:
-		return
-	if _current_wave_type != "claw_boss":
-		return
-	_complete_current_wave()
-
 ## Called by Game when the SuikaUpManager reports the boss died or escaped.
 func notify_suika_up_finished() -> void:
 	if not _is_wave_running:
@@ -515,8 +506,7 @@ func _should_advance_cleared_wave(delta: float) -> bool:
 		or _current_wave_type == "vertical_climb" or _current_wave_type == "absorb" \
 		or _current_wave_type == "lane_runner" or _current_wave_type == "slice_rush" \
 		or _current_wave_type == "match3" or _current_wave_type == "gravity_hole" \
-		or _current_wave_type == "star_drift" or _current_wave_type == "claw_boss" \
-		or _current_wave_type == "suika_up":
+		or _current_wave_type == "star_drift" or _current_wave_type == "suika_up":
 		_clear_advance_timer = 0.0
 		return false
 	if not _pending_spawns.is_empty():
@@ -618,8 +608,6 @@ func _start_wave(wave: Dictionary) -> void:
 			_start_gravity_hole_wave(wave)
 		"star_drift":
 			_start_star_drift_wave(wave)
-		"claw_boss":
-			_start_claw_boss_wave(wave)
 		"suika_up":
 			_start_suika_up_wave(wave)
 		"asteroid_split":
@@ -652,7 +640,7 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 		or wave_type == "vertical_climb" \
 		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
 		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift" \
-		or wave_type == "claw_boss" or wave_type == "suika_up":
+		or wave_type == "suika_up":
 		honor_explicit_duration = true
 		if not wave.has("duration"):
 			match wave_type:
@@ -674,8 +662,6 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 					duration = _resolve_gravity_hole_default_duration()
 				"star_drift":
 					duration = _resolve_star_drift_default_duration()
-				"claw_boss":
-					duration = _resolve_claw_boss_default_duration()
 				"suika_up":
 					duration = _resolve_suika_up_default_duration()
 				_:
@@ -684,11 +670,6 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 		duration = forced_duration
 	if wave_type == "path_trial":
 		duration += _resolve_path_trial_start_delay(wave)
-	if wave_type == "claw_boss":
-		# Le manager self-finish (mort/fuite du boss) ; la fuite n'est déclenchée
-		# que depuis AIM/COOLDOWN, un grab en cours se termine toujours (~8 s de
-		# débord max) : marge pour que le timeout dur ne coupe jamais un cycle.
-		duration += 12.0
 	if wave_type == "suika_up":
 		# Self-finish (mort/fuite) : marge pour l'anim de fuite + tirs en vol.
 		duration += 6.0
@@ -1086,17 +1067,6 @@ func _start_ball_launcher_wave(wave: Dictionary) -> void:
 
 func _resolve_ball_launcher_default_duration() -> float:
 	var cfg: Dictionary = DataManager.get_wave_type_config("ball_launcher") if DataManager else {}
-	return maxf(10.0, float(cfg.get("duration_sec_default", 60.0)))
-
-func _start_claw_boss_wave(wave: Dictionary) -> void:
-	var payload: Dictionary = wave.duplicate(true)
-	if not payload.has("duration"):
-		payload["duration"] = _resolve_claw_boss_default_duration()
-	payload["wave_index"] = _current_wave_index
-	spawn_claw_boss.emit(payload)
-
-func _resolve_claw_boss_default_duration() -> float:
-	var cfg: Dictionary = DataManager.get_wave_type_config("claw_boss") if DataManager else {}
 	return maxf(10.0, float(cfg.get("duration_sec_default", 60.0)))
 
 func _start_suika_up_wave(wave: Dictionary) -> void:
@@ -1553,31 +1523,6 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 				if su_expl_v is Dictionary:
 					_add_warmup_path(target, str((su_expl_v as Dictionary).get("asset", "")))
 					_add_warmup_path(target, str((su_expl_v as Dictionary).get("asset_anim", "")))
-			continue
-		if wave_type == "claw_boss":
-			var cb_cfg: Dictionary = DataManager.get_wave_type_config("claw_boss") if DataManager else {}
-			var cb_items_v: Variant = wave.get("items", cb_cfg.get("items", []))
-			if cb_items_v is Array:
-				for cb_item_v in (cb_items_v as Array):
-					if cb_item_v is Dictionary:
-						var cb_item: Dictionary = cb_item_v as Dictionary
-						_add_warmup_path(target, str(cb_item.get("asset_anim", "")))
-						var cb_assets_v: Variant = cb_item.get("assets", [])
-						if cb_assets_v is Array:
-							for cb_asset_v in (cb_assets_v as Array):
-								_add_warmup_path(target, str(cb_asset_v))
-			var cb_bosses_v: Variant = wave.get("bosses", cb_cfg.get("bosses", []))
-			if cb_bosses_v is Array:
-				for cb_boss_v in (cb_bosses_v as Array):
-					if cb_boss_v is Dictionary:
-						_add_warmup_path(target, str((cb_boss_v as Dictionary).get("asset_anim", "")))
-			_add_warmup_path(target, str(wave.get("claw_frames_asset", cb_cfg.get("claw_frames_asset", ""))))
-			_add_warmup_path(target, str(wave.get("cable_asset", cb_cfg.get("cable_asset", ""))))
-			for cb_expl_key in ["boss_hit_explosion", "boss_death_explosion"]:
-				var cb_expl_v: Variant = wave.get(cb_expl_key, cb_cfg.get(cb_expl_key, {}))
-				if cb_expl_v is Dictionary:
-					_add_warmup_path(target, str((cb_expl_v as Dictionary).get("asset", "")))
-					_add_warmup_path(target, str((cb_expl_v as Dictionary).get("asset_anim", "")))
 			continue
 		if wave_type == "vertical_climb":
 			var vc_cfg: Dictionary = DataManager.get_wave_type_config("vertical_climb") if DataManager else {}

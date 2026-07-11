@@ -38,7 +38,7 @@ var _ship_half_w: float = 34.0
 # Platforms. Entries: { node, x, y, half_w, half_h, moving, move_phase,
 # falling, fall_vy, boost, crystal }
 var _platforms: Array = []
-var _platform_size: Vector2 = Vector2(112.0, 20.0)
+var _platform_size: Vector2 = Vector2(140.0, 20.0)
 var _gap_min: float = 105.0
 var _gap_max: float = 145.0
 var _max_dx: float = 170.0
@@ -83,7 +83,7 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_ship_half_w = maxf(6.0, float(_cfg.get("ship_half_width_px", 34.0)))
 
 	_platform_size = Vector2(
-		maxf(40.0, float(_cfg.get("platform_width_px", 112.0))),
+		maxf(40.0, float(_cfg.get("platform_width_px", 140.0))),
 		maxf(8.0, float(_cfg.get("platform_height_px", 20.0)))
 	)
 	_gap_min = maxf(40.0, float(_config.get("platform_gap_y_min_px", _cfg.get("platform_gap_y_min_px", 105.0))))

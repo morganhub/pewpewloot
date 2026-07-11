@@ -2,7 +2,7 @@ extends Node2D
 
 ## SuikaUpManager — Orchestre une vague "suika_up" (Suika Game inversé +
 ## boss). Le boss décoratif occupe le tiers haut (barre de vie SANS chiffre,
-## HUD standard — même mécanique que claw_boss), le vaisseau est verrouillé à
+## HUD standard), le vaisseau est verrouillé à
 ## la frontière boss/réacteur (tir coupé) et le joueur LANCE des formes rondes
 ## depuis le bas dans un réacteur physique fermé.
 ##
@@ -92,7 +92,7 @@ var _redline_y: float = 0.0
 var _ship_lock_pos: Vector2 = Vector2.ZERO
 var _ready_spawn_pos: Vector2 = Vector2.ZERO
 
-# Boss décoratif (clone claw_boss) : barre normalisée 1.0 -> 0.0 sans chiffre.
+# Boss décoratif : barre normalisée 1.0 -> 0.0 sans chiffre.
 var _boss_node: Node2D = null
 var _boss_sprite: Node2D = null
 var _boss_def: Dictionary = {}
@@ -1711,7 +1711,7 @@ func _start_boss_escape() -> void:
 
 ## Kill : gros score + cristaux + loot "uncommon ou +" — les drops sont
 ## aspirés par le vaisseau au franchissement d'une ligne Y, QUEL QUE SOIT
-## leur x (force_magnet_below_y / auto_collect_below_y, mécanisme claw_boss).
+## leur x (force_magnet_below_y / auto_collect_below_y).
 func _grant_kill_rewards() -> void:
 	if _game == null or not is_instance_valid(_game):
 		return

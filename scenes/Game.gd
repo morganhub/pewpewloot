@@ -34,7 +34,6 @@ const SLICE_RUSH_SCENE: PackedScene = preload("res://scenes/mechanics/SliceRushM
 const MATCH3_SCENE: PackedScene = preload("res://scenes/mechanics/Match3Manager.tscn")
 const GRAVITY_HOLE_SCENE: PackedScene = preload("res://scenes/mechanics/GravityHoleManager.tscn")
 const STAR_DRIFT_SCENE: PackedScene = preload("res://scenes/mechanics/StarDriftManager.tscn")
-const CLAW_BOSS_SCENE: PackedScene = preload("res://scenes/mechanics/ClawBossManager.tscn")
 const SUIKA_UP_SCENE: PackedScene = preload("res://scenes/mechanics/SuikaUpManager.tscn")
 const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/obstacles/ObstacleExplosive.tscn",
@@ -64,7 +63,6 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/mechanics/Match3Manager.tscn",
 	"res://scenes/mechanics/GravityHoleManager.tscn",
 	"res://scenes/mechanics/StarDriftManager.tscn",
-	"res://scenes/mechanics/ClawBossManager.tscn",
 	"res://scenes/mechanics/SuikaUpManager.tscn",
 	"res://scenes/Projectile.tscn",
 	"res://scenes/abilities/objects/Wall.tscn",
@@ -235,9 +233,6 @@ var _gravity_hole_wave_active: bool = false
 var _active_star_drift_managers: Array[Node] = []
 # True while a star_drift wave is running: same drop suppression.
 var _star_drift_wave_active: bool = false
-var _active_claw_boss_managers: Array[Node] = []
-# True while a claw_boss wave is running: same drop suppression.
-var _claw_boss_wave_active: bool = false
 var _active_suika_up_managers: Array[Node] = []
 # True while a suika_up wave is running: same drop suppression.
 var _suika_up_wave_active: bool = false
@@ -381,6 +376,11 @@ func _on_free_mode_level_changed(level: int) -> void:
 	if leveling_v is Dictionary and bool((leveling_v as Dictionary).get("full_heal_on_level_up", true)):
 		if is_instance_valid(player) and player.current_hp < player.max_hp:
 			player.current_hp = player.max_hp
+			# Gate runner : le set direct ne rafraîchit ni le gros label HP ni
+			# l'essaim de clones — opération arithmétique no-op pour resynchroniser
+			# (early-return dans Player si le mode gate_runner n'est pas actif).
+			if player.has_method("apply_gate_operation"):
+				player.call("apply_gate_operation", "add", 0.0)
 			if VFXManager and hud_container:
 				VFXManager.spawn_floating_text(
 					player.global_position + Vector2(0.0, -50.0),
@@ -429,7 +429,6 @@ func _clean_start_of_run_state() -> void:
 	_clear_slice_rush_managers()
 	_clear_match3_managers()
 	_clear_gravity_hole_managers()
-	_clear_claw_boss_managers()
 	_clear_suika_up_managers()
 
 func _play_level_story_if_needed() -> bool:
@@ -691,7 +690,7 @@ func spawn_pong_reward_crystals(count: int) -> void:
 ## per-wave kill-drop cap on purpose: mechanic waves budget their own drops.
 ## quality_mult > 10 forbids common/uncommon rarities (LootGenerator weights).
 ## `extra_item_fields` merges into the item dict (e.g. auto_collect_delay_sec).
-## `force_rarity` (optionnel) force la rareté à la GÉNÉRATION (claw_boss :
+## `force_rarity` (optionnel) force la rareté à la GÉNÉRATION (suika_up :
 ## rareté tirée par le manager au-dessus d'un plancher "uncommon ou +").
 func spawn_reward_equipment_at(at_pos: Vector2, quality_mult: float, extra_item_fields: Dictionary = {}, force_rarity: String = "") -> void:
 	var item: LootItem = LootGenerator.generate_loot(current_level_index + 1, "", force_rarity, quality_mult)
@@ -748,7 +747,7 @@ func _try_spawn_fire_pattern_drop(at_pos: Vector2) -> void:
 		or _ball_launcher_wave_active \
 		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
 		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
-		or _star_drift_wave_active or _claw_boss_wave_active or _suika_up_wave_active:
+		or _star_drift_wave_active or _suika_up_wave_active:
 		return
 	if _fire_pattern_drops_cfg.is_empty() or not bool(_fire_pattern_drops_cfg.get("enabled", false)):
 		return
@@ -1590,8 +1589,6 @@ func _start_enemy_spawner() -> void:
 		wave_manager.spawn_gravity_hole.connect(_on_wave_gravity_hole_spawn)
 	if wave_manager.has_signal("spawn_star_drift"):
 		wave_manager.spawn_star_drift.connect(_on_wave_star_drift_spawn)
-	if wave_manager.has_signal("spawn_claw_boss"):
-		wave_manager.spawn_claw_boss.connect(_on_wave_claw_boss_spawn)
 	if wave_manager.has_signal("spawn_suika_up"):
 		wave_manager.spawn_suika_up.connect(_on_wave_suika_up_spawn)
 	if wave_manager.has_signal("spawn_asteroid_field"):
@@ -2214,7 +2211,6 @@ func _on_wave_started(wave_index: int) -> void:
 	_clear_match3_managers()
 	_clear_gravity_hole_managers()
 	_clear_star_drift_managers()
-	_clear_claw_boss_managers()
 	_clear_suika_up_managers()
 	var wave_type: String = _get_wave_type_at_index(wave_index)
 	# Mode libre : le niveau synthétique ne porte qu'un placeholder — le type
@@ -2234,7 +2230,7 @@ func _on_wave_started(wave_index: int) -> void:
 		or wave_type == "vertical_climb" \
 		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
 		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift" \
-		or wave_type == "claw_boss" or wave_type == "suika_up"
+		or wave_type == "suika_up"
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		# Disable shooting for the paddle/pilotage mechanics; re-enable otherwise.
 		player.set_can_shoot(not disable_shooting)
@@ -2305,7 +2301,6 @@ const WAVE_TYPE_SPLASH_FALLBACKS: Dictionary = {
 	"match3": "Match 3",
 	"gravity_hole": "Gravity Field",
 	"star_drift": "Star Drift",
-	"claw_boss": "Claw Machine",
 	"suika_up": "Suika Reactor",
 	"obstacle": "Asteroid Field",
 	"asteroid_split": "Splitting Asteroids",
@@ -2326,7 +2321,6 @@ const WAVE_TYPE_SPLASH_COLORS: Dictionary = {
 	"match3": "#C77DFF",
 	"gravity_hole": "#9A7BFF",
 	"star_drift": "#9AF6FF",
-	"claw_boss": "#FFB56B",
 	"suika_up": "#7FE8C8",
 	"asteroid_split": "#C9A66B"
 }
@@ -2492,7 +2486,7 @@ func can_spawn_powerup_drop(effect: String) -> bool:
 		or _ball_launcher_wave_active \
 		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
 		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
-		or _star_drift_wave_active or _claw_boss_wave_active or _suika_up_wave_active:
+		or _star_drift_wave_active or _suika_up_wave_active:
 		return false
 	var normalized: String = effect.strip_edges().to_lower()
 	if not bool(_loot_drop_rules.get("allow_powerups", true)):
@@ -3160,30 +3154,6 @@ func _clear_star_drift_managers() -> void:
 	if is_instance_valid(player) and player.has_method("end_star_drift"):
 		player.call("end_star_drift")
 
-func _on_wave_claw_boss_spawn(config: Dictionary) -> void:
-	if CLAW_BOSS_SCENE == null:
-		return
-	var node: Node = CLAW_BOSS_SCENE.instantiate()
-	if not (node is Node2D):
-		return
-	var manager: Node2D = node as Node2D
-	manager.z_as_relative = false
-	manager.z_index = -5
-	manager.add_to_group("runtime_hazards")
-	_claw_boss_wave_active = true
-	game_layer.add_child(manager)
-	_active_claw_boss_managers.append(manager)
-	manager.tree_exiting.connect(func() -> void:
-		_active_claw_boss_managers.erase(manager)
-	)
-	if manager.has_signal("finished"):
-		manager.finished.connect(func() -> void:
-			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_claw_boss_finished"):
-				wave_manager.call("notify_claw_boss_finished")
-		)
-	if manager.has_method("setup"):
-		manager.call("setup", config.duplicate(true), player, hud)
-
 func _on_wave_suika_up_spawn(config: Dictionary) -> void:
 	if SUIKA_UP_SCENE == null:
 		return
@@ -3223,29 +3193,6 @@ func _clear_suika_up_managers() -> void:
 	# Defensive restore in case a manager was already gone.
 	if is_instance_valid(player) and player.has_method("end_suika_up"):
 		player.call("end_suika_up")
-	if hud and is_instance_valid(hud):
-		if hud.has_method("set_power_buttons_suppressed"):
-			hud.call("set_power_buttons_suppressed", false)
-		if hud.has_method("set_joystick_visual_enabled"):
-			hud.call("set_joystick_visual_enabled", true)
-		if hud.has_method("hide_boss_health"):
-			hud.call("hide_boss_health")
-
-func _clear_claw_boss_managers() -> void:
-	_claw_boss_wave_active = false
-	for i in range(_active_claw_boss_managers.size() - 1, -1, -1):
-		var node: Node = _active_claw_boss_managers[i]
-		if node == null or not is_instance_valid(node):
-			_active_claw_boss_managers.remove_at(i)
-			continue
-		if node.has_method("finish_now"):
-			node.call("finish_now")
-		else:
-			node.queue_free()
-	_active_claw_boss_managers.clear()
-	# Defensive restore in case a manager was already gone.
-	if is_instance_valid(player) and player.has_method("end_claw_boss"):
-		player.call("end_claw_boss")
 	if hud and is_instance_valid(hud):
 		if hud.has_method("set_power_buttons_suppressed"):
 			hud.call("set_power_buttons_suppressed", false)
@@ -3428,7 +3375,6 @@ func _on_level_completed() -> void:
 	_clear_slice_rush_managers()
 	_clear_match3_managers()
 	_clear_gravity_hole_managers()
-	_clear_claw_boss_managers()
 	_clear_suika_up_managers()
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		# Ensure boss phase is never blocked by prior path_trial wave gating.

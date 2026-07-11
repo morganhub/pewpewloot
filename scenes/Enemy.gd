@@ -209,7 +209,7 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	
 	_start_position = global_position
 	_ensure_path_nodes()
-	if _movement_mode == "swarm" or _movement_mode == "tank" or _movement_mode == "artillery" or _movement_mode == "gate_rush":
+	if _movement_mode == "swarm" or _movement_mode == "tank" or _movement_mode == "artillery" or _movement_mode == "gate_rush" or _movement_mode == "manual":
 		_path_is_valid = false
 		_path_reached_end = false
 	else:
@@ -248,6 +248,11 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 
 func _setup_special_movement_from_data(enemy_data: Dictionary) -> void:
 	_movement_mode = str(enemy_data.get("_movement_mode", "path"))
+	if _movement_mode == "manual":
+		# Position pilotée de l'extérieur (murs de drones du gate_runner) :
+		# aucun déplacement propre, aucun tir.
+		add_to_group("swarm_enemies")
+		return
 	if _movement_mode == "tank":
 		_tank_speed_px_sec = maxf(1.0, float(enemy_data.get("_tank_speed_px_sec", 150.0)))
 		return
@@ -587,6 +592,8 @@ func _update_wave_firing(delta: float) -> void:
 # =============================================================================
 
 func _update_movement(delta: float) -> void:
+	if _movement_mode == "manual":
+		return
 	if _movement_mode == "swarm":
 		_update_swarm_movement(delta)
 		return
@@ -1467,7 +1474,7 @@ func _generate_circle_path(radius: float, center_offset: Vector2 = Vector2.ZERO)
 
 func _update_shooting(delta: float) -> void:
 	# Gate-runner drones are a pure avoidance threat: they never fire.
-	if _movement_mode == "gate_rush":
+	if _movement_mode == "gate_rush" or _movement_mode == "manual":
 		return
 	if _movement_mode == "artillery" and _artillery_phase != "hold":
 		return
