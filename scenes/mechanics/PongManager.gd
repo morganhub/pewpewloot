@@ -27,6 +27,31 @@ extends Node2D
 ## - brick_wall : mur central procédural (<= wall_max_bricks briques, tailles
 ##   façon breakout) — il faut creuser un passage pour atteindre l'adversaire,
 ##   sinon la balle rebondit vers chez soi.
+## - time_slow : armé à la collecte — la première balle qui entre dans le camp
+##   du propriétaire déclenche un ralenti global (balles/IA/missiles), l'input
+##   joueur reste temps réel.
+## - ghost_ball : les balles du propriétaire traversent le mur central ET les
+##   barrières shield_orb pendant duration_sec (alpha réduit).
+## - crystal_trail : chaque rebond (mur/raquette/brique) d'une balle du
+##   propriétaire lâche un cristal (cap crystal_trail_max_crystals).
+## POWERUPS "MODE" (category "mode", cooldown global partagé
+## mode_powerup_cooldown_sec entre deux collectes de mode) :
+## - shrink_walls : les murs latéraux se resserrent (inset progressif), écrasent
+##   briques/powerups recouverts ; reset au but, retrait en fin d'effet.
+## - wind : vent latéral global sur toutes les balles (flips télégraphiés),
+##   avec traits + débris visuels dans le sens du vent.
+## - blackout : pénombre plein écran, trous de lumière sur balle/raquettes/
+##   powerups/portails (shader pong_blackout.gdshader).
+## - heavy_ball : balles plus grosses et plus lentes, dégâts/cristaux de but
+##   x heavy_ball_goal_mult.
+## TIE-BREAK automatique : tiebreak_after_sec sans but -> splash central,
+## vitesse x tiebreak_speed_mult et enjeux x tiebreak_reward_mult jusqu'au
+## prochain but (re-déclenchable).
+## ÉVÉNEMENTS (off par défaut, activés par vague/freemode) :
+## - invasion : drones traversants qui dévient la balle (rebond radial),
+##   destructibles par les missiles armed_paddle.
+## - meteor : boss décoratif destructible au centre (1 impact de balle = -1 HP,
+##   rebond radial), destruction = cristaux + score ; respawn optionnel (libre).
 ## Tous les assets (powerups, missiles, portails, briques) et durées sont
 ## paramétrables dans wave_types.json > pong (PH procéduraux si vides).
 
@@ -54,6 +79,7 @@ var _elapsed: float = 0.0
 # propriétaire des powerups collectés), "portal_cd": float }.
 var _balls: Array = []
 var _ball_radius: float = 16.0
+var _ball_radius_base: float = 16.0 # rayon data — _ball_radius = base × heavy
 var _ball_base_speed: float = 420.0
 var _ball_speed_max: float = 900.0
 var _ball_speed_increase: float = 15.0
@@ -106,6 +132,71 @@ var _player_giant_glow: Polygon2D = null
 # Overlay rouge matérialisant la hitbox RÉDUITE du joueur (shrink adverse).
 var _player_shrink_overlay: Polygon2D = null
 
+# --- Powerups classiques additionnels (side -> secondes restantes) ---
+# time_slow : armé à la collecte, déclenché quand une balle entre dans la
+# moitié du propriétaire ; ralenti global sauf input joueur.
+var _time_slow_armed: Dictionary = {}
+var _time_slow_left: float = 0.0
+var _time_slow_factor: float = 0.5
+var _time_slow_vignette: ColorRect = null
+# ghost_ball : les balles du side traversent briques et barrières.
+var _ghost: Dictionary = {}
+# crystal_trail : rebonds -> cristaux (budget par activation).
+var _crystal_trail: Dictionary = {}
+var _crystal_trail_budget: Dictionary = {}
+var _crystal_trail_max: int = 10
+
+# --- Powerups "mode" (globaux, cooldown partagé) ---
+var _mode_cooldown: float = 0.0
+var _mode_cooldown_sec: float = 60.0
+# shrink_walls : inset des murs latéraux appliqué aux rebonds/clamps.
+var _shrink_walls_time: float = 0.0
+var _wall_inset: float = 0.0
+var _shrink_walls_speed: float = 28.0
+var _shrink_walls_max_ratio: float = 0.22
+var _shrink_wall_lines: Array = [] # [{ "sign": -1/1, "lines": Array[Line2D] }]
+# wind : courbure latérale globale + traits/débris visuels.
+var _wind_time: float = 0.0
+var _wind_dir: int = 1
+var _wind_flip_timer: float = 0.0
+var _wind_strength: float = 900.0
+var _wind_flip_interval: float = 6.0
+var _wind_telegraph_sec: float = 1.0
+var _wind_streaks: Array = []
+var _wind_debris: Array = []
+var _wind_arrow: Label = null
+# blackout : pénombre à trous de lumière (shader).
+var _blackout_time: float = 0.0
+var _blackout_total: float = 0.0
+var _blackout_rect: ColorRect = null
+# heavy_ball : rayon/vitesse des balles + multiplicateur des buts.
+var _heavy_time: float = 0.0
+var _heavy_radius_mult: float = 1.5
+var _heavy_speed_mult: float = 0.8
+var _heavy_goal_mult: float = 1.5
+
+# --- Tie-break automatique (tiebreak_after_sec sans but) ---
+var _since_goal: float = 0.0
+var _tiebreak_after: float = 30.0
+var _tiebreak_speed_mult: float = 1.5
+var _tiebreak_reward_mult: float = 2.0
+var _tiebreak_active: bool = false
+
+# --- Événement invasion : drones traversants ---
+var _invasion_chance: float = 0.0
+var _invasion_interval: float = 25.0
+var _invasion_timer: float = 25.0
+var _invasion_pending: float = 0.0
+var _invasion_from_left: bool = true
+var _invasion_arrow: Label = null
+var _drones: Array = [] # { "node", "pos", "dir", "speed", "radius", "hit_cd" }
+
+# --- Événement météore central : boss destructible ---
+var _meteor_enabled: bool = false
+var _meteor: Dictionary = {} # { "node", "pos", "radius", "hp", "max_hp", "label", "arriving", "hit_cd" }
+var _meteor_spawned_once: bool = false
+var _meteor_respawn_timer: float = 0.0
+
 # Enemy paddle: a light Node2D driven here, NOT an Enemy.gd instance
 # (no HP, no shooting, no "enemies" group, no physics collision).
 var _enemy_paddle: Node2D = null
@@ -140,6 +231,7 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	# Per-wave overrides (world_x.json) take precedence over global defaults (game.json).
 	_duration = maxf(1.0, float(_config.get("duration", _cfg.get("duration_sec_default", 30.0))))
 	_ball_radius = maxf(4.0, float(_cfg.get("ball_radius_px", 16.0)))
+	_ball_radius_base = _ball_radius
 	_ball_base_speed = maxf(60.0, float(_config.get("ball_speed_px_sec", _cfg.get("ball_speed_px_sec_default", 420.0))))
 	_ball_speed_max = maxf(_ball_base_speed, float(_cfg.get("ball_speed_max_px_sec", 900.0)))
 	_ball_speed_increase = maxf(0.0, float(_cfg.get("ball_speed_increase_per_hit", 15.0)))
@@ -180,6 +272,26 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_curve_strength = maxf(0.0, float(_get_conf("curve_strength_px_sec2", 2200.0)))
 	_curve_freq = maxf(0.05, float(_get_conf("curve_frequency_hz", 1.4)))
 
+	# Nouveaux powerups / modes / événements (2026-07).
+	_mode_cooldown_sec = maxf(0.0, float(_get_conf("mode_powerup_cooldown_sec", 60.0)))
+	_time_slow_factor = clampf(float(_get_conf("time_slow_factor", 0.5)), 0.1, 1.0)
+	_crystal_trail_max = maxi(1, int(_get_conf("crystal_trail_max_crystals", 10)))
+	_shrink_walls_speed = maxf(1.0, float(_get_conf("shrink_walls_px_sec", 28.0)))
+	_shrink_walls_max_ratio = clampf(float(_get_conf("shrink_walls_max_inset_ratio", 0.22)), 0.02, 0.4)
+	_wind_strength = maxf(0.0, float(_get_conf("wind_strength_px_sec2", 900.0)))
+	_wind_flip_interval = maxf(1.0, float(_get_conf("wind_flip_interval_sec", 6.0)))
+	_wind_telegraph_sec = clampf(float(_get_conf("wind_telegraph_sec", 1.0)), 0.2, _wind_flip_interval)
+	_heavy_radius_mult = maxf(1.0, float(_get_conf("heavy_ball_radius_mult", 1.5)))
+	_heavy_speed_mult = clampf(float(_get_conf("heavy_ball_speed_mult", 0.8)), 0.3, 1.0)
+	_heavy_goal_mult = maxf(1.0, float(_get_conf("heavy_ball_goal_mult", 1.5)))
+	_tiebreak_after = maxf(0.0, float(_get_conf("tiebreak_after_sec", 30.0)))
+	_tiebreak_speed_mult = maxf(1.0, float(_get_conf("tiebreak_speed_mult", 1.5)))
+	_tiebreak_reward_mult = maxf(1.0, float(_get_conf("tiebreak_reward_mult", 2.0)))
+	_invasion_chance = clampf(float(_get_conf("invasion_chance", 0.0)), 0.0, 1.0)
+	_invasion_interval = maxf(3.0, float(_get_conf("invasion_interval_sec", 25.0)))
+	_invasion_timer = _invasion_interval
+	_meteor_enabled = bool(_get_conf("meteor_enabled", false))
+
 	_begin_player_mode()
 	_spawn_enemy_paddle()
 	_ensure_countdown_label()
@@ -210,6 +322,12 @@ func update_free_mode_config(cfg: Dictionary) -> void:
 	_enemy_reaction_interval = clampf(float(cfg.get("enemy_reaction_interval_sec", _enemy_reaction_interval)), 0.02, 2.0)
 	_enemy_aim_error_px = maxf(0.0, float(cfg.get("enemy_aim_error_px", _enemy_aim_error_px)))
 	_damage_percent = clampf(float(cfg.get("damage_percent_per_goal", _damage_percent)), 0.0, 1.0)
+	_invasion_chance = clampf(float(cfg.get("invasion_chance", _invasion_chance)), 0.0, 1.0)
+	# Clés relues au prochain spawn (drones / météore) : poussées dans _config
+	# pour que _get_conf les voie sans re-setup.
+	for live_key in ["invasion_drone_speed_px_sec", "meteor_hp_base", "meteor_respawn_interval_sec"]:
+		if cfg.has(live_key):
+			_config[live_key] = cfg[live_key]
 
 func _begin_player_mode() -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("begin_pong"):
@@ -322,11 +440,13 @@ func _spawn_ball(pos: Vector2, vel: Vector2, hitter: String) -> Dictionary:
 	# Custom ball visual (per-wave override, then wave-type config); fallback to
 	# the procedural circle when no asset is set.
 	var ball_asset: String = str(_config.get("ball_asset", _cfg.get("ball_asset", "")))
-	var visual: Node2D = _build_sprite_fit(ball_asset, Vector2.ONE * _ball_radius * 2.0)
+	var visual: Node2D = _build_sprite_fit(ball_asset, Vector2.ONE * _ball_radius_base * 2.0)
 	if visual == null:
 		visual = _build_ball_circle()
 	node.add_child(visual)
 	node.global_position = pos
+	# heavy_ball : le node porte l'échelle du rayon effectif (visuel = base).
+	node.scale = Vector2.ONE * (_ball_radius / maxf(1.0, _ball_radius_base))
 	var ball: Dictionary = {
 		"node": node,
 		"vel": vel,
@@ -349,7 +469,7 @@ func _build_ball_circle() -> Node2D:
 	var segments: int = 24
 	for i in range(segments):
 		var a: float = TAU * float(i) / float(segments)
-		points.append(Vector2(cos(a), sin(a)) * _ball_radius)
+		points.append(Vector2(cos(a), sin(a)) * _ball_radius_base)
 	circle.polygon = points
 	circle.color = Color(str(_cfg.get("ball_color", "#FFE08A")))
 	return circle
@@ -368,27 +488,39 @@ func _process(delta: float) -> void:
 		return
 	_elapsed += minf(delta, 0.25)
 	_update_countdown_label()
+	# time_slow : la SIMULATION (balles, IA, missiles, portails, drones,
+	# météore) tourne au ralenti ; les timers d'effets, le spawn de powerups et
+	# l'input joueur restent en temps réel.
+	var sim: float = delta * (_time_slow_factor if _time_slow_left > 0.0 else 1.0)
 	match _state:
 		State.INTRO:
 			_state_timer -= delta
 			if _state_timer <= 0.0:
 				_reset_ball(1) # first serve goes toward the player
 		State.SERVE:
-			_update_enemy_paddle(delta)
+			_update_enemy_paddle(sim)
 			_update_powerups(delta)
-			_update_missiles(delta)
-			_update_portal(delta)
+			_update_missiles(sim)
+			_update_portal(sim)
+			_update_invasion(sim)
+			_update_meteor(sim)
 			_update_effect_timers(delta)
+			_update_mode_effects(delta)
 			_state_timer -= delta
 			if _state_timer <= 0.0:
 				_serve()
 		State.PLAY:
-			_update_enemy_paddle(delta)
-			_update_balls(delta)
+			_update_enemy_paddle(sim)
+			_update_balls(sim)
 			_update_powerups(delta)
-			_update_missiles(delta)
-			_update_portal(delta)
+			_update_missiles(sim)
+			_update_portal(sim)
+			_update_invasion(sim)
+			_update_meteor(sim)
 			_update_effect_timers(delta)
+			_update_mode_effects(delta)
+			_check_time_slow_trigger()
+			_update_tiebreak(delta)
 	if _elapsed >= _duration:
 		_finish()
 
@@ -405,16 +537,49 @@ func _reset_ball(serve_dir: int) -> void:
 
 func _serve() -> void:
 	var angle: float = deg_to_rad(randf_range(-_serve_angle_max_deg, _serve_angle_max_deg))
+	var serve_speed: float = _ball_base_speed * _speed_mult()
 	for ball_v in _balls:
 		var ball: Dictionary = ball_v as Dictionary
-		ball["speed"] = _ball_base_speed
-		ball["vel"] = Vector2(sin(angle), cos(angle) * float(_serve_dir)) * _ball_base_speed
+		ball["speed"] = serve_speed
+		ball["vel"] = Vector2(sin(angle), cos(angle) * float(_serve_dir)) * serve_speed
 	_state = State.PLAY
+
+## Multiplicateur global de vitesse de balle (heavy_ball × tie-break).
+func _speed_mult() -> float:
+	var mult: float = 1.0
+	if _heavy_time > 0.0:
+		mult *= _heavy_speed_mult
+	if _tiebreak_active:
+		mult *= _tiebreak_speed_mult
+	return mult
+
+## Multiplicateur des enjeux de but (dégâts ET cristaux) — heavy × tie-break.
+func _goal_reward_mult() -> float:
+	var mult: float = 1.0
+	if _heavy_time > 0.0:
+		mult *= _heavy_goal_mult
+	if _tiebreak_active:
+		mult *= _tiebreak_reward_mult
+	return mult
+
+## Re-scale les vitesses des balles EN VOL (activation/expiration heavy/tiebreak).
+func _rescale_ball_speeds(factor: float) -> void:
+	for ball_v in _balls:
+		var ball: Dictionary = ball_v as Dictionary
+		var speed: float = maxf(30.0, float(ball.get("speed", _ball_base_speed)) * factor)
+		ball["speed"] = speed
+		var vel: Vector2 = ball.get("vel", Vector2.ZERO)
+		if vel.length_squared() > 1.0:
+			ball["vel"] = vel.normalized() * speed
 
 func _update_balls(delta: float) -> void:
 	var remaining: float = minf(delta, 0.25)
+	# Anti-tunneling recalé sur la vitesse max EFFECTIVE (le tie-break peut
+	# dépasser _ball_speed_max nominal).
+	var step_cap: float = minf(MAX_BALL_STEP_SEC,
+		(_ball_radius * 1.5) / maxf(1.0, _ball_speed_max * _speed_mult()))
 	while remaining > 0.0 and _state == State.PLAY:
-		var step: float = minf(remaining, MAX_BALL_STEP_SEC)
+		var step: float = minf(remaining, step_cap)
 		remaining -= step
 		for i in range(_balls.size() - 1, -1, -1):
 			var ball: Dictionary = _balls[i]
@@ -437,17 +602,27 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 	# Balle courbe : nudge perpendiculaire AVANT l'intégration pour que murs,
 	# raquettes et write-back voient tous la vélocité courbée.
 	vel = _apply_curve_to_vel(ball, vel, step)
+	# Vent latéral global (powerup mode "wind") : même pattern que la courbe —
+	# nudge horizontal puis renormalisation à la vitesse scalaire.
+	if _wind_time > 0.0 and vel.length_squared() > 1.0:
+		vel = (vel + Vector2(float(_wind_dir) * _wind_strength * step, 0.0)).normalized() \
+			* float(ball.get("speed", _ball_base_speed))
 	var pos: Vector2 = node.global_position + vel * step
 
 	# Side walls: reflect and re-seat on the wall to avoid double bounces.
-	var left_x: float = _wall_margin + _ball_radius
-	var right_x: float = viewport_size.x - _wall_margin - _ball_radius
+	# _wall_inset > 0 = murs rétrécissants (powerup mode "shrink_walls").
+	var left_x: float = _wall_margin + _wall_inset + _ball_radius
+	var right_x: float = viewport_size.x - _wall_margin - _wall_inset - _ball_radius
 	if pos.x <= left_x and vel.x < 0.0:
 		pos.x = left_x
 		vel.x = -vel.x
+		ball["vel"] = vel
+		_on_ball_bounced(ball, pos)
 	elif pos.x >= right_x and vel.x > 0.0:
 		pos.x = right_x
 		vel.x = -vel.x
+		ball["vel"] = vel
+		_on_ball_bounced(ball, pos)
 
 	# Player paddle (bottom): only intercepts a ball travelling downward.
 	if vel.y > 0.0 and _player and is_instance_valid(_player):
@@ -458,6 +633,7 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 			ball["vel"] = vel
 			vel = _bounce_off_paddle(ball, pos.x, p.x, p_half.x, true)
 			ball["hitter"] = "player"
+			_on_ball_bounced(ball, pos)
 
 	# Enemy paddle (top): only intercepts a ball travelling upward.
 	if vel.y < 0.0 and _enemy_paddle and is_instance_valid(_enemy_paddle):
@@ -468,10 +644,14 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 			ball["vel"] = vel
 			vel = _bounce_off_paddle(ball, pos.x, e.x, e_half.x, false)
 			ball["hitter"] = "enemy"
+			_on_ball_bounced(ball, pos)
 
 	ball["vel"] = vel
 	# Mur de briques central : rebond + dégât de brique.
 	pos = _collide_ball_bricks(ball, pos)
+	# Drones d'invasion et météore central : rebonds radiaux.
+	pos = _collide_ball_drones(ball, pos)
+	pos = _collide_ball_meteor(ball, pos)
 	# Portails : entrée orange -> sortie bleue, vélocité conservée.
 	pos = _apply_portal_to_ball(ball, pos)
 	# Powerups : collectés par la balle pour le compte du dernier frappeur.
@@ -515,9 +695,23 @@ func _bounce_off_paddle(ball: Dictionary, ball_x: float, paddle_x: float, half_w
 	var offset: float = clampf((ball_x - paddle_x) / maxf(1.0, half_width), -1.0, 1.0)
 	var angle: float = deg_to_rad(offset * _max_bounce_angle_deg)
 	var dir := Vector2(sin(angle), -cos(angle) if upward else cos(angle))
-	var speed: float = minf(float(ball.get("speed", _ball_base_speed)) + _ball_speed_increase, _ball_speed_max)
+	var speed: float = minf(float(ball.get("speed", _ball_base_speed)) + _ball_speed_increase,
+		_ball_speed_max * _speed_mult())
 	ball["speed"] = speed
 	return dir * speed
+
+## Rebond d'une balle (mur/raquette/brique) : crystal_trail lâche un cristal
+## sur place tant que le hitter porte l'effet et que le budget reste positif.
+func _on_ball_bounced(ball: Dictionary, at_pos: Vector2) -> void:
+	var side: String = str(ball.get("hitter", ""))
+	if side == "" or float(_crystal_trail.get(side, 0.0)) <= 0.0:
+		return
+	var budget: int = int(_crystal_trail_budget.get(side, 0))
+	if budget <= 0:
+		return
+	_crystal_trail_budget[side] = budget - 1
+	if _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystal_at"):
+		_game.call("spawn_reward_crystal_at", at_pos)
 
 ## Balle courbe : nudge perpendiculaire sinusoïdal puis renormalisation à la
 ## vitesse scalaire de la balle (aucune dérive possible, le bookkeeping
@@ -565,8 +759,8 @@ func _update_enemy_paddle(delta: float) -> void:
 				aim_x = node.global_position.x + randf_range(-_enemy_aim_error_px, _enemy_aim_error_px)
 		_enemy_target_x = aim_x
 	var e_half: Vector2 = _paddle_half_extents("enemy")
-	var min_x: float = _wall_margin + e_half.x
-	var max_x: float = viewport_size.x - _wall_margin - e_half.x
+	var min_x: float = _wall_margin + _wall_inset + e_half.x
+	var max_x: float = viewport_size.x - _wall_margin - _wall_inset - e_half.x
 	var target: float = clampf(_enemy_target_x, min_x, max_x)
 	_enemy_paddle.global_position.x = move_toward(_enemy_paddle.global_position.x, target, _enemy_speed * delta)
 
@@ -579,17 +773,31 @@ func _update_enemy_paddle(delta: float) -> void:
 ## (_update_balls), dans la direction du dernier but.
 func _on_enemy_scored() -> void:
 	_serve_dir = -1
+	# Multiplicateur d'enjeux lu AVANT _register_goal (qui coupe le tie-break).
+	var reward_mult: float = _goal_reward_mult()
+	_register_goal()
 	if _player and is_instance_valid(_player) and _player.has_method("take_damage"):
 		var max_hp_v: Variant = _player.get("max_hp")
 		var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
 		# Standard damage path: shield absorbs first, then HP; die() below 0.
-		var dmg: int = maxi(1, int(ceil(float(max_hp) * _damage_percent)))
+		var dmg: int = maxi(1, int(ceil(float(max_hp) * _damage_percent * reward_mult)))
 		_player.call("take_damage", dmg)
 
 func _on_player_scored() -> void:
 	_serve_dir = 1
+	var crystals: int = maxi(0, int(round(float(_crystals_per_point) * _goal_reward_mult())))
+	_register_goal()
 	if _game and is_instance_valid(_game) and _game.has_method("spawn_pong_reward_crystals"):
-		_game.call("spawn_pong_reward_crystals", _crystals_per_point)
+		_game.call("spawn_pong_reward_crystals", crystals)
+
+## Après CHAQUE but : reset du compteur tie-break (et de son état actif), et
+## les murs rétrécissants repartent de la largeur pleine (reset au but).
+func _register_goal() -> void:
+	_since_goal = 0.0
+	if _tiebreak_active:
+		_tiebreak_active = false
+		_rescale_ball_speeds(1.0 / maxf(1.0, _tiebreak_speed_mult))
+	_wall_inset = 0.0
 
 # =============================================================================
 # POWERUPS (spawn périodique, collecte par la balle, ownership last-hitter)
@@ -657,16 +865,23 @@ func _spawn_powerup() -> void:
 	_powerups.append({"node": node, "pos": pos, "radius": _powerup_radius, "def": def, "despawn": _powerup_despawn})
 
 func _pick_powerup_def() -> Dictionary:
-	var total: float = 0.0
-	for def_v in _powerup_pool:
-		if def_v is Dictionary:
-			total += maxf(0.0, float((def_v as Dictionary).get("weight", 0.0)))
-	if total <= 0.0:
-		return {}
-	var roll: float = randf() * total
+	# Les powerups "mode" (category "mode" : shrink_walls, wind, blackout,
+	# heavy_ball) partagent un cooldown global — exclus de la roulette tant
+	# qu'il court, la pondération se refait sur les défs restantes.
+	var eligible: Array = []
 	for def_v in _powerup_pool:
 		if not (def_v is Dictionary):
 			continue
+		if _mode_cooldown > 0.0 and str((def_v as Dictionary).get("category", "")) == "mode":
+			continue
+		eligible.append(def_v)
+	var total: float = 0.0
+	for def_v in eligible:
+		total += maxf(0.0, float((def_v as Dictionary).get("weight", 0.0)))
+	if total <= 0.0:
+		return {}
+	var roll: float = randf() * total
+	for def_v in eligible:
 		roll -= maxf(0.0, float((def_v as Dictionary).get("weight", 0.0)))
 		if roll <= 0.0:
 			return def_v as Dictionary
@@ -727,8 +942,36 @@ func _apply_powerup(def: Dictionary, hitter_id: String, ball: Dictionary, at_pos
 			_spawn_portal_pair(duration, hitter_id)
 		"brick_wall":
 			_spawn_brick_wall()
+		"time_slow":
+			# Armé : se déclenchera quand une balle entrera dans la moitié du
+			# propriétaire (_check_time_slow_trigger).
+			_time_slow_armed[hitter_id] = duration
+		"ghost_ball":
+			_ghost[hitter_id] = duration
+		"crystal_trail":
+			_crystal_trail[hitter_id] = duration
+			_crystal_trail_budget[hitter_id] = _crystal_trail_max
+		"shrink_walls":
+			_shrink_walls_time = maxf(_shrink_walls_time, duration)
+		"wind":
+			if _wind_time <= 0.0:
+				_wind_dir = 1 if randf() < 0.5 else -1
+				_wind_flip_timer = _wind_flip_interval
+			_wind_time = maxf(_wind_time, duration)
+		"blackout":
+			_blackout_time = maxf(_blackout_time, duration)
+			_blackout_total = _blackout_time
+			_ensure_blackout_overlay()
+		"heavy_ball":
+			if _heavy_time <= 0.0:
+				_rescale_ball_speeds(_heavy_speed_mult)
+				_set_ball_radius_mult(_heavy_radius_mult)
+			_heavy_time = maxf(_heavy_time, duration)
 		_:
 			pass
+	# Un powerup "mode" collecté déclenche le cooldown global de la catégorie.
+	if str(def.get("category", "")) == "mode":
+		_mode_cooldown = _mode_cooldown_sec
 	if VFXManager:
 		VFXManager.spawn_impact(at_pos, 14.0, self)
 
@@ -760,6 +1003,14 @@ func _update_effect_timers(delta: float) -> void:
 			_curve[side] = float(_curve[side]) - delta
 			if float(_curve[side]) <= 0.0:
 				_curve.erase(side)
+		if _ghost.has(side):
+			_ghost[side] = float(_ghost[side]) - delta
+			if float(_ghost[side]) <= 0.0:
+				_ghost.erase(side)
+		if _crystal_trail.has(side):
+			_crystal_trail[side] = float(_crystal_trail[side]) - delta
+			if float(_crystal_trail[side]) <= 0.0:
+				_crystal_trail.erase(side)
 		if _shields.has(side):
 			var shield: Dictionary = _shields[side]
 			shield["time"] = float(shield.get("time", 0.0)) - delta
@@ -774,6 +1025,12 @@ func _update_effect_timers(delta: float) -> void:
 		and _player and is_instance_valid(_player):
 		_player_shrink_overlay.global_position = _player.global_position
 	_animate_shields()
+	# Balles fantômes : alpha réduit tant que leur hitter porte l'effet.
+	for ball_v in _balls:
+		var ball: Dictionary = ball_v as Dictionary
+		var ball_node: Node2D = ball.get("node") as Node2D
+		if ball_node and is_instance_valid(ball_node):
+			ball_node.modulate.a = 0.55 if float(_ghost.get(str(ball.get("hitter", "")), 0.0)) > 0.0 else 1.0
 
 # =============================================================================
 # RAQUETTES ARMÉES (missiles : détruisent les powerups, stun l'adversaire)
@@ -838,6 +1095,23 @@ func _update_missiles(delta: float) -> void:
 				_powerups.remove_at(j)
 				consumed = true
 				break
+		# Détruit les drones d'invasion (missiles des deux camps).
+		if not consumed:
+			for j in range(_drones.size() - 1, -1, -1):
+				var drone: Dictionary = _drones[j]
+				var d_pos: Vector2 = drone.get("pos", Vector2.ZERO)
+				var d_reach: float = float(drone.get("radius", 26.0)) + 8.0
+				if pos.distance_squared_to(d_pos) <= d_reach * d_reach:
+					if VFXManager:
+						VFXManager.spawn_impact(d_pos, 18.0, self)
+					var d_node: Variant = drone.get("node", null)
+					if d_node is Node2D and is_instance_valid(d_node):
+						(d_node as Node2D).queue_free()
+					_drones.remove_at(j)
+					if _game and is_instance_valid(_game) and _game.has_method("add_wave_bonus_score"):
+						_game.call("add_wave_bonus_score", maxi(0, int(_get_conf("invasion_drone_score", 25))), pos)
+					consumed = true
+					break
 		# Impact raquette adverse : stun (ennemi) ou léger % (joueur).
 		if not consumed and bool(missile.get("from_player", true)):
 			if _enemy_paddle and is_instance_valid(_enemy_paddle):
@@ -1103,6 +1377,9 @@ func _animate_shields() -> void:
 func _apply_shields_to_ball(ball: Dictionary, pos: Vector2) -> Vector2:
 	if _shields.is_empty():
 		return pos
+	# Balle fantôme (ghost_ball) : traverse les barrières (les deux camps).
+	if float(_ghost.get(str(ball.get("hitter", "")), 0.0)) > 0.0:
+		return pos
 	var vel: Vector2 = ball.get("vel", Vector2.ZERO)
 	if _shields.has("player") and vel.y > 0.0:
 		var y_player: float = _shield_line_y("player")
@@ -1190,6 +1467,9 @@ func _spawn_brick_wall() -> void:
 func _collide_ball_bricks(ball: Dictionary, pos: Vector2) -> Vector2:
 	if _bricks.is_empty():
 		return pos
+	# Balle fantôme (ghost_ball) : traverse le mur central.
+	if float(_ghost.get(str(ball.get("hitter", "")), 0.0)) > 0.0:
+		return pos
 	var vel: Vector2 = ball.get("vel", Vector2.ZERO)
 	for i in range(_bricks.size() - 1, -1, -1):
 		var brick: Dictionary = _bricks[i]
@@ -1212,6 +1492,7 @@ func _collide_ball_bricks(ball: Dictionary, pos: Vector2) -> Vector2:
 		if vel.dot(normal) < 0.0:
 			ball["vel"] = vel.bounce(normal)
 		pos = closest + normal * (_ball_radius + 0.5)
+		_on_ball_bounced(ball, pos)
 		brick["hp"] = int(brick.get("hp", 1)) - 1
 		var node_v: Variant = brick.get("node", null)
 		if int(brick["hp"]) <= 0:
@@ -1225,6 +1506,665 @@ func _collide_ball_bricks(ball: Dictionary, pos: Vector2) -> Vector2:
 			(node_v as Node2D).modulate = Color(brightness, brightness, brightness, 1.0)
 		break
 	return pos
+
+# =============================================================================
+# TIE-BREAK AUTOMATIQUE + TIME_SLOW (déclencheur / vignette)
+# =============================================================================
+
+## tiebreak_after_sec sans but -> splash + vitesse et enjeux multipliés
+## jusqu'au prochain but (_register_goal désactive et remet le compteur à 0).
+func _update_tiebreak(delta: float) -> void:
+	if _tiebreak_after <= 0.0 or _tiebreak_active:
+		return
+	_since_goal += delta
+	if _since_goal >= _tiebreak_after:
+		_tiebreak_active = true
+		_rescale_ball_speeds(_tiebreak_speed_mult)
+		_show_tiebreak_splash()
+
+func _show_tiebreak_splash() -> void:
+	var title: String = _translate_or("pong_tiebreak_title", "TIE BREAK")
+	var sub: String = _translate_or("pong_tiebreak_sub", "Speed and stakes doubled!")
+	if _game and is_instance_valid(_game) and _game.has_method("show_center_splash"):
+		_game.call("show_center_splash", title, sub, "#FF5C5C")
+	elif VFXManager:
+		VFXManager.spawn_floating_text(get_viewport_rect().size * 0.5, title, Color("#FF5C5C"), self)
+
+func _translate_or(key: String, fallback: String) -> String:
+	if LocaleManager:
+		var text: String = LocaleManager.translate(key)
+		if text != "" and text != key:
+			return text
+	return fallback
+
+## time_slow armé : la première balle qui entre dans la moitié du propriétaire
+## déclenche le ralenti (player = moitié basse, enemy = moitié haute).
+func _check_time_slow_trigger() -> void:
+	if _time_slow_armed.is_empty():
+		return
+	var half_y: float = get_viewport_rect().size.y * 0.5
+	for ball_v in _balls:
+		var node: Node2D = (ball_v as Dictionary).get("node") as Node2D
+		if node == null or not is_instance_valid(node):
+			continue
+		var y: float = node.global_position.y
+		for side_v in _time_slow_armed.keys():
+			var side: String = str(side_v)
+			if (side == "player" and y > half_y) or (side == "enemy" and y < half_y):
+				_time_slow_left = maxf(_time_slow_left, float(_time_slow_armed[side]))
+				_time_slow_armed.erase(side)
+				_ensure_time_slow_vignette()
+		if _time_slow_armed.is_empty():
+			break
+
+func _ensure_time_slow_vignette() -> void:
+	if _time_slow_vignette == null or not is_instance_valid(_time_slow_vignette):
+		_time_slow_vignette = ColorRect.new()
+		_time_slow_vignette.color = Color(str(_get_conf("time_slow_vignette_color", "#4AA8FF1E")))
+		_time_slow_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_time_slow_vignette.z_as_relative = false
+		_time_slow_vignette.z_index = 45
+		add_child(_time_slow_vignette)
+	_time_slow_vignette.position = Vector2.ZERO
+	_time_slow_vignette.size = get_viewport_rect().size
+	_time_slow_vignette.visible = true
+
+# =============================================================================
+# POWERUPS "MODE" (shrink_walls / wind / blackout / heavy_ball) — timers réels
+# =============================================================================
+
+func _update_mode_effects(delta: float) -> void:
+	_mode_cooldown = maxf(0.0, _mode_cooldown - delta)
+	if _time_slow_left > 0.0:
+		_time_slow_left = maxf(0.0, _time_slow_left - delta)
+		if _time_slow_left <= 0.0 and _time_slow_vignette and is_instance_valid(_time_slow_vignette):
+			_time_slow_vignette.visible = false
+	if _heavy_time > 0.0:
+		_heavy_time -= delta
+		if _heavy_time <= 0.0:
+			_heavy_time = 0.0
+			_rescale_ball_speeds(1.0 / maxf(0.05, _heavy_speed_mult))
+			_set_ball_radius_mult(1.0)
+	_update_shrink_walls(delta)
+	_update_wind(delta)
+	_update_blackout(delta)
+
+## heavy_ball : _ball_radius (collision) = base × mult, le node de chaque balle
+## porte l'échelle correspondante (les visuels sont construits à la taille base).
+func _set_ball_radius_mult(mult: float) -> void:
+	_ball_radius = _ball_radius_base * maxf(0.1, mult)
+	for ball_v in _balls:
+		var node: Node2D = (ball_v as Dictionary).get("node") as Node2D
+		if node and is_instance_valid(node):
+			node.scale = Vector2.ONE * maxf(0.1, mult)
+
+# --- shrink_walls : murs latéraux mobiles ---
+
+func _update_shrink_walls(delta: float) -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if _shrink_walls_time > 0.0:
+		_shrink_walls_time -= delta
+		_wall_inset = minf(_wall_inset + _shrink_walls_speed * delta,
+			viewport_size.x * _shrink_walls_max_ratio)
+	elif _wall_inset > 0.0:
+		# Fin d'effet : retrait des murs (4× plus vite qu'ils n'avancent).
+		_wall_inset = maxf(0.0, _wall_inset - _shrink_walls_speed * 4.0 * delta)
+	if _wall_inset <= 0.0 and _shrink_walls_time <= 0.0:
+		_free_shrink_wall_lines()
+		return
+	_crush_out_of_bounds(viewport_size)
+	_ensure_shrink_wall_lines()
+	_animate_shrink_walls(viewport_size)
+
+## Les murs mobiles "écrasent" ce qu'ils recouvrent : briques du mur central
+## (explosion visuelle, sans récompense) et powerups (despawn).
+func _crush_out_of_bounds(viewport_size: Vector2) -> void:
+	var left_bound: float = _wall_margin + _wall_inset
+	var right_bound: float = viewport_size.x - _wall_margin - _wall_inset
+	for i in range(_bricks.size() - 1, -1, -1):
+		var rect: Rect2 = (_bricks[i] as Dictionary).get("rect", Rect2())
+		if rect.position.x < left_bound or rect.end.x > right_bound:
+			if VFXManager:
+				VFXManager.spawn_impact(rect.get_center(), 16.0, self)
+			var node_v: Variant = (_bricks[i] as Dictionary).get("node", null)
+			if node_v is Node2D and is_instance_valid(node_v):
+				(node_v as Node2D).queue_free()
+			_bricks.remove_at(i)
+	for i in range(_powerups.size() - 1, -1, -1):
+		var powerup: Dictionary = _powerups[i]
+		var p_pos: Vector2 = powerup.get("pos", Vector2.ZERO)
+		var radius: float = float(powerup.get("radius", 22.0))
+		if p_pos.x - radius < left_bound or p_pos.x + radius > right_bound:
+			_free_powerup(powerup)
+			_powerups.remove_at(i)
+
+func _ensure_shrink_wall_lines() -> void:
+	if not _shrink_wall_lines.is_empty():
+		return
+	var layers_v: Variant = _get_conf("shrink_walls_line_layers", [])
+	for side_sign in [-1, 1]:
+		var lines: Array = []
+		if layers_v is Array:
+			var idx: int = 0
+			for layer_v in (layers_v as Array):
+				if not (layer_v is Dictionary):
+					continue
+				var layer: Dictionary = layer_v as Dictionary
+				lines.append(_build_shield_line(float(layer.get("width_px", 8.0)),
+					Color(str(layer.get("color", "#FF9A3C"))), bool(layer.get("additive", true)), 13 + idx))
+				idx += 1
+		if lines.is_empty():
+			lines.append(_build_shield_line(5.0, Color("#FF9A3C"), false, 13))
+		_shrink_wall_lines.append({ "sign": side_sign, "lines": lines })
+
+## Tracé vertical électrique (même recette que les barrières shield_orb).
+func _animate_shrink_walls(viewport_size: Vector2) -> void:
+	var segments: int = 16
+	var jitter: float = maxf(0.0, float(_get_conf("shield_jitter_px", 2.5)))
+	for wall_v in _shrink_wall_lines:
+		var wall: Dictionary = wall_v as Dictionary
+		var x0: float = (_wall_margin + _wall_inset) if int(wall.get("sign", -1)) < 0 \
+			else (viewport_size.x - _wall_margin - _wall_inset)
+		var points := PackedVector2Array()
+		for i in range(segments + 1):
+			var y: float = viewport_size.y * float(i) / float(segments)
+			points.append(Vector2(
+				x0 + sin(y * 0.045 + _elapsed * 7.0) * 4.0 + randf_range(-jitter, jitter), y))
+		for line_v in (wall.get("lines", []) as Array):
+			if line_v is Line2D and is_instance_valid(line_v):
+				(line_v as Line2D).points = points
+
+func _free_shrink_wall_lines() -> void:
+	for wall_v in _shrink_wall_lines:
+		for line_v in ((wall_v as Dictionary).get("lines", []) as Array):
+			if line_v is Line2D and is_instance_valid(line_v):
+				(line_v as Line2D).queue_free()
+	_shrink_wall_lines.clear()
+
+# --- wind : flips télégraphiés + traits/débris dans le sens du vent ---
+
+func _update_wind(delta: float) -> void:
+	if _wind_time <= 0.0:
+		if not _wind_streaks.is_empty() or not _wind_debris.is_empty():
+			_free_wind_visuals()
+		return
+	_wind_time -= delta
+	if _wind_time <= 0.0:
+		_free_wind_visuals()
+		return
+	_wind_flip_timer -= delta
+	var telegraphing: bool = _wind_flip_timer <= _wind_telegraph_sec
+	if _wind_flip_timer <= 0.0:
+		_wind_dir = -_wind_dir
+		_wind_flip_timer = _wind_flip_interval
+		telegraphing = false
+	_ensure_wind_visuals()
+	_update_wind_arrow(telegraphing)
+	_animate_wind(delta)
+
+## Flèches de télégraphe : direction du PROCHAIN flip, pulse d'alpha.
+func _update_wind_arrow(telegraphing: bool) -> void:
+	if _wind_arrow == null or not is_instance_valid(_wind_arrow):
+		return
+	if not telegraphing:
+		_wind_arrow.visible = false
+		return
+	_wind_arrow.text = ">>>" if -_wind_dir > 0 else "<<<"
+	_wind_arrow.visible = true
+	_wind_arrow.modulate.a = 0.5 + 0.5 * absf(sin(_elapsed * 9.0))
+
+func _ensure_wind_visuals() -> void:
+	if not _wind_streaks.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if _shield_material == null:
+		_shield_material = CanvasItemMaterial.new()
+		_shield_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var streak_color := Color(str(_get_conf("wind_streak_color", "#9AD8FF66")))
+	for i in range(clampi(int(_get_conf("wind_streak_count", 14)), 0, 40)):
+		var line := Line2D.new()
+		line.width = randf_range(1.5, 3.0)
+		line.default_color = streak_color
+		line.material = _shield_material
+		line.z_as_relative = false
+		line.z_index = 7
+		add_child(line)
+		_wind_streaks.append({
+			"node": line,
+			"x": randf_range(0.0, viewport_size.x),
+			"y": randf_range(viewport_size.y * 0.05, viewport_size.y * 0.95),
+			"speed": randf_range(420.0, 900.0),
+			"len": randf_range(40.0, 110.0)
+		})
+	var debris_color := Color(str(_get_conf("wind_debris_color", "#C8E8FFAA")))
+	for i in range(clampi(int(_get_conf("wind_debris_count", 6)), 0, 20)):
+		var dot := Polygon2D.new()
+		var s: float = randf_range(3.0, 6.0)
+		dot.polygon = PackedVector2Array([Vector2(-s, 0), Vector2(0, -s), Vector2(s, 0), Vector2(0, s)])
+		dot.color = debris_color
+		dot.z_as_relative = false
+		dot.z_index = 7
+		add_child(dot)
+		_wind_debris.append({
+			"node": dot,
+			"x": randf_range(0.0, viewport_size.x),
+			"base_y": randf_range(viewport_size.y * 0.1, viewport_size.y * 0.9),
+			"speed": randf_range(140.0, 260.0),
+			"amp": randf_range(10.0, 30.0),
+			"phase": randf() * TAU
+		})
+	var arrow := Label.new()
+	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	arrow.add_theme_font_size_override("font_size", 40)
+	arrow.add_theme_color_override("font_color", Color("#9AD8FF"))
+	arrow.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	arrow.add_theme_constant_override("outline_size", 5)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow.z_as_relative = false
+	arrow.z_index = 55
+	arrow.size = Vector2(viewport_size.x, 44.0)
+	arrow.position = Vector2(0.0, viewport_size.y * 0.24)
+	arrow.visible = false
+	add_child(arrow)
+	_wind_arrow = arrow
+
+## Traits horizontaux qui filent dans le sens du vent + petits débris qui
+## dérivent en oscillant (sinus vertical) — wrap d'un bord à l'autre.
+func _animate_wind(delta: float) -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	for streak_v in _wind_streaks:
+		var streak: Dictionary = streak_v as Dictionary
+		var x: float = float(streak.get("x", 0.0)) + float(_wind_dir) * float(streak.get("speed", 500.0)) * delta
+		var len_px: float = float(streak.get("len", 60.0))
+		if _wind_dir > 0 and x - len_px > viewport_size.x:
+			x = -len_px
+			streak["y"] = randf_range(viewport_size.y * 0.05, viewport_size.y * 0.95)
+		elif _wind_dir < 0 and x + len_px < 0.0:
+			x = viewport_size.x + len_px
+			streak["y"] = randf_range(viewport_size.y * 0.05, viewport_size.y * 0.95)
+		streak["x"] = x
+		var line: Line2D = streak.get("node") as Line2D
+		if line and is_instance_valid(line):
+			var y: float = float(streak.get("y", 0.0))
+			line.points = PackedVector2Array([Vector2(x - len_px * float(_wind_dir), y), Vector2(x, y)])
+	for debris_v in _wind_debris:
+		var debris: Dictionary = debris_v as Dictionary
+		var dx: float = float(debris.get("x", 0.0)) + float(_wind_dir) * float(debris.get("speed", 200.0)) * delta
+		if _wind_dir > 0 and dx > viewport_size.x + 12.0:
+			dx = -12.0
+		elif _wind_dir < 0 and dx < -12.0:
+			dx = viewport_size.x + 12.0
+		debris["x"] = dx
+		debris["phase"] = float(debris.get("phase", 0.0)) + delta * 3.0
+		var dot: Polygon2D = debris.get("node") as Polygon2D
+		if dot and is_instance_valid(dot):
+			dot.global_position = Vector2(dx,
+				float(debris.get("base_y", 0.0)) + sin(float(debris["phase"])) * float(debris.get("amp", 20.0)))
+
+func _free_wind_visuals() -> void:
+	for streak_v in _wind_streaks:
+		var node_v: Variant = (streak_v as Dictionary).get("node", null)
+		if node_v is Node and is_instance_valid(node_v):
+			(node_v as Node).queue_free()
+	_wind_streaks.clear()
+	for debris_v in _wind_debris:
+		var node_v: Variant = (debris_v as Dictionary).get("node", null)
+		if node_v is Node and is_instance_valid(node_v):
+			(node_v as Node).queue_free()
+	_wind_debris.clear()
+	if _wind_arrow and is_instance_valid(_wind_arrow):
+		_wind_arrow.queue_free()
+	_wind_arrow = null
+
+# --- blackout : pénombre à trous de lumière ---
+
+const BLACKOUT_MAX_LIGHTS: int = 16
+const BLACKOUT_SHADER_PATH: String = "res://scenes/mechanics/pong_blackout.gdshader"
+
+func _ensure_blackout_overlay() -> void:
+	if _blackout_rect and is_instance_valid(_blackout_rect):
+		return
+	_blackout_rect = ColorRect.new()
+	_blackout_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_blackout_rect.z_as_relative = false
+	_blackout_rect.z_index = 40
+	_blackout_rect.position = Vector2.ZERO
+	_blackout_rect.size = get_viewport_rect().size
+	if ResourceLoader.exists(BLACKOUT_SHADER_PATH):
+		var shader: Shader = load(BLACKOUT_SHADER_PATH) as Shader
+		if shader:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			_blackout_rect.material = mat
+	if _blackout_rect.material == null:
+		# Fallback sans shader : pénombre légère uniforme (pas de trous).
+		_blackout_rect.color = Color(0.0, 0.0, 0.0, 0.5)
+	add_child(_blackout_rect)
+
+func _update_blackout(delta: float) -> void:
+	if _blackout_time <= 0.0:
+		return
+	_blackout_time -= delta
+	if _blackout_time <= 0.0:
+		if _blackout_rect and is_instance_valid(_blackout_rect):
+			_blackout_rect.queue_free()
+		_blackout_rect = null
+		return
+	if _blackout_rect == null or not is_instance_valid(_blackout_rect):
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_blackout_rect.size = viewport_size
+	# Fade in/out (0.4 s) aux deux bouts de l'effet.
+	var fade: float = clampf(minf(_blackout_time, _blackout_total - _blackout_time) / 0.4, 0.0, 1.0)
+	var darkness: float = clampf(float(_get_conf("blackout_opacity", 0.85)), 0.0, 1.0) * fade
+	var mat: ShaderMaterial = _blackout_rect.material as ShaderMaterial
+	if mat == null:
+		_blackout_rect.color = Color(0.0, 0.0, 0.0, 0.5 * fade)
+		return
+	# Trous de lumière : balles, raquettes, powerups, portails, météore, drones.
+	var positions := PackedVector2Array()
+	var radii := PackedFloat32Array()
+	var ball_r: float = maxf(20.0, float(_get_conf("blackout_light_radius_ball_px", 90.0)))
+	var paddle_r: float = maxf(40.0, float(_get_conf("blackout_light_radius_paddle_px", 150.0)))
+	var item_r: float = maxf(20.0, float(_get_conf("blackout_light_radius_item_px", 95.0)))
+	for ball_v in _balls:
+		if positions.size() >= BLACKOUT_MAX_LIGHTS:
+			break
+		var ball_node: Node2D = (ball_v as Dictionary).get("node") as Node2D
+		if ball_node and is_instance_valid(ball_node):
+			positions.append(ball_node.global_position)
+			radii.append(ball_r)
+	if _player and is_instance_valid(_player) and positions.size() < BLACKOUT_MAX_LIGHTS:
+		positions.append(_player.global_position)
+		radii.append(paddle_r)
+	if _enemy_paddle and is_instance_valid(_enemy_paddle) and positions.size() < BLACKOUT_MAX_LIGHTS:
+		positions.append(_enemy_paddle.global_position)
+		radii.append(paddle_r)
+	for powerup_v in _powerups:
+		if positions.size() >= BLACKOUT_MAX_LIGHTS:
+			break
+		positions.append((powerup_v as Dictionary).get("pos", Vector2.ZERO))
+		radii.append(item_r)
+	for portal_key in ["entry", "exit"]:
+		var portal_node: Variant = _portal.get(portal_key, null)
+		if portal_node is Node2D and is_instance_valid(portal_node) and positions.size() < BLACKOUT_MAX_LIGHTS:
+			positions.append((portal_node as Node2D).global_position)
+			radii.append(item_r)
+	if not _meteor.is_empty() and positions.size() < BLACKOUT_MAX_LIGHTS:
+		positions.append(_meteor.get("pos", Vector2.ZERO))
+		radii.append(float(_meteor.get("radius", 70.0)) + 50.0)
+	for drone_v in _drones:
+		if positions.size() >= BLACKOUT_MAX_LIGHTS:
+			break
+		positions.append((drone_v as Dictionary).get("pos", Vector2.ZERO))
+		radii.append(item_r * 0.8)
+	var count: int = positions.size()
+	# Les uniform arrays ont une taille fixe : padding hors écran.
+	while positions.size() < BLACKOUT_MAX_LIGHTS:
+		positions.append(Vector2(-9999.0, -9999.0))
+		radii.append(1.0)
+	mat.set_shader_parameter("darkness", darkness)
+	mat.set_shader_parameter("viewport_size", viewport_size)
+	mat.set_shader_parameter("light_count", count)
+	mat.set_shader_parameter("light_pos", positions)
+	mat.set_shader_parameter("light_radius", radii)
+
+# =============================================================================
+# ÉVÉNEMENT INVASION (drones traversants — rebond radial, tués par missiles)
+# =============================================================================
+
+func _update_invasion(delta: float) -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	# Déplacement des drones existants (même pendant SERVE).
+	for i in range(_drones.size() - 1, -1, -1):
+		var drone: Dictionary = _drones[i]
+		var pos: Vector2 = drone.get("pos", Vector2.ZERO)
+		pos.x += float(drone.get("dir", 1.0)) * float(drone.get("speed", 260.0)) * delta
+		drone["pos"] = pos
+		drone["hit_cd"] = maxf(0.0, float(drone.get("hit_cd", 0.0)) - delta)
+		var node_v: Variant = drone.get("node", null)
+		if node_v is Node2D and is_instance_valid(node_v):
+			(node_v as Node2D).global_position = pos
+		if pos.x < -80.0 or pos.x > viewport_size.x + 80.0:
+			if node_v is Node2D and is_instance_valid(node_v):
+				(node_v as Node2D).queue_free()
+			_drones.remove_at(i)
+	# Télégraphe en cours -> spawn à échéance.
+	if _invasion_pending > 0.0:
+		_invasion_pending -= delta
+		if _invasion_arrow and is_instance_valid(_invasion_arrow):
+			_invasion_arrow.modulate.a = 0.4 + 0.6 * absf(sin(_elapsed * 10.0))
+		if _invasion_pending <= 0.0:
+			if _invasion_arrow and is_instance_valid(_invasion_arrow):
+				_invasion_arrow.queue_free()
+			_invasion_arrow = null
+			_spawn_invasion_drones()
+		return
+	if _invasion_chance <= 0.0:
+		return
+	_invasion_timer -= delta
+	if _invasion_timer <= 0.0:
+		_invasion_timer = _invasion_interval
+		if randf() < _invasion_chance and _drones.is_empty():
+			_invasion_pending = maxf(0.2, float(_get_conf("invasion_telegraph_sec", 1.0)))
+			_invasion_from_left = randf() < 0.5
+			_show_invasion_arrow()
+
+func _show_invasion_arrow() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var label := Label.new()
+	label.text = ">>" if _invasion_from_left else "<<"
+	label.add_theme_font_size_override("font_size", 46)
+	label.add_theme_color_override("font_color", Color("#FF6B5C"))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_constant_override("outline_size", 5)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_as_relative = false
+	label.z_index = 55
+	label.position = Vector2(12.0 if _invasion_from_left else viewport_size.x - 76.0,
+		viewport_size.y * 0.5 - 23.0)
+	add_child(label)
+	_invasion_arrow = label
+
+func _spawn_invasion_drones() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var count: int = clampi(int(_get_conf("invasion_drone_count", 3)), 1, 8)
+	var speed: float = maxf(60.0, float(_get_conf("invasion_drone_speed_px_sec", 260.0)))
+	var radius: float = maxf(8.0, float(_get_conf("invasion_drone_radius_px", 26.0)))
+	var band_min: float = clampf(float(_get_conf("invasion_band_top_ratio", 0.30)), 0.05, 0.9)
+	var band_max: float = clampf(float(_get_conf("invasion_band_bottom_ratio", 0.70)), band_min, 0.95)
+	var dir: float = 1.0 if _invasion_from_left else -1.0
+	for i in range(count):
+		var node := Node2D.new()
+		node.z_as_relative = false
+		node.z_index = 9
+		var visual: Node2D = _build_sprite_fit(_resolve_enemy_asset_path(), Vector2.ONE * radius * 2.0)
+		if visual == null:
+			var tri := Polygon2D.new()
+			tri.polygon = PackedVector2Array([
+				Vector2(-radius, -radius * 0.7), Vector2(radius, 0.0), Vector2(-radius, radius * 0.7)
+			])
+			tri.color = Color("#FF6B5C")
+			visual = tri
+		visual.rotation = 0.0 if dir > 0.0 else PI
+		node.add_child(visual)
+		var y: float = viewport_size.y * lerpf(band_min, band_max,
+			(float(i) + randf() * 0.8) / maxf(1.0, float(count)))
+		var x: float = (-radius - 20.0 - float(i) * 110.0) if dir > 0.0 \
+			else (viewport_size.x + radius + 20.0 + float(i) * 110.0)
+		node.global_position = Vector2(x, y)
+		add_child(node)
+		_drones.append({ "node": node, "pos": node.global_position, "dir": dir,
+			"speed": speed, "radius": radius, "hit_cd": 0.0 })
+
+## Rebond radial sur un drone (le drone survit à la balle — seuls les missiles
+## des raquettes armées le détruisent, dans _update_missiles).
+func _collide_ball_drones(ball: Dictionary, pos: Vector2) -> Vector2:
+	if _drones.is_empty():
+		return pos
+	var vel: Vector2 = ball.get("vel", Vector2.ZERO)
+	for drone_v in _drones:
+		var drone: Dictionary = drone_v as Dictionary
+		if float(drone.get("hit_cd", 0.0)) > 0.0:
+			continue
+		var d_pos: Vector2 = drone.get("pos", Vector2.ZERO)
+		var reach: float = float(drone.get("radius", 26.0)) + _ball_radius
+		var offset: Vector2 = pos - d_pos
+		if offset.length_squared() > reach * reach:
+			continue
+		var normal: Vector2 = offset.normalized() if offset.length_squared() > 0.0001 else Vector2.UP
+		if vel.dot(normal) < 0.0:
+			ball["vel"] = vel.bounce(normal)
+		pos = d_pos + normal * (reach + 0.5)
+		drone["hit_cd"] = 0.2
+		if VFXManager:
+			VFXManager.spawn_impact(pos, 12.0, self)
+		break
+	return pos
+
+# =============================================================================
+# ÉVÉNEMENT MÉTÉORE CENTRAL (boss destructible : 1 impact de balle = -1 HP)
+# =============================================================================
+
+func _update_meteor(delta: float) -> void:
+	if not _meteor_enabled:
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if _meteor.is_empty():
+		if _meteor_spawned_once:
+			# Respawn optionnel (mode libre) après destruction.
+			if float(_get_conf("meteor_respawn_interval_sec", 0.0)) > 0.0:
+				_meteor_respawn_timer -= delta
+				if _meteor_respawn_timer <= 0.0:
+					_spawn_meteor()
+		else:
+			# Premier spawn : ratio de la durée, borné (indispensable en libre
+			# continuous où la durée est quasi infinie).
+			var wait: float = minf(
+				_duration * clampf(float(_get_conf("meteor_time_ratio", 0.35)), 0.0, 1.0),
+				maxf(1.0, float(_get_conf("meteor_max_wait_sec", 30.0))))
+			if _elapsed >= wait:
+				_spawn_meteor()
+		return
+	_meteor["hit_cd"] = maxf(0.0, float(_meteor.get("hit_cd", 0.0)) - delta)
+	# Entrée en translation depuis le haut (jamais de pop).
+	var pos: Vector2 = _meteor.get("pos", Vector2.ZERO)
+	if bool(_meteor.get("arriving", false)):
+		var target_y: float = viewport_size.y * clampf(float(_get_conf("meteor_center_y_ratio", 0.5)), 0.2, 0.8)
+		pos.y = move_toward(pos.y, target_y, 220.0 * delta)
+		_meteor["pos"] = pos
+		if absf(pos.y - target_y) < 0.5:
+			_meteor["arriving"] = false
+	var node_v: Variant = _meteor.get("node", null)
+	if node_v is Node2D and is_instance_valid(node_v):
+		(node_v as Node2D).global_position = pos
+
+func _spawn_meteor() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var fit: float = maxf(40.0, float(_get_conf("meteor_fit_px", 150.0)))
+	var radius: float = fit * 0.5
+	var hp: int = maxi(1, int(round(float(_get_conf("meteor_hp", _get_conf("meteor_hp_base", 8))))))
+	var node := Node2D.new()
+	node.name = "PongMeteor"
+	node.z_as_relative = false
+	node.z_index = 9
+	# Visuel : un boss .tres tiré au sort dans meteor_bosses[] (String ou
+	# { "asset_anim": ... }), sinon cercle procédural.
+	var bosses_v: Variant = _get_conf("meteor_bosses", [])
+	var asset_path: String = ""
+	if bosses_v is Array and not (bosses_v as Array).is_empty():
+		var pick: Variant = (bosses_v as Array)[randi() % (bosses_v as Array).size()]
+		if pick is Dictionary:
+			asset_path = str((pick as Dictionary).get("asset_anim", ""))
+		else:
+			asset_path = str(pick)
+	var visual: Node2D = _build_sprite_fit(asset_path, Vector2.ONE * fit)
+	if visual == null:
+		var circle := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for i in range(24):
+			var a: float = TAU * float(i) / 24.0
+			pts.append(Vector2(cos(a), sin(a)) * radius)
+		circle.polygon = pts
+		circle.color = Color("#8A93A6")
+		visual = circle
+	node.add_child(visual)
+	var label := Label.new()
+	label.text = str(hp)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", int(maxf(18.0, radius * 0.55)))
+	label.add_theme_color_override("font_color", Color.WHITE)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_constant_override("outline_size", 5)
+	label.size = Vector2(fit, fit)
+	label.position = -label.size * 0.5
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_child(label)
+	node.global_position = Vector2(viewport_size.x * 0.5, -radius - 10.0)
+	add_child(node)
+	_meteor = { "node": node, "pos": node.global_position, "radius": radius,
+		"hp": hp, "max_hp": hp, "label": label, "arriving": true, "hit_cd": 0.0 }
+	_meteor_spawned_once = true
+
+## Rebond radial (cercle inscrit) + 1 dégât par impact (cooldown anti multi-hit).
+func _collide_ball_meteor(ball: Dictionary, pos: Vector2) -> Vector2:
+	if _meteor.is_empty():
+		return pos
+	var m_pos: Vector2 = _meteor.get("pos", Vector2.ZERO)
+	var reach: float = float(_meteor.get("radius", 70.0)) + _ball_radius
+	var offset: Vector2 = pos - m_pos
+	if offset.length_squared() > reach * reach:
+		return pos
+	var vel: Vector2 = ball.get("vel", Vector2.ZERO)
+	var normal: Vector2 = offset.normalized() if offset.length_squared() > 0.0001 else Vector2.UP
+	if vel.dot(normal) < 0.0:
+		ball["vel"] = vel.bounce(normal)
+	pos = m_pos + normal * (reach + 0.5)
+	if float(_meteor.get("hit_cd", 0.0)) <= 0.0:
+		_meteor["hit_cd"] = 0.1
+		_damage_meteor(pos)
+	return pos
+
+func _damage_meteor(at_pos: Vector2) -> void:
+	_meteor["hp"] = int(_meteor.get("hp", 1)) - 1
+	var hp: int = int(_meteor["hp"])
+	var label: Label = _meteor.get("label") as Label
+	if label and is_instance_valid(label):
+		label.text = str(maxi(0, hp))
+	if VFXManager:
+		VFXManager.spawn_impact(at_pos, 14.0, self)
+	if hp > 0:
+		var node: Node2D = _meteor.get("node") as Node2D
+		if node and is_instance_valid(node):
+			var brightness: float = lerpf(0.55, 1.0,
+				float(hp) / float(maxi(1, int(_meteor.get("max_hp", 1)))))
+			node.modulate = Color(brightness, brightness, brightness, 1.0)
+		return
+	_destroy_meteor()
+
+## Destruction : multi-explosions échelonnées + cristaux sur place + score.
+func _destroy_meteor() -> void:
+	var pos: Vector2 = _meteor.get("pos", Vector2.ZERO)
+	var radius: float = float(_meteor.get("radius", 70.0))
+	var node: Node2D = _meteor.get("node") as Node2D
+	if node and is_instance_valid(node):
+		node.queue_free()
+	_meteor = {}
+	_meteor_respawn_timer = maxf(0.0, float(_get_conf("meteor_respawn_interval_sec", 0.0)))
+	if _game and is_instance_valid(_game):
+		if _game.has_method("spawn_reward_crystal_at"):
+			for i in range(maxi(0, int(_get_conf("meteor_crystals", 6)))):
+				var offset := Vector2(randf_range(-radius, radius), randf_range(-radius, radius) * 0.6)
+				_game.call("spawn_reward_crystal_at", pos + offset)
+		if _game.has_method("add_wave_bonus_score"):
+			_game.call("add_wave_bonus_score", maxi(0, int(_get_conf("meteor_score", 150))), pos)
+	if VFXManager:
+		var tween := create_tween()
+		for i in range(5):
+			var at: Vector2 = pos + Vector2(randf_range(-radius, radius), randf_range(-radius, radius)) * 0.7
+			tween.tween_interval(0.08)
+			tween.tween_callback(VFXManager.spawn_impact.bind(at, 26.0, self))
 
 # =============================================================================
 # HUD

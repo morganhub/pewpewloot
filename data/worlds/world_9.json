@@ -206,7 +206,10 @@
 		  "enemy_paddle_speed_px_sec": 560,
 		  "enemy_reaction_interval_sec": 0.12,
 		  "enemy_aim_error_px": 10,
-		  "crystals_per_point": 5
+		  "crystals_per_point": 5,
+		  "invasion_chance": 0.55,
+		  "meteor_enabled": true,
+		  "meteor_hp": 14
 		},
 		{
 		  "enemy_id": "elite",
@@ -572,7 +575,10 @@
 		  "enemy_paddle_speed_px_sec": 560,
 		  "enemy_reaction_interval_sec": 0.12,
 		  "enemy_aim_error_px": 10,
-		  "crystals_per_point": 5
+		  "crystals_per_point": 5,
+		  "invasion_chance": 0.55,
+		  "meteor_enabled": true,
+		  "meteor_hp": 14
 		},
 		{
 		  "type": "star_drift",

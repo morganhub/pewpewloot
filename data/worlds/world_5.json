@@ -133,7 +133,8 @@
           "enemy_paddle_speed_px_sec": 400,
           "enemy_reaction_interval_sec": 0.28,
           "enemy_aim_error_px": 36,
-          "crystals_per_point": 4
+          "crystals_per_point": 4,
+          "invasion_chance": 0.35
         },
         {
           "enemy_id": "artillery",
@@ -457,7 +458,8 @@
           "enemy_paddle_speed_px_sec": 400,
           "enemy_reaction_interval_sec": 0.28,
           "enemy_aim_error_px": 36,
-          "crystals_per_point": 4
+          "crystals_per_point": 4,
+          "invasion_chance": 0.35
         },
         {
           "enemy_id": "fighter",

@@ -72,6 +72,7 @@ var _active_fire_pattern_id: String = ""
 # Gate Runner wave state: HP becomes a resource (can overflow max_hp). The ship
 # shrinks and clones itself into an escort swarm whose unit count follows the
 # resource; the big HP value is shown on the ship.
+const NumberFormat := preload("res://scenes/mechanics/number_format.gd")
 var _gate_runner_active: bool = false
 var _gate_runner_ref_hp: float = 100.0
 var _gate_runner_swarm_cfg: Dictionary = {}
@@ -81,6 +82,9 @@ var _gate_runner_swarm_radius: float = 0.0
 var _gate_runner_swarm_time: float = 0.0
 var _gate_runner_current_scale: float = 1.0
 var _big_hp_label: Label = null
+# Clone doré (gate_runner) : un clone marqué à protéger — bonus si le round se
+# termine sans contact subi (logique côté GateRunnerManager, visuel ici).
+var _gate_runner_golden_active: bool = false
 
 # Pong wave state: Y locked on the paddle line, the ship visual squashed flat.
 var _pong_active: bool = false
@@ -91,6 +95,9 @@ var _pong_lock_tween: Tween = null
 # bounces), X stays player-controlled.
 var _climb_active: bool = false
 var _climb_y: float = 0.0
+# Wrap-around horizontal (Doodle Jump) : sortir d'un côté fait rentrer de
+# l'autre — activé par la vague via begin_climb cfg (wrap_horizontal).
+var _climb_wrap_x: bool = false
 
 # Absorb wave state: the ship carries a mass shown on the big label; its size
 # follows the mass (sqrt curve, capped).
@@ -154,6 +161,9 @@ var _match3_glow_tween: Tween = null
 # visual_container: the aura tracks the ABSORPTION radius pushed by the
 # manager, while the ship scale tracks the mass — independent scales).
 var _gravity_hole_active: bool = false
+# Refonte Agar.io : vaisseau verrouillé au centre, le monde bouge autour.
+var _gh_center_locked: bool = false
+var _gh_lock_pos: Vector2 = Vector2.ZERO
 var _gh_start_mass: float = 10.0
 var _gh_scale_base: float = 1.0
 var _gh_scale_min: float = 0.75
@@ -658,6 +668,7 @@ func end_gate_runner() -> void:
 		_clear_gate_runner_swarm()
 		return
 	_gate_runner_active = false
+	_gate_runner_golden_active = false
 	if bool(_gate_runner_swarm_cfg.get("hp_clamp_on_wave_end", true)):
 		clamp_hp_to_max()
 	_apply_ship_scale(1.0)
@@ -687,6 +698,8 @@ func apply_gate_operation(operation: String, value: float) -> void:
 		_:
 			pass
 	current_hp = int(round(hp))
+	# Cap dur de la ressource : « 999 millions sera le maximum ».
+	current_hp = mini(current_hp, int(_gate_runner_swarm_cfg.get("hp_resource_cap", 999999999)))
 	if current_hp <= 0:
 		current_hp = 0
 		die()
@@ -723,6 +736,61 @@ func _update_gate_runner_swarm() -> void:
 	_ensure_gate_runner_swarm_root()
 	_sync_gate_runner_clone_count(maxi(0, total_units - 1))
 	_reflow_gate_runner_clones()
+	_refresh_golden_clone_visual()
+
+## Clone doré : marque/démarque le clone protégé (le premier de la liste — les
+## resyncs retirent toujours en pop_back, il survit le plus longtemps). Visuel
+## PH = tint or + scale golden_clone_scale ; asset dédié golden_clone_asset en
+## overlay quand il existe.
+func set_gate_runner_golden_clone(active: bool) -> void:
+	_gate_runner_golden_active = active
+	_refresh_golden_clone_visual()
+
+func has_gate_runner_golden_clone() -> bool:
+	return _gate_runner_golden_active and not _gate_runner_clones.is_empty()
+
+func _refresh_golden_clone_visual() -> void:
+	if _gate_runner_clones.is_empty():
+		return
+	var clone_scale: float = maxf(0.05, float(_gate_runner_swarm_cfg.get("player_swarm_clone_scale", 0.35)))
+	var golden_scale: float = clone_scale * maxf(1.0, float(_gate_runner_swarm_cfg.get("golden_clone_scale", 1.6)))
+	for i in range(_gate_runner_clones.size()):
+		var entry: Dictionary = _gate_runner_clones[i]
+		var node_v: Variant = entry.get("node", null)
+		if not (node_v is Node2D) or not is_instance_valid(node_v):
+			continue
+		var node: Node2D = node_v as Node2D
+		var golden: bool = _gate_runner_golden_active and i == 0
+		if golden:
+			node.modulate = Color(1.5, 1.2, 0.45)
+			node.scale = Vector2.ONE * golden_scale
+			_ensure_golden_clone_overlay(node)
+		else:
+			node.modulate = Color.WHITE
+			if node.scale.x > clone_scale + 0.001:
+				node.scale = Vector2.ONE * clone_scale
+			var overlay: Node = node.get_node_or_null("GoldenSkin")
+			if overlay:
+				overlay.queue_free()
+
+## Overlay du clone doré : sprite dédié (golden_clone_asset) par-dessus le
+## duplicata du vaisseau — visible seulement quand l'asset existe.
+func _ensure_golden_clone_overlay(clone: Node2D) -> void:
+	if clone.get_node_or_null("GoldenSkin") != null:
+		return
+	var asset_path: String = str(_gate_runner_swarm_cfg.get("golden_clone_asset", ""))
+	if asset_path == "" or not ResourceLoader.exists(asset_path):
+		return
+	var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+	if not (res is Texture2D):
+		return
+	var sprite := Sprite2D.new()
+	sprite.name = "GoldenSkin"
+	sprite.texture = res as Texture2D
+	var tex_size: Vector2 = (res as Texture2D).get_size()
+	if tex_size.x > 0.0 and tex_size.y > 0.0:
+		sprite.scale = (Vector2.ONE * 64.0) / maxf(tex_size.x, tex_size.y)
+	clone.add_child(sprite)
 
 func get_gate_runner_scale() -> float:
 	return _gate_runner_current_scale
@@ -879,7 +947,8 @@ func _ensure_big_hp_label() -> void:
 func _update_big_hp_label() -> void:
 	if _big_hp_label == null or not is_instance_valid(_big_hp_label):
 		return
-	_big_hp_label.text = str(current_hp)
+	# Formatage compact K/M (« 1,5K », « 2,5M ») — lisibilité des gros nombres.
+	_big_hp_label.text = NumberFormat.compact(float(current_hp))
 
 func _play_gate_juice(is_bonus: bool) -> void:
 	var col: Color = Color(0.45, 1.0, 0.55) if is_bonus else Color(1.0, 0.5, 0.45)
@@ -970,12 +1039,14 @@ func is_ball_launcher_active() -> bool:
 
 ## Enters climb mode: the VerticalClimbManager drives Y every frame through
 ## set_climb_y() (gravity + accelerator bounces), X stays player-controlled.
-func begin_climb() -> void:
+func begin_climb(cfg: Dictionary = {}) -> void:
 	_climb_active = true
 	_climb_y = global_position.y
+	_climb_wrap_x = bool(cfg.get("wrap_horizontal", false))
 
 func end_climb() -> void:
 	_climb_active = false
+	_climb_wrap_x = false
 
 func set_climb_y(y: float) -> void:
 	_climb_y = y
@@ -1359,6 +1430,19 @@ func set_gravity_hole_mass(mass: float) -> void:
 	var mult: float = clampf(_gh_scale_base * sqrt(maxf(1.0, mass) / _gh_start_mass), _gh_scale_min, _gh_scale_max)
 	_apply_ship_scale(mult)
 
+## Verrou centre (refonte Agar.io) : le vaisseau reste à pos fixe, le monde
+## défile autour. Neutralise tout l'input de déplacement (_handle_movement).
+func set_gravity_hole_center_lock(pos: Vector2) -> void:
+	_gh_center_locked = true
+	_gh_lock_pos = pos
+	global_position = pos
+
+## Orientation smooth pilotée par le manager (angle absolu, radians — 0 = haut
+## car le sprite pointe vers le haut). Restaurée à end_gravity_hole.
+func set_gravity_hole_facing(angle: float) -> void:
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.rotation = angle
+
 ## The aura diameter follows the ABSORPTION radius pushed by the manager.
 func set_gravity_hole_radius(radius_px: float) -> void:
 	if _gh_aura == null or not is_instance_valid(_gh_aura) or _gh_aura_frame_dim <= 0.0:
@@ -1393,9 +1477,13 @@ func pulse_gravity_hole_aura() -> void:
 	_gh_aura_pulse_tween.tween_property(_gh_aura, "scale", Vector2.ONE * _gh_aura_base_scale, _gh_aura_pulse_sec) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-## Leaves gravity-hole mode: restores scale, label and the top zone (implicit).
+## Leaves gravity-hole mode: restores scale, label, rotation, center lock and
+## the top zone (implicit).
 func end_gravity_hole() -> void:
 	_remove_gravity_hole_aura()
+	_gh_center_locked = false
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.rotation = 0.0
 	if not _gravity_hole_active:
 		return
 	_gravity_hole_active = false
@@ -1892,9 +1980,10 @@ func _get_follow_finger_config() -> Dictionary:
 ## Hauteur (en pixels) de la zone interdite en haut de l'ecran. Le joueur ne peut pas
 ## y entrer (ni via stick virtuel, ni via follow finger). Pilote par game.json -> mobile_controls.player_top_safe_zone_ratio.
 func _get_player_top_limit_y(viewport_height: float) -> float:
-	# Gravity hole: free movement in ALL directions — only the hard screen
-	# margin remains (same 20 px used for the X/bottom clamps).
-	if _gravity_hole_active:
+	# Gravity hole / absorb (arène statique) : free movement in ALL directions —
+	# only the hard screen margin remains (same 20 px used for the X/bottom
+	# clamps).
+	if _gravity_hole_active or _absorb_active:
 		return 20.0
 	var ratio: float = 0.25
 	if DataManager:
@@ -1924,6 +2013,14 @@ func _handle_movement(delta: float) -> void:
 		velocity = Vector2.ZERO
 		_external_displacement = Vector2.ZERO
 		global_position = _match3_lock_pos
+		return
+
+	# Gravity hole (refonte Agar.io) : vaisseau verrouillé au CENTRE de l'écran,
+	# c'est le MONDE qui bouge — le manager lit l'input lui-même.
+	if _gravity_hole_active and _gh_center_locked:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position = _gh_lock_pos
 		return
 
 	# Suika up wave: same full lock — the ship borders the reactor.
@@ -2072,8 +2169,12 @@ func _handle_movement(delta: float) -> void:
 		global_position += _external_displacement
 		_external_displacement = Vector2.ZERO
 	
-	# 2. Strict X Clamp
-	global_position.x = clampf(global_position.x, 20, viewport_size.x - 20)
+	# 2. Strict X Clamp — sauf wrap-around du mode climb (sortir d'un côté fait
+	# rentrer de l'autre, Doodle Jump classique).
+	if _climb_active and _climb_wrap_x:
+		global_position.x = wrapf(global_position.x, -20.0, viewport_size.x + 20.0)
+	else:
+		global_position.x = clampf(global_position.x, 20, viewport_size.x - 20)
 	
 	# 3. Y Clamp - Top: zone interdite (par defaut 25% haut de l'ecran).
 	# Le joueur ne peut pas y entrer, ni en stick virtuel ni en follow finger.

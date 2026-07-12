@@ -223,7 +223,8 @@
 					"cols": 5,
 					"row_hp": [2, 1, 1, 1],
 					"ball_speed_px_sec": 430,
-					"damage_percent_per_ball_lost": 0.15
+					"damage_percent_per_ball_lost": 0.15,
+					"bonus_brick_count": 2
 				},
 				{
 					"type": "obstacle",

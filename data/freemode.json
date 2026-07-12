@@ -28,29 +28,59 @@
 				"enemy_paddle_speed_px_sec": 320.0,
 				"enemy_reaction_interval_sec": 0.35,
 				"enemy_aim_error_px": 40.0,
-				"damage_percent_per_goal": 0.2
+				"damage_percent_per_goal": 0.2,
+				"invasion_chance": 0.35,
+				"invasion_drone_speed_px_sec": 260.0,
+				"meteor_enabled": true,
+				"meteor_hp_base": 8.0,
+				"meteor_respawn_interval_sec": 90.0
 			},
 			"per_level": {
 				"ball_speed_px_sec": 14.0,
 				"enemy_paddle_speed_px_sec": 12.0,
 				"enemy_reaction_interval_sec": -0.012,
 				"enemy_aim_error_px": -1.5,
-				"damage_percent_per_goal": 0.008
+				"damage_percent_per_goal": 0.008,
+				"invasion_chance": 0.01,
+				"invasion_drone_speed_px_sec": 6.0,
+				"meteor_hp_base": 0.6,
+				"meteor_respawn_interval_sec": -1.5
 			}
 		},
 		"breakout": {
+			"_note": "Tableaux proceduraux (board_style patterns) : dessins geometriques 8->16 rangees, a vider pour passer au suivant (le manager est recree au clear, les cles de generation s'appliquent donc au prochain tableau). Bonus tombants actifs (bonus_brick_count_min/max).",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/mine/tile_mine_2.jpg",
 			"base_wave": {
 				"ball_speed_px_sec": 460.0,
-				"rows": 5,
-				"cols": 6,
+				"cols": 8,
+				"board_style": "patterns",
+				"board_rows_min": 8,
+				"board_rows_max": 10,
+				"bonus_brick_count_min": 2,
+				"bonus_brick_count_max": 3,
+				"armored_chance": 0.05,
+				"mystery_chance": 0.05,
+				"bomb_chance": 0.03,
+				"boss_brick_chance": 0.0,
+				"debris_chance": 0.1,
+				"golden_chance": 0.5,
+				"storm_chance": 0.3,
+				"surprise_row_interval_sec": 45.0,
+				"surprise_row_chance": 0.35,
+				"rescue_enabled": true,
 				"damage_percent_per_ball_lost": 0.15
 			},
 			"per_level": {
 				"ball_speed_px_sec": 11.0,
-				"rows": 0.2,
-				"cols": 0.1,
+				"board_rows_max": 0.32,
+				"bonus_brick_count_max": 0.08,
+				"armored_chance": 0.004,
+				"mystery_chance": 0.002,
+				"bomb_chance": 0.002,
+				"boss_brick_chance": 0.012,
+				"debris_chance": 0.005,
+				"storm_chance": 0.01,
 				"damage_percent_per_ball_lost": 0.008
 			}
 		},
@@ -66,6 +96,15 @@
 				"sticky_chance": 0.05,
 				"explosive_chance": 0.05,
 				"chest_chance": 0.015,
+				"lightning_chance": 0.02,
+				"bomb_block_chance": 0.02,
+				"aim_block_chance": 0.015,
+				"giant_block_chance": 0.015,
+				"healer_chance": 0.012,
+				"cursed_chance": 0.015,
+				"mover_chance": 0.02,
+				"armored_chance": 0.02,
+				"portal_chance": 0.05,
 				"boss_spawn_max_wait_sec": 60.0,
 				"boss_respawn_interval_sec": 90.0
 			},
@@ -76,6 +115,9 @@
 				"damage_percent_per_row_crossed": 0.005,
 				"sticky_chance": 0.004,
 				"chest_chance": 0.0012,
+				"cursed_chance": 0.001,
+				"mover_chance": 0.001,
+				"armored_chance": 0.001,
 				"boss_respawn_interval_sec": -1.5
 			}
 		},
@@ -99,7 +141,11 @@
 				"gen_gate_sub_hp_ratio": 0.18,
 				"gen_wall_chance": 0.12,
 				"gen_shifting_gate_chance": 0.1,
-				"gen_target_chance": 0.35
+				"gen_target_chance": 0.35,
+				"gen_mega_drone_chance": 0.02,
+				"gen_triple_gate_chance": 0.0,
+				"gen_equation_chance": 0.0,
+				"gen_auction_gate_chance": 0.08
 			},
 			"per_level": {
 				"speed_multiplier": 0.04,
@@ -114,7 +160,11 @@
 				"gen_gate_sub_hp_ratio": 0.004,
 				"gen_wall_chance": 0.012,
 				"gen_shifting_gate_chance": 0.015,
-				"gen_target_chance": 0.005
+				"gen_target_chance": 0.005,
+				"gen_mega_drone_chance": 0.004,
+				"gen_triple_gate_chance": 0.01,
+				"gen_equation_chance": 0.012,
+				"gen_auction_gate_chance": 0.006
 			}
 		},
 		"suika_up": {
@@ -144,6 +194,10 @@
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/lava/tile_lava_1.jpg",
 			"base_wave": {
+				"wrap_horizontal": true,
+				"conveyor_platform_chance": 0.08,
+				"multi_platform_chance": 0.08,
+				"event_cd_max_sec": 30.0,
 				"gravity_px_sec2": 1650.0,
 				"bounce_speed_px_sec": 760.0,
 				"platform_gap_y_min_px": 105.0,
@@ -155,7 +209,10 @@
 				"bounce_speed_px_sec": 9.0,
 				"platform_gap_y_min_px": 1.5,
 				"platform_gap_y_max_px": 2.0,
-				"lava_rise_px_sec": 0.8
+				"lava_rise_px_sec": 0.8,
+				"conveyor_platform_chance": 0.003,
+				"multi_platform_chance": 0.003,
+				"event_cd_max_sec": -0.4
 			}
 		},
 		"absorb": {
@@ -164,19 +221,32 @@
 			"tile_background": "res://assets/backgrounds/worlds/alien/tile_alien_1.jpg",
 			"base_wave": {
 				"spawn_interval_sec": 1.5,
-				"descent_speed_px_sec": 115.0,
+				"prey_drift_speed_max": 45.0,
 				"final_mass_margin": 0.75,
-				"shuffle_window": 3
+				"shuffle_window": 3,
+				"camo_chance": 0.08,
+				"flee_chance": 0.1,
+				"predator_chance": 0.06,
+				"toxic_chance": 0.07,
+				"split_chance": 0.1,
+				"fasting_mass_loss_ratio_per_sec": 0.0,
+				"absorb_event_cd_max_sec": 24.0
 			},
 			"per_level": {
 				"spawn_interval_sec": -0.03,
-				"descent_speed_px_sec": 6.0,
+				"prey_drift_speed_max": 2.0,
 				"final_mass_margin": 0.012,
-				"shuffle_window": 0.12
+				"shuffle_window": 0.12,
+				"camo_chance": 0.004,
+				"flee_chance": 0.004,
+				"predator_chance": 0.003,
+				"toxic_chance": 0.003,
+				"fasting_mass_loss_ratio_per_sec": 0.0004,
+				"absorb_event_cd_max_sec": -0.3
 			}
 		},
 		"lane_runner": {
-			"_note": "Tourelles (motifs de tir diagonaux) : LIBRE uniquement — turret_chance 0 en story (fallback code), monte avec le level ET gate turret_min_level_progress (0.45, wave_types.json) -> rien avant ~L9 puis rarete decroissante. turret_chance est dans la whitelist update_free_mode_config du manager.",
+			"_note": "Tourelles (motifs de tir diagonaux) et tourelles au sol : LIBRE uniquement — chances 0 en story, montent avec le level ET gate turret_min_level_progress (0.45, wave_types.json). Variantes (chicanes/train/demi-murs) et evenements (tunnel/heure de pointe) actives ici, 0 en story. Toutes ces chances sont dans la whitelist update_free_mode_config du manager.",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/far_layer/canyon.jpg",
 			"base_wave": {
@@ -185,7 +255,19 @@
 				"row_interval_sec_start": 1.42,
 				"row_interval_sec_end": 0.88,
 				"double_wall_chance": 0.3,
-				"turret_chance": 0.0
+				"turret_chance": 0.0,
+				"ghost_pickup_chance": 0.05,
+				"magnet_pickup_chance": 0.06,
+				"coin_x2_pickup_chance": 0.06,
+				"turbo_pickup_chance": 0.05,
+				"freeze_pickup_chance": 0.05,
+				"giant_coin_chance": 0.06,
+				"chicane_chance": 0.08,
+				"train_chance": 0.06,
+				"half_wall_chance": 0.1,
+				"ground_turret_chance": 0.0,
+				"tunnel_chance": 0.3,
+				"rush_hour_chance": 0.3
 			},
 			"per_level": {
 				"wall_speed_px_sec_start": 12.0,
@@ -193,10 +275,17 @@
 				"row_interval_sec_start": -0.03,
 				"row_interval_sec_end": -0.025,
 				"double_wall_chance": 0.015,
-				"turret_chance": 0.03
+				"turret_chance": 0.03,
+				"chicane_chance": 0.004,
+				"train_chance": 0.004,
+				"half_wall_chance": 0.005,
+				"ground_turret_chance": 0.02,
+				"tunnel_chance": 0.005,
+				"rush_hour_chance": 0.005
 			}
 		},
 		"slice_rush": {
+			"_note": "Bonus (sablier/gel/laser) actifs comme en story sauf chronos (0 : +5 s n'a pas de sens en continuous). Variantes (blindes/lies/precision/rebondissants/nuees/leurres) et evenements (rafale legendaire 1x/level, pluie diagonale, pinata, vague piegee) actives ici, 0 en story. Gravite lourde = per_level sur gravity/launch + score_global_mult. Toutes ces cles sont dans la whitelist update_free_mode_config du manager.",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/forest/tile_forest_2.jpg",
 			"base_wave": {
@@ -204,41 +293,81 @@
 				"burst_size_max": 4,
 				"burst_pause_sec_min": 0.7,
 				"burst_pause_sec_max": 1.6,
-				"bomb_damage_percent": 0.3
+				"bomb_damage_percent": 0.3,
+				"hourglass_chance": 0.04,
+				"freeze_glove_chance": 0.04,
+				"chronos_chance": 0.0,
+				"laser_slice_chance": 0.04,
+				"armored_chance": 0.1,
+				"linked_chance": 0.08,
+				"precision_chance": 0.08,
+				"bouncy_chance": 0.1,
+				"mini_swarm_chance": 0.12,
+				"decoy_bomb_chance": 0.05,
+				"legendary_burst_chance": 0.25,
+				"diagonal_rain_chance": 0.3,
+				"pinata_chance": 0.2,
+				"trap_wave_chance": 0.2,
+				"gravity_px_sec2": 1500.0,
+				"launch_speed_min_px_sec": 1450.0,
+				"launch_speed_max_px_sec": 1750.0,
+				"score_global_mult": 1.0
 			},
 			"per_level": {
 				"bomb_chance": 0.01,
 				"burst_size_max": 0.15,
 				"burst_pause_sec_min": -0.018,
 				"burst_pause_sec_max": -0.04,
-				"bomb_damage_percent": 0.006
+				"bomb_damage_percent": 0.006,
+				"armored_chance": 0.006,
+				"linked_chance": 0.004,
+				"precision_chance": 0.004,
+				"bouncy_chance": 0.005,
+				"mini_swarm_chance": 0.005,
+				"decoy_bomb_chance": 0.004,
+				"gravity_px_sec2": 18.0,
+				"launch_speed_min_px_sec": 9.0,
+				"launch_speed_max_px_sec": 9.0,
+				"score_global_mult": 0.012
 			}
 		},
 		"match3": {
-			"_note": "AUCUN vecteur de mort (le manager n'inflige aucun degat). Parade retenue : quitter pour valider le score ; le scaling ne fait que reduire le score/minute.",
+			"_note": "AUCUN vecteur de mort (le manager n'inflige aucun degat). Objectif = le BOSS du haut : le tuer donne les recompenses puis un nouveau boss respawne ; boss_toughness_mult (whitelist update_free_mode_config) rend chaque level plus dur. Le scaling reduit aussi le score/minute (types+, speciales-).",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/worlds/magical/tile_magical_1.jpg",
 			"base_wave": {
 				"tile_type_count": 5,
-				"special_chance": 0.06
+				"special_chance": 0.06,
+				"boss_toughness_mult": 1.0
 			},
 			"per_level": {
 				"tile_type_count": 0.06,
-				"special_chance": -0.002
+				"special_chance": -0.002,
+				"boss_toughness_mult": 0.12
 			}
 		},
 		"gravity_hole": {
-			"_note": "oversize_never_lethal force a false pour rendre le mode letal (defaut wave_types = true). RESTE en restart : round intrinseque (final core spawne a duration-final_reserve, outro cover) — une duree continuous supprimerait le climax/jackpot.",
-			"round_duration_sec": 40,
+			"_note": "Refonte Agar.io : oversize_never_lethal force a false (mode letal). RESTE en restart : chaque round finit par l'OBJECTIF DE TAILLE (target_mass_mult croissant par level — partie complete ~15 min), round_duration_sec 75 = garde-fou. Chasseurs/fuyants/zones/decay actives ici, 0 ou bas en story.",
+			"round_duration_sec": 75,
 			"tile_background": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_3.jpg",
 			"base_wave": {
 				"oversize_never_lethal": false,
 				"spawn_interval_sec": 0.8,
 				"drift_speed_min_px_sec": 28.0,
 				"drift_speed_max_px_sec": 70.0,
-				"oversize_contact_damage_percent": 0.12
+				"oversize_contact_damage_percent": 0.12,
+				"target_mass_mult": 4.0,
+				"chaser_chance": 0.35,
+				"flee_chance": 0.25,
+				"electric_zone_count": 2.0,
+				"mass_decay_percent_per_sec": 0.05
 			},
 			"per_level": {
+				"target_mass_mult": 0.6,
+				"chaser_chance": 0.01,
+				"flee_chance": 0.005,
+				"electric_zone_count": 0.1,
+				"mass_decay_percent_per_sec": 0.012,
 				"spawn_interval_sec": -0.015,
 				"drift_speed_min_px_sec": 2.0,
 				"drift_speed_max_px_sec": 5.0,

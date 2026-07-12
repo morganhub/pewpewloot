@@ -276,8 +276,34 @@ func _create_mode_tile(wave_type: String) -> Control:
 # INTERACTIONS
 # =============================================================================
 
+# Anti-conflit scroll/clic (mobile) : le lancement se joue au RELÂCHEMENT —
+# poser le doigt sert d'abord au scroll. Un déplacement vertical >= seuil
+# entre le down et le up = scroll, pas un tap (pattern carrousel ShipMenu).
+const TILE_DRAG_THRESHOLD: float = 12.0
+var _tile_press_active: bool = false
+var _tile_press_pos: Vector2 = Vector2.ZERO
+var _tile_dragging: bool = false
+
 func _on_tile_gui_input(event: InputEvent, wave_type: String, unlocked: bool) -> void:
-	if not _is_primary_press(event):
+	if _is_primary_press(event):
+		_tile_press_active = true
+		_tile_dragging = false
+		_tile_press_pos = _event_position(event)
+		return
+	if (event is InputEventScreenDrag or event is InputEventMouseMotion) and _tile_press_active:
+		if absf(_event_position(event).y - _tile_press_pos.y) >= TILE_DRAG_THRESHOLD:
+			_tile_dragging = true
+		return
+	if not _is_primary_release(event) or not _tile_press_active:
+		return
+	_tile_press_active = false
+	# Double garde : même si les drags ont été capturés par le ScrollContainer
+	# entre-temps, le déplacement au relâchement tranche (la position locale
+	# bouge aussi quand le contenu scrolle sous le doigt).
+	var moved: bool = _tile_dragging \
+		or absf(_event_position(event).y - _tile_press_pos.y) >= TILE_DRAG_THRESHOLD
+	_tile_dragging = false
+	if moved:
 		return
 	if not unlocked:
 		if wave_type == "fiesta":
@@ -434,6 +460,23 @@ func _is_primary_press(event: InputEvent) -> bool:
 	if event is InputEventScreenTouch:
 		return (event as InputEventScreenTouch).pressed
 	return false
+
+func _is_primary_release(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		return not mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT
+	if event is InputEventScreenTouch:
+		return not (event as InputEventScreenTouch).pressed
+	return false
+
+func _event_position(event: InputEvent) -> Vector2:
+	if event is InputEventMouse:
+		return (event as InputEventMouse).position
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).position
+	if event is InputEventScreenDrag:
+		return (event as InputEventScreenDrag).position
+	return Vector2.ZERO
 
 func _on_tile_hover_enter(card: Control) -> void:
 	if not card.has_meta("hover_base_y"):

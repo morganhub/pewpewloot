@@ -2085,6 +2085,11 @@ func _configure_wave_counter(level_id: String) -> void:
 		# Pas de bouclier récoltable en mode libre : barre masquée pour la run.
 		if hud and hud.has_method("set_shield_bar_hidden"):
 			hud.call("set_shield_bar_hidden", true)
+		# Aucun mini-jeu ne tire : les 2 boutons de powers sont inapplicables —
+		# masqués pour TOUTE la run (le flag gagne sur les restaurations des
+		# managers en fin de vague).
+		if hud and hud.has_method("set_power_buttons_force_hidden"):
+			hud.call("set_power_buttons_force_hidden", true)
 		_update_free_mode_level_label(1)
 		return
 	var level_data: Dictionary = DataManager.get_level_data(level_id)
@@ -2363,6 +2368,11 @@ func _show_wave_start_splash(wave_number: int, wave_type: String = "") -> void:
 		)
 		_wave_splash_sub_label.pivot_offset = _wave_splash_sub_label.size * 0.5
 
+	_animate_wave_splash(show_sub_label)
+
+## Anime les labels du splash (titre + sous-titre optionnel) — partagé entre
+## le toast "Vague X" et les splashs custom des managers (show_center_splash).
+func _animate_wave_splash(show_sub_label: bool) -> void:
 	var start_scale: float = clampf(float(_wave_splash_cfg.get("zoom_start", 0.0)), 0.0, 4.0)
 	var end_scale: float = clampf(float(_wave_splash_cfg.get("zoom_end", 1.0)), 0.1, 4.0)
 	var total_duration: float = maxf(0.15, float(_wave_splash_cfg.get("animation_duration_sec", 0.65)))
@@ -2395,6 +2405,32 @@ func _show_wave_start_splash(wave_number: int, wave_type: String = "") -> void:
 		_wave_splash_warning_tween.parallel().tween_property(_wave_splash_sub_label, "scale", Vector2.ONE * peak_scale, warning_first_leg).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_wave_splash_warning_tween.tween_property(_wave_splash_sub_label, "scale", Vector2.ONE * end_scale, warning_second_leg).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		_wave_splash_warning_tween.parallel().tween_property(_wave_splash_sub_label, "modulate:a", 0.0, warning_duration + 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+## Splash central générique façon "Vague X" — appelé par les managers de vague
+## (ex : tie-break du pong). sub_text vide = titre seul.
+func show_center_splash(title_text: String, sub_text: String = "", sub_color_html: String = "") -> void:
+	if not bool(_wave_splash_cfg.get("enabled", true)):
+		return
+	_ensure_wave_splash_label()
+	if _wave_splash_label == null or not is_instance_valid(_wave_splash_label):
+		return
+	_wave_splash_label.text = title_text
+	_wave_splash_label.add_theme_font_size_override("font_size", maxi(12, int(_wave_splash_cfg.get("font_size", 92))))
+	_wave_splash_label.add_theme_color_override("font_color", Color(str(_wave_splash_cfg.get("color", "#FFFFFF"))))
+	_wave_splash_label.pivot_offset = _wave_splash_label.size * 0.5
+	var show_sub: bool = sub_text != ""
+	if _wave_splash_sub_label and is_instance_valid(_wave_splash_sub_label):
+		var sub_color: Color = Color.from_string(sub_color_html, Color(WAVE_TYPE_SPLASH_DEFAULT_COLOR))
+		_wave_splash_sub_label.visible = show_sub
+		_wave_splash_sub_label.text = sub_text
+		_wave_splash_sub_label.add_theme_font_size_override("font_size", maxi(10, int(_wave_splash_cfg.get("font_size", 92) * 0.42)))
+		_wave_splash_sub_label.add_theme_color_override("font_color", sub_color)
+		_wave_splash_sub_label.position = Vector2(
+			0.0,
+			float(_wave_splash_cfg.get("font_size", 92) * 0.52) + maxf(0.0, float(_wave_splash_cfg.get("warning_margin_top", 30.0)))
+		)
+		_wave_splash_sub_label.pivot_offset = _wave_splash_sub_label.size * 0.5
+	_animate_wave_splash(show_sub)
 
 func _show_gate_runner_splash_asset() -> void:
 	var gr_cfg: Dictionary = DataManager.get_gate_runner_config() if DataManager else {}

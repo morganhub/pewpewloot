@@ -42,6 +42,9 @@ var wave_label: Label = null
 # True while a mechanic wave hides the power buttons (their TextureButtons
 # swallow touches near the bottom of the screen — slice zone).
 var _power_buttons_suppressed: bool = false
+# Mode libre : powers masqués pour toute la run (gagne sur les restaurations
+# des managers de vague — cf. set_power_buttons_force_hidden).
+var _power_buttons_force_hidden: bool = false
 
 # State
 var _score: int = 0
@@ -436,7 +439,7 @@ func _process(_delta: float) -> void:
 		if "unique_power_id" in _player:
 			var has_up: bool = str(_player.unique_power_id) != ""
 			if up_btn and up_btn.get_parent():
-				up_btn.get_parent().visible = has_up and not _power_buttons_suppressed
+				up_btn.get_parent().visible = has_up and not _power_buttons_suppressed and not _power_buttons_force_hidden
 				if not has_up:
 					return # Skip update
 		
@@ -566,9 +569,20 @@ func _setup_virtual_joystick() -> void:
 func set_power_buttons_suppressed(suppressed: bool) -> void:
 	_power_buttons_suppressed = suppressed
 	if sp_root and is_instance_valid(sp_root):
-		sp_root.visible = not suppressed
+		sp_root.visible = not suppressed and not _power_buttons_force_hidden
 	if up_root and is_instance_valid(up_root):
-		up_root.visible = not suppressed
+		up_root.visible = not suppressed and not _power_buttons_force_hidden
+
+## Masque les boutons de powers pour TOUTE la run (mode libre : aucun mini-jeu
+## ne tire, les powers sont inapplicables). Le flag GAGNE sur les
+## set_power_buttons_suppressed(false) des managers en fin de vague — même
+## pattern que set_shield_bar_hidden.
+func set_power_buttons_force_hidden(hidden: bool) -> void:
+	_power_buttons_force_hidden = hidden
+	if sp_root and is_instance_valid(sp_root):
+		sp_root.visible = not hidden and not _power_buttons_suppressed
+	if up_root and is_instance_valid(up_root):
+		up_root.visible = not hidden and not _power_buttons_suppressed
 
 ## Hides/restores the virtual joystick circles (the joystick keeps tracking;
 ## only the visual is muted — the ship is frozen by its wave mode anyway).

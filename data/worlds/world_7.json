@@ -306,7 +306,10 @@
           "enemy_paddle_speed_px_sec": 470,
           "enemy_reaction_interval_sec": 0.2,
           "enemy_aim_error_px": 24,
-          "crystals_per_point": 5
+          "crystals_per_point": 5,
+          "invasion_chance": 0.45,
+          "meteor_enabled": true,
+          "meteor_hp": 10
         },
         {
           "enemy_id": "artillery",
@@ -434,7 +437,10 @@
           "enemy_paddle_speed_px_sec": 470,
           "enemy_reaction_interval_sec": 0.2,
           "enemy_aim_error_px": 24,
-          "crystals_per_point": 5
+          "crystals_per_point": 5,
+          "invasion_chance": 0.45,
+          "meteor_enabled": true,
+          "meteor_hp": 10
         },
         {
           "type": "obstacle",

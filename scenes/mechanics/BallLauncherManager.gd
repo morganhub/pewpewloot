@@ -16,6 +16,27 @@ extends Node2D
 ## locale), explosif (rase N cellules autour), chest (loot cristaux/équipement),
 ## et un BOSS 3×4 (HP massifs croissants, rebond selon sa shape
 ## round/square/star, défaite immédiate s'il atteint la ligne de danger).
+##
+## BLOCS BONUS/MALUS (2026-07-12, chances data + assets <type>_block_asset) :
+## - BONUS (buff de volée à la destruction — cooldown global
+##   bonus_block_cooldown_sec entre deux spawns, anti-répétition) :
+##   lightning (prochaine volée perçante), bomb_charge (1re balle de la
+##   prochaine volée explose au 1er impact), aim_plus (+1 rebond du laser
+##   prédictif 3 tours), giant_ball (rayon ×2 prochaine volée), healer
+##   (rend healer_heal_percent des HP max).
+## - COMPORTEMENT : portal_in/portal_out (paire téléportante — la balle ressort
+##   du jumeau, aucun dégât ; inoffensifs à la danger line), cursed (sa
+##   destruction fait descendre la grille d'un cran ; inoffensif à la danger
+##   line), mover (glisse d'une colonne par tour), armored (1 dégât max par
+##   impact, HP fixes armored_hp).
+## PATTERN_ROWS[] : rangées scriptées par vague (liste de colonnes pleines),
+## consommées séquentiellement puis retour à l'aléatoire.
+## ÉVÉNEMENTS AUTOMATIQUES (MODE LIBRE uniquement — countdown_hidden ; cooldown
+## global event_cooldown_sec 180 s, anti-répétition, bandeau télégraphié) :
+## fog (numéros masqués au-delà de fog_visible_rows), bonus_row (prochaine
+## rangée = jetons), quake (la grille remonte d'un cran, fallback rase la
+## rangée basse), double_boss (2 mini-boss 2×2), frenzy (volées en continu
+## sans descente pendant frenzy_duration_sec).
 ## Les balles vivent tant qu'elles travaillent : 4 s sans toucher un bloc ->
 ## fade-out de 2 s (pas de recall au timer).
 ## Collisions balle/bloc en manuel (cercle vs AABB, normales de coin) comme le
@@ -27,6 +48,29 @@ enum State { INTRO, AIM, VOLLEY, STEP, DONE }
 
 const MOUSE_CAPTURE_ID: int = -2
 const BRICK_SHADER: Shader = preload("res://scenes/mechanics/brick_rounded.gdshader")
+
+# PH des nouveaux blocs spéciaux tant que les assets dédiés manquent : teinte
+# du visuel + glyphe (lettre sûre, la police par défaut ne couvre pas tous les
+# symboles) + glow additif pulsant (pattern sticky/explosive).
+const SPECIAL_TINTS: Dictionary = {
+	"lightning": "#FFE066", "bomb_charge": "#FF7A4A", "aim_plus": "#5CE8FF",
+	"giant_ball": "#5BB8FF", "healer": "#7FE58C", "cursed": "#B455E8",
+	"mover": "#C8D2E0", "armored": "#6E7686",
+	"portal_in": "#FF8A2A", "portal_out": "#4AA8FF"
+}
+const SPECIAL_GLYPHS: Dictionary = {
+	"lightning": "Z", "bomb_charge": "B", "aim_plus": "A", "giant_ball": "G",
+	"healer": "+", "cursed": "X", "mover": "<>", "armored": "#",
+	"portal_in": "O", "portal_out": "O"
+}
+const SPECIAL_GLOWS: Dictionary = {
+	"lightning": "#FFE066B4", "bomb_charge": "#FF7A4AB4", "aim_plus": "#5CE8FFB4",
+	"giant_ball": "#5BB8FFB4", "healer": "#7FE58CB4", "cursed": "#B455E8B4",
+	"mover": "#C8D2E0B4", "armored": "#8A93A6B4",
+	"portal_in": "#FF8A2AB4", "portal_out": "#4AA8FFB4"
+}
+# Types de la famille "bonus" (buffs de volée) — cooldown global partagé.
+const BONUS_BLOCK_TYPES: Array = ["lightning", "bomb_charge", "aim_plus", "giant_ball", "healer"]
 
 var _config: Dictionary = {}
 var _cfg: Dictionary = {}
@@ -144,12 +188,60 @@ var _sticky_overlay_texture: Texture2D = null
 var _explosive_texture: Texture2D = null
 var _chest_texture: Texture2D = null
 
-# Boss : bloc géant (3×4 par défaut, data), dict SÉPARÉ de _blocks — collision,
-# descente et danger line traitées à part ; non soumis à la connectivité et
-# n'ancre pas les voisins. { "node", "sprite", "label", "rect": Rect2, "hp",
-# "max_hp", "shape": "round"|"square"|"star", "col_start", "row_top", "cols",
-# "rows" }. Boss à la danger line = défaite immédiate (die()).
-var _boss: Dictionary = {}
+# Nouveaux blocs spéciaux (2026-07-12) : chances individuelles + assets dédiés
+# (fallback PH tint+glyphe+glow). La famille bonus partage un cooldown global
+# d'espacement + anti-répétition (jamais deux fois de suite le même).
+var _lightning_chance: float = 0.02
+var _bomb_block_chance: float = 0.02
+var _aim_block_chance: float = 0.015
+var _giant_block_chance: float = 0.015
+var _healer_chance: float = 0.012
+var _cursed_chance: float = 0.015
+var _mover_chance: float = 0.02
+var _armored_chance: float = 0.02
+var _armored_hp: int = 6
+var _portal_chance: float = 0.05
+var _portal_max_pairs: int = 1
+var _portal_next_id: int = 0
+var _healer_heal_percent: float = 0.08
+var _bonus_block_cooldown_sec: float = 25.0
+var _bonus_block_cooldown: float = 0.0
+var _last_bonus_type: String = ""
+var _special_textures: Dictionary = {} # type -> Texture2D (assets dédiés)
+# Buffs de volée (octroyés par les blocs bonus, consommés par _fire_volley).
+var _pierce_volley_pending: bool = false
+var _pierce_volley_active: bool = false
+var _bomb_volley_pending: bool = false
+var _bomb_ball_armed: bool = false # la 1re balle de la volée en cours explose
+var _giant_volley_pending: bool = false
+var _ball_radius_base: float = 10.0
+var _aim_bonus_turns: int = 0
+
+# Rangées scriptées (clé de vague pattern_rows[] : listes de colonnes pleines,
+# consommées séquentiellement puis retour à l'aléatoire).
+var _pattern_rows: Array = []
+var _pattern_row_index: int = 0
+
+# Événements automatiques (MODE LIBRE uniquement — countdown_hidden).
+var _events_enabled: bool = false
+var _event_timer: float = 0.0
+var _last_event: String = ""
+var _pending_event: String = ""
+var _pending_event_delay: float = 0.0
+var _fog_time: float = 0.0
+var _frenzy_time: float = 0.0
+var _bonus_row_pending: bool = false
+var _event_banner_label: Label = null
+var _event_banner_time: float = 0.0
+
+# Boss : blocs géants (3×4 par défaut, data), dicts SÉPARÉS de _blocks —
+# collision, descente et danger line traitées à part ; non soumis à la
+# connectivité et n'ancrent pas les voisins. { "node", "sprite", "label",
+# "rect": Rect2, "hp", "max_hp", "shape": "round"|"square"|"star", "col_start",
+# "row_top", "cols", "rows" }. Boss à la danger line = défaite immédiate
+# (die()). Liste : normalement 0-1 boss ; l'événement double_boss (mode libre)
+# en spawn 2 mini 2×2 simultanés.
+var _bosses: Array = []
 var _boss_defs: Array = []
 var _boss_frames: Array = [] # SpriteFrames résolus, index aligné sur _boss_defs
 var _boss_hp_row_equiv: float = 6.0
@@ -249,6 +341,32 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_chest_loot_cfg = chest_loot_v if chest_loot_v is Dictionary else {}
 	_sticky_tint = Color(str(_get_conf("sticky_tint", "#7FE58C")))
 
+	# Nouveaux blocs spéciaux : chances + cooldown de la famille bonus.
+	_lightning_chance = clampf(float(_get_conf("lightning_chance", 0.02)), 0.0, 1.0)
+	_bomb_block_chance = clampf(float(_get_conf("bomb_block_chance", 0.02)), 0.0, 1.0)
+	_aim_block_chance = clampf(float(_get_conf("aim_block_chance", 0.015)), 0.0, 1.0)
+	_giant_block_chance = clampf(float(_get_conf("giant_block_chance", 0.015)), 0.0, 1.0)
+	_healer_chance = clampf(float(_get_conf("healer_chance", 0.012)), 0.0, 1.0)
+	_cursed_chance = clampf(float(_get_conf("cursed_chance", 0.015)), 0.0, 1.0)
+	_mover_chance = clampf(float(_get_conf("mover_chance", 0.02)), 0.0, 1.0)
+	_armored_chance = clampf(float(_get_conf("armored_chance", 0.02)), 0.0, 1.0)
+	_armored_hp = maxi(1, int(_get_conf("armored_hp", 6)))
+	_portal_chance = clampf(float(_get_conf("portal_chance", 0.05)), 0.0, 1.0)
+	_portal_max_pairs = maxi(0, int(_get_conf("portal_max_pairs", 1)))
+	_healer_heal_percent = clampf(float(_get_conf("healer_heal_percent", 0.08)), 0.0, 1.0)
+	_bonus_block_cooldown_sec = maxf(0.0, float(_get_conf("bonus_block_cooldown_sec", 25.0)))
+	_ball_radius_base = _ball_radius
+
+	# Rangées scriptées (clé de vague uniquement).
+	var pattern_rows_v: Variant = _config.get("pattern_rows", [])
+	_pattern_rows = (pattern_rows_v as Array) if pattern_rows_v is Array else []
+	_pattern_row_index = 0
+
+	# Événements automatiques : MODE LIBRE uniquement (countdown_hidden est
+	# posé par build_free_mode_wave ; false en story ET en fiesta).
+	_events_enabled = bool(_config.get("countdown_hidden", false))
+	_event_timer = maxf(5.0, float(_get_conf("event_first_delay_sec", 90.0)))
+
 	# Boss : premier spawn borné par max_wait (en mode libre continuous la
 	# durée est quasi infinie, ratio × duration ne se déclencherait jamais).
 	_boss_hp_row_equiv = maxf(0.5, float(_get_conf("boss_hp_row_equivalent", 6.0)))
@@ -297,6 +415,15 @@ func update_free_mode_config(cfg: Dictionary) -> void:
 	_sticky_chance = clampf(float(cfg.get("sticky_chance", _sticky_chance)), 0.0, 1.0)
 	_explosive_chance = clampf(float(cfg.get("explosive_chance", _explosive_chance)), 0.0, 1.0)
 	_chest_chance = clampf(float(cfg.get("chest_chance", _chest_chance)), 0.0, 1.0)
+	_lightning_chance = clampf(float(cfg.get("lightning_chance", _lightning_chance)), 0.0, 1.0)
+	_bomb_block_chance = clampf(float(cfg.get("bomb_block_chance", _bomb_block_chance)), 0.0, 1.0)
+	_aim_block_chance = clampf(float(cfg.get("aim_block_chance", _aim_block_chance)), 0.0, 1.0)
+	_giant_block_chance = clampf(float(cfg.get("giant_block_chance", _giant_block_chance)), 0.0, 1.0)
+	_healer_chance = clampf(float(cfg.get("healer_chance", _healer_chance)), 0.0, 1.0)
+	_cursed_chance = clampf(float(cfg.get("cursed_chance", _cursed_chance)), 0.0, 1.0)
+	_mover_chance = clampf(float(cfg.get("mover_chance", _mover_chance)), 0.0, 1.0)
+	_armored_chance = clampf(float(cfg.get("armored_chance", _armored_chance)), 0.0, 1.0)
+	_portal_chance = clampf(float(cfg.get("portal_chance", _portal_chance)), 0.0, 1.0)
 	_boss_spawn_max_wait = maxf(1.0, float(cfg.get("boss_spawn_max_wait_sec", _boss_spawn_max_wait)))
 	_boss_respawn_interval = maxf(5.0, float(cfg.get("boss_respawn_interval_sec", _boss_respawn_interval)))
 
@@ -369,6 +496,12 @@ func _prepare_assets() -> void:
 	_sticky_overlay_texture = _texture_from_path(str(_get_conf("sticky_overlay_asset", "")))
 	_explosive_texture = _texture_from_path(str(_get_conf("explosive_block_asset", "")))
 	_chest_texture = _texture_from_path(str(_get_conf("chest_block_asset", "")))
+	# Assets dédiés des nouveaux blocs (clés <type>_block_asset ; vide = PH).
+	_special_textures.clear()
+	for special_type in SPECIAL_TINTS.keys():
+		var special_tex: Texture2D = _texture_from_path(str(_get_conf(str(special_type) + "_block_asset", "")))
+		if special_tex != null:
+			_special_textures[special_type] = special_tex
 	# Boss : SpriteFrames animés (.tres) — un par définition de bosses[].
 	_boss_defs.clear()
 	_boss_frames.clear()
@@ -449,22 +582,37 @@ func _cell_center_x(col: int) -> float:
 ## Les colonnes occupées par le boss (quand il chevauche la row 0) sont
 ## laissées vides — ni bloc ni token.
 func _spawn_row(row_y: float, hp_turn: int, row_index: int = 0, animate_from_top: bool = false) -> void:
-	var boss_col_min: int = -1
-	var boss_col_max: int = -1
-	if not _boss.is_empty() and int(_boss.get("row_top", 99)) <= 0:
-		boss_col_min = int(_boss.get("col_start", 0))
-		boss_col_max = boss_col_min + int(_boss.get("cols", 0)) - 1
 	var free_cols: Array = []
 	for c in range(_grid_cols):
-		if c < boss_col_min or c > boss_col_max:
+		if not _boss_blocks_col_row0(c):
 			free_cols.append(c)
 	if free_cols.is_empty():
+		return
+	# Événement "rangée bonus" : la prochaine rangée = jetons, aucun bloc.
+	if _bonus_row_pending:
+		_bonus_row_pending = false
+		var power_ratio: float = clampf(float(_get_conf("bonus_row_power_ratio", 0.25)), 0.0, 1.0)
+		for c in free_cols:
+			var bonus_center := Vector2(_cell_center_x(c), row_y + _block_size.y * 0.5)
+			_spawn_token(bonus_center, "power" if randf() < power_ratio else "ball", animate_from_top)
 		return
 	var fill_ratio: float = randf_range(_row_fill_min, _row_fill_max)
 	var hp: int = _row_hp_for_turn(hp_turn)
 	var filled: Dictionary = {}
+	# Rangée scriptée (pattern_rows[]) : colonnes pleines listées ; épuisées ->
+	# retour au remplissage aléatoire. Les garanties ci-dessous s'appliquent
+	# dans les deux cas (garde-fou).
+	var scripted_set: Dictionary = {}
+	var use_scripted: bool = false
+	if _pattern_row_index < _pattern_rows.size():
+		var scripted_v: Variant = _pattern_rows[_pattern_row_index]
+		_pattern_row_index += 1
+		if scripted_v is Array:
+			use_scripted = true
+			for col_v in (scripted_v as Array):
+				scripted_set[int(col_v)] = true
 	for c in free_cols:
-		filled[c] = randf() <= fill_ratio
+		filled[c] = scripted_set.has(c) if use_scripted else (randf() <= fill_ratio)
 	# At least one block, at least one hole (a full wall would be unfair).
 	var block_count: int = 0
 	for c in free_cols:
@@ -477,11 +625,27 @@ func _spawn_row(row_y: float, hp_turn: int, row_index: int = 0, animate_from_top
 		filled[free_cols[randi() % free_cols.size()]] = false
 		block_count -= 1
 
+	# Paire de portails : roulée PAR RANGÉE (2 cases pleines requises), jamais
+	# plus de portal_max_pairs paires vivantes à l'écran.
+	var portal_cols: Array = []
+	if _portal_chance > 0.0 and randf() < _portal_chance and _count_portal_pairs() < _portal_max_pairs:
+		var filled_cols: Array = []
+		for c in free_cols:
+			if filled[c]:
+				filled_cols.append(c)
+		if filled_cols.size() >= 2:
+			filled_cols.shuffle()
+			portal_cols = [int(filled_cols[0]), int(filled_cols[1])]
+
 	var tokens_in_row: int = 0
 	for c in free_cols:
 		var center := Vector2(_cell_center_x(c), row_y + _block_size.y * 0.5)
 		if filled[c]:
-			_spawn_block(center, hp, c, row_index, _roll_block_type(), animate_from_top)
+			if portal_cols.has(c):
+				_spawn_block(center, hp, c, row_index,
+					"portal_in" if c == int(portal_cols[0]) else "portal_out", animate_from_top)
+			else:
+				_spawn_block(center, hp, c, row_index, _roll_block_type(), animate_from_top)
 		elif tokens_in_row < 2:
 			# "+1 power" (plus rare) prioritaire sur "+1 balle".
 			if randf() <= _power_token_chance:
@@ -490,6 +654,8 @@ func _spawn_row(row_y: float, hp_turn: int, row_index: int = 0, animate_from_top
 			elif randf() <= _token_chance:
 				_spawn_token(center, "ball", animate_from_top)
 				tokens_in_row += 1
+	if portal_cols.size() == 2:
+		_link_portal_twins(row_index, portal_cols)
 
 ## Tirage du type de bloc (fréquences basses, data-driven ; sticky/chest
 ## montent avec le level en mode libre via update_free_mode_config).
@@ -503,9 +669,71 @@ func _roll_block_type() -> String:
 	r -= _explosive_chance
 	if r < _sticky_chance:
 		return "sticky"
+	r -= _sticky_chance
+	# Blocs comportement (toujours éligibles).
+	if r < _armored_chance:
+		return "armored"
+	r -= _armored_chance
+	if r < _mover_chance:
+		return "mover"
+	r -= _mover_chance
+	if r < _cursed_chance:
+		return "cursed"
+	r -= _cursed_chance
+	# Famille bonus : cooldown global d'espacement + anti-répétition (le
+	# dernier type bonus tiré est exclu du tirage suivant).
+	if _bonus_block_cooldown <= 0.0:
+		var pool: Dictionary = {
+			"lightning": _lightning_chance,
+			"bomb_charge": _bomb_block_chance,
+			"aim_plus": _aim_block_chance,
+			"giant_ball": _giant_block_chance,
+			"healer": _healer_chance
+		}
+		pool.erase(_last_bonus_type)
+		for bonus_type in pool.keys():
+			var chance: float = maxf(0.0, float(pool[bonus_type]))
+			if r < chance:
+				_last_bonus_type = str(bonus_type)
+				_bonus_block_cooldown = _bonus_block_cooldown_sec
+				return str(bonus_type)
+			r -= chance
 	return "normal"
 
+func _count_portal_pairs() -> int:
+	var count: int = 0
+	for block_v in _blocks:
+		if str((block_v as Dictionary).get("type", "normal")).begins_with("portal_"):
+			count += 1
+	return int(ceil(float(count) / 2.0))
+
+## Lie les deux blocs portail d'une rangée par un id partagé (pas de référence
+## croisée de dicts : le jumeau se retrouve par scan sur "pid").
+func _link_portal_twins(row_index: int, portal_cols: Array) -> void:
+	_portal_next_id += 1
+	for block_v in _blocks:
+		var block: Dictionary = block_v as Dictionary
+		if int(block.get("row", -1)) == row_index and portal_cols.has(int(block.get("col", -1))) \
+			and str(block.get("type", "normal")).begins_with("portal_"):
+			block["pid"] = _portal_next_id
+
+func _find_portal_twin(block: Dictionary) -> Dictionary:
+	var pid: int = int(block.get("pid", -1))
+	if pid < 0:
+		return {}
+	for other_v in _blocks:
+		var other: Dictionary = other_v as Dictionary
+		# Même pid, type opposé (in <-> out) : jamais de comparaison d'identité
+		# de dicts (GDScript compare par contenu).
+		if int(other.get("pid", -2)) == pid \
+			and str(other.get("type", "")) != str(block.get("type", "")):
+			return other
+	return {}
+
 func _spawn_block(center: Vector2, hp: int, col: int, row: int, block_type: String = "normal", animate_from_top: bool = false) -> void:
+	# Blindé : HP fixes modérés (1 dégât max par impact — cf. _damage_block).
+	if block_type == "armored":
+		hp = _armored_hp
 	var block_node := Node2D.new()
 	block_node.position = center
 	var tex: Texture2D = null
@@ -515,7 +743,9 @@ func _spawn_block(center: Vector2, hp: int, col: int, row: int, block_type: Stri
 		"chest":
 			tex = _chest_texture
 		_:
-			pass
+			if _special_textures.has(block_type):
+				tex = _special_textures[block_type]
+	var has_dedicated_tex: bool = tex != null
 	if tex == null and not _block_textures.is_empty():
 		tex = _block_textures[randi() % _block_textures.size()]
 	# Halo "glow" AVANT le visuel (dessiné derrière) : identifie les blocs
@@ -528,6 +758,8 @@ func _spawn_block(center: Vector2, hp: int, col: int, row: int, block_type: Stri
 		block_node.add_child(_make_block_glow(
 			Color(str(_get_conf("explosive_glow_color", "#FF5A5AB4"))),
 			maxf(1.0, float(_get_conf("explosive_glow_size_px", 6.0)))))
+	elif SPECIAL_GLOWS.has(block_type):
+		block_node.add_child(_make_block_glow(Color(str(SPECIAL_GLOWS[block_type])), 6.0))
 	var visual: Node2D = _make_block_visual(tex)
 	block_node.add_child(visual)
 	if block_type == "sticky":
@@ -536,6 +768,21 @@ func _spawn_block(center: Vector2, hp: int, col: int, row: int, block_type: Stri
 			block_node.add_child(_make_block_overlay(_sticky_overlay_texture))
 		else:
 			visual.self_modulate = _sticky_tint
+	elif not has_dedicated_tex and SPECIAL_TINTS.has(block_type):
+		# PH des nouveaux types : teinte + glyphe (l'asset dédié porte l'emblème).
+		visual.self_modulate = Color(str(SPECIAL_TINTS[block_type]))
+		var glyph := Label.new()
+		glyph.text = str(SPECIAL_GLYPHS.get(block_type, "?"))
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		glyph.add_theme_font_size_override("font_size", maxi(6, int(float(_get_conf("number_font_size", 20)) * 0.7)))
+		glyph.add_theme_color_override("font_color", Color.WHITE)
+		glyph.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		glyph.add_theme_constant_override("outline_size", 3)
+		glyph.size = _block_size
+		glyph.position = -_block_size * 0.5 + Vector2(4.0, 1.0)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		block_node.add_child(glyph)
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -558,8 +805,14 @@ func _spawn_block(center: Vector2, hp: int, col: int, row: int, block_type: Stri
 		"row": row,
 		"type": block_type
 	}
+	if block_type == "mover":
+		entry["dir"] = 1 if randf() < 0.5 else -1
 	_blocks.append(entry)
 	_refresh_block_visual(entry)
+	# Brouillard en cours : les numéros au-delà des premières rangées naissent
+	# masqués.
+	if _fog_time > 0.0 and row >= maxi(0, int(_get_conf("fog_visible_rows", 2))):
+		label.visible = false
 	if animate_from_top:
 		_animate_entry_from_top(block_node, center.y)
 
@@ -731,9 +984,11 @@ func _update_danger_warning() -> void:
 		return
 	var threshold_y: float = _danger_y - float(_danger_warning_rows) * _descend_step
 	var shown: bool = false
-	if not _boss.is_empty() and (_boss.get("rect", Rect2()) as Rect2).end.y >= threshold_y:
-		shown = true
-	else:
+	for boss_v in _bosses:
+		if ((boss_v as Dictionary).get("rect", Rect2()) as Rect2).end.y >= threshold_y:
+			shown = true
+			break
+	if not shown:
 		for block_v in _blocks:
 			if ((block_v as Dictionary).get("rect", Rect2()) as Rect2).end.y >= threshold_y:
 				shown = true
@@ -867,7 +1122,9 @@ func _update_aim_line() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var origin: Vector2 = _launch_origin()
 	var dir: Vector2 = _resolve_aim_dir(origin)
-	var max_bounces: int = clampi(int(_get_conf("aim_line_max_bounces", 2)), 0, 6)
+	# Buff "visée+" (bloc aim_plus) : +1 rebond pendant _aim_bonus_turns tours.
+	var bounce_bonus: int = 1 if _aim_bonus_turns > 0 else 0
+	var max_bounces: int = clampi(int(_get_conf("aim_line_max_bounces", 2)) + bounce_bonus, 0, 6)
 	var total_budget: float = viewport_size.y * 1.5
 	var points := PackedVector2Array([origin])
 	var pos: Vector2 = origin
@@ -918,11 +1175,12 @@ func _cast_aim_ray(origin: Vector2, dir: Vector2, budget: float, viewport_size: 
 		if not hit.is_empty() and float(hit["t"]) < t_best:
 			t_best = float(hit["t"])
 			best = hit
-	# Boss.
-	if not _boss.is_empty():
-		var b_rect: Rect2 = _boss.get("rect", Rect2())
+	# Boss (0-2 simultanés).
+	for boss_v in _bosses:
+		var boss: Dictionary = boss_v as Dictionary
+		var b_rect: Rect2 = boss.get("rect", Rect2())
 		var b_hit: Dictionary = {}
-		if str(_boss.get("shape", "square")) == "round":
+		if str(boss.get("shape", "square")) == "round":
 			var b_radius: float = minf(b_rect.size.x, b_rect.size.y) * 0.5
 			b_hit = _ray_vs_circle(origin, dir, b_rect.get_center(), b_radius + _ball_radius)
 		else:
@@ -1102,6 +1360,18 @@ func _fire_volley() -> void:
 	_balls_to_launch = _ball_count
 	_launch_timer = 0.0
 	_turn += 1
+	# Buffs de volée (blocs bonus) : consommés au tir.
+	_pierce_volley_active = _pierce_volley_pending
+	_pierce_volley_pending = false
+	_bomb_ball_armed = _bomb_volley_pending
+	_bomb_volley_pending = false
+	if _giant_volley_pending:
+		_giant_volley_pending = false
+		_ball_radius = _ball_radius_base * maxf(1.0, float(_get_conf("giant_ball_radius_mult", 2.0)))
+	else:
+		_ball_radius = _ball_radius_base
+	if _aim_bonus_turns > 0:
+		_aim_bonus_turns -= 1
 	_state = State.VOLLEY
 	if _aim_line and is_instance_valid(_aim_line):
 		_aim_line.visible = false
@@ -1140,21 +1410,30 @@ func _update_volley(delta: float) -> void:
 			var node: Node2D = _spawn_ball_node()
 			var origin: Vector2 = _launch_origin()
 			node.global_position = origin
-			_balls.append({
+			var ball_entry: Dictionary = {
 				"node": node,
 				"pos": origin,
 				"vel": _launch_dir * _ball_speed,
 				"idle": 0.0,
 				"age": 0.0,
 				"accel_mult": 1.0,
-				"speed_mult": 1.0
-			})
+				"speed_mult": 1.0,
+				"portal_cd": 0.0,
+				"pierce_left": 1 if _pierce_volley_active else 0,
+				"bomb": false
+			}
+			# Charge de bombe : portée par la PREMIÈRE balle de la volée.
+			if _bomb_ball_armed:
+				_bomb_ball_armed = false
+				ball_entry["bomb"] = true
+			_balls.append(ball_entry)
 
 	# Vitesse effective = _ball_speed × max(accélération continue optionnelle,
 	# boost "balle vieille" : +200 % après ball_boost_after_sec, rampe douce).
 	for ball_v in _balls:
 		var speed_ball: Dictionary = ball_v as Dictionary
 		speed_ball["age"] = float(speed_ball.get("age", 0.0)) + delta
+		speed_ball["portal_cd"] = maxf(0.0, float(speed_ball.get("portal_cd", 0.0)) - delta)
 		var accel_mult: float = float(speed_ball.get("accel_mult", 1.0))
 		if _ball_accel_pct > 0.0:
 			accel_mult = minf(accel_mult + _ball_accel_pct * delta, _ball_speed_max_mult)
@@ -1207,7 +1486,13 @@ func _update_volley(delta: float) -> void:
 	# Turn ends when every ball has exited AND every queued destruction has
 	# resolved (the grid must not descend mid-cascade).
 	if _balls_to_launch <= 0 and _balls.is_empty() and _pending_destructions.is_empty():
-		_begin_step()
+		if _frenzy_time > 0.0:
+			# Frénésie : la volée repart aussitôt (même direction, X courant du
+			# vaisseau) — la grille ne descend pas pendant l'événement.
+			_balls_to_launch = _ball_count
+			_launch_timer = 0.0
+		else:
+			_begin_step()
 
 ## Alpha combiné de la balle ; true = despawn.
 ## - Fade d'inactivité : idle > timeout -> fondu sur _ball_fade_out (un hit
@@ -1285,9 +1570,10 @@ func _step_ball(ball: Dictionary, step: float, viewport_size: Vector2) -> bool:
 
 	# Boss first (bigger, in front of the rows): shape-specific bounce.
 	var hit_boss: bool = false
-	if not _boss.is_empty():
-		var b_rect: Rect2 = _boss.get("rect", Rect2())
-		var shape: String = str(_boss.get("shape", "square"))
+	for boss_v in _bosses:
+		var boss: Dictionary = boss_v as Dictionary
+		var b_rect: Rect2 = boss.get("rect", Rect2())
+		var shape: String = str(boss.get("shape", "square"))
 		if shape == "round":
 			# Cercle inscrit : normale radiale depuis le centre.
 			var b_center: Vector2 = b_rect.get_center()
@@ -1315,15 +1601,55 @@ func _step_ball(ball: Dictionary, step: float, viewport_size: Vector2) -> bool:
 		if hit_boss:
 			bounced = true
 			ball["idle"] = 0.0
-			_damage_boss()
+			_damage_boss(boss)
+			break
 
 	# Blocks: circle vs rounded rect (arc bounce on corners); one per substep.
 	if not hit_boss:
 		for i in range(_blocks.size() - 1, -1, -1):
+			if i >= _blocks.size():
+				continue # la grille a pu être vidée par une cascade (pierce/bombe)
 			var block: Dictionary = _blocks[i]
 			var rect: Rect2 = block.get("rect", Rect2())
 			var hit: Dictionary = _circle_vs_rounded_rect(pos, _ball_radius, rect, _block_corner_radius)
 			if hit.is_empty():
+				continue
+			var b_type: String = str(block.get("type", "normal"))
+			# Portails : la balle ressort du jumeau (vélocité conservée), aucun
+			# dégât au bloc ; sans jumeau/cooldown -> rebond neutre.
+			if b_type.begins_with("portal_"):
+				if float(ball.get("portal_cd", 0.0)) <= 0.0:
+					var twin: Dictionary = _find_portal_twin(block)
+					if not twin.is_empty():
+						var t_rect: Rect2 = twin.get("rect", Rect2())
+						var dir_n: Vector2 = vel.normalized() if vel.length_squared() > 1.0 else Vector2.UP
+						pos = t_rect.get_center() + dir_n * (maxf(t_rect.size.x, t_rect.size.y) * 0.5 + _ball_radius + 2.0)
+						ball["portal_cd"] = 0.2
+						ball["idle"] = 0.0
+						if VFXManager:
+							VFXManager.spawn_impact(rect.get_center(), 12.0, self)
+							VFXManager.spawn_impact(t_rect.get_center(), 12.0, self)
+						break
+				var p_normal: Vector2 = hit["normal"]
+				if vel.dot(p_normal) < 0.0:
+					vel = vel.bounce(p_normal)
+				pos = hit["pos"]
+				bounced = true
+				break
+			# Charge de bombe (1re balle de la volée) : explosion de zone au
+			# 1er impact, pipeline explosif standard.
+			if bool(ball.get("bomb", false)):
+				ball["bomb"] = false
+				_spawn_block_explosion(rect.get_center(), maxf(float(_block_explosion_cfg.get("size", 26.0)), float(_get_conf("explosive_explosion_size_px", 46.0))))
+				_explode_around_cell(int(block.get("col", 0)), int(block.get("row", 0)), true)
+				ball["idle"] = 0.0
+				bounced = true
+				break
+			# Volée perçante : traverse le 1er bloc touché (dégât sans rebond).
+			if _pierce_volley_active and int(ball.get("pierce_left", 0)) > 0 and b_type != "armored":
+				ball["pierce_left"] = int(ball.get("pierce_left", 0)) - 1
+				ball["idle"] = 0.0
+				_damage_block(i)
 				continue
 			var normal: Vector2 = hit["normal"]
 			if vel.dot(normal) < 0.0:
@@ -1376,7 +1702,9 @@ func _recall_balls() -> void:
 
 func _damage_block(index: int) -> void:
 	var block: Dictionary = _blocks[index]
-	block["hp"] = int(block.get("hp", 1)) - _ball_power
+	# Blindé : 1 dégât max par impact, quel que soit le power de l'armada.
+	var dmg: int = 1 if str(block.get("type", "normal")) == "armored" else _ball_power
+	block["hp"] = int(block.get("hp", 1)) - dmg
 	var node_v: Variant = block.get("node", null)
 	if int(block["hp"]) <= 0:
 		_blocks.remove_at(index)
@@ -1422,26 +1750,69 @@ func _spawn_block_explosion(pos: Vector2, size: float) -> void:
 ## un rayon Chebyshev de N cellules (explosions échelonnées, le plus proche en
 ## premier) ; chest = loot aléatoire (cristaux ou équipement vaisseau).
 func _on_block_destroyed_effects(block: Dictionary, rewarded: bool) -> void:
+	var center: Vector2 = (block.get("rect", Rect2()) as Rect2).get_center()
 	match str(block.get("type", "normal")):
 		"explosive":
-			var col: int = int(block.get("col", 0))
-			var row: int = int(block.get("row", 0))
-			var targets: Array = []
-			for other_v in _blocks:
-				var other: Dictionary = other_v as Dictionary
-				var dc: int = absi(int(other.get("col", 0)) - col)
-				var dr: int = absi(int(other.get("row", 0)) - row)
-				if maxi(dc, dr) <= _explosive_radius_cells:
-					targets.append({"block": other, "dist": sqrt(float(dc * dc + dr * dr))})
-			targets.sort_custom(func(a, b): return float(a["dist"]) < float(b["dist"]))
-			for target_v in targets:
-				var target: Dictionary = target_v as Dictionary
-				_queue_block_destruction(target["block"], float(target["dist"]) * _destruction_stagger, rewarded)
+			_explode_around_cell(int(block.get("col", 0)), int(block.get("row", 0)), rewarded)
 		"chest":
 			if rewarded:
-				_award_chest_loot(block.get("rect", Rect2()).get_center() as Vector2)
+				_award_chest_loot(center)
+		"lightning":
+			_pierce_volley_pending = true
+			_show_buff_float("ball_launcher_buff_pierce", "PIERCING VOLLEY!", Color("#FFE066"), center)
+		"bomb_charge":
+			_bomb_volley_pending = true
+			_show_buff_float("ball_launcher_buff_bomb", "BOMB LOADED!", Color("#FF7A4A"), center)
+		"aim_plus":
+			_aim_bonus_turns = maxi(_aim_bonus_turns, 3)
+			_show_buff_float("ball_launcher_buff_aim", "+1 BOUNCE", Color("#5CE8FF"), center)
+		"giant_ball":
+			_giant_volley_pending = true
+			_show_buff_float("ball_launcher_buff_giant", "GIANT VOLLEY!", Color("#5BB8FF"), center)
+		"healer":
+			if _player and is_instance_valid(_player) and _player.has_method("heal"):
+				var max_hp_v: Variant = _player.get("max_hp")
+				var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
+				_player.call("heal", maxi(1, int(ceil(float(max_hp) * _healer_heal_percent))))
+		"cursed":
+			# Malus : toute la grille descend d'un cran immédiatement.
+			_show_buff_float("ball_launcher_buff_cursed", "CURSED!", Color("#B455E8"), center)
+			_shift_grid(_descend_step, 1)
+			_apply_danger_line_crossings()
+		"portal_in", "portal_out":
+			# Le jumeau meurt avec (sans récompense double).
+			var twin: Dictionary = _find_portal_twin(block)
+			if not twin.is_empty():
+				_queue_block_destruction(twin, _destruction_stagger, false)
 		_:
 			pass
+
+## Explosion de zone (rayon Chebyshev explosive_radius_cells) autour d'une
+## cellule : partagée par les blocs explosifs ET la charge de bombe (buff).
+func _explode_around_cell(col: int, row: int, rewarded: bool) -> void:
+	var targets: Array = []
+	for other_v in _blocks:
+		var other: Dictionary = other_v as Dictionary
+		var dc: int = absi(int(other.get("col", 0)) - col)
+		var dr: int = absi(int(other.get("row", 0)) - row)
+		if maxi(dc, dr) <= _explosive_radius_cells:
+			targets.append({"block": other, "dist": sqrt(float(dc * dc + dr * dr))})
+	targets.sort_custom(func(a, b): return float(a["dist"]) < float(b["dist"]))
+	for target_v in targets:
+		var target: Dictionary = target_v as Dictionary
+		_queue_block_destruction(target["block"], float(target["dist"]) * _destruction_stagger, rewarded)
+
+## Floating text localisé des buffs de blocs (fallback EN).
+func _show_buff_float(locale_key: String, fallback: String, color: Color, at_pos: Vector2) -> void:
+	if VFXManager:
+		VFXManager.spawn_floating_text(at_pos, _translate_or(locale_key, fallback), color, self)
+
+func _translate_or(key: String, fallback: String) -> String:
+	if typeof(LocaleManager) != TYPE_NIL and LocaleManager:
+		var translated: String = LocaleManager.translate(key)
+		if translated != "" and translated != key:
+			return translated
+	return fallback
 
 ## Auto-pickup : tout loot qui franchit la barre limite en bas file vers le
 ## vaisseau et est absorbé (clés opt-in de BonusCrystal / LootDrop).
@@ -1611,21 +1982,21 @@ func _recompute_connectivity(origin_cells: Array = []) -> void:
 # BOSS
 # =============================================================================
 
-func _damage_boss() -> void:
-	if _boss.is_empty():
+func _damage_boss(boss: Dictionary) -> void:
+	if boss.is_empty():
 		return
-	_boss["hp"] = int(_boss.get("hp", 1)) - _ball_power
-	if int(_boss["hp"]) <= 0:
-		_destroy_boss()
+	boss["hp"] = int(boss.get("hp", 1)) - _ball_power
+	if int(boss["hp"]) <= 0:
+		_destroy_boss(boss)
 		return
-	var label_v: Variant = _boss.get("label", null)
+	var label_v: Variant = boss.get("label", null)
 	if label_v is Label and is_instance_valid(label_v):
-		(label_v as Label).text = str(int(_boss["hp"]))
-	var node_v: Variant = _boss.get("node", null)
+		(label_v as Label).text = str(int(boss["hp"]))
+	var node_v: Variant = boss.get("node", null)
 	if node_v is Node2D and is_instance_valid(node_v):
 		# Assombrissement progressif comme les blocs.
 		var darken_max: float = clampf(float(_get_conf("block_darken_max", 0.45)), 0.0, 0.9)
-		var brightness: float = lerpf(1.0 - darken_max, 1.0, float(int(_boss["hp"])) / float(maxi(1, int(_boss.get("max_hp", 1)))))
+		var brightness: float = lerpf(1.0 - darken_max, 1.0, float(int(boss["hp"])) / float(maxi(1, int(boss.get("max_hp", 1)))))
 		(node_v as Node2D).modulate = Color(brightness, brightness, brightness, 1.0)
 		if VFXManager:
 			VFXManager.flash_sprite(node_v, Color(1.6, 1.6, 1.6), maxf(0.02, float(_get_conf("block_hp_flash_sec", 0.1))))
@@ -1633,12 +2004,12 @@ func _damage_boss() -> void:
 ## Mort du boss : multi-explosions échelonnées sur sa surface, gros score,
 ## pluie de cristaux, chance d'équipement. Le prochain boss est réarmé à
 ## _elapsed + boss_respawn_interval.
-func _destroy_boss() -> void:
-	if _boss.is_empty():
+func _destroy_boss(boss: Dictionary) -> void:
+	if boss.is_empty():
 		return
-	var rect: Rect2 = _boss.get("rect", Rect2())
-	var node_v: Variant = _boss.get("node", null)
-	_boss = {}
+	var rect: Rect2 = boss.get("rect", Rect2())
+	var node_v: Variant = boss.get("node", null)
+	_bosses.erase(boss)
 	_boss_trigger_at = _elapsed + _boss_respawn_interval
 	var center: Vector2 = rect.get_center()
 	var explosion_size: float = maxf(float(_block_explosion_cfg.get("size", 26.0)) * 1.6, 40.0)
@@ -1672,17 +2043,20 @@ func _destroy_boss() -> void:
 ## durée est quasi infinie) — garantit AU MOINS un boss dans le temps imparti
 ## en mode histoire.
 func _try_spawn_boss() -> void:
-	if not _boss.is_empty() or _boss_defs.is_empty():
+	if not _bosses.is_empty() or _boss_defs.is_empty():
 		return
 	if _elapsed < _boss_trigger_at:
 		return
 	_spawn_boss(randi() % _boss_defs.size())
 
-func _spawn_boss(def_index: int) -> void:
+## override_cols/rows > 0 et hp_mult/forced_col_start : utilisés par
+## l'événement double_boss (mini-boss 2×2, HP réduits, colonnes imposées).
+func _spawn_boss(def_index: int, override_cols: int = 0, override_rows: int = 0, hp_mult: float = 1.0, forced_col_start: int = -1) -> void:
 	var def: Dictionary = _boss_defs[def_index] as Dictionary
-	var cols: int = clampi(int(def.get("cols", 3)), 1, _grid_cols)
-	var rows: int = clampi(int(def.get("rows", 4)), 1, 8)
-	var col_start: int = randi_range(0, _grid_cols - cols)
+	var cols: int = clampi(override_cols if override_cols > 0 else int(def.get("cols", 3)), 1, _grid_cols)
+	var rows: int = clampi(override_rows if override_rows > 0 else int(def.get("rows", 4)), 1, 8)
+	var col_start: int = forced_col_start if forced_col_start >= 0 else randi_range(0, _grid_cols - cols)
+	col_start = clampi(col_start, 0, _grid_cols - cols)
 	var width: float = float(cols) * _block_size.x + float(cols - 1) * _block_spacing
 	var height: float = float(rows) * _block_size.y + float(rows - 1) * _block_spacing
 	var x_left: float = _grid_side_margin + (_block_size.x + _block_spacing) * float(col_start)
@@ -1706,7 +2080,7 @@ func _spawn_boss(def_index: int) -> void:
 
 	# HP massif : équivalent de boss_hp_row_equivalent rangées PLEINES au tour
 	# courant — le budget de points du boss croît donc avec le temps.
-	var hp: int = maxi(1, int(ceil(_row_hp_for_turn(_turn) * float(_grid_cols) * _boss_hp_row_equiv)))
+	var hp: int = maxi(1, int(ceil(_row_hp_for_turn(_turn) * float(_grid_cols) * _boss_hp_row_equiv * maxf(0.05, hp_mult))))
 
 	var boss_node := Node2D.new()
 	boss_node.name = "BallLauncherBoss"
@@ -1783,7 +2157,7 @@ func _spawn_boss(def_index: int) -> void:
 	intro_tween.tween_property(boss_node, "position:y", center.y, 0.45) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
-	_boss = {
+	_bosses.append({
 		"node": boss_node,
 		"sprite": sprite,
 		"label": label,
@@ -1795,7 +2169,7 @@ func _spawn_boss(def_index: int) -> void:
 		"row_top": 0,
 		"cols": cols,
 		"rows": rows
-	}
+	})
 	if VFXManager and bool(ProfileManager.get_setting("screenshake_enabled", true)):
 		VFXManager.screen_shake(6, 0.25)
 
@@ -1868,53 +2242,120 @@ func _collect_token(index: int) -> void:
 func _begin_step() -> void:
 	_state = State.STEP
 	_state_timer = 0.25
+	# Fin de volée : les buffs "prochaine volée" sont consommés, restaure.
+	_pierce_volley_active = false
+	_ball_radius = _ball_radius_base
+	# Blocs mouvants : glissent d'une colonne AVANT la descente et le BFS.
+	_step_movers()
 	# Logical rects move instantly (no collisions during STEP), visuals tween.
 	# Les rows logiques s'incrémentent en même temps (row 0 = plafond).
+	_shift_grid(_descend_step, 1)
+	_try_spawn_boss()
+	_spawn_row(_grid_top_y, _turn, 0, true) # slide-in depuis le haut hors écran
+	# Brouillard en cours : ré-applique le masque (les rows ont changé).
+	if _fog_time > 0.0:
+		_set_fog_enabled(true)
+	_apply_danger_line_crossings()
+
+## Décale toute la grille (blocs, jetons, boss) verticalement : rects
+## instantanés, visuels tweenés, rows logiques ajustées. step_y > 0 = descente
+## (_begin_step, bloc maudit), step_y < 0 = remontée (événement séisme).
+func _shift_grid(step_y: float, row_delta: int) -> void:
 	for block_v in _blocks:
 		var block: Dictionary = block_v as Dictionary
 		var rect: Rect2 = block.get("rect", Rect2())
-		rect.position.y += _descend_step
+		rect.position.y += step_y
 		block["rect"] = rect
-		block["row"] = int(block.get("row", 0)) + 1
+		block["row"] = int(block.get("row", 0)) + row_delta
+		_tween_node_shift_y(block.get("node", null), step_y)
+	for token_v in _tokens:
+		var token: Dictionary = token_v as Dictionary
+		var t_rect: Rect2 = token.get("rect", Rect2())
+		t_rect.position.y += step_y
+		token["rect"] = t_rect
+		_tween_node_shift_y(token.get("node", null), step_y)
+	for boss_v in _bosses:
+		var boss: Dictionary = boss_v as Dictionary
+		var b_rect: Rect2 = boss.get("rect", Rect2())
+		b_rect.position.y += step_y
+		boss["rect"] = b_rect
+		boss["row_top"] = int(boss.get("row_top", 0)) + row_delta
+		_tween_node_shift_y(boss.get("node", null), step_y)
+
+func _tween_node_shift_y(node_v: Variant, step_y: float) -> void:
+	if node_v is Node2D and is_instance_valid(node_v):
+		var node: Node2D = node_v as Node2D
+		var tween: Tween = create_tween()
+		tween.tween_property(node, "position:y", node.position.y + step_y, 0.2) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Blocs mouvants : glissent d'une colonne par tour (direction propre,
+## inversée aux bords / cellule occupée / boss). col + rect + node cohérents,
+## puis re-contrôle de connectivité (un mover peut se déconnecter en glissant).
+func _step_movers() -> void:
+	var moved_any: bool = false
+	var occupied: Dictionary = {}
+	for block_v in _blocks:
+		var block: Dictionary = block_v as Dictionary
+		occupied[Vector2i(int(block.get("col", 0)), int(block.get("row", 0)))] = true
+	for block_v in _blocks:
+		var block: Dictionary = block_v as Dictionary
+		if str(block.get("type", "normal")) != "mover":
+			continue
+		var col: int = int(block.get("col", 0))
+		var row: int = int(block.get("row", 0))
+		var dir: int = 1 if int(block.get("dir", 1)) >= 0 else -1
+		var target: int = col + dir
+		if target < 0 or target >= _grid_cols or occupied.has(Vector2i(target, row)) or _cell_covered_by_boss(target, row):
+			dir = -dir
+			block["dir"] = dir
+			target = col + dir
+			if target < 0 or target >= _grid_cols or occupied.has(Vector2i(target, row)) or _cell_covered_by_boss(target, row):
+				continue # coincé ce tour
+		occupied.erase(Vector2i(col, row))
+		occupied[Vector2i(target, row)] = true
+		block["col"] = target
+		var rect: Rect2 = block.get("rect", Rect2())
+		var shift: float = (_block_size.x + _block_spacing) * float(dir)
+		rect.position.x += shift
+		block["rect"] = rect
+		moved_any = true
 		var node_v: Variant = block.get("node", null)
 		if node_v is Node2D and is_instance_valid(node_v):
 			var node: Node2D = node_v as Node2D
 			var tween: Tween = create_tween()
-			tween.tween_property(node, "position:y", node.position.y + _descend_step, 0.2) \
+			tween.tween_property(node, "position:x", node.position.x + shift, 0.2) \
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	for token_v in _tokens:
-		var token: Dictionary = token_v as Dictionary
-		var t_rect: Rect2 = token.get("rect", Rect2())
-		t_rect.position.y += _descend_step
-		token["rect"] = t_rect
-		var t_node_v: Variant = token.get("node", null)
-		if t_node_v is Node2D and is_instance_valid(t_node_v):
-			var t_node: Node2D = t_node_v as Node2D
-			var t_tween: Tween = create_tween()
-			t_tween.tween_property(t_node, "position:y", t_node.position.y + _descend_step, 0.2) \
-				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	# Le boss descend avec la grille.
-	if not _boss.is_empty():
-		var b_rect: Rect2 = _boss.get("rect", Rect2())
-		b_rect.position.y += _descend_step
-		_boss["rect"] = b_rect
-		_boss["row_top"] = int(_boss.get("row_top", 0)) + 1
-		var b_node_v: Variant = _boss.get("node", null)
-		if b_node_v is Node2D and is_instance_valid(b_node_v):
-			var b_node: Node2D = b_node_v as Node2D
-			var b_tween: Tween = create_tween()
-			b_tween.tween_property(b_node, "position:y", b_node.position.y + _descend_step, 0.2) \
-				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_try_spawn_boss()
-	_spawn_row(_grid_top_y, _turn, 0, true) # slide-in depuis le haut hors écran
-	_apply_danger_line_crossings()
+	if moved_any:
+		_recompute_connectivity([])
+
+func _cell_covered_by_boss(col: int, row: int) -> bool:
+	for boss_v in _bosses:
+		var boss: Dictionary = boss_v as Dictionary
+		var c0: int = int(boss.get("col_start", 0))
+		var r0: int = int(boss.get("row_top", 0))
+		if col >= c0 and col < c0 + int(boss.get("cols", 0)) \
+			and row >= r0 and row < r0 + int(boss.get("rows", 0)):
+			return true
+	return false
+
+## Vrai si un boss chevauchant la rangée 0 couvre cette colonne (spawn de
+## rangée : ni bloc ni token sous le boss).
+func _boss_blocks_col_row0(c: int) -> bool:
+	for boss_v in _bosses:
+		var boss: Dictionary = boss_v as Dictionary
+		if int(boss.get("row_top", 99)) <= 0:
+			var c0: int = int(boss.get("col_start", 0))
+			if c >= c0 and c < c0 + int(boss.get("cols", 0)):
+				return true
+	return false
 
 ## Rows past the danger line: % max HP damage each (shield first), blocks and
 ## tokens destroyed without any reward (explosion visuelle seule). Boss qui
 ## atteint la ligne = défaite immédiate.
 func _apply_danger_line_crossings() -> void:
-	if not _boss.is_empty():
-		var boss_rect: Rect2 = _boss.get("rect", Rect2())
+	for boss_v in _bosses:
+		var boss_rect: Rect2 = (boss_v as Dictionary).get("rect", Rect2())
 		if boss_rect.end.y >= _danger_y:
 			_trigger_boss_game_over()
 			return
@@ -1925,7 +2366,11 @@ func _apply_danger_line_crossings() -> void:
 		var block: Dictionary = _blocks[i]
 		var rect: Rect2 = block.get("rect", Rect2())
 		if rect.end.y >= _danger_y:
-			crossed_rows[int(round(rect.position.y))] = true
+			# Maudit et portails : franchissent SANS blesser le joueur (détruits
+			# quand même, connectivité re-contrôlée, explosion visuelle seule).
+			var b_type: String = str(block.get("type", "normal"))
+			if b_type != "cursed" and not b_type.begins_with("portal_"):
+				crossed_rows[int(round(rect.position.y))] = true
 			crossed_cells.append(Vector2i(int(block.get("col", 0)), int(block.get("row", 0))))
 			if _danger_destroy_explosion:
 				_pending_explosions.append({
@@ -1974,10 +2419,12 @@ func _process(delta: float) -> void:
 		_state = State.DONE
 		return
 	_elapsed += minf(delta, 0.25)
+	_bonus_block_cooldown = maxf(0.0, _bonus_block_cooldown - delta)
 	_update_countdown_label()
 	_update_danger_pulse()
 	_update_danger_warning()
 	_update_aim_zone_hint()
+	_update_events(delta)
 	_process_pending_destructions()
 	_process_pending_explosions()
 	match _state:
@@ -2016,6 +2463,163 @@ func _update_danger_pulse() -> void:
 		return
 	var base_a: float = Color(str(_get_conf("danger_line_color", "#FF5A5AC8"))).a
 	_danger_line.modulate.a = lerpf(0.55, 1.0, 0.5 + 0.5 * sin(TAU * _elapsed / _danger_pulse_sec)) * base_a
+
+# =============================================================================
+# ÉVÉNEMENTS AUTOMATIQUES (MODE LIBRE uniquement — cooldown global 3 min)
+# =============================================================================
+
+## Scheduler : cooldown global event_cooldown_sec entre deux événements,
+## tirage pondéré (events_weights) avec anti-répétition, déclenchement en état
+## AIM seulement, télégraphie 1.5 s par bandeau puis exécution.
+func _update_events(delta: float) -> void:
+	# Timers d'effets en cours (tournent dans tous les états).
+	if _fog_time > 0.0:
+		_fog_time -= delta
+		if _fog_time <= 0.0:
+			_set_fog_enabled(false)
+	if _frenzy_time > 0.0:
+		_frenzy_time -= delta
+	if _event_banner_time > 0.0:
+		_event_banner_time -= delta
+		if _event_banner_label and is_instance_valid(_event_banner_label):
+			_event_banner_label.modulate.a = 0.5 + 0.5 * absf(sin(_elapsed * 8.0))
+			if _event_banner_time <= 0.0:
+				_event_banner_label.visible = false
+	# Télégraphe en cours -> exécution.
+	if _pending_event != "":
+		_pending_event_delay -= delta
+		if _pending_event_delay <= 0.0:
+			var event_id: String = _pending_event
+			_pending_event = ""
+			_execute_event(event_id)
+		return
+	if not _events_enabled:
+		return
+	_event_timer -= delta
+	if _event_timer > 0.0 or _state != State.AIM:
+		return
+	_event_timer = maxf(10.0, float(_get_conf("event_cooldown_sec", 180.0)))
+	var picked: String = _pick_event()
+	if picked == "":
+		return
+	_last_event = picked
+	_pending_event = picked
+	_pending_event_delay = 1.5
+	_show_event_banner(picked)
+
+## Tirage pondéré avec anti-répétition (jamais deux fois de suite le même) ;
+## double_boss retiré si un boss est déjà vivant.
+func _pick_event() -> String:
+	var weights_v: Variant = _get_conf("events_weights", {})
+	var weights: Dictionary = (weights_v as Dictionary).duplicate() if weights_v is Dictionary else {}
+	if weights.is_empty():
+		weights = {"fog": 20, "bonus_row": 25, "quake": 20, "double_boss": 15, "frenzy": 20}
+	weights.erase(_last_event)
+	if not _bosses.is_empty() or _boss_defs.is_empty():
+		weights.erase("double_boss")
+	var total: float = 0.0
+	for key in weights.keys():
+		total += maxf(0.0, float(weights[key]))
+	if total <= 0.0:
+		return ""
+	var roll: float = randf() * total
+	for key in weights.keys():
+		roll -= maxf(0.0, float(weights[key]))
+		if roll <= 0.0:
+			return str(key)
+	return ""
+
+func _execute_event(event_id: String) -> void:
+	match event_id:
+		"fog":
+			_fog_time = maxf(2.0, float(_get_conf("fog_duration_sec", 12.0)))
+			_set_fog_enabled(true)
+		"bonus_row":
+			_bonus_row_pending = true
+		"quake":
+			_do_quake()
+		"double_boss":
+			_spawn_event_bosses()
+		"frenzy":
+			_frenzy_time = maxf(2.0, float(_get_conf("frenzy_duration_sec", 10.0)))
+		_:
+			pass
+
+## Brouillard : masque les numéros HP des blocs au-delà de fog_visible_rows
+## (chaque bloc porte sa réf Label ; ré-appliqué à chaque descente et aux
+## nouveaux spawns, tout rétabli à expiration).
+func _set_fog_enabled(enabled: bool) -> void:
+	var visible_rows: int = maxi(0, int(_get_conf("fog_visible_rows", 2)))
+	for block_v in _blocks:
+		var block: Dictionary = block_v as Dictionary
+		var label_v: Variant = block.get("label", null)
+		if label_v is Label and is_instance_valid(label_v):
+			(label_v as Label).visible = not enabled or int(block.get("row", 0)) < visible_rows
+
+## Séisme : la grille remonte d'un cran si la rangée 0 est libre (blocs ET
+## boss) ; sinon fallback équivalent : la rangée occupée la plus basse est
+## rasée AVEC récompenses. Répit dans les deux cas.
+func _do_quake() -> void:
+	if VFXManager and bool(ProfileManager.get_setting("screenshake_enabled", true)):
+		VFXManager.screen_shake(10, 0.4)
+	var row0_free: bool = true
+	for block_v in _blocks:
+		if int((block_v as Dictionary).get("row", 0)) <= 0:
+			row0_free = false
+			break
+	if row0_free:
+		for boss_v in _bosses:
+			if int((boss_v as Dictionary).get("row_top", 0)) <= 0:
+				row0_free = false
+				break
+	if row0_free and not (_blocks.is_empty() and _bosses.is_empty()):
+		_shift_grid(-_descend_step, -1)
+		return
+	var max_row: int = -1
+	for block_v in _blocks:
+		max_row = maxi(max_row, int((block_v as Dictionary).get("row", 0)))
+	if max_row < 0:
+		return
+	var order: int = 0
+	for block_v in _blocks.duplicate():
+		var block: Dictionary = block_v as Dictionary
+		if int(block.get("row", 0)) == max_row:
+			_queue_block_destruction(block, float(order) * _destruction_stagger, true)
+			order += 1
+
+## Double boss : 2 mini-boss (event_boss_cols × event_boss_rows, HP réduits)
+## sur des moitiés de grille disjointes.
+func _spawn_event_bosses() -> void:
+	if _boss_defs.is_empty() or not _bosses.is_empty():
+		return
+	var cols: int = clampi(int(_get_conf("event_boss_cols", 2)), 1, maxi(1, _grid_cols / 2))
+	var rows: int = clampi(int(_get_conf("event_boss_rows", 2)), 1, 8)
+	var hp_mult: float = clampf(float(_get_conf("event_boss_hp_mult", 0.5)), 0.05, 2.0)
+	var half: int = _grid_cols / 2
+	var col_a: int = randi_range(0, maxi(0, half - cols))
+	var col_b: int = randi_range(half, maxi(half, _grid_cols - cols))
+	_spawn_boss(randi() % _boss_defs.size(), cols, rows, hp_mult, col_a)
+	_spawn_boss(randi() % _boss_defs.size(), cols, rows, hp_mult, col_b)
+
+## Bandeau d'annonce d'événement (texte localisé ball_launcher_event_<id>).
+func _show_event_banner(event_id: String) -> void:
+	if _event_banner_label == null or not is_instance_valid(_event_banner_label):
+		var viewport_size: Vector2 = get_viewport_rect().size
+		_event_banner_label = Label.new()
+		_event_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_event_banner_label.add_theme_font_size_override("font_size", 38)
+		_event_banner_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		_event_banner_label.add_theme_constant_override("outline_size", 5)
+		_event_banner_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_event_banner_label.z_as_relative = false
+		_event_banner_label.z_index = 59
+		_event_banner_label.size = Vector2(viewport_size.x, 46.0)
+		_event_banner_label.position = Vector2(0.0, viewport_size.y * 0.3)
+		add_child(_event_banner_label)
+	_event_banner_label.text = _translate_or("ball_launcher_event_" + event_id, event_id.to_upper())
+	_event_banner_label.add_theme_color_override("font_color", Color("#FFD56B"))
+	_event_banner_label.visible = true
+	_event_banner_time = 2.0
 
 # =============================================================================
 # HUD

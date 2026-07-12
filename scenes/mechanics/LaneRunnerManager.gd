@@ -23,6 +23,22 @@ extends Node2D
 ## - TOURELLES (mode LIBRE hauts levels uniquement, jamais story) : salves de
 ##   projectiles ennemis lents en diagonale a travers les voies
 ##   (ProjectileManager.spawn_enemy_projectile, gate _free_level_progress).
+##
+## Extension 12 juillet 2026 (wave_types_improvements) :
+## - 5 pickups temporels dans la chaine exclusive : FANTOME (traverse les murs,
+##   aura translucide), AIMANT (pieces de toutes les voies), x2 PIECES, TURBO
+##   volontaire (scroll x1.5 ET score x2 — risque/recompense), GEL (scroll x0.7).
+## - PIECE GEANTE (x10) posee sur une voie BLOQUEE juste au-dessus de son mur :
+##   detour risque, ou mur detruit (belier/pew) / traverse (fantome).
+## - Variantes : CHICANES (2e rangee differee via _pending_rows), TRAIN (murs
+##   empiles sur une voie, la voie sure ne peut pas y entrer tant qu'il descend),
+##   DEMI-MURS (visuel deborde sur une voie adjacente, collision inchangee,
+##   near-miss genereux dans la voie debordee), TOURELLES AU SOL (descendent
+##   avec le scroll et tirent le long de leur colonne, Libre hauts levels).
+## - Evenements Libre (chances 0 en story, jamais simultanes) : TUNNEL (penombre
+##   shader pong_blackout, halos joueur+objets) et HEURE DE POINTE (rangees x2 +
+##   trainee garantie). STREAK PARFAITE toujours active : 30 s sans collision de
+##   mur -> pluie de cristaux, compteur discret en haut-gauche.
 ## La voie sure est aussi anti-monotone : jamais plus de safe_lane_max_static_sec
 ## sans etre FORCEE de changer de colonne.
 
@@ -80,12 +96,44 @@ var _pew_missiles: Array = []
 var _turret_timer: float = 0.0
 var _turret_shots: Array = []
 var _turret_any_fired: bool = false
+# Pickups temporels : fantome / aimant / x2 pieces / turbo / gel.
+var _ghost_time_left: float = 0.0
+var _magnet_time_left: float = 0.0
+var _coin_x2_time_left: float = 0.0
+var _turbo_time_left: float = 0.0
+var _freeze_time_left: float = 0.0
+# Chicanes : rangees differees { "time": float } (file pausable, modele _turret_shots).
+var _pending_rows: Array = []
+# Train : voie interdite au chemin sur tant que ses murs empiles descendent.
+var _train_lane: int = -1
+var _train_walls_left: int = 0
+# Tourelles au sol : { "node", "lane", "fire_timer" } — descendent avec le scroll.
+var _ground_turrets: Array = []
+# Evenements Libre (jamais simultanes) : tunnel (penombre) / heure de pointe.
+var _tunnel_timer: float = 0.0
+var _tunnel_time_left: float = 0.0
+var _tunnel_duration: float = 6.0
+var _tunnel_rect: ColorRect = null
+var _rush_timer: float = 0.0
+var _rush_time_left: float = 0.0
+# Streak parfaite : secondes sans collision de mur (toujours actif).
+var _streak_sec: float = 0.0
+var _streak_label: Label = null
+# Bandeau d'evenement clignotant (pattern BreakoutManager).
+var _event_banner: Label = null
+var _banner_time: float = 0.0
 
 var _hit_invuln_timer: float = 0.0
 var _countdown_label: Label = null
 var _finished_emitted: bool = false
 
 const PLAYER_HALF_HEIGHT_PX: float = 26.0
+const TUNNEL_SHADER_PATH: String = "res://scenes/mechanics/pong_blackout.gdshader"
+# Teintes fallback des pickups (cle data <kind>_pickup_color prioritaire).
+const PICKUP_FALLBACK_COLORS: Dictionary = {
+	"ram": "#FF8A5C", "pew": "#8FD3FF", "ghost": "#B8C4E8",
+	"magnet": "#FF5C8A", "coin_x2": "#FFD866", "turbo": "#FFA53C", "freeze": "#8FE8FF"
+}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -120,6 +168,8 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_state = State.INTRO
 	_state_timer = maxf(0.05, float(_get_conf("intro_tween_sec", 0.7)))
 	_row_timer = 0.35 # first row arrives quickly after the intro
+	_tunnel_timer = maxf(5.0, float(_get_conf("tunnel_interval_sec", 25.0)))
+	_rush_timer = maxf(5.0, float(_get_conf("rush_hour_interval_sec", 30.0)))
 	set_process(true)
 
 ## Per-wave override (world_X.json) > type defaults (wave_types.json).
@@ -132,7 +182,11 @@ func _get_conf(key: String, fallback: Variant) -> Variant:
 func update_free_mode_config(cfg: Dictionary) -> void:
 	for key in ["wall_speed_px_sec_start", "wall_speed_px_sec_end",
 		"row_interval_sec_start", "row_interval_sec_end",
-		"double_wall_chance", "turret_chance", "_free_level_progress"]:
+		"double_wall_chance", "turret_chance", "_free_level_progress",
+		"ghost_pickup_chance", "magnet_pickup_chance", "coin_x2_pickup_chance",
+		"turbo_pickup_chance", "freeze_pickup_chance", "giant_coin_chance",
+		"chicane_chance", "train_chance", "half_wall_chance",
+		"ground_turret_chance", "tunnel_chance", "rush_hour_chance"]:
 		if cfg.has(key):
 			_config[key] = cfg[key]
 
@@ -149,6 +203,10 @@ func _restore_player_mode() -> void:
 	if _hit_invuln_timer > 0.0 and _player.has_method("set_invincible"):
 		_player.call("set_invincible", false)
 	_hit_invuln_timer = 0.0
+	# Aura fantôme : toujours restaurée, même si le manager meurt pendant l'effet.
+	if _ghost_time_left > 0.0:
+		_player.modulate.a = 1.0
+		_ghost_time_left = 0.0
 	if _player.has_method("end_lane_runner"):
 		_player.call("end_lane_runner")
 
@@ -181,7 +239,21 @@ func _current_speed() -> float:
 func _current_row_interval() -> float:
 	var i_start: float = maxf(0.3, float(_get_conf("row_interval_sec_start", 1.7)))
 	var i_end: float = clampf(float(_get_conf("row_interval_sec_end", 1.05)), 0.3, i_start)
-	return lerpf(i_start, i_end, _ramp_t())
+	var interval: float = lerpf(i_start, i_end, _ramp_t())
+	# Heure de pointe : densite doublee, plancher 0.3 s pour rester jouable.
+	if _rush_time_left > 0.0:
+		interval = maxf(0.3, interval / maxf(1.0, float(_get_conf("rush_hour_density_mult", 2.0))))
+	return interval
+
+## Multiplicateur de scroll des pickups turbo (plus vite, score x2) et gel
+## (ralenti). Cumulables : produit des deux.
+func _scroll_mult() -> float:
+	var mult: float = 1.0
+	if _turbo_time_left > 0.0:
+		mult *= maxf(1.0, float(_get_conf("turbo_speed_mult", 1.5)))
+	if _freeze_time_left > 0.0:
+		mult *= clampf(float(_get_conf("freeze_scroll_mult", 0.7)), 0.2, 1.0)
+	return mult
 
 # =============================================================================
 # ROWS (walls + collectible trail)
@@ -221,6 +293,11 @@ func _next_row_blocked_lanes() -> Array:
 		else:
 			step = 1 if randf() < 0.5 else -1
 	var free_lane: int = clampi(_last_free_lane + step, 0, _lane_count - 1)
+	# Train en cours : la voie sure ne peut JAMAIS entrer dans sa colonne (des
+	# murs empiles y descendent d'affilee) — le pas est inverse ou annule.
+	if _train_lane >= 0 and free_lane == _train_lane:
+		var reverse: int = clampi(_last_free_lane - step, 0, _lane_count - 1)
+		free_lane = _last_free_lane if reverse == _train_lane else reverse
 	if free_lane == _last_free_lane:
 		_safe_lane_static_sec += _current_row_interval()
 	else:
@@ -258,29 +335,37 @@ func _update_last_free_lane_from_blocked(blocked: Array) -> void:
 		_safe_lane_static_sec += _current_row_interval()
 	_last_free_lane = best
 
-func _spawn_row() -> void:
+func _spawn_row(allow_chicane: bool = true) -> void:
 	var blocked: Array = _next_row_blocked_lanes()
 	var wall_height: float = maxf(24.0, float(_get_conf("wall_height_px", 88.0)))
 	var wall_width: float = _lane_width() * clampf(float(_get_conf("wall_width_ratio", 0.92)), 0.3, 1.0)
 	var spawn_y: float = minf(-20.0, float(_get_conf("wall_spawn_y", -130.0)))
+	# Train : une voie bloquee de la rangee recoit train_length murs empiles ;
+	# tant qu'ils descendent, la voie sure ne peut pas entrer dans leur colonne
+	# (garde dans _next_row_blocked_lanes, liberation par compteur).
+	var train_lane_row: int = -1
+	if _train_lane < 0 and not blocked.is_empty() \
+		and randf() <= clampf(float(_get_conf("train_chance", 0.0)), 0.0, 1.0):
+		train_lane_row = int(blocked[randi() % blocked.size()])
 	for lane_v in blocked:
 		var lane: int = int(lane_v)
-		var node := Node2D.new()
-		node.name = "LaneWall"
-		node.z_as_relative = false
-		node.z_index = 10
-		node.position = Vector2(_lane_center_x(lane), spawn_y - wall_height * 0.5)
-		node.add_child(_build_wall_visual(wall_width, wall_height))
-		add_child(node)
-		_walls.append({
-			"node": node,
-			"lane": lane,
-			"half_height": wall_height * 0.5,
-			"hit": false,
-			"passed": false
-		})
-	# Un seul element special par rangee (exclusifs : portail > belier > pew),
-	# sinon la trainee de pieces habituelle.
+		var is_train: bool = lane == train_lane_row
+		var stack: int = maxi(1, int(_get_conf("train_length", 3))) if is_train else 1
+		var spacing: float = wall_height + maxf(0.0, float(_get_conf("train_spacing_px", 26.0)))
+		for k in range(stack):
+			_spawn_wall(lane, Vector2(_lane_center_x(lane),
+				spawn_y - wall_height * 0.5 - spacing * float(k)), wall_width, wall_height, is_train)
+		if is_train:
+			_train_lane = lane
+			_train_walls_left = stack
+	# Chicane : une 2e rangee arrive presque collee (file drainee dans _process).
+	# Jamais pendant un train ni en cascade (une rangee differee ne relance pas).
+	if allow_chicane and train_lane_row < 0 and _train_lane < 0 and _pending_rows.is_empty() \
+		and randf() <= clampf(float(_get_conf("chicane_chance", 0.0)), 0.0, 1.0):
+		_pending_rows.append({ "time": _time + maxf(0.1, float(_get_conf("chicane_gap_sec", 0.3))) })
+	# Un seul element special par rangee (chaine exclusive, l'ordre = priorite :
+	# portail > belier > pew > fantome > aimant > x2 > turbo > gel > piece geante
+	# > tourelle au sol), sinon la trainee de pieces habituelle.
 	var special_base_y: float = spawn_y - wall_height
 	if randf() <= clampf(float(_get_conf("portal_chance", 0.0)), 0.0, 1.0):
 		_spawn_portal(special_base_y)
@@ -288,10 +373,70 @@ func _spawn_row() -> void:
 		_spawn_special_pickup("ram", _last_free_lane, special_base_y)
 	elif randf() <= clampf(float(_get_conf("pew_pickup_chance", 0.0)), 0.0, 1.0):
 		_spawn_special_pickup("pew", _last_free_lane, special_base_y)
+	elif randf() <= clampf(float(_get_conf("ghost_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("ghost", _last_free_lane, special_base_y)
+	elif randf() <= clampf(float(_get_conf("magnet_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("magnet", _last_free_lane, special_base_y)
+	elif randf() <= clampf(float(_get_conf("coin_x2_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("coin_x2", _last_free_lane, special_base_y)
+	elif randf() <= clampf(float(_get_conf("turbo_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("turbo", _last_free_lane, special_base_y)
+	elif randf() <= clampf(float(_get_conf("freeze_pickup_chance", 0.0)), 0.0, 1.0):
+		_spawn_special_pickup("freeze", _last_free_lane, special_base_y)
+	elif not blocked.is_empty() and randf() <= clampf(float(_get_conf("giant_coin_chance", 0.0)), 0.0, 1.0):
+		_spawn_giant_coin(blocked, spawn_y, wall_height)
+	elif randf() <= clampf(float(_get_conf("ground_turret_chance", 0.0)), 0.0, 1.0) \
+		and _ramp_t() >= clampf(float(_get_conf("turret_min_level_progress", 0.45)), 0.0, 1.0):
+		_spawn_ground_turret(special_base_y)
 	else:
 		var trail_chance: float = clampf(float(_get_conf("collectible_trail_chance", 0.75)), 0.0, 1.0)
+		if _rush_time_left > 0.0:
+			trail_chance = 1.0 # heure de pointe : chaque rangee paie
 		if randf() <= trail_chance:
 			_spawn_collectible_trail(_last_free_lane, special_base_y)
+
+## Mur individuel. Demi-mur (roll half_wall_chance, hors train) : visuel elargi
+## debordant vers une voie adjacente, COLLISION INCHANGEE (sa voie seule) ;
+## passer dans la voie debordee = near-miss genereux sans switch requis.
+func _spawn_wall(lane: int, pos: Vector2, wall_width: float, wall_height: float, is_train: bool) -> void:
+	var node := Node2D.new()
+	node.name = "LaneWall"
+	node.z_as_relative = false
+	node.z_index = 10
+	node.position = pos
+	var entry: Dictionary = {
+		"node": node,
+		"lane": lane,
+		"half_height": wall_height * 0.5,
+		"hit": false,
+		"passed": false
+	}
+	if is_train:
+		entry["train"] = true
+	var visual_width: float = wall_width
+	var visual_offset: float = 0.0
+	if not is_train and randf() <= clampf(float(_get_conf("half_wall_chance", 0.0)), 0.0, 1.0):
+		var dir: int = 1 if lane <= 0 else (-1 if lane >= _lane_count - 1 else (1 if randf() < 0.5 else -1))
+		var mult: float = maxf(1.0, float(_get_conf("half_wall_width_mult", 1.4)))
+		visual_width = wall_width * mult
+		visual_offset = float(dir) * wall_width * (mult - 1.0) * 0.5
+		entry["half"] = true
+		entry["half_over_lane"] = clampi(lane + dir, 0, _lane_count - 1)
+	var visual: Node2D = _build_wall_visual(visual_width, wall_height)
+	visual.position.x = visual_offset
+	node.add_child(visual)
+	add_child(node)
+	_walls.append(entry)
+
+## Libere le compteur du train quand un de ses murs quitte le jeu (passe la
+## ligne du vaisseau, detruit par belier/pew, ou node invalide).
+func _release_train_wall(entry: Dictionary) -> void:
+	if not bool(entry.get("train", false)) or bool(entry.get("train_released", false)):
+		return
+	entry["train_released"] = true
+	_train_walls_left -= 1
+	if _train_walls_left <= 0:
+		_train_lane = -1
 
 ## A vertical trail of collectibles in the safe lane, laid out above the row it
 ## escorts so the player scoops it right after the dodge.
@@ -379,11 +524,12 @@ func _build_portal_visual(size_px: float, color: Color, asset_path: String) -> N
 
 ## Pickup spécial dans la voie sûre (remplace la traînée de sa rangée) : cercle
 ## coloré pulsant, collecté par le test de contact des collectibles (kind).
+## Générique : clés data `<kind>_pickup_asset` / `<kind>_pickup_color`.
 func _spawn_special_pickup(kind: String, lane: int, y: float) -> void:
 	var size_px: float = maxf(12.0, float(_get_conf("collectible_size_px", 42.0))) * 1.25
-	var color_key: String = "ram_pickup_color" if kind == "ram" else "pew_pickup_color"
-	var asset_key: String = "ram_pickup_asset" if kind == "ram" else "pew_pickup_asset"
-	var tint := Color(str(_get_conf(color_key, "#FF8A5C" if kind == "ram" else "#8FD3FF")))
+	var color_key: String = "%s_pickup_color" % kind
+	var asset_key: String = "%s_pickup_asset" % kind
+	var tint := Color(str(_get_conf(color_key, str(PICKUP_FALLBACK_COLORS.get(kind, "#FFFFFF")))))
 	var node := Node2D.new()
 	node.name = "LaneSpecialPickup"
 	node.z_as_relative = false
@@ -421,19 +567,78 @@ func _spawn_special_pickup(kind: String, lane: int, y: float) -> void:
 
 ## Applique l'effet d'un pickup spécial collecté.
 func _apply_special_pickup(kind: String, at_pos: Vector2) -> void:
-	if kind == "ram":
-		_ram_charges = maxi(1, int(_get_conf("ram_charges", 3)))
-		if VFXManager:
-			VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
-				LocaleManager.translate("lane_runner_ram"), Color("#FF8A5C"), self)
-	elif kind == "pew":
-		_pew_time_left = maxf(0.5, float(_get_conf("pew_duration_sec", 6.0)))
-		_pew_fire_timer = 0.0 # premier tir immédiat
-		if VFXManager:
-			VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
-				LocaleManager.translate("lane_runner_pew"), Color("#8FD3FF"), self)
+	match kind:
+		"ram":
+			_ram_charges = maxi(1, int(_get_conf("ram_charges", 3)))
+		"pew":
+			_pew_time_left = maxf(0.5, float(_get_conf("pew_duration_sec", 6.0)))
+			_pew_fire_timer = 0.0 # premier tir immédiat
+		"ghost":
+			_ghost_time_left = maxf(0.5, float(_get_conf("ghost_duration_sec", 4.0)))
+			if _player and is_instance_valid(_player):
+				_player.modulate.a = clampf(float(_get_conf("ghost_alpha", 0.55)), 0.1, 1.0)
+		"magnet":
+			_magnet_time_left = maxf(0.5, float(_get_conf("magnet_duration_sec", 6.0)))
+		"coin_x2":
+			_coin_x2_time_left = maxf(0.5, float(_get_conf("coin_x2_duration_sec", 8.0)))
+		"turbo":
+			_turbo_time_left = maxf(0.5, float(_get_conf("turbo_duration_sec", 5.0)))
+		"freeze":
+			_freeze_time_left = maxf(0.5, float(_get_conf("freeze_duration_sec", 4.0)))
+	if VFXManager:
+		VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
+			_translate_or("lane_runner_%s" % kind, kind.to_upper()),
+			Color(str(PICKUP_FALLBACK_COLORS.get(kind, "#FFFFFF"))), self)
 	if VFXManager and _player and is_instance_valid(_player):
 		VFXManager.flash_sprite(_player, Color(1.0, 1.0, 1.0), 0.15)
+
+func _translate_or(key: String, fallback: String) -> String:
+	if typeof(LocaleManager) != TYPE_NIL and LocaleManager:
+		var translated: String = LocaleManager.translate(key)
+		if translated != "" and translated != key:
+			return translated
+	return fallback
+
+## Décrémente les timers des pickups temporels ; expiration du fantôme =
+## restauration de l'aura (modulate.a du vaisseau).
+func _tick_pickup_timers(dt: float) -> void:
+	if _ghost_time_left > 0.0:
+		_ghost_time_left -= dt
+		if _ghost_time_left <= 0.0 and _player and is_instance_valid(_player):
+			_player.modulate.a = 1.0
+	_magnet_time_left = maxf(0.0, _magnet_time_left - dt)
+	_coin_x2_time_left = maxf(0.0, _coin_x2_time_left - dt)
+	_turbo_time_left = maxf(0.0, _turbo_time_left - dt)
+	_freeze_time_left = maxf(0.0, _freeze_time_left - dt)
+
+## Pièce géante « derrière » un mur : posée sur une voie BLOQUÉE de la rangée,
+## juste au-dessus de son mur — détour risqué, ou mur détruit (bélier/pew) /
+## traversé (fantôme). Jamais dans la voie sûre.
+func _spawn_giant_coin(blocked: Array, spawn_y: float, wall_height: float) -> void:
+	var lane: int = int(blocked[randi() % blocked.size()])
+	var size_px: float = maxf(24.0, float(_get_conf("giant_coin_size_px", 72.0)))
+	var gap: float = maxf(0.0, float(_get_conf("giant_coin_gap_px", 120.0)))
+	var node := Node2D.new()
+	node.name = "LaneGiantCoin"
+	node.z_as_relative = false
+	node.z_index = 12
+	node.position = Vector2(_lane_center_x(lane), spawn_y - wall_height - gap)
+	var asset_path: String = str(_get_conf("giant_coin_asset", ""))
+	var built: bool = false
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var res: Resource = load(asset_path)
+		if res is Texture2D:
+			var sprite := Sprite2D.new()
+			sprite.texture = res as Texture2D
+			var tex_size: Vector2 = (res as Texture2D).get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				sprite.scale = Vector2.ONE * (size_px / maxf(tex_size.x, tex_size.y))
+			node.add_child(sprite)
+			built = true
+	if not built:
+		node.add_child(_build_collectible_visual(size_px))
+	add_child(node)
+	_collectibles.append({ "node": node, "lane": lane, "pulse": randf() * TAU, "kind": "giant" })
 
 # =============================================================================
 # VISUALS
@@ -549,14 +754,26 @@ func _process(delta: float) -> void:
 			if _row_timer <= 0.0 and _elapsed < _duration - _spawn_cutoff_sec:
 				_row_timer = _current_row_interval()
 				_spawn_row()
+			# Chicanes : rangees differees (le 2e spawn passe par le pipeline
+			# normal -> chemin +-1 garanti).
+			while not _pending_rows.is_empty() \
+				and float((_pending_rows[0] as Dictionary).get("time", 0.0)) <= _time \
+				and _elapsed < _duration - _spawn_cutoff_sec:
+				_pending_rows.pop_front()
+				_spawn_row(false)
 
-	var speed: float = _current_speed()
+	var speed: float = _current_speed() * _scroll_mult()
 	_update_walls(dt, speed)
 	_update_collectibles(dt, speed)
 	_update_portals(dt, speed)
+	_update_ground_turrets(dt, speed)
 	_update_pew(dt)
 	_update_pew_missiles(dt)
 	_update_turrets(dt)
+	_tick_pickup_timers(dt)
+	_update_events(dt)
+	_update_streak(dt)
+	_update_banner(dt)
 
 	if _elapsed >= _duration:
 		_finish()
@@ -581,6 +798,7 @@ func _update_walls(dt: float, speed: float) -> void:
 		var entry: Dictionary = _walls[i]
 		var node_v: Variant = entry.get("node", null)
 		if not (node_v is Node2D) or not is_instance_valid(node_v):
+			_release_train_wall(entry)
 			_walls.remove_at(i)
 			continue
 		var node: Node2D = node_v as Node2D
@@ -591,8 +809,14 @@ func _update_walls(dt: float, speed: float) -> void:
 		if not bool(entry.get("hit", false)) \
 			and int(entry.get("lane", -1)) == player_lane \
 			and absf(node.position.y - player_y) <= half_height + PLAYER_HALF_HEIGHT_PX:
+			# Fantôme : le mur est traversé — ni dégât, ni charge de bélier
+			# consommée, ni near-miss (flag ghosted), et la streak continue.
+			if _ghost_time_left > 0.0:
+				if not bool(entry.get("ghosted", false)):
+					entry["ghosted"] = true
+					_walls[i] = entry
 			# Bélier : le mur explose au lieu de blesser (même pendant l'invuln).
-			if _ram_charges > 0:
+			elif _ram_charges > 0:
 				_ram_charges -= 1
 				_destroy_wall_at(i, str(_get_conf("ram_explosion_anim", "res://assets/vfx/boss_explosion.tres")),
 					int(_get_conf("ram_wall_score", 25)), _lane_width() * 0.9)
@@ -600,7 +824,7 @@ func _update_walls(dt: float, speed: float) -> void:
 					VFXManager.screen_shake(float(_get_conf("ram_shake_intensity", 8.0)),
 						maxf(0.05, float(_get_conf("ram_shake_sec", 0.3))))
 				continue
-			if _hit_invuln_timer <= 0.0:
+			elif _hit_invuln_timer <= 0.0:
 				entry["hit"] = true
 				_walls[i] = entry
 				_on_wall_hit()
@@ -610,8 +834,16 @@ func _update_walls(dt: float, speed: float) -> void:
 		if not bool(entry.get("passed", false)) and node.position.y - half_height > player_y + PLAYER_HALF_HEIGHT_PX:
 			entry["passed"] = true
 			_walls[i] = entry
-			if not bool(entry.get("hit", false)):
-				_check_near_miss(int(entry.get("lane", -1)), player_lane, node.position)
+			_release_train_wall(entry)
+			if not bool(entry.get("hit", false)) and not bool(entry.get("ghosted", false)):
+				if bool(entry.get("half", false)) and player_lane == int(entry.get("half_over_lane", -99)):
+					# Voie débordée par un demi-mur : near-miss généreux, sans
+					# exiger un changement de voie récent.
+					if randf() <= clampf(float(_get_conf("half_wall_near_miss_chance", 0.6)), 0.0, 1.0) \
+						and _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystal_at"):
+						_game.call("spawn_reward_crystal_at", Vector2(node.position.x, player_y))
+				else:
+					_check_near_miss(int(entry.get("lane", -1)), player_lane, node.position)
 
 		if node.position.y - half_height > viewport_size.y + 60.0:
 			node.queue_free()
@@ -628,6 +860,7 @@ func _on_wall_hit() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return # the hit was lethal, the player is already gone
 	_hit_invuln_timer = maxf(0.2, float(_get_conf("hit_invuln_sec", 1.0)))
+	_streak_sec = 0.0 # la série parfaite se brise sur une collision de mur
 	if _player.has_method("set_invincible"):
 		_player.call("set_invincible", true)
 	if VFXManager:
@@ -665,13 +898,22 @@ func _update_collectibles(dt: float, speed: float) -> void:
 		var pulse: float = 1.0 + sin(_time * TAU * 1.6 + float(entry.get("pulse", 0.0))) * 0.12
 		node.scale = Vector2.ONE * pulse
 
-		if int(entry.get("lane", -1)) == player_lane and absf(node.position.y - player_y) <= pickup_radius:
+		# Aimant : les pièces (et la géante) se ramassent depuis n'importe quelle
+		# voie ; les pickups spéciaux gardent le test de voie.
+		var kind: String = str(entry.get("kind", "coin"))
+		var lane_ok: bool = int(entry.get("lane", -1)) == player_lane \
+			or (_magnet_time_left > 0.0 and (kind == "coin" or kind == "giant"))
+		if lane_ok and absf(node.position.y - player_y) <= pickup_radius:
 			var at_pos: Vector2 = node.global_position
-			var kind: String = str(entry.get("kind", "coin"))
 			node.queue_free()
 			_collectibles.remove_at(i)
 			if kind == "coin":
 				_collect(at_pos)
+			elif kind == "giant":
+				_collect(at_pos, maxf(1.0, float(_get_conf("giant_coin_value_mult", 10.0))))
+				if VFXManager:
+					VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
+						_translate_or("lane_runner_giant", "GIANT COIN!"), Color("#FFD866"), self)
 			else:
 				_apply_special_pickup(kind, at_pos)
 			continue
@@ -681,8 +923,14 @@ func _update_collectibles(dt: float, speed: float) -> void:
 			_collectibles.remove_at(i)
 
 ## Collectible reward: score (base x wave/world multiplier) + crystal chance.
-func _collect(at_pos: Vector2) -> void:
-	var points: int = int(round(float(_collectible_score) * _reward_multiplier))
+## value_mult : pièce géante ; s'y multiplient x2 pièces et turbo (score x2).
+func _collect(at_pos: Vector2, value_mult: float = 1.0) -> void:
+	var mult: float = value_mult
+	if _coin_x2_time_left > 0.0:
+		mult *= maxf(1.0, float(_get_conf("coin_x2_score_mult", 2.0)))
+	if _turbo_time_left > 0.0:
+		mult *= maxf(1.0, float(_get_conf("turbo_score_mult", 2.0)))
+	var points: int = int(round(float(_collectible_score) * _reward_multiplier * mult))
 	if _game and is_instance_valid(_game):
 		if points > 0 and _game.has_method("add_wave_bonus_score"):
 			_game.call("add_wave_bonus_score", points, at_pos)
@@ -698,6 +946,7 @@ func _destroy_wall_at(index: int, explosion_anim: String, base_score: int, explo
 	if index < 0 or index >= _walls.size():
 		return
 	var entry: Dictionary = _walls[index]
+	_release_train_wall(entry)
 	var node_v: Variant = entry.get("node", null)
 	var at_pos: Vector2 = Vector2.ZERO
 	if node_v is Node2D and is_instance_valid(node_v):
@@ -888,6 +1137,276 @@ func _fire_turret_shot(pos: Vector2, dir: Vector2) -> void:
 	if ProjectileManager:
 		ProjectileManager.spawn_enemy_projectile(pos, dir, speed, damage)
 		_turret_any_fired = true
+
+# =============================================================================
+# TOURELLES AU SOL (descendent avec le scroll, tirent le long de leur colonne)
+# =============================================================================
+
+## Roulée dans la chaîne exclusive de _spawn_row (gate turret_min_level_progress
+## comme les salves). Posée sur une voie JAMAIS sûre au moment du spawn, elle
+## descend avec le scroll et tire vers le BAS toutes les
+## ground_turret_fire_interval_sec — on esquive en quittant la colonne.
+## Télégraphe : impact VFX à l'apparition.
+func _spawn_ground_turret(base_y: float) -> void:
+	var lane: int = randi() % _lane_count
+	if lane == _last_free_lane:
+		lane = (lane + 1 + (randi() % (_lane_count - 1))) % _lane_count
+	var size_px: float = maxf(24.0, float(_get_conf("ground_turret_size_px", 52.0)))
+	var node := Node2D.new()
+	node.name = "LaneGroundTurret"
+	node.z_as_relative = false
+	node.z_index = 11
+	node.position = Vector2(_lane_center_x(lane), base_y)
+	var asset_path: String = str(_get_conf("ground_turret_asset", ""))
+	var built: bool = false
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var res: Resource = load(asset_path)
+		if res is Texture2D:
+			var sprite := Sprite2D.new()
+			sprite.texture = res as Texture2D
+			var tex_size: Vector2 = (res as Texture2D).get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				sprite.scale = Vector2.ONE * (size_px / maxf(tex_size.x, tex_size.y))
+			node.add_child(sprite)
+			built = true
+	if not built:
+		# PH : socle circulaire sombre + canon rectangulaire pointé vers le bas.
+		var base_poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for i in range(20):
+			var a: float = TAU * float(i) / 20.0
+			pts.append(Vector2(cos(a), sin(a)) * size_px * 0.5)
+		base_poly.polygon = pts
+		base_poly.color = Color("#5A6272")
+		node.add_child(base_poly)
+		var barrel := Polygon2D.new()
+		barrel.polygon = PackedVector2Array([
+			Vector2(-size_px * 0.12, 0.0), Vector2(size_px * 0.12, 0.0),
+			Vector2(size_px * 0.12, size_px * 0.75), Vector2(-size_px * 0.12, size_px * 0.75)
+		])
+		barrel.color = Color("#39404F")
+		node.add_child(barrel)
+	add_child(node)
+	if VFXManager:
+		VFXManager.spawn_impact(node.global_position, 24.0, self) # télégraphe
+	_ground_turrets.append({ "node": node, "lane": lane,
+		"fire_timer": maxf(0.2, float(_get_conf("ground_turret_fire_interval_sec", 1.2))) })
+
+func _update_ground_turrets(dt: float, speed: float) -> void:
+	if _ground_turrets.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	for i in range(_ground_turrets.size() - 1, -1, -1):
+		var entry: Dictionary = _ground_turrets[i]
+		var node_v: Variant = entry.get("node", null)
+		if not (node_v is Node2D) or not is_instance_valid(node_v):
+			_ground_turrets.remove_at(i)
+			continue
+		var node: Node2D = node_v as Node2D
+		node.position.y += speed * dt
+		if node.position.y > viewport_size.y + 80.0:
+			node.queue_free()
+			_ground_turrets.remove_at(i)
+			continue
+		if node.position.y < 0.0:
+			continue # pas de tir hors écran
+		entry["fire_timer"] = float(entry.get("fire_timer", 1.2)) - dt
+		if float(entry["fire_timer"]) <= 0.0:
+			entry["fire_timer"] = maxf(0.2, float(_get_conf("ground_turret_fire_interval_sec", 1.2)))
+			_fire_ground_turret_shot(node.global_position + Vector2(0.0, 30.0))
+		_ground_turrets[i] = entry
+
+## Balle rapide (plus vite que le scroll max, sinon la tourelle rattraperait
+## ses propres tirs) : danger de colonne lisible, purge commune à _finish.
+func _fire_ground_turret_shot(pos: Vector2) -> void:
+	var max_hp_v: Variant = _player.get("max_hp") if (_player and is_instance_valid(_player)) else 100
+	var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
+	var pct: float = clampf(float(_get_conf("ground_turret_damage_percent", 0.1)), 0.0, 1.0)
+	var damage: int = maxi(1, int(ceil(float(max_hp) * pct)))
+	var speed: float = maxf(60.0, float(_get_conf("ground_turret_bullet_speed_px_sec", 1100.0)))
+	if ProjectileManager:
+		ProjectileManager.spawn_enemy_projectile(pos, Vector2.DOWN, speed, damage)
+		_turret_any_fired = true
+
+# =============================================================================
+# ÉVÉNEMENTS LIBRE (tunnel / heure de pointe) + STREAK PARFAITE
+# =============================================================================
+
+## Deux timers indépendants interval+chance (chances 0 en story) ; jamais les
+## deux événements actifs en même temps — l'un retient l'autre.
+func _update_events(dt: float) -> void:
+	if _tunnel_time_left > 0.0:
+		_tunnel_time_left -= dt
+		if _tunnel_time_left <= 0.0 and _tunnel_rect and is_instance_valid(_tunnel_rect):
+			_tunnel_rect.queue_free()
+			_tunnel_rect = null
+	_update_tunnel_overlay()
+	if _rush_time_left > 0.0:
+		_rush_time_left -= dt
+	var busy: bool = _tunnel_time_left > 0.0 or _rush_time_left > 0.0
+	_tunnel_timer -= dt
+	if _tunnel_timer <= 0.0:
+		_tunnel_timer = maxf(5.0, float(_get_conf("tunnel_interval_sec", 25.0)))
+		if not busy and _state == State.RUN \
+			and randf() <= clampf(float(_get_conf("tunnel_chance", 0.0)), 0.0, 1.0):
+			_start_tunnel()
+			busy = true
+	_rush_timer -= dt
+	if _rush_timer <= 0.0:
+		_rush_timer = maxf(5.0, float(_get_conf("rush_hour_interval_sec", 30.0)))
+		if not busy and _state == State.RUN \
+			and randf() <= clampf(float(_get_conf("rush_hour_chance", 0.0)), 0.0, 1.0):
+			_rush_time_left = maxf(1.0, float(_get_conf("rush_hour_duration_sec", 8.0)))
+			_show_banner(_translate_or("lane_runner_rush_hour", "RUSH HOUR!"), Color("#FFB347"))
+
+func _start_tunnel() -> void:
+	_tunnel_duration = maxf(1.0, float(_get_conf("tunnel_duration_sec", 6.0)))
+	_tunnel_time_left = _tunnel_duration
+	_ensure_tunnel_overlay()
+	_show_banner(_translate_or("lane_runner_tunnel", "TUNNEL!"), Color("#9AA8BF"))
+
+## Pénombre : shader pong_blackout (16 lumières max). Fallback sans shader :
+## dim léger fixe.
+func _ensure_tunnel_overlay() -> void:
+	if _tunnel_rect and is_instance_valid(_tunnel_rect):
+		return
+	_tunnel_rect = ColorRect.new()
+	_tunnel_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tunnel_rect.z_as_relative = false
+	_tunnel_rect.z_index = 45
+	_tunnel_rect.position = Vector2.ZERO
+	_tunnel_rect.size = get_viewport_rect().size
+	if ResourceLoader.exists(TUNNEL_SHADER_PATH):
+		var shader: Shader = load(TUNNEL_SHADER_PATH) as Shader
+		if shader:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			_tunnel_rect.material = mat
+	if _tunnel_rect.material == null:
+		_tunnel_rect.color = Color(0.0, 0.0, 0.0, 0.45)
+	add_child(_tunnel_rect)
+
+## Halos : joueur d'abord, puis murs/pièces/portails triés du bas de l'écran
+## vers le haut (les dangers proches restent lisibles), cap 16 lumières.
+func _update_tunnel_overlay() -> void:
+	if _tunnel_rect == null or not is_instance_valid(_tunnel_rect):
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_tunnel_rect.size = viewport_size
+	var mat: ShaderMaterial = _tunnel_rect.material as ShaderMaterial
+	if mat == null:
+		return
+	var fade: float = clampf(minf(_tunnel_duration - _tunnel_time_left, minf(_tunnel_time_left, 0.4)) / 0.4, 0.0, 1.0)
+	var radius: float = maxf(60.0, float(_get_conf("tunnel_light_radius_px", 150.0)))
+	var candidates: Array = []
+	for entry_v in _walls:
+		var wall_node_v: Variant = (entry_v as Dictionary).get("node", null)
+		if wall_node_v is Node2D and is_instance_valid(wall_node_v):
+			candidates.append((wall_node_v as Node2D).global_position)
+	for entry_v in _collectibles:
+		var col_node_v: Variant = (entry_v as Dictionary).get("node", null)
+		if col_node_v is Node2D and is_instance_valid(col_node_v):
+			candidates.append((col_node_v as Node2D).global_position)
+	for portal_v in _portals:
+		for key in ["entry_node", "exit_node"]:
+			var portal_node_v: Variant = (portal_v as Dictionary).get(key, null)
+			if portal_node_v is Node2D and is_instance_valid(portal_node_v):
+				candidates.append((portal_node_v as Node2D).global_position)
+	candidates.sort_custom(func(a, b): return (a as Vector2).y > (b as Vector2).y)
+	var positions := PackedVector2Array()
+	var radii := PackedFloat32Array()
+	var player_pos: Vector2 = _player.global_position if (_player and is_instance_valid(_player)) else viewport_size * 0.5
+	positions.append(player_pos)
+	radii.append(radius * 1.3)
+	for pos_v in candidates:
+		if positions.size() >= 16:
+			break
+		positions.append(pos_v as Vector2)
+		radii.append(radius)
+	var light_count: int = positions.size()
+	while positions.size() < 16:
+		positions.append(Vector2(-9999.0, -9999.0))
+		radii.append(1.0)
+	mat.set_shader_parameter("darkness", clampf(float(_get_conf("tunnel_opacity", 0.85)), 0.0, 1.0) * fade)
+	mat.set_shader_parameter("viewport_size", viewport_size)
+	mat.set_shader_parameter("light_count", light_count)
+	mat.set_shader_parameter("light_pos", positions)
+	mat.set_shader_parameter("light_radius", radii)
+
+## Streak parfaite (toujours active) : secondes sans collision de mur ; au seuil
+## -> pluie de cristaux et le compteur repart (ré-empochable à l'infini). Les
+## dégâts de projectiles passent par Player.take_damage (invisibles ici) : la
+## série ne se brise que sur une collision de mur — assumé, documenté.
+func _update_streak(dt: float) -> void:
+	if _state == State.RUN:
+		_streak_sec += dt
+		var reward_sec: float = maxf(5.0, float(_get_conf("streak_reward_sec", 30.0)))
+		if _streak_sec >= reward_sec:
+			_streak_sec = 0.0
+			var crystals: int = maxi(1, int(_get_conf("streak_crystals", 6)))
+			if _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystals_from_top"):
+				_game.call("spawn_reward_crystals_from_top", crystals)
+			if VFXManager and _player and is_instance_valid(_player):
+				VFXManager.spawn_floating_text(_player.global_position + Vector2(0.0, -80.0),
+					_translate_or("lane_runner_streak", "PERFECT STREAK!"), Color("#7CFC9A"), self)
+	_update_streak_label()
+
+func _ensure_streak_label() -> void:
+	if _streak_label and is_instance_valid(_streak_label):
+		return
+	_streak_label = Label.new()
+	_streak_label.name = "LaneRunnerStreakLabel"
+	_streak_label.add_theme_font_size_override("font_size", maxi(10, int(_get_conf("streak_font_size", 20))))
+	_streak_label.add_theme_color_override("font_color", Color("#7CFC9A"))
+	_streak_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_streak_label.add_theme_constant_override("outline_size", 4)
+	_streak_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_streak_label.z_as_relative = false
+	_streak_label.z_index = 60
+	add_child(_streak_label)
+
+## HUD discret : n'apparaît qu'à partir de 5 s de série en cours.
+func _update_streak_label() -> void:
+	_ensure_streak_label()
+	if _streak_label == null or not is_instance_valid(_streak_label):
+		return
+	if _streak_sec < 5.0:
+		_streak_label.visible = false
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_streak_label.visible = true
+	_streak_label.position = Vector2(16.0,
+		viewport_size.y * clampf(float(_get_conf("streak_y_ratio", 0.22)), 0.02, 0.9))
+	_streak_label.text = "%ds" % int(_streak_sec)
+
+## Bandeau clignotant d'événement (pattern BreakoutManager).
+func _show_banner(text: String, color: Color) -> void:
+	if _event_banner == null or not is_instance_valid(_event_banner):
+		var viewport_size: Vector2 = get_viewport_rect().size
+		_event_banner = Label.new()
+		_event_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_event_banner.add_theme_font_size_override("font_size", 40)
+		_event_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		_event_banner.add_theme_constant_override("outline_size", 5)
+		_event_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_event_banner.z_as_relative = false
+		_event_banner.z_index = 55
+		_event_banner.size = Vector2(viewport_size.x, 46.0)
+		_event_banner.position = Vector2(0.0, viewport_size.y * 0.3)
+		add_child(_event_banner)
+	_event_banner.text = text
+	_event_banner.add_theme_color_override("font_color", color)
+	_event_banner.visible = true
+	_banner_time = 1.2
+
+func _update_banner(dt: float) -> void:
+	if _banner_time <= 0.0:
+		return
+	_banner_time -= dt
+	if _event_banner and is_instance_valid(_event_banner):
+		_event_banner.modulate.a = 0.5 + 0.5 * absf(sin(_elapsed * 8.0))
+		if _banner_time <= 0.0:
+			_event_banner.visible = false
 
 # =============================================================================
 # HUD

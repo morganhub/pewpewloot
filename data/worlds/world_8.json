@@ -139,7 +139,10 @@
 		  "enemy_paddle_speed_px_sec": 510,
 		  "enemy_reaction_interval_sec": 0.16,
 		  "enemy_aim_error_px": 16,
-		  "crystals_per_point": 5
+		  "crystals_per_point": 5,
+		  "invasion_chance": 0.5,
+		  "meteor_enabled": true,
+		  "meteor_hp": 12
 		},
 		{
 		  "enemy_id": "fighter",
@@ -501,7 +504,17 @@
 		  "cols": 7,
 		  "row_hp": [3, 3, 2, 2, 1, 1],
 		  "ball_speed_px_sec": 540,
-		  "damage_percent_per_ball_lost": 0.2
+		  "damage_percent_per_ball_lost": 0.2,
+		  "bonus_brick_count": 3,
+		  "armored_chance": 0.06,
+		  "mystery_chance": 0.05,
+		  "bomb_chance": 0.04,
+		  "debris_chance": 0.15,
+		  "golden_chance": 0.5,
+		  "storm_chance": 0.4,
+		  "surprise_row_chance": 0.6,
+		  "wall_slide_enabled": true,
+		  "rescue_enabled": true
 		},
 		{
 		  "type": "obstacle",
@@ -607,7 +620,10 @@
 		  "enemy_paddle_speed_px_sec": 510,
 		  "enemy_reaction_interval_sec": 0.16,
 		  "enemy_aim_error_px": 16,
-		  "crystals_per_point": 5
+		  "crystals_per_point": 5,
+		  "invasion_chance": 0.5,
+		  "meteor_enabled": true,
+		  "meteor_hp": 12
 		},
 		{
 		  "type": "obstacle",

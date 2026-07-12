@@ -190,7 +190,11 @@
           "cols": 6,
           "row_hp": [2, 2, 1, 1, 1],
           "ball_speed_px_sec": 460,
-          "damage_percent_per_ball_lost": 0.15
+          "damage_percent_per_ball_lost": 0.15,
+          "bonus_brick_count": 2,
+          "debris_chance": 0.1,
+          "golden_chance": 0.4,
+          "rescue_enabled": true
         },
         {
           "type": "swarm",
@@ -298,7 +302,8 @@
           "enemy_paddle_speed_px_sec": 370,
           "enemy_reaction_interval_sec": 0.32,
           "enemy_aim_error_px": 42,
-          "crystals_per_point": 4
+          "crystals_per_point": 4,
+          "invasion_chance": 0.3
         },
         {
           "type": "obstacle",
@@ -586,7 +591,8 @@
           "enemy_paddle_speed_px_sec": 370,
           "enemy_reaction_interval_sec": 0.32,
           "enemy_aim_error_px": 42,
-          "crystals_per_point": 4
+          "crystals_per_point": 4,
+          "invasion_chance": 0.3
         },
         {
           "enemy_id": "artillery",

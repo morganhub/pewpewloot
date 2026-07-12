@@ -11,6 +11,7 @@ signal finished
 
 const MATH_GATE_SCENE: PackedScene = preload("res://scenes/mechanics/MathGate.tscn")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/Enemy.tscn")
+const NumberFormat := preload("res://scenes/mechanics/number_format.gd")
 
 var _config: Dictionary = {}
 var _cfg: Dictionary = {}
@@ -50,6 +51,21 @@ var _target_line: Dictionary = {} # { "core": Line2D, "glow": Line2D, "label": L
 var _target_label: Label = null
 var _target_material: CanvasItemMaterial = null
 
+# Jackpot final (gen_jackpot_chance) : à la fin du round, l'excédent au-delà de
+# max_hp est converti en score/cristaux (récompense les ×). Annoncé dès le début.
+var _jackpot_active: bool = false
+var _jackpot_label: Label = null
+# Clone doré (gen_golden_clone_chance) : bonus si AUCUN contact subi du round.
+var _golden_clone_active: bool = false
+# Méga-drone : gros porteur traversant — contact = ressource ÷2, esquive = cristaux.
+# { "node": Node2D, "label": Label, "radius": float, "y": float }
+var _mega: Dictionary = {}
+var _mega_hit_cd: float = 0.0
+# Piscine de déflation : bande pleine largeur — la traverser divise la ressource
+# ET adapte les valeurs restantes du round. { "node": Node2D, "y": float,
+# "height": float, "consumed": bool }
+var _deflation: Dictionary = {}
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
@@ -74,6 +90,15 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 		# La cible est annoncée dès le début du round : le joueur choisit ses
 		# portes pour ATTERRIR dessus, pas pour maximiser.
 		_ensure_target_label()
+	# Jackpot final : annoncé dès le début (empiler les × devient une stratégie).
+	_jackpot_active = randf() < clampf(_gen_f("gen_jackpot_chance", 0.0), 0.0, 1.0)
+	if _jackpot_active:
+		_ensure_jackpot_label()
+	# Clone doré : un round parfait (aucun contact subi) = bonus cristaux.
+	_golden_clone_active = randf() < clampf(_gen_f("gen_golden_clone_chance", 0.0), 0.0, 1.0)
+	if _golden_clone_active and _player and is_instance_valid(_player) \
+		and _player.has_method("set_gate_runner_golden_clone"):
+		_player.call("set_gate_runner_golden_clone", true)
 	set_process(true)
 
 func _begin_player_mode() -> void:
@@ -153,6 +178,25 @@ func _build_event_schedule() -> void:
 		_target_pending = true
 		_target_value = maxf(1.0, float((target_v as Dictionary).get("target_value", 1.0)))
 
+	# Méga-drone traversant (un seul par round) : contact = ressource divisée.
+	var mega_v: Variant = _config.get("mega_drone", {})
+	if mega_v is Dictionary and not (mega_v as Dictionary).is_empty():
+		_events.append({
+			"time": maxf(0.0, float((mega_v as Dictionary).get("time_offset", 0.0))),
+			"kind": "mega_drone",
+			"data": mega_v
+		})
+
+	# Piscine de déflation : bande pleine largeur, passage obligé qui divise la
+	# ressource (générée quand les nombres deviennent trop gros).
+	var deflation_v: Variant = _config.get("deflation", {})
+	if deflation_v is Dictionary and not (deflation_v as Dictionary).is_empty():
+		_events.append({
+			"time": maxf(0.0, float((deflation_v as Dictionary).get("time_offset", 0.0))),
+			"kind": "deflation",
+			"data": deflation_v
+		})
+
 	_events.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a.get("time", 0.0)) < float(b.get("time", 0.0))
 	)
@@ -207,6 +251,13 @@ func _generate_content() -> void:
 		sub_base = maxf(sub_base, player_hp * sub_ratio)
 	var wall_chance: float = clampf(_gen_f("gen_wall_chance", 0.0), 0.0, 1.0)
 	var shift_chance: float = clampf(_gen_f("gen_shifting_gate_chance", 0.0), 0.0, 1.0)
+	var golden_chance: float = clampf(_gen_f("gen_golden_gate_chance", 0.0), 0.0, 1.0)
+	var triple_chance: float = clampf(_gen_f("gen_triple_gate_chance", 0.0), 0.0, 1.0)
+	var sliding_chance: float = clampf(_gen_f("gen_sliding_gate_chance", 0.0), 0.0, 1.0)
+	var auction_chance: float = clampf(_gen_f("gen_auction_gate_chance", 0.0), 0.0, 1.0)
+	var equation_chance: float = clampf(_gen_f("gen_equation_chance", 0.0), 0.0, 1.0)
+	var burst_chance: float = clampf(_gen_f("gen_burst_chance", 0.0), 0.0, 1.0)
+	var burst_gap: float = maxf(0.4, _gen_f("gen_burst_gap_sec", 1.2))
 	var gates: Array = []
 	var swarms: Array = []
 	var walls: Array = []
@@ -218,18 +269,47 @@ func _generate_content() -> void:
 		# s'ouvre toujours sur un choix de portes).
 		if wall_chance > 0.0 and randf() < wall_chance and not (gates.is_empty() and walls.is_empty()):
 			walls.append({ "time_offset": t, "total_value": total })
+		elif burst_chance > 0.0 and randf() < burst_chance and not gates.is_empty():
+			# Burst : 3 paires très rapprochées, SANS nuée entre elles.
+			for burst_i in range(3):
+				var burst_gate: Dictionary = _generate_gate(t + burst_gap * float(burst_i), add_base, sub_base)
+				if burst_i == 0:
+					burst_gate["burst"] = true # annonce au spawn de la première
+				gates.append(burst_gate)
 		else:
 			var gate: Dictionary = _generate_gate(t, add_base, sub_base)
+			var swarm_mult: float = 1.0
+			# Triple choix : une 3e porte au centre (mixte aléatoire).
+			if triple_chance > 0.0 and randf() < triple_chance:
+				gate["center"] = _generate_extra_door(add_base, sub_base)
+			# Porte dorée : un côté devient x gen_golden_gate_mult — mais la
+			# nuée du slot est renforcée (cupidité/sécurité).
+			if golden_chance > 0.0 and randf() < golden_chance:
+				_make_gate_golden(gate, sub_base)
+				swarm_mult = maxf(1.0, _gen_f("golden_gate_swarm_mult", 1.6))
 			if shift_chance > 0.0 and randf() < shift_chance:
 				gate["shift_interval_sec"] = maxf(0.4, _gen_f("gen_shift_interval_sec", 1.5))
+			if sliding_chance > 0.0 and randf() < sliding_chance:
+				gate["slide_amplitude_px"] = maxf(0.0, _gen_f("slide_amplitude_px", 120.0))
+			if auction_chance > 0.0 and randf() < auction_chance:
+				gate["auction"] = true
+			elif equation_chance > 0.0 and randf() < equation_chance:
+				gate["equation"] = true
 			gates.append(gate)
 			# enemy_id omis : _spawn_swarm retombe sur swarm_enemy_id_default.
-			swarms.append({ "time_offset": t + swarm_offset, "total_value": total })
+			swarms.append({ "time_offset": t + swarm_offset, "total_value": total * swarm_mult })
 		total += step
 		t += interval
 	_config["gates"] = gates
 	_config["swarm"] = swarms
 	_config["walls"] = walls
+	# Méga-drone : un seul par round, sur un temps aléatoire du corps du round.
+	if randf() < clampf(_gen_f("gen_mega_drone_chance", 0.0), 0.0, 1.0) and t > first + interval:
+		_config["mega_drone"] = { "time_offset": randf_range(first + interval, maxf(first + interval, cutoff)) }
+	# Piscine de déflation : dès que la ressource dépasse le seuil, le round
+	# s'ouvre sur la piscine (passage obligé — on « se rafraîchit »).
+	if player_hp >= maxf(1000.0, _gen_f("gen_deflation_trigger_hp", 100000.0)):
+		_config["deflation"] = { "time_offset": maxf(0.2, first - 1.0) }
 	# Défi "cible exacte" : la cible est SIMULÉE sur les portes générées ->
 	# toujours atteignable en jouant le bon chemin (les permutations n'altèrent
 	# pas l'ensemble des opérations disponibles, juste leur côté).
@@ -266,6 +346,35 @@ func _generate_gate(time_offset: float, add_base: float, sub_base: float) -> Dic
 		doors = [bonus_doors.pick_random(), malus_doors.pick_random()]
 	doors.shuffle()
 	return { "time_offset": time_offset, "left": doors[0], "right": doors[1] }
+
+## 3e porte (triple choix) : un tirage mixte indépendant.
+func _generate_extra_door(add_base: float, sub_base: float) -> Dictionary:
+	var pool: Array = [
+		{ "operation": "add", "value": _gen_value_from(add_base) },
+		{ "operation": "multiply", "value": maxf(1.1, _gen_f("gen_gate_mult_value", 2.0)) },
+		{ "operation": "subtract", "value": _gen_value_from(sub_base) },
+		{ "operation": "divide", "value": maxf(1.1, _gen_f("gen_gate_div_value", 2.0)) }
+	]
+	return pool.pick_random()
+
+## Porte dorée : un côté aléatoire devient x gen_golden_gate_mult (marqué
+## golden pour le rendu), le côté opposé redevient un malus franc — le choix
+## cupidité/sécurité reste entier.
+func _make_gate_golden(gate: Dictionary, sub_base: float) -> void:
+	var sides: Array = ["left", "right"]
+	if gate.has("center"):
+		sides.append("center")
+	var golden_side: String = str(sides.pick_random())
+	gate[golden_side] = {
+		"operation": "multiply",
+		"value": maxf(1.5, _gen_f("gen_golden_gate_mult", 3.0)),
+		"golden": true
+	}
+	var other_side: String = "right" if golden_side == "left" else "left"
+	gate[other_side] = [
+		{ "operation": "subtract", "value": _gen_value_from(sub_base) },
+		{ "operation": "divide", "value": maxf(1.1, _gen_f("gen_gate_div_value", 2.0)) }
+	].pick_random()
 
 ## Valeur de porte add/subtract : jitter aléatoire puis arrondi au pas
 ## (gen_value_round_step) pour garder des chiffres lisibles sur les portes.
@@ -316,6 +425,10 @@ func _process(delta: float) -> void:
 				_spawn_wall(event.get("data", {}))
 			"target":
 				_spawn_target(event.get("data", {}))
+			"mega_drone":
+				_spawn_mega_drone()
+			"deflation":
+				_spawn_deflation_pool()
 
 	while not _drone_spawn_queue.is_empty() and float((_drone_spawn_queue[0] as Dictionary).get("time", 0.0)) <= _elapsed:
 		var pending: Dictionary = _drone_spawn_queue.pop_front()
@@ -325,16 +438,20 @@ func _process(delta: float) -> void:
 	# Positionner les formations AVANT le test de contact.
 	_update_walls(delta)
 	_update_drone_contacts()
+	_update_mega_drone(delta)
+	_update_deflation_pool(delta)
 	_update_target(delta)
 	_update_value_label()
 
 	# General rule: end the wave as soon as there are no more enemy ships on
 	# screen (and nothing left to spawn), to avoid an idle period. Only applies
 	# once every scripted event has been dispatched and a swarm was scheduled.
-	# Un scanner de cible non résolu retient la fin (il doit passer le joueur).
+	# Un scanner de cible non résolu retient la fin (il doit passer le joueur) ;
+	# idem méga-drone / piscine encore à l'écran.
 	var all_events_dispatched: bool = _next_event_idx >= _events.size()
 	if all_events_dispatched and _swarm_scheduled and _pending_drone_spawns <= 0 \
-		and _drones.is_empty() and not _target_pending:
+		and _drones.is_empty() and not _target_pending \
+		and _mega.is_empty() and _deflation.is_empty():
 		_finish()
 		return
 
@@ -357,6 +474,7 @@ func _spawn_gate(gate_data: Dictionary) -> void:
 		gate.call("setup", {
 			"left": gate_data.get("left", {}),
 			"right": gate_data.get("right", {}),
+			"center": gate_data.get("center", {}), # triple choix (optionnel)
 			"door_speed": float(gate_data.get("door_speed", _cfg.get("default_door_speed", 170.0))) * _speed_mult,
 			"band_height": float(_cfg.get("gate_band_height_px", 96.0)),
 			"spawn_y": float(_cfg.get("gate_spawn_y", -120.0)),
@@ -364,8 +482,20 @@ func _spawn_gate(gate_data: Dictionary) -> void:
 			# > 0 = paire permutante : les opérations échangent de côté à
 			# intervalle régulier (flash télégraphié).
 			"shift_interval_sec": float(gate_data.get("shift_interval_sec", 0.0)),
-			"shift_telegraph_sec": float(_cfg.get("gate_shift_telegraph_sec", 0.5))
+			"shift_telegraph_sec": float(_cfg.get("gate_shift_telegraph_sec", 0.5)),
+			# Variantes composables : coulissante / enchère / équations.
+			"slide_amplitude_px": float(gate_data.get("slide_amplitude_px", 0.0)),
+			"slide_speed_hz": float(_cfg.get("slide_speed_hz", 0.25)),
+			"auction": bool(gate_data.get("auction", false)),
+			"auction_start_mult": float(_cfg.get("auction_start_mult", 1.5)),
+			"auction_end_mult": float(_cfg.get("auction_end_mult", 0.6)),
+			"equation": bool(gate_data.get("equation", false))
 		})
+	# Burst : la première paire du burst annonce l'enchaînement.
+	if bool(gate_data.get("burst", false)) and VFXManager:
+		var viewport_size: Vector2 = get_viewport_rect().size
+		VFXManager.spawn_floating_text(Vector2(viewport_size.x * 0.5, viewport_size.y * 0.3),
+			_translate_or("gate_runner_burst", "GATE RUSH!"), Color("#FFD56B"), self)
 
 func _on_gate_passed(operation: String, value: float) -> void:
 	if _player and is_instance_valid(_player) and _player.has_method("apply_gate_operation"):
@@ -582,7 +712,7 @@ func _ensure_target_label() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	_target_label.size = Vector2(viewport_size.x, 40.0)
 	_target_label.position = Vector2(0.0, viewport_size.y * 0.085)
-	_target_label.text = LocaleManager.translate("gate_runner_target") % int(round(_target_value))
+	_target_label.text = LocaleManager.translate("gate_runner_target") % NumberFormat.compact(_target_value)
 
 ## Le scanner : ligne core+glow pleine largeur qui descend à la vitesse des
 ## portes et se résout au passage du vaisseau.
@@ -687,6 +817,7 @@ func _update_drone_contacts() -> void:
 				var pv: float = float(entry.get("pv", 0.0))
 				if _player.has_method("take_damage"):
 					_player.call("take_damage", int(maxf(1.0, pv)))
+				_lose_golden_clone()
 				_drones.remove_at(i)
 				drone.queue_free()
 				continue
@@ -700,6 +831,213 @@ func _award_dodge_crystal(at_pos: Vector2) -> void:
 	if _game and is_instance_valid(_game) and _game.has_method("spawn_gate_runner_crystal"):
 		var spawn_pos: Vector2 = Vector2(at_pos.x, get_viewport_rect().size.y - 60.0)
 		_game.call("spawn_gate_runner_crystal", spawn_pos)
+
+# =============================================================================
+# MÉGA-DRONE (gros porteur traversant : contact = ressource divisée, texte -50%)
+# =============================================================================
+
+func _spawn_mega_drone() -> void:
+	if not _mega.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var node := Node2D.new()
+	node.name = "MegaDrone"
+	node.z_as_relative = false
+	node.z_index = 12
+	var mega_scale: float = maxf(1.0, float(_cfg.get("mega_drone_scale", 2.5)))
+	var radius: float = 48.0 * mega_scale
+	var visual: Node2D = _build_mega_drone_visual(mega_scale)
+	node.add_child(visual)
+	# « -50% » affiché SUR le drone (divisor 2 = -50 %).
+	var divisor: float = maxf(1.1, _gen_f("mega_drone_penalty_divisor", 2.0))
+	var label := Label.new()
+	label.text = "-%d%%" % int(round((1.0 - 1.0 / divisor) * 100.0))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", int(28.0 * mega_scale * 0.6))
+	label.add_theme_color_override("font_color", Color.WHITE)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("outline_size", 6)
+	label.size = Vector2(radius * 2.0, radius * 2.0)
+	label.position = -Vector2.ONE * radius
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_child(label)
+	node.global_position = Vector2(viewport_size.x * randf_range(0.25, 0.75), -radius - 20.0)
+	add_child(node)
+	_mega = { "node": node, "label": label, "radius": radius }
+	_mega_hit_cd = 0.0
+
+## Visuel : asset dédié mega_drone_asset, sinon skin swarmer scalé + tint rouge.
+func _build_mega_drone_visual(mega_scale: float) -> Node2D:
+	var root := Node2D.new()
+	var asset_path: String = str(_cfg.get("mega_drone_asset", ""))
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+		if res is Texture2D:
+			var sprite := Sprite2D.new()
+			sprite.texture = res as Texture2D
+			var tex_size: Vector2 = (res as Texture2D).get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				sprite.scale = (Vector2.ONE * 96.0 * mega_scale) / maxf(tex_size.x, tex_size.y)
+			root.add_child(sprite)
+			return root
+	# PH : disque rouge sombre menaçant.
+	var poly := Polygon2D.new()
+	var pts := PackedVector2Array()
+	for i in range(24):
+		var a: float = TAU * float(i) / 24.0
+		pts.append(Vector2(cos(a), sin(a)) * 48.0 * mega_scale)
+	poly.polygon = pts
+	poly.color = Color("#8A1F2AD0")
+	root.add_child(poly)
+	return root
+
+func _update_mega_drone(delta: float) -> void:
+	if _mega.is_empty():
+		return
+	_mega_hit_cd = maxf(0.0, _mega_hit_cd - delta)
+	var node: Node2D = _mega.get("node") as Node2D
+	if node == null or not is_instance_valid(node):
+		_mega = {}
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var speed: float = maxf(40.0, float(_cfg.get("mega_drone_speed_px_sec", 160.0))) * _speed_mult
+	var pos: Vector2 = node.global_position
+	pos.y += speed * delta
+	# Suivi X mou : impossible de l'ignorer, esquive au dernier moment requise.
+	if _player and is_instance_valid(_player):
+		pos.x = move_toward(pos.x, _player.global_position.x, speed * 0.35 * delta)
+	node.global_position = pos
+	var radius: float = float(_mega.get("radius", 96.0))
+	# Contact avec l'essaim (rayon global) : ressource divisée.
+	if _mega_hit_cd <= 0.0 and _player and is_instance_valid(_player):
+		var swarm_radius: float = _contact_radius
+		if _player.has_method("get_gate_runner_swarm_radius"):
+			swarm_radius = maxf(swarm_radius, float(_player.call("get_gate_runner_swarm_radius")))
+		if pos.distance_to(_player.global_position) <= radius + swarm_radius:
+			_mega_hit_cd = 1.0
+			if _player.has_method("apply_gate_operation"):
+				_player.call("apply_gate_operation", "divide", maxf(1.1, _gen_f("mega_drone_penalty_divisor", 2.0)))
+			_lose_golden_clone()
+			if VFXManager:
+				VFXManager.spawn_impact(pos, 30.0, self)
+				if bool(ProfileManager.get_setting("screenshake_enabled", true)):
+					VFXManager.screen_shake(10, 0.4)
+			node.queue_free()
+			_mega = {}
+			return
+	# Esquivé : sorti par le bas -> triple tirage de cristaux d'esquive.
+	if pos.y - radius > viewport_size.y:
+		for _i in range(3):
+			_award_dodge_crystal(pos)
+		node.queue_free()
+		_mega = {}
+
+# =============================================================================
+# PISCINE DE DÉFLATION (bande pleine largeur : ÷ ressource + valeurs adaptées)
+# =============================================================================
+
+func _spawn_deflation_pool() -> void:
+	if not _deflation.is_empty():
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var height: float = maxf(80.0, float(_cfg.get("deflation_zone_height_px", 220.0)))
+	var node := Node2D.new()
+	node.name = "DeflationPool"
+	node.z_as_relative = false
+	node.z_index = -6
+	var asset_path: String = str(_cfg.get("deflation_pool_asset", ""))
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		var res: Resource = ResourceLoader.load(asset_path, "", ResourceLoader.CACHE_MODE_REUSE)
+		if res is Texture2D:
+			var sprite := Sprite2D.new()
+			sprite.texture = res as Texture2D
+			var tex_size: Vector2 = (res as Texture2D).get_size()
+			if tex_size.x > 0.0 and tex_size.y > 0.0:
+				sprite.scale = Vector2(viewport_size.x / tex_size.x, height / tex_size.y)
+			node.add_child(sprite)
+	if node.get_child_count() == 0:
+		# PH : bande bleue translucide.
+		var rect := ColorRect.new()
+		rect.color = Color("#39A8FF55")
+		rect.size = Vector2(viewport_size.x, height)
+		rect.position = Vector2(-viewport_size.x * 0.5, -height * 0.5)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.add_child(rect)
+	var divisor: float = maxf(2.0, _gen_f("deflation_divisor", 10.0))
+	var label := Label.new()
+	label.text = "÷%d" % int(round(divisor))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 46)
+	label.add_theme_color_override("font_color", Color("#D8F6FF"))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("outline_size", 6)
+	label.size = Vector2(viewport_size.x, height)
+	label.position = Vector2(-viewport_size.x * 0.5, -height * 0.5)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_child(label)
+	node.global_position = Vector2(viewport_size.x * 0.5, -height * 0.5 - 40.0)
+	add_child(node)
+	_deflation = { "node": node, "height": height, "consumed": false }
+
+func _update_deflation_pool(delta: float) -> void:
+	if _deflation.is_empty():
+		return
+	var node: Node2D = _deflation.get("node") as Node2D
+	if node == null or not is_instance_valid(node):
+		_deflation = {}
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var speed: float = maxf(10.0, float(_cfg.get("default_door_speed", 170.0))) * _speed_mult
+	node.global_position.y += speed * delta
+	var height: float = float(_deflation.get("height", 220.0))
+	# Passage obligé : la bande couvre tout l'écran — le vaisseau la traverse.
+	if not bool(_deflation.get("consumed", false)) and _player and is_instance_valid(_player) \
+		and absf(node.global_position.y - _player.global_position.y) <= height * 0.5:
+		_deflation["consumed"] = true
+		_apply_deflation()
+	if node.global_position.y - height * 0.5 > viewport_size.y + 60.0:
+		node.queue_free()
+		_deflation = {}
+
+## Déflation : divise la ressource ET adapte tout ce qui reste du round (events
+## non dispatchés, drones vivants, cible) — le risk/reward tient au niveau bas.
+func _apply_deflation() -> void:
+	var divisor: float = maxf(2.0, _gen_f("deflation_divisor", 10.0))
+	if _player and is_instance_valid(_player) and _player.has_method("apply_gate_operation"):
+		_player.call("apply_gate_operation", "divide", divisor)
+	for i in range(_next_event_idx, _events.size()):
+		var data_v: Variant = (_events[i] as Dictionary).get("data", {})
+		if not (data_v is Dictionary):
+			continue
+		var data: Dictionary = data_v as Dictionary
+		match str((_events[i] as Dictionary).get("kind", "")):
+			"gate":
+				for side in ["left", "center", "right"]:
+					var door_v: Variant = data.get(side, {})
+					if door_v is Dictionary and not (door_v as Dictionary).is_empty():
+						var op: String = str((door_v as Dictionary).get("operation", ""))
+						if op == "add" or op == "subtract":
+							(door_v as Dictionary)["value"] = maxf(1.0, round(float((door_v as Dictionary).get("value", 0.0)) / divisor))
+			"swarm", "wall":
+				data["total_value"] = maxf(1.0, float(data.get("total_value", 1.0)) / divisor)
+			"target":
+				data["target_value"] = maxf(1.0, round(float(data.get("target_value", 1.0)) / divisor))
+			_:
+				pass
+	# Drones déjà en vol : leur menace suit (le label global se recalcule).
+	for entry in _drones:
+		if entry is Dictionary:
+			(entry as Dictionary)["pv"] = maxf(1.0, float((entry as Dictionary).get("pv", 1.0)) / divisor)
+	if _target_pending:
+		_target_value = maxf(1.0, round(_target_value / divisor))
+		if _target_label and is_instance_valid(_target_label):
+			_target_label.text = LocaleManager.translate("gate_runner_target") % NumberFormat.compact(_target_value)
+	if VFXManager and _player and is_instance_valid(_player):
+		var deflation_text: String = _translate_or("gate_runner_deflation", "DEFLATION ÷%d") % int(round(divisor))
+		VFXManager.spawn_floating_text(_player.global_position + Vector2(0.0, -100.0),
+			deflation_text, Color("#7FD8FF"), self)
 
 func _recompute_global_value() -> void:
 	var total: float = 0.0
@@ -717,7 +1055,8 @@ func _ensure_value_label() -> void:
 	_value_label.name = "GlobalValueLabel"
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_value_label.add_theme_font_size_override("font_size", 44)
+	# Taille data (+25 % le 2026-07-12 : 44 -> 55) : lisibilité de la menace.
+	_value_label.add_theme_font_size_override("font_size", maxi(10, int(_cfg.get("swarm_value_label_font_size", 55))))
 	_value_label.add_theme_color_override("font_color", Color("#FFE08A"))
 	_value_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	_value_label.add_theme_constant_override("outline_size", 6)
@@ -737,13 +1076,104 @@ func _update_value_label() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	_value_label.size = Vector2(viewport_size.x, 60.0)
 	_value_label.position = Vector2(0.0, viewport_size.y * 0.14)
-	_value_label.text = str(int(round(_global_value)))
+	_value_label.text = NumberFormat.compact(_global_value)
 	_value_label.visible = true
+
+# =============================================================================
+# JACKPOT FINAL + CLONE DORÉ (résolutions de fin de round)
+# =============================================================================
+
+## Petit label persistant sous la CIBLE : le jackpot est annoncé dès le début
+## (empiler les × pour dépasser le cap devient une stratégie de round).
+func _ensure_jackpot_label() -> void:
+	if _jackpot_label and is_instance_valid(_jackpot_label):
+		return
+	_jackpot_label = Label.new()
+	_jackpot_label.name = "JackpotLabel"
+	_jackpot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_jackpot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_jackpot_label.add_theme_font_size_override("font_size", 22)
+	_jackpot_label.add_theme_color_override("font_color", Color("#FFD866"))
+	_jackpot_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_jackpot_label.add_theme_constant_override("outline_size", 4)
+	_jackpot_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_jackpot_label.z_as_relative = false
+	_jackpot_label.z_index = 60
+	add_child(_jackpot_label)
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_jackpot_label.size = Vector2(viewport_size.x, 30.0)
+	_jackpot_label.position = Vector2(0.0, viewport_size.y * 0.115)
+	_jackpot_label.text = _translate_or("gate_runner_jackpot_active", "JACKPOT ON")
+
+## Fin de round : l'excédent au-delà de max_hp est CONVERTI (cash-out) en score
+## + cristaux, puis la ressource redescend à max_hp (resync essaim/label via
+## une opération neutre).
+func _grant_jackpot() -> void:
+	if not _jackpot_active or _player == null or not is_instance_valid(_player):
+		return
+	var max_hp: int = int(_player.get("max_hp"))
+	var overflow: int = int(_player.get("current_hp")) - max_hp
+	if overflow <= 0:
+		return
+	var at: Vector2 = _player.global_position
+	if _game and is_instance_valid(_game):
+		var score: int = int(round(float(overflow) * maxf(0.0, _gen_f("jackpot_score_per_hp", 2.0)) \
+			* maxf(0.0, float(_config.get("reward_multiplier", 1.0)))))
+		if score > 0 and _game.has_method("add_wave_bonus_score"):
+			_game.call("add_wave_bonus_score", score, at)
+		var crystals: int = clampi(int(float(overflow) / maxf(1.0, _gen_f("jackpot_hp_per_crystal", 50.0))),
+			1, maxi(1, int(_gen_f("jackpot_crystals_max", 12.0))))
+		if _game.has_method("spawn_reward_crystals_from_top"):
+			_game.call("spawn_reward_crystals_from_top", crystals)
+	_player.set("current_hp", max_hp)
+	if _player.has_method("apply_gate_operation"):
+		_player.call("apply_gate_operation", "add", 0.0) # resync essaim + label
+	if VFXManager:
+		VFXManager.spawn_floating_text(at + Vector2(0.0, -110.0),
+			_translate_or("gate_runner_jackpot_hit", "JACKPOT! +%s") % NumberFormat.compact(float(overflow)),
+			Color("#FFD866"), self)
+
+## Premier contact subi du round : le clone doré explose, le bonus est perdu.
+func _lose_golden_clone() -> void:
+	if not _golden_clone_active:
+		return
+	_golden_clone_active = false
+	if _player and is_instance_valid(_player):
+		if VFXManager:
+			VFXManager.spawn_impact(_player.global_position, 22.0, self)
+		if _player.has_method("set_gate_runner_golden_clone"):
+			_player.call("set_gate_runner_golden_clone", false)
+
+## Round parfait : le clone doré a survécu -> pluie de cristaux.
+func _grant_golden_clone_reward() -> void:
+	if not _golden_clone_active:
+		return
+	if _player == null or not is_instance_valid(_player):
+		return
+	if _player.has_method("has_gate_runner_golden_clone") \
+		and not bool(_player.call("has_gate_runner_golden_clone")):
+		return
+	if _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystals_from_top"):
+		_game.call("spawn_reward_crystals_from_top", maxi(1, int(_gen_f("golden_clone_crystals", 6.0))))
+	if VFXManager:
+		VFXManager.spawn_floating_text(_player.global_position + Vector2(0.0, -80.0),
+			_translate_or("gate_runner_golden_clone", "GOLDEN CLONE SAVED!"), Color("#FFD866"), self)
+
+func _translate_or(key: String, fallback: String) -> String:
+	if typeof(LocaleManager) != TYPE_NIL and LocaleManager:
+		var translated: String = LocaleManager.translate(key)
+		if translated != "" and translated != key:
+			return translated
+	return fallback
 
 func _finish() -> void:
 	if _finished_emitted:
 		return
 	_finished_emitted = true
+	# Résolutions de fin de round AVANT la restauration du mode joueur (le
+	# jackpot lit/écrit la ressource, le clone doré vérifie l'essaim).
+	_grant_golden_clone_reward()
+	_grant_jackpot()
 	_restore_player_mode()
 	finished.emit()
 	queue_free()

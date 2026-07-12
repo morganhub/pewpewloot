@@ -670,8 +670,8 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 		duration = forced_duration
 	if wave_type == "path_trial":
 		duration += _resolve_path_trial_start_delay(wave)
-	if wave_type == "suika_up":
-		# Self-finish (mort/fuite) : marge pour l'anim de fuite + tirs en vol.
+	if wave_type == "suika_up" or wave_type == "match3":
+		# Self-finish (mort/fuite du boss) : marge pour l'anim de fuite.
 		duration += 6.0
 	if wave_type == "gravity_hole":
 		# The manager plays `duration` seconds of gameplay PLUS the intro/outro
@@ -1430,6 +1430,9 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 		if wave_type == "gate_runner":
 			var gr_cfg: Dictionary = DataManager.get_gate_runner_config() if DataManager else {}
 			_add_warmup_path(target, str(gr_cfg.get("splash_asset_path", "")))
+			# Nouveaux assets (clone doré, méga-drone, piscine de déflation).
+			for gr_asset_key in ["golden_clone_asset", "mega_drone_asset", "deflation_pool_asset"]:
+				_add_warmup_path(target, str(gr_cfg.get(gr_asset_key, "")))
 			var swarm_enemy_id: String = str(gr_cfg.get("swarm_enemy_id_default", "swarmer"))
 			var swarm_v: Variant = wave.get("swarm", {})
 			if swarm_v is Dictionary:
@@ -1471,6 +1474,14 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if pong_bricks_v is Array:
 				for pong_brick_v in (pong_bricks_v as Array):
 					_add_warmup_path(target, str(pong_brick_v))
+			# Météore central : boss .tres tirés au sort (String ou {asset_anim}).
+			var pong_meteors_v: Variant = wave.get("meteor_bosses", pong_cfg.get("meteor_bosses", []))
+			if pong_meteors_v is Array:
+				for pong_meteor_v in (pong_meteors_v as Array):
+					if pong_meteor_v is Dictionary:
+						_add_warmup_path(target, str((pong_meteor_v as Dictionary).get("asset_anim", "")))
+					else:
+						_add_warmup_path(target, str(pong_meteor_v))
 			continue
 		if wave_type == "asteroid_split":
 			var ast_cfg: Dictionary = DataManager.get_wave_type_config("asteroid_split") if DataManager else {}
@@ -1486,6 +1497,16 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if bk_assets_v is Array:
 				for bk_asset_v in (bk_assets_v as Array):
 					_add_warmup_path(target, str(bk_asset_v))
+			# Bonus tombants : brique speciale + capsule par def du pool.
+			var bk_pool_v: Variant = wave.get("bonus_pool", bk_cfg.get("bonus_pool", []))
+			if bk_pool_v is Array:
+				for bk_bonus_v in (bk_pool_v as Array):
+					if bk_bonus_v is Dictionary:
+						_add_warmup_path(target, str((bk_bonus_v as Dictionary).get("brick_asset", "")))
+						_add_warmup_path(target, str((bk_bonus_v as Dictionary).get("drop_asset", "")))
+			# Briques speciales, debris, missiles laser.
+			for bk_asset_key in ["armored_brick_asset", "mystery_brick_asset", "bomb_brick_asset", "boss_brick_asset", "debris_asset", "laser_missile_asset"]:
+				_add_warmup_path(target, str(wave.get(bk_asset_key, bk_cfg.get(bk_asset_key, ""))))
 			continue
 		if wave_type == "ball_launcher":
 			var bl_cfg: Dictionary = DataManager.get_wave_type_config("ball_launcher") if DataManager else {}
@@ -1498,6 +1519,9 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if bl_tokens_v is Array:
 				for bl_token_v in (bl_tokens_v as Array):
 					_add_warmup_path(target, str(bl_token_v))
+			# Nouveaux blocs spéciaux (bonus/malus) : un asset dédié par type.
+			for bl_special_key in ["lightning_block_asset", "bomb_charge_block_asset", "aim_plus_block_asset", "giant_ball_block_asset", "healer_block_asset", "cursed_block_asset", "mover_block_asset", "armored_block_asset", "portal_in_block_asset", "portal_out_block_asset"]:
+				_add_warmup_path(target, str(wave.get(bl_special_key, bl_cfg.get(bl_special_key, ""))))
 			continue
 		if wave_type == "suika_up":
 			var su_cfg: Dictionary = DataManager.get_wave_type_config("suika_up") if DataManager else {}
@@ -1532,6 +1556,9 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if vc_assets_v is Array:
 				for vc_asset_v in (vc_assets_v as Array):
 					_add_warmup_path(target, str(vc_asset_v))
+			# Assets par type de plateforme + pickups/zone étoile (2026-07-12).
+			for vc_asset_key in ["boost_platform_asset", "spring_platform_asset", "conveyor_platform_asset", "elevator_platform_asset", "multi_platform_asset", "jetpack_pickup_asset", "parachute_pickup_asset", "parachute_canopy_asset", "star_zone_asset"]:
+				_add_warmup_path(target, str(wave.get(vc_asset_key, vc_cfg.get(vc_asset_key, ""))))
 			continue
 		if wave_type == "lane_runner":
 			var lr_cfg: Dictionary = DataManager.get_wave_type_config("lane_runner") if DataManager else {}
@@ -1543,6 +1570,9 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if lr_col_assets_v is Array:
 				for lr_col_v in (lr_col_assets_v as Array):
 					_add_warmup_path(target, str(lr_col_v))
+			# Pickups spéciaux, portails, pièce géante, tourelle au sol (2026-07-12).
+			for lr_key in ["portal_entry_asset", "portal_exit_asset", "ram_pickup_asset", "pew_pickup_asset", "ghost_pickup_asset", "magnet_pickup_asset", "coin_x2_pickup_asset", "turbo_pickup_asset", "freeze_pickup_asset", "giant_coin_asset", "ground_turret_asset"]:
+				_add_warmup_path(target, str(wave.get(lr_key, lr_cfg.get(lr_key, ""))))
 			# World obstacle skins can replace the wall assets at runtime.
 			var lr_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
 			if lr_obs_overrides_v is Dictionary:
@@ -1569,6 +1599,13 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			_add_warmup_path(target, str(wave.get("bomb_aura_asset", sr_cfg.get("bomb_aura_asset", ""))))
 			_add_warmup_path(target, str(wave.get("slice_effect_anim", sr_cfg.get("slice_effect_anim", ""))))
 			_add_warmup_path(target, str(wave.get("explosion_anim", sr_cfg.get("explosion_anim", ""))))
+			# Bonus tranchables, leurres, pinata, overlay blindé (2026-07-12).
+			for sr_key in ["hourglass_asset", "freeze_glove_asset", "chronos_asset", "laser_ext_asset", "armored_overlay_asset", "pinata_asset"]:
+				_add_warmup_path(target, str(wave.get(sr_key, sr_cfg.get(sr_key, ""))))
+			var sr_decoy_assets_v: Variant = wave.get("decoy_bomb_assets", sr_cfg.get("decoy_bomb_assets", []))
+			if sr_decoy_assets_v is Array:
+				for sr_decoy_v in (sr_decoy_assets_v as Array):
+					_add_warmup_path(target, str(sr_decoy_v))
 			# World obstacle skins can replace object textures at runtime.
 			var sr_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
 			if sr_obs_overrides_v is Dictionary:
@@ -1589,6 +1626,14 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			_add_warmup_path(target, str(wave.get("explosion_anim", m3_cfg.get("explosion_anim", ""))))
 			_add_warmup_path(target, str(wave.get("glow_asset", m3_cfg.get("glow_asset", ""))))
 			_add_warmup_path(target, str(wave.get("special_aura_asset", m3_cfg.get("special_aura_asset", ""))))
+			# Boss (anims .tres), icônes consommables, overlays variantes (2026-07-12).
+			var m3_bosses_v: Variant = wave.get("bosses", m3_cfg.get("bosses", []))
+			if m3_bosses_v is Array:
+				for m3_boss_v in (m3_bosses_v as Array):
+					if m3_boss_v is Dictionary:
+						_add_warmup_path(target, str((m3_boss_v as Dictionary).get("asset_anim", "")))
+			for m3_key in ["boss_death_explosion", "hammer_icon_asset", "paint_icon_asset", "frost_overlay_asset", "cage_overlay_asset", "timebomb_overlay_asset", "anchor_tile_asset", "joker_drone_asset"]:
+				_add_warmup_path(target, str(wave.get(m3_key, m3_cfg.get(m3_key, ""))))
 			continue
 		if wave_type == "gravity_hole":
 			var gh_cfg: Dictionary = DataManager.get_wave_type_config("gravity_hole") if DataManager else {}
@@ -1616,6 +1661,21 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if gh_core_assets_v is Array:
 				for gh_core_v in (gh_core_assets_v as Array):
 					_add_warmup_path(target, str(gh_core_v))
+			# Refonte Agar.io (2026-07-13) : géants, pickups, flèche, zones, rival, comète, dimension.
+			var gh_giants_v: Variant = wave.get("giants", gh_cfg.get("giants", []))
+			if gh_giants_v is Array:
+				for gh_giant_v in (gh_giants_v as Array):
+					if gh_giant_v is Dictionary:
+						var gh_giant_assets_v: Variant = (gh_giant_v as Dictionary).get("assets", [])
+						if gh_giant_assets_v is Array:
+							for gh_ga_v in (gh_giant_assets_v as Array):
+								_add_warmup_path(target, str(gh_ga_v))
+			var gh_comet_assets_v: Variant = wave.get("comet_assets", gh_cfg.get("comet_assets", []))
+			if gh_comet_assets_v is Array:
+				for gh_ca_v in (gh_comet_assets_v as Array):
+					_add_warmup_path(target, str(gh_ca_v))
+			for gh_key in ["target_arrow_asset", "magnet_pickup_asset", "compass_pickup_asset", "overdrive_pickup_asset", "companion_pickup_asset", "stabilizer_pickup_asset", "companion_asset", "electric_zone_asset", "rival_vortex_asset", "bonus_bg_asset"]:
+				_add_warmup_path(target, str(wave.get(gh_key, gh_cfg.get(gh_key, ""))))
 			# World obstacle skins can replace prop textures at runtime.
 			var gh_obs_overrides_v: Variant = _skin_overrides.get("obstacles", {})
 			if gh_obs_overrides_v is Dictionary:
@@ -1668,6 +1728,13 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			var ab_skin: String = str(enemy_overrides.get(ab_enemy_id, ""))
 			if ab_skin != "":
 				_add_warmup_path(target, ab_skin)
+			# Arène + pickups + types spéciaux (2026-07-12).
+			var ab_arena_v: Variant = wave.get("arena_backgrounds", ab_cfg.get("arena_backgrounds", []))
+			if ab_arena_v is Array:
+				for ab_arena_bg_v in (ab_arena_v as Array):
+					_add_warmup_path(target, str(ab_arena_bg_v))
+			for ab_asset_key in ["decoy_pickup_asset", "freeze_pickup_asset", "overcharge_pickup_asset", "crystallize_pickup_asset", "repulse_pickup_asset", "toxic_prey_asset", "predator_asset", "golden_prey_asset", "devourer_asset"]:
+				_add_warmup_path(target, str(wave.get(ab_asset_key, ab_cfg.get(ab_asset_key, ""))))
 			continue
 
 		var enemy_id: String = str(wave.get("enemy_id", ""))
