@@ -23,7 +23,8 @@
 				"asset": "",
 				"asset_anim": "res://assets/ships/furnace.tres",
 				"asset_anim_duration": 4.0,
-				"asset_anim_loop": true
+				"asset_anim_loop": true,
+				"wave_visuals": {}
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
@@ -53,7 +54,8 @@
 				"asset": "",
 				"asset_anim": "res://assets/ships/greyhound.tres",
 				"asset_anim_duration": 4.0,
-				"asset_anim_loop": true
+				"asset_anim_loop": true,
+				"wave_visuals": {}
 			},
 			"missile_id": "missile_homing",
 			"missile_pattern_id": "double_straight",
@@ -83,7 +85,8 @@
 				"asset": "",
 				"asset_anim": "res://assets/ships/sting.tres",
 				"asset_anim_duration": 4.0,
-				"asset_anim_loop": true
+				"asset_anim_loop": true,
+				"wave_visuals": {}
 			},
 			"missile_id": "missile_wave",
 			"missile_pattern_id": "triple_spread",
@@ -113,7 +116,8 @@
 				"asset": "",
 				"asset_anim": "res://assets/ships/tossy.tres",
 				"asset_anim_duration": 4.0,
-				"asset_anim_loop": true
+				"asset_anim_loop": true,
+				"wave_visuals": {}
 			},
 			"missile_id": "missile_poison",
 			"missile_pattern_id": "burst_5",
@@ -143,7 +147,8 @@
 				"asset": "",
 				"asset_anim": "res://assets/ships/wave.tres",
 				"asset_anim_duration": 4.0,
-				"asset_anim_loop": true
+				"asset_anim_loop": true,
+				"wave_visuals": {}
 			},
 			"missile_id": "missile_ice",
 			"missile_pattern_id": "wave_shot",

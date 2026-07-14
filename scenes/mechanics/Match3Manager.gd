@@ -77,7 +77,7 @@ var _grid_origin: Vector2 = Vector2.ZERO
 var _grid_root: Node2D = null
 var _cascade_depth: int = 0
 
-# Resolved tile sets: [{ "normal": SpriteFrames|null, "special": SpriteFrames|null,
+# Resolved tile sets: [{ "normal": SpriteFrames|Texture2D|null, "special": SpriteFrames|Texture2D|null,
 #   "tint": Color, "special_tint": Color, "scale_mult": float, "fallback": Color }]
 var _tile_sets: Array = []
 
@@ -111,11 +111,9 @@ var _boss_visual_size: Vector2 = Vector2(200, 200)
 var _boss_respawn_timer: float = 0.0
 # Cellules mortes (plateau a trous, data board_mask[]) : "col,row" -> true.
 var _dead_cells: Dictionary = {}
-# Consommables : stocks + icones bas-droite { id: { root, badge, halo, pos } }.
-var _hammer_stock: int = 0
+# Consommables : stock + icone bas-droite { id: { root, badge, halo, pos } }.
+# Marteau retiré (14 juillet 2026) : ne reste que la peinture.
 var _paint_stock: int = 0
-var _hammer_armed: bool = false
-var _last_consumable_gain: String = ""
 var _consumable_icons: Dictionary = {}
 # Variantes rares : scheduler + fenetres (jamais deux fenetres a la fois).
 var _variant_timer: float = 0.0
@@ -123,7 +121,6 @@ var _last_variant_id: String = ""
 var _lateral_gravity_left: float = 0.0
 var _joker_left: float = 0.0
 var _joker_cell: Vector2i = Vector2i(-1, -1)
-var _anchor_cell: Vector2i = Vector2i(-1, -1)
 var _move_effects_pending: bool = false
 # Evenements : scheduler + fenetres.
 var _event_timer: float = 0.0
@@ -279,9 +276,12 @@ func _prepare_assets() -> void:
 			var special_res: Resource = _load_cached_resource(str(src.get("special", "")))
 			var fallback: Color = Color(str(fallback_colors[idx % maxi(1, fallback_colors.size())])) \
 				if not fallback_colors.is_empty() else Color.from_hsv(float(idx) / 6.0, 0.7, 0.95)
+			# Accepte SpriteFrames (.tres animé) OU Texture2D (.png/.jpg statique,
+			# ex. tuiles gemme carrées) — comme pong/breakout/etc. Tout autre type
+			# reste null (fallback rectangle coloré).
 			_tile_sets.append({
-				"normal": normal_res as SpriteFrames if normal_res is SpriteFrames else null,
-				"special": special_res as SpriteFrames if special_res is SpriteFrames else null,
+				"normal": normal_res if (normal_res is SpriteFrames or normal_res is Texture2D) else null,
+				"special": special_res if (special_res is SpriteFrames or special_res is Texture2D) else null,
 				"tint": Color(str(src.get("tint", "#FFFFFF"))),
 				"special_tint": Color(str(src.get("special_tint", "#FFFFFF"))),
 				"scale_mult": maxf(0.2, float(src.get("scale_mult", 1.0))),
@@ -454,10 +454,12 @@ func _apply_tile_visual(entry: Dictionary) -> void:
 	entry["aura"] = null
 	var type_set: Dictionary = _tile_sets[int(entry.get("type", 0)) % _tile_sets.size()]
 	var special: bool = bool(entry.get("is_special", false))
-	var frames: SpriteFrames = type_set.get("special") if special else type_set.get("normal")
+	var res: Variant = type_set.get("special") if special else type_set.get("normal")
 	var tile_px: float = _cell_px * clampf(float(_get_conf("tile_fill_ratio", 0.82)), 0.3, 1.0) * float(type_set.get("scale_mult", 1.0))
+	var modulate_col: Color = (type_set.get("special_tint") if special else type_set.get("tint")) as Color
 	var sprite: Node2D = null
-	if frames != null:
+	if res is SpriteFrames:
+		var frames: SpriteFrames = res as SpriteFrames
 		var anim := AnimatedSprite2D.new()
 		anim.sprite_frames = frames
 		var anim_name: StringName = &"default"
@@ -474,8 +476,18 @@ func _apply_tile_visual(entry: Dictionary) -> void:
 				var f_size: Vector2 = frame_tex.get_size()
 				if f_size.x > 0.0 and f_size.y > 0.0:
 					anim.scale = Vector2.ONE * (tile_px / maxf(f_size.x, f_size.y))
-		anim.modulate = (type_set.get("special_tint") if special else type_set.get("tint")) as Color
+		anim.modulate = modulate_col
 		sprite = anim
+	elif res is Texture2D:
+		# Tuile statique (gemme carrée) : Sprite2D scalé cover sur la case.
+		var tex: Texture2D = res as Texture2D
+		var spr := Sprite2D.new()
+		spr.texture = tex
+		var t_size: Vector2 = tex.get_size()
+		if t_size.x > 0.0 and t_size.y > 0.0:
+			spr.scale = Vector2.ONE * (tile_px / maxf(t_size.x, t_size.y))
+		spr.modulate = modulate_col
+		sprite = spr
 	else:
 		var rect := Polygon2D.new()
 		var half: float = tile_px * 0.5
@@ -547,9 +559,13 @@ func _attach_special_aura(entry: Dictionary, node: Node2D, tile_px: float) -> vo
 func _is_wild(entry: Dictionary) -> bool:
 	return bool(entry.get("is_ship", false)) or bool(entry.get("is_joker", false))
 
-## Verrouillee (givree/cagee) : ni swap ni match tant que le verrou tient.
+## Verrouillee (givree/cagee/bombe a retardement) : ni swap ni match tant que le
+## verrou tient. La bombe reste "posee" (jamais matchee directement) : son
+## compteur ne baisse QUE par un match adjacent (_relax_locks_around) et elle
+## detone a 0 (_detonate_zero_timebombs). La cle "timebomb" verrouille meme a 0,
+## jusqu'a ce que la detonation retire la tuile.
 func _is_locked(entry: Dictionary) -> bool:
-	return int(entry.get("frozen", 0)) > 0 or bool(entry.get("caged", false))
+	return int(entry.get("frozen", 0)) > 0 or bool(entry.get("caged", false)) or entry.has("timebomb")
 
 ## Swappable : ni verrouillee ni ancre (l'ancre descend seule).
 func _is_swappable(entry: Dictionary) -> bool:
@@ -654,10 +670,6 @@ func _begin_gesture(capture_id: int, screen_pos: Vector2) -> void:
 		_on_consumable_tapped(consumable_id)
 		return
 	var cell: Vector2i = _world_to_cell(world)
-	# Marteau armé : le prochain tap détruit la tuile visée (ou désarme).
-	if _hammer_armed:
-		_hammer_tap(cell)
-		return
 	# OVERDRIVE armé : le tap raye sa ligne au laser du vaisseau-joker.
 	if _overdrive_armed and cell.x >= 0:
 		_fire_overdrive(cell.y)
@@ -792,13 +804,15 @@ func _enter_idle() -> void:
 	if _elapsed >= _duration and not _is_free_mode():
 		_start_boss_escape()
 		return
-	# Effets du coup joué (une fois le plateau stabilisé) : compte à rebours
-	# des bombes + descente de l'ancre ; une détonation enchaîne sa résolution.
+	# Effets du coup joué (une fois le plateau stabilisé) : descente de l'ancre.
+	# Les bombes à retardement ne décomptent PLUS par coup — leur compteur baisse
+	# uniquement par match adjacent (_relax_locks_around). Ici on ne fait que
+	# détoner celles arrivées à 0 (enchaîne sa résolution sans récompense).
 	if _move_effects_pending:
 		_move_effects_pending = false
 		_descend_anchor()
-		if _tick_timebombs():
-			return # passée en RESOLVING (destruction sans récompense)
+	if _detonate_zero_timebombs():
+		return # passée en RESOLVING (destruction sans récompense)
 	if not _has_possible_move():
 		_enter_shuffle()
 		return
@@ -1039,7 +1053,10 @@ func _destroy_cells(cells: Array, depth: int, rewarded: bool = true) -> void:
 	if rewarded:
 		_relax_locks_around(cells)
 
-## Les voisins (4 directions) des cellules détruites perdent un cran de verrou.
+## Les voisins (4 directions = row/column adjacente) des cellules détruites par un
+## match perdent un cran de verrou : givre -1 charge, cage libérée, bombe à
+## retardement -1 sur son compteur (détonée à 0 par _detonate_zero_timebombs).
+## Un match "loin" (aucune cellule détruite adjacente) ne touche donc rien.
 func _relax_locks_around(cells: Array) -> void:
 	var seen: Dictionary = {}
 	for cell_v in cells:
@@ -1066,6 +1083,14 @@ func _relax_locks_around(cells: Array) -> void:
 			elif bool(entry.get("caged", false)):
 				entry["caged"] = false
 				_remove_lock_overlay(entry)
+			elif entry.has("timebomb"):
+				var left: int = int(entry.get("timebomb", 0))
+				if left > 0:
+					left -= 1
+					entry["timebomb"] = left
+					var lbl_v: Variant = entry.get("count_label", null)
+					if lbl_v is Label and is_instance_valid(lbl_v):
+						(lbl_v as Label).text = str(maxi(0, left))
 
 func _remove_lock_overlay(entry: Dictionary) -> void:
 	var overlay_v: Variant = entry.get("overlay", null)
@@ -1414,8 +1439,7 @@ func _build_consumable_bar() -> void:
 	var gap: float = maxf(0.0, float(_get_conf("consumable_gap_px", 14.0)))
 	var bottom_off: float = maxf(10.0, float(_get_conf("consumable_bottom_offset_px", 46.0)))
 	var defs: Array = [
-		{ "id": "paint", "asset_key": "paint_icon_asset", "tint": "#7FE58C", "glyph": "P" },
-		{ "id": "hammer", "asset_key": "hammer_icon_asset", "tint": "#FFB05C", "glyph": "M" }
+		{ "id": "paint", "asset_key": "paint_icon_asset", "tint": "#7FE58C", "glyph": "P" }
 	]
 	for i in range(defs.size()):
 		var def: Dictionary = defs[i]
@@ -1483,7 +1507,7 @@ func _build_consumable_bar() -> void:
 func _refresh_consumable_icons() -> void:
 	for id in _consumable_icons.keys():
 		var icon: Dictionary = _consumable_icons[id]
-		var stock: int = _hammer_stock if str(id) == "hammer" else _paint_stock
+		var stock: int = _paint_stock
 		var root_v: Variant = icon.get("root", null)
 		if root_v is Node2D and is_instance_valid(root_v):
 			# Grisee (disabled) a 0 stock.
@@ -1493,7 +1517,7 @@ func _refresh_consumable_icons() -> void:
 			(badge_v as Label).text = str(stock) if stock > 0 else ""
 		var halo_v: Variant = icon.get("halo", null)
 		if halo_v is Line2D and is_instance_valid(halo_v):
-			(halo_v as Line2D).visible = str(id) == "hammer" and _hammer_armed
+			(halo_v as Line2D).visible = false # plus d'armement (marteau retiré)
 
 ## Icone touchee par un tap monde (rayon genereux) — "" sinon.
 func _consumable_at(world: Vector2) -> String:
@@ -1504,28 +1528,10 @@ func _consumable_at(world: Vector2) -> String:
 	return ""
 
 func _on_consumable_tapped(id: String) -> void:
-	if id == "hammer":
-		if _hammer_stock <= 0:
-			return
-		_hammer_armed = not _hammer_armed
-	elif id == "paint":
+	if id == "paint":
 		if _paint_stock <= 0:
 			return
-		_hammer_armed = false
 		_use_paint()
-	_refresh_consumable_icons()
-
-## Marteau armé : tap sur une tuile (jamais vaisseau/joker) = destruction.
-func _hammer_tap(cell: Vector2i) -> void:
-	var entry_v: Variant = _entry_at(cell) if cell.x >= 0 else null
-	if entry_v is Dictionary and not _is_wild(entry_v as Dictionary):
-		_hammer_armed = false
-		_hammer_stock = maxi(0, _hammer_stock - 1)
-		if VFXManager:
-			VFXManager.screen_shake(4.0, 0.15)
-		_run_resolution([cell], 0, true)
-	else:
-		_hammer_armed = false # tap hors plateau/vaisseau = désarme
 	_refresh_consumable_icons()
 
 ## Peinture : 3 tuiles aléatoires converties vers le type le plus présent.
@@ -1576,30 +1582,15 @@ func _use_paint() -> void:
 ## Gain sur gros match : anti-répétition, caps de stock, floating.
 func _maybe_gain_consumable(at_pos: Vector2) -> void:
 	var cap: int = maxi(1, int(_get_conf("consumable_max_stock", 5)))
-	var picks: Array = ["hammer", "paint"]
-	picks.shuffle()
-	for id in picks:
-		if str(id) == _last_consumable_gain and picks.size() > 1:
-			continue
-		var chance_key: String = "hammer_drop_chance" if str(id) == "hammer" else "paint_drop_chance"
-		if randf() > clampf(float(_get_conf(chance_key, 0.05)), 0.0, 1.0):
-			continue
-		if str(id) == "hammer":
-			if _hammer_stock >= cap:
-				continue
-			_hammer_stock += 1
-		else:
-			if _paint_stock >= cap:
-				continue
-			_paint_stock += 1
-		_last_consumable_gain = str(id)
-		if VFXManager:
-			VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
-				_translate_or("match3_hammer" if str(id) == "hammer" else "match3_paint",
-					"HAMMER +1" if str(id) == "hammer" else "PAINT +1"),
-				Color("#FFB05C") if str(id) == "hammer" else Color("#7FE58C"), self)
-		_refresh_consumable_icons()
+	if _paint_stock >= cap:
 		return
+	if randf() > clampf(float(_get_conf("paint_drop_chance", 0.05)), 0.0, 1.0):
+		return
+	_paint_stock += 1
+	if VFXManager:
+		VFXManager.spawn_floating_text(at_pos + Vector2(0.0, -40.0),
+			_translate_or("match3_paint", "PAINT +1"), Color("#7FE58C"), self)
+	_refresh_consumable_icons()
 
 # =============================================================================
 # VARIANTES RARES + ÉVÉNEMENTS (schedulers anti-répétition, fenêtres exclusives)
@@ -1866,7 +1857,10 @@ func _attach_lock_overlay(entry: Dictionary, kind: String) -> void:
 
 ## Coup joué : les compteurs des bombes descendent ; à 0 -> détonation SANS
 ## récompense (voisines comprises). Retourne true si une résolution a démarré.
-func _tick_timebombs() -> bool:
+## Détone les bombes à retardement arrivées à 0 (le décrément est géré par
+## adjacence dans _relax_locks_around, plus par coup joué). Retourne true si une
+## détonation a été lancée (le manager passe alors en RESOLVING sans récompense).
+func _detonate_zero_timebombs() -> bool:
 	var due: Array = []
 	for row in range(_grid_size):
 		for col in range(_grid_size):
@@ -1874,13 +1868,7 @@ func _tick_timebombs() -> bool:
 			var entry_v: Variant = _entry_at(cell)
 			if not (entry_v is Dictionary) or not (entry_v as Dictionary).has("timebomb"):
 				continue
-			var entry: Dictionary = entry_v as Dictionary
-			var left: int = int(entry.get("timebomb", 0)) - 1
-			entry["timebomb"] = left
-			var label_v: Variant = entry.get("count_label", null)
-			if label_v is Label and is_instance_valid(label_v):
-				(label_v as Label).text = str(maxi(0, left))
-			if left <= 0:
+			if int((entry_v as Dictionary).get("timebomb", 0)) <= 0:
 				due.append(cell)
 	if due.is_empty():
 		return false
@@ -1914,11 +1902,11 @@ func _find_anchor_cell() -> Vector2i:
 func _spawn_anchor() -> void:
 	var candidates: Array = []
 	for col in range(_grid_size):
-		var cell := Vector2i(col, 0)
-		var entry_v: Variant = _entry_at(cell)
+		var candidate := Vector2i(col, 0)
+		var entry_v: Variant = _entry_at(candidate)
 		if entry_v is Dictionary and not _is_wild(entry_v as Dictionary) \
 			and not _is_locked(entry_v as Dictionary):
-			candidates.append(cell)
+			candidates.append(candidate)
 	if candidates.is_empty():
 		return
 	var cell: Vector2i = candidates[randi() % candidates.size()]

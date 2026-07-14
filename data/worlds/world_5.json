@@ -95,17 +95,17 @@
           "hp_multiplier": 1.45
         },
         {
-          "type": "path_trial",
-          "pattern_id": "dna_helix",
-          "speed": 220.0,
-          "tick_damage": 12,
-          "tick_interval_sec": 0.35,
-          "path_width": 120.0,
-          "warmup_sec": 1.0,
-          "head_length_px": 280.0,
-          "tail_length_px": 180.0,
-          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+          "type": "snake",
+          "duration": 45,
+          "boss_toughness_mult": 1.2,
+          "base_speed_px_sec": 230,
+          "item_spawn_interval_sec": 1.6,
+          "bite_damage_percent": 0.07,
+          "initial_segments": 4
+        },
+        {
+          "type": "survivor",
+          "duration": 80.0
         },
         {
           "enemy_id": "fighter",
@@ -190,17 +190,13 @@
           "hp_multiplier": 1.45
         },
         {
-          "type": "path_trial",
-          "pattern_id": "dna_helix",
-          "speed": 250.0,
-          "tick_damage": 12,
-          "tick_interval_sec": 0.35,
-          "path_width": 120.0,
-          "warmup_sec": 1.0,
-          "head_length_px": 280.0,
-          "tail_length_px": 180.0,
-          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+          "type": "snake",
+          "duration": 45,
+          "boss_toughness_mult": 1.2,
+          "base_speed_px_sec": 230,
+          "item_spawn_interval_sec": 1.6,
+          "bite_damage_percent": 0.07,
+          "initial_segments": 4
         },
         {
           "type": "obstacle",
@@ -283,17 +279,13 @@
           "hp_multiplier": 1.45
         },
         {
-          "type": "path_trial",
-          "pattern_id": "dna_helix",
-          "speed": 220.0,
-          "tick_damage": 12,
-          "tick_interval_sec": 0.35,
-          "path_width": 120.0,
-          "warmup_sec": 1.0,
-          "head_length_px": 280.0,
-          "tail_length_px": 180.0,
-          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+          "type": "snake",
+          "duration": 45,
+          "boss_toughness_mult": 1.2,
+          "base_speed_px_sec": 230,
+          "item_spawn_interval_sec": 1.6,
+          "bite_damage_percent": 0.07,
+          "initial_segments": 4
         },
         {
           "enemy_id": "artillery",
@@ -416,17 +408,13 @@
           "hp_multiplier": 1.45
         },
         {
-          "type": "path_trial",
-          "pattern_id": "dna_helix",
-          "speed": 270.0,
-          "tick_damage": 12,
-          "tick_interval_sec": 0.35,
-          "path_width": 120.0,
-          "warmup_sec": 1.0,
-          "head_length_px": 280.0,
-          "tail_length_px": 180.0,
-          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+          "type": "snake",
+          "duration": 45,
+          "boss_toughness_mult": 1.2,
+          "base_speed_px_sec": 230,
+          "item_spawn_interval_sec": 1.6,
+          "bite_damage_percent": 0.07,
+          "initial_segments": 4
         },
         {
           "enemy_id": "fighter",
@@ -522,17 +510,13 @@
           "hp_multiplier": 1.45
         },
         {
-          "type": "path_trial",
-          "pattern_id": "dna_helix",
-          "speed": 250.0,
-          "tick_damage": 12,
-          "tick_interval_sec": 0.35,
-          "path_width": 120.0,
-          "warmup_sec": 1.0,
-          "head_length_px": 280.0,
-          "tail_length_px": 180.0,
-          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+          "type": "snake",
+          "duration": 45,
+          "boss_toughness_mult": 1.2,
+          "base_speed_px_sec": 230,
+          "item_spawn_interval_sec": 1.6,
+          "bite_damage_percent": 0.07,
+          "initial_segments": 4
         },
         {
           "type": "obstacle",
@@ -676,17 +660,13 @@
           "hp_multiplier": 1.45
         },
         {
-          "type": "path_trial",
-          "pattern_id": "dna_helix",
-          "speed": 290.0,
-          "tick_damage": 12,
-          "tick_interval_sec": 0.35,
-          "path_width": 120.0,
-          "warmup_sec": 1.0,
-          "head_length_px": 280.0,
-          "tail_length_px": 180.0,
-          "hazard_asset_override": "res://assets/missiles/gradient_energy_burst.tres",
-          "path_asset_override": "res://assets/missiles/blue_energy.tres"
+          "type": "snake",
+          "duration": 45,
+          "boss_toughness_mult": 1.2,
+          "base_speed_px_sec": 230,
+          "item_spawn_interval_sec": 1.6,
+          "bite_damage_percent": 0.07,
+          "initial_segments": 4
         },
         {
           "type": "obstacle",

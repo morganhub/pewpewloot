@@ -11,11 +11,18 @@ extends Node2D
 ## masse. Fond = grille de tuiles du bg choisi repositionnées modulo (défilement
 ## infini), installée sous le cover signature (aura noire constellation,
 ## chorégraphie intro/outro conservée).
-## Écosystème : props dérivants mangeables/oversize (couleurs par taille
-## relative), CHASSEURS (les gros poursuivent le joueur 6-12 s random puis
-## abandonnent), GÉANTS aux hautes masses, garde-fou de solvabilité (toujours
-## un mangeable à portée) + FLÈCHE omnidirectionnelle vers le mangeable le plus
-## proche quand l'écran est vide. Fin par OBJECTIF DE TAILLE (story : cible
+## Écosystème : MONDE SEEDÉ PERSISTANT — le monde est découpé en chunks dont le
+## contenu (props, pickups, zones électrifiées) est généré déterministiquement
+## depuis un seed roulé au chargement (hash(cx, cy, seed)) : quitter une zone et
+## y revenir = retrouver les mêmes objets (les absorbés restent absorbés, les
+## positions dérivées sont écrites dans le record au despawn). Props
+## mangeables/oversize (couleurs par taille relative), CHASSEURS (les gros
+## poursuivent le joueur 6-12 s random puis abandonnent), GÉANTS aux hautes
+## masses, garde-fou de solvabilité (toujours un mangeable à portée, spawns
+## éphémères hors seed) + FLÈCHE omnidirectionnelle vers le mangeable le plus
+## proche quand l'écran est vide. Labels d'effets optionnels sur les objets
+## (toggle racine wave_types.json > effect_labels_enabled — béquille lisibilité
+## tant que les assets ne sont pas explicites). Fin par OBJECTIF DE TAILLE (story : cible
 ## facile en ~60 s ; Libre restart : cible par round croissante) — avec chance
 ## de finale en NOYAU FRAGMENTÉ (3 fragments à absorber en ordre).
 ## Pickups (magnet, compass, surcharge, mini-trou compagnon, stabilisateur),
@@ -73,13 +80,22 @@ const BG_TILE_POOL_MAX: int = 30
 # "type_tint": Color, "score_base": int, "crystal_chance": float,
 # "near": bool } + optionnels : "chaser"/"chasing"/"chase_until"/
 # "chase_cd_until"/"chase_speed_ratio", "giant", "flee", "nested",
-# "no_explode", "comet", "fragment_index".
+# "explosive", "comet", "fragment_index", "record" (props seedés).
 var _props: Array = []
-var _spawn_timer: float = 0.0
 var _oversize_cooldown: float = 0.0
 var _solvability_timer: float = 0.0
 var _no_target_timer: float = 0.0
 var _explosive_check_timer: float = 0.0
+
+# Monde seedé persistant : chunks générés déterministiquement depuis
+# _world_seed. Records { pos, type, required_mass (ABSOLUE, figée à la
+# découverte de la zone), mass_gain, velocity, rot_speed, consumed, live,
+# flags variantes }. consumed = mangé pour de bon ; live = node instancié.
+var _world_seed: int = 0
+var _chunks: Dictionary = {} # Vector2i -> { "props": [rec], "pickups": [rec], "zones": [rec] }
+var _chunk_stream_timer: float = 0.0
+var _zone_chunk_chance: float = 0.0
+var _storm_spawn_timer: float = 0.0
 
 # Objectif de taille + noyau fragmenté.
 var _target_mass: float = 50.0
@@ -88,10 +104,8 @@ var _next_fragment: int = 0
 var _fragments_total: int = 0
 var _target_reached: bool = false
 
-# Pickups (orbes monde) + effets temporels.
-var _pickups: Array = [] # { "node", "id", "pulse" }
-var _pickup_timer: float = 0.0
-var _last_pickup_id: String = ""
+# Pickups (orbes monde, seedés par chunk) + effets temporels.
+var _pickups: Array = [] # { "node", "id", "pulse", "record" }
 var _magnet_left: float = 0.0
 var _compass_left: float = 0.0
 var _overdrive_left: float = 0.0
@@ -112,7 +126,6 @@ var _rival_node: Node2D = null
 var _inversion_left: float = 0.0
 var _storm_left: float = 0.0
 var _dimension_left: float = 0.0
-var _dimension_cover: AnimatedSprite2D = null
 var _last_clear_screen: float = -100.0
 var _clear_screen_peak: int = 0
 
@@ -132,10 +145,10 @@ var _finished_emitted: bool = false
 
 const PICKUP_TINTS: Dictionary = {
 	"magnet": "#FF5C8A", "compass": "#FFD866", "overdrive": "#C77CFF",
-	"companion": "#5CE8FF", "stabilizer": "#7FE58C"
+	"companion": "#5CE8FF", "stabilizer": "#7FE58C", "chest": "#FFD866"
 }
 const PICKUP_GLYPHS: Dictionary = {
-	"magnet": "M", "compass": "C", "overdrive": "G", "companion": "V", "stabilizer": "S"
+	"magnet": "M", "compass": "C", "overdrive": "G", "companion": "V", "stabilizer": "S", "chest": "$"
 }
 
 func _ready() -> void:
@@ -162,9 +175,19 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 		var bgs: Array = bgs_v as Array
 		_chosen_bg = str(bgs[randi() % bgs.size()])
 
-	_pickup_timer = randf_range(
-		maxf(3.0, float(_get_conf("pickup_interval_sec_min", 14.0))),
-		maxf(3.0, float(_get_conf("pickup_interval_sec_max", 22.0))))
+	# Seed du monde : 0 = roulé au chargement (partagé par tous les chunks —
+	# le joueur retrouve toujours les mêmes objets aux mêmes endroits).
+	_world_seed = int(_get_conf("world_seed", 0))
+	if _world_seed == 0:
+		_world_seed = int(randi()) | 1
+	# electric_zone_count = zones attendues dans la vue de départ, converti en
+	# chance par chunk (les zones s'étalent sur tout le monde parcouru).
+	var chunk_size: float = maxf(200.0, float(_get_conf("chunk_size_px", 640.0)))
+	var ring_r: float = get_viewport_rect().size.length() * 0.5 \
+		* maxf(0.4, float(_get_conf("spawn_ring_ratio", 1.15)))
+	var chunks_in_view: float = maxf(1.0, PI * ring_r * ring_r / (chunk_size * chunk_size))
+	_zone_chunk_chance = clampf(maxf(0.0, float(_get_conf("electric_zone_count", 0.0))) / chunks_in_view, 0.0, 1.0)
+
 	_event_timer = randf_range(
 		maxf(5.0, float(_get_conf("event_interval_sec_min", 20.0))),
 		maxf(5.0, float(_get_conf("event_interval_sec_max", 35.0))))
@@ -388,8 +411,7 @@ func _on_intro_handoff() -> void:
 	_transition_sprite = null
 	_state = State.RUN
 	_run_elapsed = 0.0
-	_spawn_timer = 0.2
-	_spawn_electric_zones()
+	_chunk_stream_timer = 0.0
 	if _countdown_label and is_instance_valid(_countdown_label):
 		_countdown_label.visible = true
 
@@ -448,6 +470,7 @@ func _on_outro_cover() -> void:
 	if _world_root and is_instance_valid(_world_root):
 		_world_root.queue_free()
 	_world_root = null
+	_bg_tiles.clear() # les tuiles sont enfants de _world_root : libérées avec lui
 	_props.clear()
 	_pickups.clear()
 	_zones.clear()
@@ -483,7 +506,7 @@ func _update_world_transform() -> void:
 func _update_bg_tiles() -> void:
 	if _world_root == null or not is_instance_valid(_world_root) or _bg_texture == null:
 		for tile_v in _bg_tiles:
-			if tile_v is Sprite2D and is_instance_valid(tile_v):
+			if is_instance_valid(tile_v) and tile_v is Sprite2D:
 				(tile_v as Sprite2D).visible = false
 		return
 	var tex_size: Vector2 = _bg_texture.get_size()
@@ -514,7 +537,7 @@ func _update_bg_tiles() -> void:
 			used += 1
 	for i in range(used, _bg_tiles.size()):
 		var extra_v: Variant = _bg_tiles[i]
-		if extra_v is Sprite2D and is_instance_valid(extra_v):
+		if is_instance_valid(extra_v) and extra_v is Sprite2D:
 			(extra_v as Sprite2D).visible = false
 
 ## Input direction (pattern slice_rush) : doigt posé = direction depuis le
@@ -577,7 +600,8 @@ func _tick_movement(dt: float) -> void:
 # PROPS (drift field en unités monde)
 # =============================================================================
 
-func _pick_prop_type() -> Dictionary:
+## rng fourni = tirage déterministe (génération de chunk seedé).
+func _pick_prop_type(rng: RandomNumberGenerator = null) -> Dictionary:
 	var types: Array = []
 	var types_v: Variant = _get_conf("props", [])
 	if types_v is Array:
@@ -603,7 +627,7 @@ func _pick_prop_type() -> Dictionary:
 		total += w
 	if total <= 0.0:
 		return types[0] as Dictionary
-	var roll: float = randf() * total
+	var roll: float = (rng.randf() if rng != null else randf()) * total
 	for i in range(types.size()):
 		roll -= float(weights[i])
 		if roll <= 0.0:
@@ -616,45 +640,150 @@ func _ring_spawn_pos(ratio: float = -1.0, forced_angle: float = NAN) -> Vector2:
 	var angle: float = forced_angle if not is_nan(forced_angle) else randf() * TAU
 	return _world_pos + Vector2.from_angle(angle) * ring
 
-func _spawn_prop(force_absorbable: bool = false, forced_angle: float = NAN) -> void:
+## Génère les records d'un chunk (déterministe : hash(cx, cy, seed)). Les
+## masses sont figées en ABSOLU à la génération — relatives à la masse du
+## joueur au moment où il découvre la zone : revenir plus tard = retrouver les
+## mêmes objets (devenus faciles si on a grossi, comme en Agar.io).
+func _ensure_chunk(coords: Vector2i) -> Dictionary:
+	if _chunks.has(coords):
+		return _chunks[coords]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(Vector3i(coords.x, coords.y, _world_seed))
+	var chunk_size: float = maxf(200.0, float(_get_conf("chunk_size_px", 640.0)))
+	var origin: Vector2 = Vector2(coords) * chunk_size
+	var chunk: Dictionary = { "props": [], "pickups": [], "zones": [] }
+	var count: int = rng.randi_range(
+		maxi(0, int(_get_conf("chunk_props_min", 1))),
+		maxi(0, int(_get_conf("chunk_props_max", 3))))
+	for i in range(count):
+		var type: Dictionary = _pick_prop_type(rng)
+		if type.is_empty():
+			continue
+		var required: float = maxf(1.0, round(_mass * rng.randf_range(
+			float(type.get("mass_ratio_min", 0.3)), float(type.get("mass_ratio_max", 0.6)))))
+		var record: Dictionary = {
+			"pos": origin + Vector2(rng.randf(), rng.randf()) * chunk_size,
+			"type": type,
+			"required_mass": required,
+			"mass_gain": maxf(1.0, round(required * maxf(0.05, float(type.get("mass_gain_ratio", 0.2))))),
+			"velocity": Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(
+				maxf(5.0, float(_get_conf("drift_speed_min_px_sec", 28.0))),
+				maxf(6.0, float(_get_conf("drift_speed_max_px_sec", 70.0)))),
+			"rot_speed": deg_to_rad(rng.randf_range(-1.0, 1.0) * maxf(0.0, float(_get_conf("rotation_speed_deg_max", 25.0)))),
+			"consumed": false,
+			"live": false
+		}
+		# Variantes par prop : chasseur (oversize), fuyant (mangeable), gigogne
+		# (moyen), explosif (marqué au seed — labelable).
+		if required > _mass and rng.randf() <= clampf(float(_get_conf("chaser_chance", 0.0)), 0.0, 1.0):
+			record["chaser"] = true
+			record["chase_speed_ratio"] = rng.randf_range(
+				maxf(0.3, float(_get_conf("chase_speed_ratio_min", 0.92))),
+				maxf(0.4, float(_get_conf("chase_speed_ratio_max", 1.06))))
+		elif required <= _mass and rng.randf() <= clampf(float(_get_conf("flee_chance", 0.0)), 0.0, 1.0):
+			record["flee"] = true
+		if str(type.get("id", "")) == "wreck_medium" \
+			and rng.randf() <= clampf(float(_get_conf("nested_chance", 0.0)), 0.0, 1.0):
+			record["nested"] = true
+		if rng.randf() <= clampf(float(_get_conf("explosive_pair_chance", 0.0)), 0.0, 1.0):
+			record["explosive"] = true
+		(chunk["props"] as Array).append(record)
+	# Pickup seedé (0-1 par chunk) : type pondéré par les <id>_pickup_chance.
+	if rng.randf() <= clampf(float(_get_conf("chunk_pickup_chance", 0.22)), 0.0, 1.0):
+		var total: float = 0.0
+		var weights: Dictionary = {}
+		for id_v in PICKUP_TINTS.keys():
+			var w: float = maxf(0.0, float(_get_conf("%s_pickup_chance" % str(id_v), 0.0)))
+			weights[id_v] = w
+			total += w
+		if total > 0.0:
+			var roll: float = rng.randf() * total
+			for id_v in weights:
+				roll -= float(weights[id_v])
+				if roll <= 0.0:
+					(chunk["pickups"] as Array).append({
+						"pos": origin + Vector2(rng.randf(), rng.randf()) * chunk_size,
+						"id": str(id_v), "consumed": false, "live": false
+					})
+					break
+	# Chest rare (very low chance/chunk) : équipement rare+ ou pluie de cristaux.
+	if rng.randf() <= clampf(float(_get_conf("chest_chunk_chance", 0.0)), 0.0, 1.0):
+		(chunk["pickups"] as Array).append({
+			"pos": origin + Vector2(rng.randf(), rng.randf()) * chunk_size,
+			"id": "chest", "consumed": false, "live": false
+		})
+	# Zone électrifiée [V8] seedée (poche fixe en monde).
+	if rng.randf() <= _zone_chunk_chance:
+		(chunk["zones"] as Array).append({
+			"pos": origin + Vector2(rng.randf(), rng.randf()) * chunk_size,
+			"radius": maxf(60.0, float(_get_conf("electric_zone_radius_px", 150.0))),
+			"live": false
+		})
+	_chunks[coords] = chunk
+	return chunk
+
+## Streaming : instancie les records (props/pickups/zones) entrant dans l'anneau
+## de spawn, dans la limite des caps. Le despawn (writeback des positions dans
+## le record) est géré par les updates respectifs — rien n'est perdu.
+func _tick_chunk_stream(dt: float) -> void:
+	_chunk_stream_timer -= dt
+	if _chunk_stream_timer > 0.0:
+		return
+	_chunk_stream_timer = 0.2
 	if _world_root == null or not is_instance_valid(_world_root):
 		return
-	var type: Dictionary = _pick_prop_type()
-	if type.is_empty():
+	var chunk_size: float = maxf(200.0, float(_get_conf("chunk_size_px", 640.0)))
+	var stream_r: float = _view_radius() * maxf(0.4, float(_get_conf("spawn_ring_ratio", 1.15)))
+	var cap: int = clampi(int(_get_conf("max_active_props", 20)), 1, 42)
+	var min_cx: int = int(floor((_world_pos.x - stream_r) / chunk_size))
+	var max_cx: int = int(floor((_world_pos.x + stream_r) / chunk_size))
+	var min_cy: int = int(floor((_world_pos.y - stream_r) / chunk_size))
+	var max_cy: int = int(floor((_world_pos.y + stream_r) / chunk_size))
+	for cy in range(min_cy, max_cy + 1):
+		for cx in range(min_cx, max_cx + 1):
+			var chunk: Dictionary = _ensure_chunk(Vector2i(cx, cy))
+			for rec_v in (chunk["props"] as Array):
+				var rec: Dictionary = rec_v as Dictionary
+				if bool(rec.get("consumed", false)) or bool(rec.get("live", false)) or _props.size() >= cap:
+					continue
+				if (rec.get("pos", Vector2.ZERO) as Vector2).distance_to(_world_pos) <= stream_r:
+					_instantiate_prop_record(rec)
+			for prec_v in (chunk["pickups"] as Array):
+				var prec: Dictionary = prec_v as Dictionary
+				if bool(prec.get("consumed", false)) or bool(prec.get("live", false)) or _pickups.size() >= 3:
+					continue
+				if (prec.get("pos", Vector2.ZERO) as Vector2).distance_to(_world_pos) <= stream_r:
+					_instantiate_pickup_record(prec)
+			for zrec_v in (chunk["zones"] as Array):
+				var zrec: Dictionary = zrec_v as Dictionary
+				if bool(zrec.get("live", false)):
+					continue
+				if (zrec.get("pos", Vector2.ZERO) as Vector2).distance_to(_world_pos) <= stream_r + float(zrec.get("radius", 150.0)):
+					_instantiate_zone_record(zrec)
+
+## Instancie un record de prop (seedé ou éphémère) en node + entry runtime.
+func _instantiate_prop_record(record: Dictionary) -> void:
+	if _world_root == null or not is_instance_valid(_world_root):
 		return
+	var type: Dictionary = record.get("type", {})
 	var size_px: float = maxf(16.0, float(type.get("size_px", 56.0)))
-	var is_giant: bool = bool(type.get("giant", false))
-	var required: float = maxf(1.0, round(_mass * randf_range(
-		float(type.get("mass_ratio_min", 0.3)), float(type.get("mass_ratio_max", 0.6)))))
-	if force_absorbable:
-		required = maxf(1.0, round(_mass * clampf(float(_get_conf("eatable_rescue_ratio", 0.55)), 0.1, 0.9)))
-	var mass_gain: float = maxf(1.0, round(required * maxf(0.05, float(type.get("mass_gain_ratio", 0.6)))))
-
-	var pos: Vector2 = _ring_spawn_pos(-1.0, forced_angle)
-	# Vise un point proche du joueur pour traverser la zone de jeu.
-	var aim: Vector2 = _world_pos + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _view_radius() * 0.4
-	var speed: float = randf_range(
-		maxf(5.0, float(_get_conf("drift_speed_min_px_sec", 28.0))),
-		maxf(6.0, float(_get_conf("drift_speed_max_px_sec", 70.0))))
-
 	var node := Node2D.new()
 	node.name = "GravityProp"
 	node.z_as_relative = false
 	node.z_index = 10
-	node.position = pos
+	node.position = record.get("pos", Vector2.ZERO)
 	var type_tint := Color(str(type.get("tint", "#FFFFFF")))
-	var visual: Node2D = _build_prop_visual(type, size_px)
-	node.add_child(visual)
+	node.add_child(_build_prop_visual(type, size_px))
 	_world_root.add_child(node)
-
 	var entry: Dictionary = {
 		"node": node,
 		"label": null,
-		"required_mass": required,
-		"mass_gain": mass_gain,
+		"record": record,
+		"required_mass": float(record.get("required_mass", 1.0)),
+		"mass_gain": float(record.get("mass_gain", 1.0)),
 		"radius_px": size_px * 0.5,
-		"velocity": (aim - pos).normalized() * speed,
-		"rot_speed": deg_to_rad(randf_range(-1.0, 1.0) * maxf(0.0, float(_get_conf("rotation_speed_deg_max", 25.0)))),
+		"velocity": record.get("velocity", Vector2.ZERO),
+		"rot_speed": float(record.get("rot_speed", 0.0)),
 		"state": PropState.DRIFT,
 		"absorb_t": 0.0,
 		"absorb_sec": 0.2,
@@ -664,25 +793,51 @@ func _spawn_prop(force_absorbable: bool = false, forced_angle: float = NAN) -> v
 		"crystal_chance": clampf(float(type.get("crystal_chance", 0.1)), 0.0, 1.0),
 		"near": false
 	}
-	if is_giant:
+	if bool(type.get("giant", false)):
 		entry["giant"] = true
-	# Variantes par prop : chasseur (oversize), fuyant (mangeable), gigogne (moyen).
-	if required > _mass and randf() <= clampf(float(_get_conf("chaser_chance", 0.0)), 0.0, 1.0):
-		entry["chaser"] = true
-		entry["chase_speed_ratio"] = randf_range(
-			maxf(0.3, float(_get_conf("chase_speed_ratio_min", 0.92))),
-			maxf(0.4, float(_get_conf("chase_speed_ratio_max", 1.06))))
+	for flag in ["chaser", "flee", "nested", "explosive"]:
+		if bool(record.get(flag, false)):
+			entry[flag] = true
+	if entry.has("chaser"):
+		entry["chase_speed_ratio"] = float(record.get("chase_speed_ratio", 1.0))
 		entry["chase_cd_until"] = 0.0
-	elif required <= _mass and randf() <= clampf(float(_get_conf("flee_chance", 0.0)), 0.0, 1.0):
-		entry["flee"] = true
-	if str(type.get("id", "")) == "wreck_medium" \
-		and randf() <= clampf(float(_get_conf("nested_chance", 0.0)), 0.0, 1.0):
-		entry["nested"] = true
+	if entry.has("nested"):
 		_attach_nested_rim(node, size_px)
 	if bool(_get_conf("prop_labels_enabled", false)):
-		entry["label"] = _attach_value_label(node, required, size_px, int(_get_conf("value_label_font_size", 20)))
+		entry["label"] = _attach_value_label(node, float(entry["required_mass"]), size_px, int(_get_conf("value_label_font_size", 20)))
+	_attach_effect_labels(entry, node, size_px)
+	record["live"] = true
 	_props.append(entry)
 	_apply_prop_tint(entry)
+
+## Spawn éphémère HORS SEED (garde-fou de solvabilité, tempête) : anneau autour
+## du joueur, trajectoire qui traverse la zone de jeu, pas de variantes.
+func _spawn_ephemeral_prop(force_absorbable: bool = false, forced_angle: float = NAN) -> void:
+	if _world_root == null or not is_instance_valid(_world_root):
+		return
+	var type: Dictionary = _pick_prop_type()
+	if type.is_empty():
+		return
+	var required: float = maxf(1.0, round(_mass * randf_range(
+		float(type.get("mass_ratio_min", 0.3)), float(type.get("mass_ratio_max", 0.6)))))
+	if force_absorbable:
+		required = maxf(1.0, round(_mass * clampf(float(_get_conf("eatable_rescue_ratio", 0.55)), 0.1, 0.9)))
+	var pos: Vector2 = _ring_spawn_pos(-1.0, forced_angle)
+	# Vise un point proche du joueur pour traverser la zone de jeu.
+	var aim: Vector2 = _world_pos + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _view_radius() * 0.4
+	var speed: float = randf_range(
+		maxf(5.0, float(_get_conf("drift_speed_min_px_sec", 28.0))),
+		maxf(6.0, float(_get_conf("drift_speed_max_px_sec", 70.0))))
+	_instantiate_prop_record({
+		"pos": pos,
+		"type": type,
+		"required_mass": required,
+		"mass_gain": maxf(1.0, round(required * maxf(0.05, float(type.get("mass_gain_ratio", 0.2))))),
+		"velocity": (aim - pos).normalized() * speed,
+		"rot_speed": deg_to_rad(randf_range(-1.0, 1.0) * maxf(0.0, float(_get_conf("rotation_speed_deg_max", 25.0)))),
+		"consumed": false,
+		"live": false
+	})
 
 ## Liseré doré des props gigognes (bonus interne à l'absorption).
 func _attach_nested_rim(node: Node2D, size_px: float) -> void:
@@ -779,6 +934,49 @@ func _attach_value_label(node: Node2D, value: float, size_px: float, font_size: 
 	label.position = Vector2(-80.0, -size_px * 0.5 - 40.0)
 	node.add_child(label)
 	return label
+
+# =============================================================================
+# LABELS D'EFFETS — béquille lisibilité tant que les assets ne sont pas
+# explicites : un mot ("EXPLOSIF", "FUYANT"...) affiché sur l'objet. Toggle
+# GLOBAL à la racine de wave_types.json (effect_labels_enabled, applicable à
+# tous les types), surchargeable par bloc de type ou par vague. À terme : off,
+# le visuel de l'asset doit suffire.
+# =============================================================================
+
+func _effect_labels_enabled() -> bool:
+	var global_default: bool = bool(DataManager.get_wave_types_global("effect_labels_enabled", false)) if DataManager else false
+	return bool(_get_conf("effect_labels_enabled", global_default))
+
+func _attach_effect_label(node: Node2D, text: String, size_px: float, color: Color) -> void:
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text = text
+	label.add_theme_font_size_override("font_size", maxi(10, int(_get_conf("effect_label_font_size", 18))))
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("outline_size", 6)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size = Vector2(240.0, 30.0)
+	label.position = Vector2(-120.0, size_px * 0.5 + 6.0)
+	node.add_child(label)
+
+## Un mot par variante portée par le prop (cumulables : « EXPLOSIF · CHASSEUR »).
+func _attach_effect_labels(entry: Dictionary, node: Node2D, size_px: float) -> void:
+	if not _effect_labels_enabled():
+		return
+	var texts: PackedStringArray = []
+	if bool(entry.get("explosive", false)):
+		texts.append(_translate_or("gh_effect_explosive", "EXPLOSIVE"))
+	if bool(entry.get("flee", false)):
+		texts.append(_translate_or("gh_effect_flee", "FLEEING"))
+	if bool(entry.get("nested", false)):
+		texts.append(_translate_or("gh_effect_nested", "NESTED"))
+	if entry.has("chaser"):
+		texts.append(_translate_or("gh_effect_chaser", "CHASER"))
+	if texts.is_empty():
+		return
+	_attach_effect_label(node, " · ".join(texts), size_px, Color("#FFFFFF"))
 
 ## Prop visual priority: type assets > per-wave prop_assets override > world
 ## obstacle skins > flat polygon circle.
@@ -890,9 +1088,9 @@ func _process(delta: float) -> void:
 			_run_elapsed += minf(delta, 0.25)
 			_tick_movement(dt)
 			_tick_mass_decay(dt)
-			_tick_spawner(dt)
+			_tick_chunk_stream(dt)
+			_tick_storm_spawner(dt)
 			_tick_solvability(dt)
-			_tick_pickup_scheduler(dt)
 			_tick_event_scheduler(dt)
 			_tick_objective()
 			if _run_elapsed >= _run_duration:
@@ -900,7 +1098,7 @@ func _process(delta: float) -> void:
 		State.FINAL:
 			_run_elapsed += minf(delta, 0.25)
 			_tick_movement(dt)
-			_tick_spawner(dt)
+			_tick_chunk_stream(dt)
 			_tick_solvability(dt)
 			if _run_elapsed >= _run_duration:
 				_begin_outro()
@@ -953,19 +1151,20 @@ func _tick_mass_decay(dt: float) -> void:
 	_radius = _compute_radius()
 	_push_player_state()
 
-func _tick_spawner(dt: float) -> void:
-	_spawn_timer -= dt
-	if _spawn_timer > 0.0:
+## Tempête dérivante [E20] : en plus du drift x2, saupoudre des props éphémères
+## (le monde seedé n'a pas de spawner continu — la tempête en réintroduit un
+## temporaire, cadence resserrée par storm_spawn_mult).
+func _tick_storm_spawner(dt: float) -> void:
+	if _storm_left <= 0.0:
 		return
-	var jitter: float = maxf(0.0, float(_get_conf("spawn_interval_jitter_sec", 0.3)))
-	var interval: float = maxf(0.15, float(_get_conf("spawn_interval_sec", 0.8)) + randf_range(-jitter, jitter))
-	if _storm_left > 0.0:
-		interval /= maxf(1.0, float(_get_conf("storm_spawn_mult", 1.5)))
-	_spawn_timer = interval
-	var cap: int = clampi(int(_get_conf("max_active_props", 16)), 1, 42)
-	if _props.size() >= cap:
+	_storm_spawn_timer -= dt
+	if _storm_spawn_timer > 0.0:
 		return
-	_spawn_prop()
+	_storm_spawn_timer = maxf(0.3, float(_get_conf("storm_ephemeral_interval_sec", 1.5)) \
+		/ maxf(1.0, float(_get_conf("storm_spawn_mult", 1.5))))
+	var cap: int = clampi(int(_get_conf("max_active_props", 20)), 1, 42)
+	if _props.size() < cap:
+		_spawn_ephemeral_prop()
 
 ## Garde-fou de solvabilité (en monde) : si aucun prop absorbable n'est VISIBLE
 ## pendant no_target_grace_sec, convertir le plus petit visible ; écran vide →
@@ -1006,14 +1205,14 @@ func _tick_solvability(dt: float) -> void:
 	_no_target_timer = 0.0
 	if visible_count == 0:
 		var a: float = randf() * TAU
-		_spawn_prop(true, a)
-		_spawn_prop(true, a + PI)
+		_spawn_ephemeral_prop(true, a)
+		_spawn_ephemeral_prop(true, a + PI)
 		return
 	# Rescue: shrink the smallest visible prop below the current mass.
 	if not smallest.is_empty():
 		var rescued: float = maxf(1.0, round(_mass * clampf(float(_get_conf("eatable_rescue_ratio", 0.55)), 0.1, 0.9)))
 		smallest["required_mass"] = rescued
-		smallest["mass_gain"] = maxf(1.0, round(rescued * 0.6))
+		smallest["mass_gain"] = maxf(1.0, round(rescued * maxf(0.05, float(_get_conf("eatable_rescue_gain_ratio", 0.25)))))
 		smallest.erase("chaser")
 		smallest["chasing"] = false
 		_apply_prop_tint(smallest)
@@ -1136,8 +1335,15 @@ func _update_props(dt: float) -> void:
 		if _compass_left > 0.0 and absorbable and entry == _find_arrow_target():
 			node.modulate = Color("#FFD866")
 
-		# Despawn en monde : trop loin du joueur (les fragments ne despawnent pas).
+		# Despawn en monde : trop loin du joueur (les fragments ne despawnent
+		# pas). Writeback du record seedé : l'objet reste LÀ où il a dérivé et
+		# sera retrouvé si le joueur revient dans la zone (persistance).
 		if dist > despawn_dist and not entry.has("fragment_index"):
+			var rec_v: Variant = entry.get("record", null)
+			if rec_v is Dictionary:
+				(rec_v as Dictionary)["pos"] = node.position
+				(rec_v as Dictionary)["velocity"] = entry.get("velocity", Vector2.ZERO)
+				(rec_v as Dictionary)["live"] = false
 			node.queue_free()
 			_props.remove_at(i)
 
@@ -1166,35 +1372,34 @@ func _check_contacts() -> void:
 			if dist <= _radius * capture_ratio + float(entry.get("radius_px", 30.0)) * 0.4:
 				_oversize_contact(entry, node_v as Node2D)
 
-## Props explosifs [V9] : deux oversize qui se touchent explosent en grappe de
-## petits mangeables (scan espacé, paires peu nombreuses).
+## Props explosifs [V9] : marqués au SEED (labelables) — un prop explosif qui
+## touche un autre oversize part en grappe de petits mangeables (scan espacé).
 func _check_explosive_pairs(dt: float) -> void:
 	_explosive_check_timer -= dt
 	if _explosive_check_timer > 0.0:
 		return
 	_explosive_check_timer = 0.4
-	var chance: float = clampf(float(_get_conf("explosive_pair_chance", 0.0)), 0.0, 1.0)
-	if chance <= 0.0:
-		return
 	var oversize: Array = []
+	var any_explosive: bool = false
 	for entry in _props:
 		if int(entry.get("state", PropState.DRIFT)) != PropState.DRIFT or entry.has("fragment_index"):
 			continue
-		if float(entry.get("required_mass", 0.0)) > _mass and not bool(entry.get("no_explode", false)):
+		if float(entry.get("required_mass", 0.0)) > _mass:
 			var node_v: Variant = entry.get("node", null)
 			if node_v is Node2D and is_instance_valid(node_v):
 				oversize.append(entry)
+				any_explosive = any_explosive or bool(entry.get("explosive", false))
+	if not any_explosive:
+		return
 	for a_idx in range(oversize.size()):
 		for b_idx in range(a_idx + 1, oversize.size()):
 			var ea: Dictionary = oversize[a_idx]
 			var eb: Dictionary = oversize[b_idx]
+			if not (bool(ea.get("explosive", false)) or bool(eb.get("explosive", false))):
+				continue
 			var na: Node2D = ea.get("node")
 			var nb: Node2D = eb.get("node")
 			if na.position.distance_to(nb.position) > float(ea.get("radius_px", 30.0)) + float(eb.get("radius_px", 30.0)):
-				continue
-			if randf() > chance:
-				ea["no_explode"] = true
-				eb["no_explode"] = true
 				continue
 			var center: Vector2 = (na.position + nb.position) * 0.5
 			if VFXManager:
@@ -1208,6 +1413,9 @@ func _check_explosive_pairs(dt: float) -> void:
 			return # une seule paire par scan
 
 func _remove_prop_entry(entry: Dictionary) -> void:
+	var rec_v: Variant = entry.get("record", null)
+	if rec_v is Dictionary:
+		(rec_v as Dictionary)["consumed"] = true # détruit = ne réapparaît jamais
 	var node_v: Variant = entry.get("node", null)
 	if node_v is Node2D and is_instance_valid(node_v):
 		(node_v as Node2D).queue_free()
@@ -1233,7 +1441,7 @@ func _spawn_shard(world_pos: Vector2) -> void:
 	var entry: Dictionary = {
 		"node": node, "label": null,
 		"required_mass": required,
-		"mass_gain": maxf(1.0, round(required * 0.6)),
+		"mass_gain": maxf(1.0, round(required * maxf(0.05, float(shard_type.get("mass_gain_ratio", 0.22))))),
 		"radius_px": size_px * 0.5,
 		"velocity": Vector2.from_angle(randf() * TAU) * randf_range(20.0, 60.0),
 		"rot_speed": deg_to_rad(randf_range(-25.0, 25.0)),
@@ -1251,6 +1459,9 @@ func _spawn_shard(world_pos: Vector2) -> void:
 func _begin_absorb_prop(entry: Dictionary) -> void:
 	entry["state"] = PropState.ABSORBING
 	entry["absorb_t"] = 0.0
+	var rec_v: Variant = entry.get("record", null)
+	if rec_v is Dictionary:
+		(rec_v as Dictionary)["consumed"] = true # mangé = mangé pour toujours
 	var size_px: float = float(entry.get("radius_px", 28.0)) * 2.0
 	entry["absorb_sec"] = remap(clampf(size_px, 40.0, 200.0), 40.0, 200.0,
 		maxf(0.05, float(_get_conf("absorb_min_sec", 0.12))),
@@ -1374,40 +1585,22 @@ func _oversize_contact(entry: Dictionary, node: Node2D) -> void:
 	_retint_all_props()
 
 # =============================================================================
-# PICKUPS (magnet / compass / surcharge / compagnon / stabilisateur)
+# PICKUPS (magnet / compass / surcharge / compagnon / stabilisateur) — seedés
+# par chunk, instanciés par le streaming.
 # =============================================================================
 
-func _tick_pickup_scheduler(dt: float) -> void:
-	_pickup_timer -= dt
-	if _pickup_timer > 0.0:
-		return
-	_pickup_timer = randf_range(
-		maxf(3.0, float(_get_conf("pickup_interval_sec_min", 14.0))),
-		maxf(3.0, float(_get_conf("pickup_interval_sec_max", 22.0))))
-	if _pickups.size() >= 2:
-		return
-	var ratio: float = lerpf(0.4, 1.0, clampf(_mass / _target_mass, 0.0, 1.0))
-	var ids: Array = PICKUP_TINTS.keys()
-	ids.shuffle()
-	for id_v in ids:
-		var pickup_id: String = str(id_v)
-		if pickup_id == _last_pickup_id:
-			continue
-		var chance: float = clampf(float(_get_conf("%s_pickup_chance" % pickup_id, 0.0)), 0.0, 1.0)
-		if chance > 0.0 and randf() <= chance * ratio:
-			_spawn_pickup(pickup_id)
-			_last_pickup_id = pickup_id
-			return
-
-func _spawn_pickup(pickup_id: String) -> void:
+func _instantiate_pickup_record(record: Dictionary) -> void:
 	if _world_root == null or not is_instance_valid(_world_root):
 		return
+	var pickup_id: String = str(record.get("id", ""))
 	var size_px: float = maxf(24.0, float(_get_conf("pickup_size_px", 64.0)))
+	if pickup_id == "chest":
+		size_px = maxf(24.0, float(_get_conf("chest_size_px", 84.0)))
 	var node := Node2D.new()
 	node.name = "GravityPickup"
 	node.z_as_relative = false
 	node.z_index = 13
-	node.position = _world_pos + Vector2.from_angle(randf() * TAU) * _view_radius() * randf_range(0.45, 0.8)
+	node.position = record.get("pos", Vector2.ZERO)
 	var tint := Color(str(PICKUP_TINTS.get(pickup_id, "#FFFFFF")))
 	var asset_visual: Node2D = _build_sprite_fit(str(_get_conf("%s_pickup_asset" % pickup_id, "")), size_px)
 	if asset_visual != null:
@@ -1430,13 +1623,19 @@ func _spawn_pickup(pickup_id: String) -> void:
 		glyph.size = Vector2(size_px, size_px)
 		glyph.position = -Vector2(size_px, size_px) * 0.5
 		node.add_child(glyph)
+	if _effect_labels_enabled():
+		_attach_effect_label(node, _translate_or("gh_pickup_%s" % pickup_id, pickup_id.to_upper()), size_px, tint)
 	_world_root.add_child(node)
-	_pickups.append({ "node": node, "id": pickup_id, "pulse": randf() * TAU })
+	record["live"] = true
+	_pickups.append({ "node": node, "id": pickup_id, "pulse": randf() * TAU, "record": record })
 
-func _update_pickups(dt: float) -> void:
+func _update_pickups(_dt: float) -> void:
 	if _pickups.is_empty():
 		return
-	var reach: float = _radius + maxf(20.0, float(_get_conf("pickup_grab_radius_px", 70.0)))
+	# Contre-zoom : les pickups/chest gardent une TAILLE ÉCRAN constante quand
+	# le monde dézoome (sinon invisibles à haute masse) — grab aligné dessus.
+	var counter: float = (1.0 / maxf(0.05, _zoom)) if bool(_get_conf("pickup_counter_zoom", true)) else 1.0
+	var reach: float = _radius + maxf(20.0, float(_get_conf("pickup_grab_radius_px", 70.0))) * counter
 	var despawn_dist: float = _view_radius() * maxf(1.3, float(_get_conf("despawn_ring_ratio", 2.2)))
 	for i in range(_pickups.size() - 1, -1, -1):
 		var entry: Dictionary = _pickups[i]
@@ -1445,13 +1644,20 @@ func _update_pickups(dt: float) -> void:
 			_pickups.remove_at(i)
 			continue
 		var node: Node2D = node_v as Node2D
-		node.scale = Vector2.ONE * (1.0 + sin(_time * TAU * 1.4 + float(entry.get("pulse", 0.0))) * 0.12)
+		node.scale = Vector2.ONE * counter * (1.0 + sin(_time * TAU * 1.4 + float(entry.get("pulse", 0.0))) * 0.12)
 		var dist: float = node.position.distance_to(_world_pos)
 		if dist <= reach and (_state == State.RUN or _state == State.FINAL):
+			var rec_v: Variant = entry.get("record", null)
+			if rec_v is Dictionary:
+				(rec_v as Dictionary)["consumed"] = true
 			_apply_pickup(str(entry.get("id", "")), _world_to_screen(node.position))
 			node.queue_free()
 			_pickups.remove_at(i)
 		elif dist > despawn_dist:
+			# Writeback : le pickup reste dans le monde, retrouvable au retour.
+			var rec2_v: Variant = entry.get("record", null)
+			if rec2_v is Dictionary:
+				(rec2_v as Dictionary)["live"] = false
 			node.queue_free()
 			_pickups.remove_at(i)
 
@@ -1469,11 +1675,51 @@ func _apply_pickup(pickup_id: String, at_screen: Vector2) -> void:
 		"stabilizer":
 			_stabilizer_charges = mini(_stabilizer_charges + 1, 2)
 			_update_stabilizer_node()
+		"chest":
+			_open_chest(at_screen)
 	if VFXManager:
 		VFXManager.spawn_floating_text(at_screen + Vector2(0.0, -40.0),
 			_translate_or("gh_pickup_%s" % pickup_id, pickup_id.to_upper()),
 			Color(str(PICKUP_TINTS.get(pickup_id, "#FFFFFF"))), self)
 		VFXManager.flash_sprite(_player, Color(1.0, 1.0, 1.0), 0.15)
+
+## Chest rare [13 juillet 2026] : toast central + score, puis soit un
+## ÉQUIPEMENT rare+ (pipeline LootDrop de Game → inventaire + toast haut-droite
+## du HUD, comme en story), soit une pluie de cristaux. Seule exception au
+## « pas de drops d'équipement » du mode.
+func _open_chest(at_screen: Vector2) -> void:
+	_toast("gh_chest_found", "CHEST FOUND!", "#FFD866")
+	if _game == null or not is_instance_valid(_game):
+		return
+	var score: int = int(round(float(_get_conf("chest_score", 250)) * _reward_mult))
+	if score > 0 and _game.has_method("add_wave_bonus_score"):
+		_game.call("add_wave_bonus_score", score, at_screen)
+	if randf() <= clampf(float(_get_conf("chest_item_chance", 0.5)), 0.0, 1.0) \
+		and _game.has_method("spawn_reward_equipment_at"):
+		_game.call("spawn_reward_equipment_at", at_screen,
+			maxf(0.1, float(_get_conf("chest_quality_mult", 1.0))), {
+				"auto_collect_delay_sec": 1.2,
+				"auto_collect_speed_px_sec": 950.0
+			}, _pick_chest_rarity())
+	elif _game.has_method("spawn_reward_crystals_from_top"):
+		_game.call("spawn_reward_crystals_from_top", maxi(1, int(_get_conf("chest_crystals", 10))))
+
+func _pick_chest_rarity() -> String:
+	var weights_v: Variant = _get_conf("chest_rarity_weights", {})
+	var weights: Dictionary = (weights_v as Dictionary) if weights_v is Dictionary else {}
+	if weights.is_empty():
+		weights = { "rare": 70.0, "epic": 22.0, "legendary": 7.0, "unique": 1.0 }
+	var total: float = 0.0
+	for key in weights:
+		total += maxf(0.0, float(weights[key]))
+	if total <= 0.0:
+		return "rare"
+	var roll: float = randf() * total
+	for key in weights:
+		roll -= maxf(0.0, float(weights[key]))
+		if roll <= 0.0:
+			return str(key)
+	return "rare"
 
 ## Mini-trou compagnon : vortex autonome qui orbite le joueur et mange les
 ## props minuscules (gains reversés au joueur, ÷2).
@@ -1546,59 +1792,76 @@ func _update_stabilizer_node() -> void:
 	_stabilizer_node.add_child(orb)
 	add_child(_stabilizer_node)
 
-func _update_stabilizer_visual(dt: float) -> void:
+func _update_stabilizer_visual(_dt: float) -> void:
 	if _stabilizer_node == null or not is_instance_valid(_stabilizer_node):
 		return
 	_stabilizer_node.position = _screen_center() \
 		+ Vector2.from_angle(_time * TAU / 2.6) * maxf(30.0, float(_get_conf("stabilizer_orbit_px", 70.0)))
 
 # =============================================================================
-# ZONES ÉLECTRIFIÉES [V8] (poches fixes en monde, ticks de dégâts)
+# ZONES ÉLECTRIFIÉES [V8] (poches fixes en monde, seedées par chunk)
 # =============================================================================
 
-func _spawn_electric_zones() -> void:
-	var count_f: float = maxf(0.0, float(_get_conf("electric_zone_count", 0.0)))
-	var count: int = int(count_f) + (1 if randf() < count_f - floorf(count_f) else 0)
-	if count <= 0 or _world_root == null or not is_instance_valid(_world_root):
+func _instantiate_zone_record(record: Dictionary) -> void:
+	if _world_root == null or not is_instance_valid(_world_root):
 		return
-	var zone_radius: float = maxf(60.0, float(_get_conf("electric_zone_radius_px", 150.0)))
-	for i in range(count):
-		var pos: Vector2 = _world_pos + Vector2.from_angle(randf() * TAU) * _view_radius() * randf_range(0.6, 1.3)
-		var node := Node2D.new()
-		node.name = "GravityElectricZone"
-		node.z_as_relative = false
-		node.z_index = 8
-		node.position = pos
-		var asset_visual: Node2D = _build_sprite_fit(str(_get_conf("electric_zone_asset", "")), zone_radius * 2.0)
-		if asset_visual != null:
-			node.add_child(asset_visual)
-		else:
-			var fill := Polygon2D.new()
-			var pts := PackedVector2Array()
-			for k in range(24):
-				var a: float = TAU * float(k) / 24.0
-				pts.append(Vector2(cos(a), sin(a)) * zone_radius)
-			fill.polygon = pts
-			fill.color = Color("#5CE8FF22")
-			node.add_child(fill)
-			var ring := Line2D.new()
-			ring.points = pts
-			ring.closed = true
-			ring.width = 4.0
-			ring.default_color = Color("#5CE8FFAA")
-			node.add_child(ring)
-		_world_root.add_child(node)
-		_zones.append({ "node": node, "pos": pos, "radius": zone_radius, "tick_timer": 0.0 })
+	var pos: Vector2 = record.get("pos", Vector2.ZERO)
+	var zone_radius: float = maxf(60.0, float(record.get("radius", 150.0)))
+	var node := Node2D.new()
+	node.name = "GravityElectricZone"
+	node.z_as_relative = false
+	node.z_index = 8
+	node.position = pos
+	var asset_visual: Node2D = _build_sprite_fit(str(_get_conf("electric_zone_asset", "")), zone_radius * 2.0)
+	if asset_visual != null:
+		node.add_child(asset_visual)
+	else:
+		var fill := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for k in range(24):
+			var a: float = TAU * float(k) / 24.0
+			pts.append(Vector2(cos(a), sin(a)) * zone_radius)
+		fill.polygon = pts
+		fill.color = Color("#5CE8FF22")
+		node.add_child(fill)
+		var ring := Line2D.new()
+		ring.points = pts
+		ring.closed = true
+		ring.width = 4.0
+		ring.default_color = Color("#5CE8FFAA")
+		node.add_child(ring)
+	if _effect_labels_enabled():
+		_attach_effect_label(node, _translate_or("gh_effect_electric", "ELECTRIFIED"), 0.0, Color("#5CE8FF"))
+	_world_root.add_child(node)
+	record["live"] = true
+	_zones.append({ "node": node, "pos": pos, "radius": zone_radius, "tick_timer": 0.0, "record": record })
 
 func _update_zones(dt: float) -> void:
 	if _zones.is_empty() or not (_state == State.RUN or _state == State.FINAL):
 		return
 	var tick_interval: float = maxf(0.2, float(_get_conf("electric_tick_interval_sec", 0.5)))
-	for zone in _zones:
+	var despawn_dist: float = _view_radius() * maxf(1.3, float(_get_conf("despawn_ring_ratio", 2.2)))
+	# Contre-zoom : la zone garde une TAILLE ÉCRAN constante (visuel ET rayon de
+	# danger, cohérents) — sinon elle devient invisible/inutile à haute masse.
+	var counter: float = (1.0 / maxf(0.05, _zoom)) if bool(_get_conf("zone_counter_zoom", true)) else 1.0
+	for i in range(_zones.size() - 1, -1, -1):
+		var zone: Dictionary = _zones[i]
+		var zone_radius: float = float(zone.get("radius", 150.0)) * counter
 		var node_v: Variant = zone.get("node", null)
 		if node_v is Node2D and is_instance_valid(node_v):
 			(node_v as Node2D).modulate.a = 0.7 + 0.3 * sin(_time * TAU * 1.2)
-		if _world_pos.distance_to(zone.get("pos", Vector2.ZERO)) > float(zone.get("radius", 150.0)):
+			(node_v as Node2D).scale = Vector2.ONE * counter
+		var zone_dist: float = _world_pos.distance_to(zone.get("pos", Vector2.ZERO))
+		# Despawn/writeback : la zone (fixe) sera retrouvée au retour.
+		if zone_dist > despawn_dist + zone_radius:
+			var rec_v: Variant = zone.get("record", null)
+			if rec_v is Dictionary:
+				(rec_v as Dictionary)["live"] = false
+			if node_v is Node2D and is_instance_valid(node_v):
+				(node_v as Node2D).queue_free()
+			_zones.remove_at(i)
+			continue
+		if zone_dist > zone_radius:
 			zone["tick_timer"] = 0.0
 			continue
 		zone["tick_timer"] = float(zone.get("tick_timer", 0.0)) - dt

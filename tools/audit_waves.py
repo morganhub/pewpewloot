@@ -91,17 +91,13 @@ def classify_wave(wave, enemy_ids, obstacle_ids, pattern_ids):
         if obstacle_ids and obstacle_id not in obstacle_ids:
             return ("unknown_obstacle", f"obstacle_id '{obstacle_id}' not in obstacles.json", notes)
         return ("ok_obstacle", "", notes)
-    if wave_type == "path_trial":
-        if not pattern_id:
-            return ("missing_pattern_id", "type=path_trial but no pattern_id", notes)
-        if pattern_ids and pattern_id not in pattern_ids:
-            return ("unknown_pattern", f"pattern_id '{pattern_id}' not in move_patterns.json", notes)
-        return ("ok_path_trial", "", notes)
+    if wave_type == "snake":
+        # Refonte 2026-07 : l'ex path_trial est devenu le mini-jeu snake
+        # (aucun pattern_id requis, tuning pur data).
+        return ("ok_snake", "", notes)
 
     if wave_type is None and obstacle_id:
         return ("missing_obstacle_type", "obstacle_id present but type missing -> falls into enemy branch", notes)
-    if wave_type is None and pattern_id and not enemy_id:
-        return ("missing_path_trial_type", "pattern_id present alone -> ambiguous (likely path_trial)", notes)
 
     if wave_type in (None, "enemy"):
         if not enemy_id:
@@ -125,7 +121,7 @@ def main():
     issues = 0
     notes_count = 0
     suggested_patches = {}
-    wave_summary = {"ok": 0, "ok_obstacle": 0, "ok_path_trial": 0}
+    wave_summary = {"ok": 0, "ok_obstacle": 0, "ok_snake": 0}
 
     for world_path in sorted(WORLDS_DIR.glob("world_*.json")):
         with open(world_path, "r", encoding="utf-8") as f:
@@ -144,7 +140,7 @@ def main():
                     continue
                 status, reason, notes = classify_wave(wave, enemy_ids, obstacle_ids, pattern_ids)
                 wave_summary[status] = wave_summary.get(status, 0) + 1
-                if status not in ("ok", "ok_obstacle", "ok_path_trial") or notes:
+                if status not in ("ok", "ok_obstacle", "ok_snake") or notes:
                     if not printed_world:
                         print(f"=== {world_path.name} ===")
                         printed_world = True
@@ -153,7 +149,7 @@ def main():
                         print(f"    notes: {notes}")
                         notes_count += 1
                     print(f"    raw: {json.dumps(wave, ensure_ascii=False)}")
-                    if status not in ("ok", "ok_obstacle", "ok_path_trial"):
+                    if status not in ("ok", "ok_obstacle", "ok_snake"):
                         issues += 1
                         suggested_patches.setdefault(world_path.name, []).append({
                             "level_id": level_id,

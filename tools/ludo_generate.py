@@ -184,6 +184,9 @@ def main():
     p.add_argument("--jpg-quality", type=int, default=85)
     p.add_argument("--from-file", help="Retraiter un .webp/.png local (aucun appel API)")
     p.add_argument("--api-key", default=os.environ.get("LUDO_API_KEY", ""))
+    p.add_argument("--no-augment", action="store_true",
+                   help="Desactive l'enrichissement automatique du prompt par Ludo "
+                        "(indispensable pour les styles minimaux/flat : l'augment rajoute des details)")
     p.add_argument("--force", action="store_true",
                    help="Regenerer meme si l'asset existe deja (consomme des credits)")
     p.add_argument("--list", action="store_true",
@@ -229,7 +232,8 @@ def main():
             log("AVERTISSEMENT --force: regeneration malgre: %s" % reason)
         payload = {"image_type": args.image_type, "prompt": args.prompt,
                    "art_style": args.style, "perspective": args.perspective,
-                   "aspect_ratio": args.ratio, "n": args.n, "augment_prompt": True}
+                   "aspect_ratio": args.ratio, "n": args.n,
+                   "augment_prompt": not args.no_augment}
         urls = call_api(payload, args.api_key)
         raws = []
         for i, url in enumerate(urls):

@@ -155,6 +155,11 @@ var _match3_lock_pos: Vector2 = Vector2.ZERO
 var _match3_glow: AnimatedSprite2D = null
 var _match3_glow_tween: Tween = null
 
+# Snake wave state: the ship is the SNAKE HEAD — fully locked, position AND
+# facing driven each frame by the SnakeManager (steering at constant speed).
+var _snake_active: bool = false
+var _snake_lock_pos: Vector2 = Vector2.ZERO
+
 # Gravity hole wave state: the ship is a free-roaming vortex (movement free in
 # ALL directions — the forbidden top zone is lifted while active). Mass shown
 # on the big label; animated aura as a direct Player child at index 0 (NOT in
@@ -406,14 +411,67 @@ func _init_visual_nodes() -> void:
 		if child != visual_container and (child is Polygon2D or child is Sprite2D or child.name == "Visual"):
 			child.visible = false
 
-func _setup_visual() -> void:
+# Skin par type de vague : ships.json > visual.wave_visuals.<wave_type> écrase
+# les clés du visual de base (merge superficiel) ; "" = visuel générique.
+var _wave_visual_type: String = ""
+var _applied_visual_sig: String = ""
+
+## Visual du vaisseau actif + overrides du wave type courant (fallback : base).
+func _resolve_visual_dict(wave_type: String) -> Dictionary:
 	var ship_id := ProfileManager.get_active_ship_id()
 	var ship := DataManager.get_ship(ship_id)
 	var visual_data: Variant = ship.get("visual", {})
 	if not visual_data is Dictionary:
 		visual_data = {}
-	var visual_dict := visual_data as Dictionary
-	
+	var resolved: Dictionary = (visual_data as Dictionary).duplicate()
+	if wave_type != "":
+		var overrides_v: Variant = resolved.get("wave_visuals", {})
+		if overrides_v is Dictionary:
+			var override_v: Variant = (overrides_v as Dictionary).get(wave_type, null)
+			if override_v is Dictionary:
+				for key in (override_v as Dictionary).keys():
+					resolved[key] = (override_v as Dictionary)[key]
+	return resolved
+
+## Signature du modèle résolu — sert à détecter un vrai changement de visuel
+## (et donc à ne jouer l'anim de transition que dans ce cas).
+func _visual_signature(visual_dict: Dictionary) -> String:
+	return str(visual_dict.get("asset_anim", "")) + "|" + str(visual_dict.get("asset", "")) \
+		+ "|" + str(visual_dict.get("shape", "")) + "|" + str(visual_dict.get("color", ""))
+
+## Applique le skin du type de vague courant (appelé par Game._on_wave_started
+## AVANT le begin_* du manager). Transition visuelle seulement si le modèle
+## change réellement (skin spécifique <-> autre) ; fallback générique sinon.
+func apply_wave_visual(wave_type: String) -> void:
+	_wave_visual_type = wave_type
+	var resolved := _resolve_visual_dict(wave_type)
+	var sig := _visual_signature(resolved)
+	if sig == _applied_visual_sig:
+		return
+	_applied_visual_sig = sig
+	_play_swap_transition()
+	_apply_visual_dict(resolved)
+
+## Animation couvrant le vaisseau pendant le swap de modèle : grossit puis
+## réduit (clé racine ship_swap_transition_anim de wave_types.json — éclair à
+## terme, explosion placeholder). Parentée au parent du Player pour ne pas
+## hériter du squash de visual_container.
+func _play_swap_transition() -> void:
+	var anim: String = str(DataManager.get_wave_types_global("ship_swap_transition_anim", ""))
+	if anim == "" or not ResourceLoader.exists(anim):
+		return
+	var parent: Node = get_parent()
+	if parent == null or not is_inside_tree():
+		return
+	VFXManager.spawn_explosion(global_position, 90.0, Color.WHITE, parent,
+		"", anim, 0.6, 0.25, 0.6, false, 0.08, 0.4, 1.5, 0.4, 0.5, 170.0)
+
+func _setup_visual() -> void:
+	var resolved := _resolve_visual_dict(_wave_visual_type)
+	_applied_visual_sig = _visual_signature(resolved)
+	_apply_visual_dict(resolved)
+
+func _apply_visual_dict(visual_dict: Dictionary) -> void:
 	var asset_path: String = str(visual_dict.get("asset", ""))
 	var asset_anim: String = str(visual_dict.get("asset_anim", ""))
 	var asset_anim_duration: float = maxf(0.0, float(visual_dict.get("asset_anim_duration", 0.0)))
@@ -974,10 +1032,21 @@ func begin_pong(cfg: Dictionary) -> void:
 	_pong_lock_tween = create_tween()
 	_pong_lock_tween.tween_property(self, "_pong_lock_y", target_y, intro_sec) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# Écrase le vaisseau EXACTEMENT sur la hitbox de raquette (cover) : la
+	# balle ne doit jamais chevaucher le visuel sans rebondir. Fallback sur les
+	# scales configurés (player_squash_scale_x/y) si le visuel n'est pas
+	# mesurable (forme procédurale sans sprite).
 	var squash := Vector2(
 		maxf(0.05, float(cfg.get("player_squash_scale_x", 2.2))),
 		maxf(0.05, float(cfg.get("player_squash_scale_y", 0.35)))
 	)
+	var base_size: Vector2 = _ship_visual_base_size()
+	if base_size.x > 1.0 and base_size.y > 1.0:
+		var paddle_size := Vector2(
+			maxf(16.0, float(cfg.get("player_paddle_half_width_px", 96.0))) * 2.0,
+			maxf(6.0, float(cfg.get("player_paddle_half_height_px", 16.0))) * 2.0
+		)
+		squash = paddle_size / base_size
 	if visual_container and is_instance_valid(visual_container):
 		_pong_lock_tween.parallel().tween_property(visual_container, "scale", squash, intro_sec) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -994,6 +1063,23 @@ func end_pong() -> void:
 
 func is_pong_active() -> bool:
 	return _pong_active
+
+## Taille affichée (px) du visuel vaisseau, container à l'échelle 1 : texture du
+## sprite visible × son scale propre. Vector2.ZERO si aucun sprite mesurable.
+func _ship_visual_base_size() -> Vector2:
+	if visual_container == null or not is_instance_valid(visual_container):
+		return Vector2.ZERO
+	var anim: AnimatedSprite2D = visual_container.get_node_or_null("AnimatedSprite2D")
+	if anim and anim.visible and anim.sprite_frames:
+		var anim_name: StringName = anim.animation
+		if anim.sprite_frames.has_animation(anim_name) and anim.sprite_frames.get_frame_count(anim_name) > 0:
+			var tex: Texture2D = anim.sprite_frames.get_frame_texture(anim_name, 0)
+			if tex:
+				return tex.get_size() * anim.scale.abs()
+	var spr: Sprite2D = visual_container.get_node_or_null("Sprite2D")
+	if spr and spr.visible and spr.texture:
+		return spr.texture.get_size() * spr.scale.abs()
+	return Vector2.ZERO
 
 # =============================================================================
 # BALL LAUNCHER WAVE
@@ -1333,6 +1419,37 @@ func set_match3_lock_pos(pos: Vector2) -> void:
 func get_match3_lock_pos() -> Vector2:
 	return _match3_lock_pos
 
+# =============================================================================
+# SNAKE WAVE
+# =============================================================================
+
+## Enters snake mode: the ship becomes the snake head — full lock, the
+## SnakeManager drives position (set_snake_lock_pos) and heading
+## (set_snake_facing) every frame.
+func begin_snake(cfg: Dictionary) -> void:
+	_snake_active = true
+	_snake_lock_pos = global_position
+	_apply_ship_scale(clampf(float(cfg.get("ship_scale_mult", 0.8)), 0.2, 1.5))
+
+## Leaves snake mode: restores scale and heading, unlocks the ship.
+func end_snake() -> void:
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.rotation = 0.0
+	if not _snake_active:
+		return
+	_snake_active = false
+	_apply_ship_scale(1.0)
+
+func is_snake_active() -> bool:
+	return _snake_active
+
+func set_snake_lock_pos(pos: Vector2) -> void:
+	_snake_lock_pos = pos
+
+func set_snake_facing(angle: float) -> void:
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.rotation = angle
+
 ## Additive glow behind the ship so the joker tile reads instantly. Child of
 ## visual_container (index 0) -> follows the ship scale automatically.
 func _attach_match3_glow(cfg: Dictionary) -> void:
@@ -1565,6 +1682,8 @@ func begin_star_drift(cfg: Dictionary) -> void:
 		end_slice_rush()
 	if _match3_active:
 		end_match3()
+	if _snake_active:
+		end_snake()
 	if _lane_runner_active:
 		end_lane_runner()
 	if _gravity_hole_active:
@@ -1585,6 +1704,60 @@ func end_star_drift() -> void:
 
 func is_star_drift_active() -> bool:
 	return _star_drift_active
+
+# =============================================================================
+# SURVIVOR MODE (VS-like) : même déplacement inertiel libre que star_drift
+# (la branche _handle_movement est partagée) + orientation du vaisseau vers la
+# direction du déplacement, pilotée par le SurvivorManager.
+# =============================================================================
+var _survivor_active: bool = false
+
+## Ré-appelable (idempotent) : le passif move_speed du survivor ré-applique la
+## config avec un control_max_speed_px_sec multiplié.
+func begin_survivor(cfg: Dictionary) -> void:
+	if not _survivor_active:
+		# Defensive: no other special mode may leak into this one.
+		if _absorb_active:
+			end_absorb()
+		if _slice_rush_active:
+			end_slice_rush()
+		if _match3_active:
+			end_match3()
+		if _snake_active:
+			end_snake()
+		if _lane_runner_active:
+			end_lane_runner()
+		if _gravity_hole_active:
+			end_gravity_hole()
+		if _star_drift_active:
+			end_star_drift()
+		_sd_velocity = Vector2.ZERO
+	_survivor_active = true
+	_sd_follow_gain = maxf(0.5, float(cfg.get("control_follow_gain", 7.0)))
+	_sd_max_speed = maxf(100.0, float(cfg.get("control_max_speed_px_sec", 620.0)))
+	_sd_inertia_response = maxf(0.5, float(cfg.get("control_inertia_response", 6.0)))
+	_sd_finger_offset_y = float(cfg.get("control_finger_offset_y", -110.0))
+	_sd_deadzone_px = maxf(0.0, float(cfg.get("control_deadzone_px", 4.0)))
+
+func end_survivor() -> void:
+	if not _survivor_active:
+		return
+	_survivor_active = false
+	_sd_velocity = Vector2.ZERO
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.rotation = 0.0
+
+func is_survivor_active() -> bool:
+	return _survivor_active
+
+## Vélocité de déplacement courante (pour le facing calculé par le manager).
+func get_survivor_velocity() -> Vector2:
+	return _sd_velocity
+
+## Orientation smooth pilotée par le manager (0 = haut, sprite vers le haut).
+func set_survivor_facing(angle: float) -> void:
+	if visual_container and is_instance_valid(visual_container):
+		visual_container.rotation = angle
 
 # =============================================================================
 # FIRE PATTERN: AURA SYSTEM
@@ -2015,6 +2188,13 @@ func _handle_movement(delta: float) -> void:
 		global_position = _match3_lock_pos
 		return
 
+	# Snake wave: same full lock, the SnakeManager drives head position/heading.
+	if _snake_active:
+		velocity = Vector2.ZERO
+		_external_displacement = Vector2.ZERO
+		global_position = _snake_lock_pos
+		return
+
 	# Gravity hole (refonte Agar.io) : vaisseau verrouillé au CENTRE de l'écran,
 	# c'est le MONDE qui bouge — le manager lit l'input lui-même.
 	if _gravity_hole_active and _gh_center_locked:
@@ -2049,7 +2229,7 @@ func _handle_movement(delta: float) -> void:
 	# slightly; without a target it decelerates smoothly on its own inertia.
 	# Free in all four directions (no top safe zone — vertical dodging is the
 	# point); black-hole pulls arrive through _external_displacement.
-	if _star_drift_active:
+	if _star_drift_active or _survivor_active:
 		var sd_start_pos: Vector2 = global_position
 		velocity = Vector2.ZERO
 		var sd_target: Vector2 = global_position
@@ -2468,9 +2648,11 @@ func _spawn_single_projectile(pos: Vector2, dir: Vector2, speed: float, dmg: int
 		skill_mods
 	)
 
-func take_damage(amount: int) -> void:
+## ignore_dodge : les PÉNALITÉS de mini-jeu (balle perdue breakout, but encaissé
+## pong) ne sont pas des attaques esquivables — elles blessent toujours.
+func take_damage(amount: int, ignore_dodge: bool = false) -> void:
 	# Dodge check
-	if randf() <= dodge_chance / 100.0:
+	if not ignore_dodge and randf() <= dodge_chance / 100.0:
 		VFXManager.spawn_floating_text(global_position, "DODGE", Color.CYAN, get_parent())
 		return
 	

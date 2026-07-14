@@ -632,6 +632,12 @@ var _score_best_after: int = 0
 var _score_stars: int = 0
 var _score_thresholds: Dictionary = {}
 var _score_star_nodes: Array = []
+var _crystals_gained: int = 0
+
+## Cristaux MONNAIE gagnés cette session — à appeler AVANT set_score_data
+## (la ligne est construite par _build_score_section).
+func set_crystals_data(amount: int) -> void:
+	_crystals_gained = maxi(0, amount)
 
 func set_score_data(total_score: int, best_before: int, best_after: int, stars: int, thresholds: Dictionary = {}) -> void:
 	_score_total = maxi(0, total_score)
@@ -667,6 +673,14 @@ func _build_score_section() -> void:
 	score_label.add_theme_font_size_override("font_size", int(_score_cfg.get("font_size_score", 24)))
 	score_label.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_normal", "#FFFFFF"))))
 	score_section.add_child(score_label)
+
+	if _crystals_gained > 0:
+		var crystals_label := Label.new()
+		crystals_label.text = "%s: +%d" % [_tr("score_crystals_label", "Cristaux"), _crystals_gained]
+		crystals_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		crystals_label.add_theme_font_size_override("font_size", int(_score_cfg.get("font_size_score", 24)))
+		crystals_label.add_theme_color_override("font_color", Color.html(str(_score_cfg.get("font_color_crystals", "#4FD8C8"))))
+		score_section.add_child(crystals_label)
 
 	_score_star_nodes.clear()
 	# No thresholds at all (free mode runs) = no star system for this session:

@@ -72,7 +72,6 @@
 				"near_layer": []
 			},
 			"waves": [
-
 				{
 					"enemy_id": "artillery",
 					"type": "artillery",
@@ -84,16 +83,72 @@
 					"type": "gate_runner",
 					"duration": 40,
 					"gates": [
-						{ "time_offset": 2.0, "left": { "operation": "add", "value": 60 }, "right": { "operation": "multiply", "value": 2 } },
-						{ "time_offset": 9.0, "left": { "operation": "subtract", "value": 40 }, "right": { "operation": "multiply", "value": 3 } },
-						{ "time_offset": 16.0, "left": { "operation": "multiply", "value": 2 }, "right": { "operation": "add", "value": 100 } },
-						{ "time_offset": 23.0, "left": { "operation": "divide", "value": 2 }, "right": { "operation": "add", "value": 80 } }
+						{
+							"time_offset": 2.0,
+							"left": {
+								"operation": "add",
+								"value": 60
+							},
+							"right": {
+								"operation": "multiply",
+								"value": 2
+							}
+						},
+						{
+							"time_offset": 9.0,
+							"left": {
+								"operation": "subtract",
+								"value": 40
+							},
+							"right": {
+								"operation": "multiply",
+								"value": 3
+							}
+						},
+						{
+							"time_offset": 16.0,
+							"left": {
+								"operation": "multiply",
+								"value": 2
+							},
+							"right": {
+								"operation": "add",
+								"value": 100
+							}
+						},
+						{
+							"time_offset": 23.0,
+							"left": {
+								"operation": "divide",
+								"value": 2
+							},
+							"right": {
+								"operation": "add",
+								"value": 80
+							}
+						}
 					],
 					"swarm": [
-						{ "time_offset": 5.0, "total_value": 350, "enemy_id": "swarmer" },
-						{ "time_offset": 12.0, "total_value": 450, "enemy_id": "swarmer" },
-						{ "time_offset": 19.0, "total_value": 550, "enemy_id": "swarmer" },
-						{ "time_offset": 26.0, "total_value": 650, "enemy_id": "swarmer" }
+						{
+							"time_offset": 5.0,
+							"total_value": 350,
+							"enemy_id": "swarmer"
+						},
+						{
+							"time_offset": 12.0,
+							"total_value": 450,
+							"enemy_id": "swarmer"
+						},
+						{
+							"time_offset": 19.0,
+							"total_value": 550,
+							"enemy_id": "swarmer"
+						},
+						{
+							"time_offset": 26.0,
+							"total_value": 650,
+							"enemy_id": "swarmer"
+						}
 					]
 				},
 				{
@@ -567,14 +622,17 @@
 			"waves": [
 				{
 					"type": "star_drift",
-					"duration": 45,
+					"duration": 60,
 					"scroll_speed_px_sec_start": 210,
 					"scroll_speed_px_sec_end": 340,
 					"hazard_interval_sec_start": 1.9,
 					"hazard_interval_sec_end": 1.2,
 					"max_active_hazards": 8,
 					"quasar_enabled": false,
-					"trail_chance": 1.0,
+					"pickup_interval_sec_start": 1.2,
+					"mines_enabled": false,
+					"supernova_weight": 0,
+					"quasar_align_weight": 0,
 					"near_miss_crystal_chance": 0.35,
 					"reward_multiplier": 1.0
 				},
@@ -615,25 +673,25 @@
 				},
 				{
 					"type": "gravity_hole",
-					"duration": 32,
-					"max_active_props": 12,
-					"prop_weights": { "debris_small": 70, "wreck_medium": 25, "titan_large": 5 },
+					"duration": 60,
+					"max_active_props": 14,
+					"prop_weights": {
+						"debris_small": 60,
+						"wreck_medium": 28,
+						"titan_large": 12
+					},
 					"oversize_contact_damage_percent": 0.08,
 					"final_core_efficiency_ratio": 0.45,
 					"reward_multiplier": 1.0
 				},
 				{
-					"type": "path_trial",
-					"pattern_id": "dna_helix",
-					"speed": 170,
-					"tick_damage": 10,
-					"tick_interval_sec": 0.35,
-					"path_width": 130,
-					"warmup_sec": 1,
-					"head_length_px": 280,
-					"tail_length_px": 180,
-					"hazard_asset_override": "",
-					"path_asset_override": ""
+					"type": "snake",
+					"duration": 40,
+					"boss_toughness_mult": 0.7,
+					"base_speed_px_sec": 190,
+					"item_spawn_interval_sec": 1.4,
+					"bite_damage_percent": 0.05,
+					"initial_segments": 3
 				},
 				{
 					"type": "swarm",
@@ -645,16 +703,72 @@
 					"type": "gate_runner",
 					"duration": 40,
 					"gates": [
-						{ "time_offset": 2, "left": { "operation": "add", "value": 60 }, "right": { "operation": "multiply", "value": 2 } },
-						{ "time_offset": 9, "left": { "operation": "subtract", "value": 40 }, "right": { "operation": "multiply", "value": 3 } },
-						{ "time_offset": 16, "left": { "operation": "multiply", "value": 2 }, "right": { "operation": "add", "value": 100 } },
-						{ "time_offset": 23, "left": { "operation": "divide", "value": 2 }, "right": { "operation": "add", "value": 80 } }
+						{
+							"time_offset": 2,
+							"left": {
+								"operation": "add",
+								"value": 60
+							},
+							"right": {
+								"operation": "multiply",
+								"value": 2
+							}
+						},
+						{
+							"time_offset": 9,
+							"left": {
+								"operation": "subtract",
+								"value": 40
+							},
+							"right": {
+								"operation": "multiply",
+								"value": 3
+							}
+						},
+						{
+							"time_offset": 16,
+							"left": {
+								"operation": "multiply",
+								"value": 2
+							},
+							"right": {
+								"operation": "add",
+								"value": 100
+							}
+						},
+						{
+							"time_offset": 23,
+							"left": {
+								"operation": "divide",
+								"value": 2
+							},
+							"right": {
+								"operation": "add",
+								"value": 80
+							}
+						}
 					],
 					"swarm": [
-						{ "time_offset": 5, "total_value": 350, "enemy_id": "swarmer" },
-						{ "time_offset": 12, "total_value": 450, "enemy_id": "swarmer" },
-						{ "time_offset": 19, "total_value": 550, "enemy_id": "swarmer" },
-						{ "time_offset": 26, "total_value": 650, "enemy_id": "swarmer" }
+						{
+							"time_offset": 5,
+							"total_value": 350,
+							"enemy_id": "swarmer"
+						},
+						{
+							"time_offset": 12,
+							"total_value": 450,
+							"enemy_id": "swarmer"
+						},
+						{
+							"time_offset": 19,
+							"total_value": 550,
+							"enemy_id": "swarmer"
+						},
+						{
+							"time_offset": 26,
+							"total_value": 650,
+							"enemy_id": "swarmer"
+						}
 					]
 				},
 				{
@@ -665,7 +779,11 @@
 					"gap_width": 190,
 					"row_interval": 1.2,
 					"drift_speed": 10,
-					"drift_directions": ["SW", "S", "SE"]
+					"drift_directions": [
+						"SW",
+						"S",
+						"SE"
+					]
 				},
 				{
 					"type": "pong",
@@ -688,7 +806,12 @@
 					"duration": 45,
 					"rows": 4,
 					"cols": 5,
-					"row_hp": [2, 1, 1, 1],
+					"row_hp": [
+						2,
+						1,
+						1,
+						1
+					],
 					"ball_speed_px_sec": 430,
 					"damage_percent_per_ball_lost": 0.15,
 					"bonus_brick_count": 2

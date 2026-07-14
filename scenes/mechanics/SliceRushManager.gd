@@ -848,7 +848,7 @@ func _attach_bomb_aura(root: Node2D, size_px: float) -> void:
 ## Line2D fermees dont le rayon ondule, couches data bomb_ring_layers (rouge)
 ## / decoy_ring_layers (orange, leurres). Points recalcules chaque frame par
 ## _animate_bomb_rings. Retourne les Line2D creees (stockees dans le dict).
-func _attach_bomb_rings(root: Node2D, size_px: float, is_decoy: bool) -> Array:
+func _attach_bomb_rings(root: Node2D, _size_px: float, is_decoy: bool) -> Array:
 	if not bool(_get_conf("bomb_ring_enabled", true)):
 		return []
 	var layers_v: Variant = _get_conf("decoy_ring_layers" if is_decoy else "bomb_ring_layers", [])

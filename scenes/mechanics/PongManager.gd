@@ -84,6 +84,7 @@ var _ball_base_speed: float = 420.0
 var _ball_speed_max: float = 900.0
 var _ball_speed_increase: float = 15.0
 var _max_bounce_angle_deg: float = 55.0
+var _min_vy_ratio: float = 0.26 # sin(15°) : interdit les trajectoires à 75-105° de la verticale
 var _wall_margin: float = 10.0
 var _serve_dir: int = 1 # +1 = toward the player (down), -1 = toward the enemy (up)
 var _serve_delay: float = 0.8
@@ -162,9 +163,7 @@ var _wind_flip_timer: float = 0.0
 var _wind_strength: float = 900.0
 var _wind_flip_interval: float = 6.0
 var _wind_telegraph_sec: float = 1.0
-var _wind_streaks: Array = []
-var _wind_debris: Array = []
-var _wind_arrow: Label = null
+var _wind_fx: WindFX = null
 # blackout : pénombre à trous de lumière (shader).
 var _blackout_time: float = 0.0
 var _blackout_total: float = 0.0
@@ -236,6 +235,7 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_ball_speed_max = maxf(_ball_base_speed, float(_cfg.get("ball_speed_max_px_sec", 900.0)))
 	_ball_speed_increase = maxf(0.0, float(_cfg.get("ball_speed_increase_per_hit", 15.0)))
 	_max_bounce_angle_deg = clampf(float(_cfg.get("ball_max_bounce_angle_deg", 55.0)), 10.0, 80.0)
+	_min_vy_ratio = clampf(float(_cfg.get("ball_min_vy_ratio", 0.26)), 0.02, 0.9)
 	_wall_margin = maxf(0.0, float(_cfg.get("wall_margin_px", 10.0)))
 	_serve_delay = maxf(0.1, float(_cfg.get("serve_delay_sec", 0.8)))
 	_serve_angle_max_deg = clampf(float(_cfg.get("serve_angle_max_deg", 30.0)), 0.0, 60.0)
@@ -616,35 +616,77 @@ func _step_ball(ball: Dictionary, step: float) -> bool:
 	if pos.x <= left_x and vel.x < 0.0:
 		pos.x = left_x
 		vel.x = -vel.x
+		vel = _enforce_min_vertical(vel, float(ball.get("speed", _ball_base_speed)))
 		ball["vel"] = vel
 		_on_ball_bounced(ball, pos)
 	elif pos.x >= right_x and vel.x > 0.0:
 		pos.x = right_x
 		vel.x = -vel.x
+		vel = _enforce_min_vertical(vel, float(ball.get("speed", _ball_base_speed)))
 		ball["vel"] = vel
 		_on_ball_bounced(ball, pos)
 
 	# Player paddle (bottom): only intercepts a ball travelling downward.
+	# Sweep du plan superieur : la balle est posee au point d'impact EXACT du
+	# substep (fini le re-seat vertical brutal qui teleportait la balle sur
+	# les arrivees de biais — courbe/vent — et les contacts lateraux).
 	if vel.y > 0.0 and _player and is_instance_valid(_player):
 		var p: Vector2 = _player.global_position
 		var p_half: Vector2 = _paddle_half_extents("player")
-		if _circle_hits_paddle(pos, p, p_half):
-			pos.y = p.y - p_half.y - _ball_radius
-			ball["vel"] = vel
-			vel = _bounce_off_paddle(ball, pos.x, p.x, p_half.x, true)
-			ball["hitter"] = "player"
-			_on_ball_bounced(ball, pos)
+		var plane_y: float = p.y - p_half.y - _ball_radius
+		var prev: Vector2 = node.global_position
+		if prev.y <= plane_y and pos.y > plane_y:
+			var t: float = (plane_y - prev.y) / maxf(0.0001, pos.y - prev.y)
+			var hit_x: float = lerpf(prev.x, pos.x, t)
+			if absf(hit_x - p.x) <= p_half.x + _ball_radius:
+				pos = Vector2(hit_x, plane_y)
+				ball["vel"] = vel
+				vel = _bounce_off_paddle(ball, hit_x, p.x, p_half.x, true)
+				ball["hitter"] = "player"
+				_on_ball_bounced(ball, pos)
+		elif _circle_hits_paddle(pos, p, p_half):
+			if pos.y <= p.y:
+				# Coin/flanc haut : rebond sans correction de position.
+				ball["vel"] = vel
+				vel = _bounce_off_paddle(ball, pos.x, p.x, p_half.x, true)
+				ball["hitter"] = "player"
+				_on_ball_bounced(ball, pos)
+			else:
+				# Flanc bas : repousse laterale minimale, la balle file au but.
+				var push_sign: float = 1.0 if pos.x >= p.x else -1.0
+				pos.x = p.x + push_sign * (p_half.x + _ball_radius)
+				if (vel.x > 0.0) != (push_sign > 0.0):
+					vel.x = -vel.x
 
 	# Enemy paddle (top): only intercepts a ball travelling upward.
+	# Miroir du sweep joueur (plan inferieur de la raquette CPU).
 	if vel.y < 0.0 and _enemy_paddle and is_instance_valid(_enemy_paddle):
 		var e: Vector2 = _enemy_paddle.global_position
 		var e_half: Vector2 = _paddle_half_extents("enemy")
-		if _circle_hits_paddle(pos, e, e_half):
-			pos.y = e.y + e_half.y + _ball_radius
-			ball["vel"] = vel
-			vel = _bounce_off_paddle(ball, pos.x, e.x, e_half.x, false)
-			ball["hitter"] = "enemy"
-			_on_ball_bounced(ball, pos)
+		var plane_y_e: float = e.y + e_half.y + _ball_radius
+		var prev_e: Vector2 = node.global_position
+		if prev_e.y >= plane_y_e and pos.y < plane_y_e:
+			var t_e: float = (plane_y_e - prev_e.y) / minf(-0.0001, pos.y - prev_e.y)
+			var hit_x_e: float = lerpf(prev_e.x, pos.x, t_e)
+			if absf(hit_x_e - e.x) <= e_half.x + _ball_radius:
+				pos = Vector2(hit_x_e, plane_y_e)
+				ball["vel"] = vel
+				vel = _bounce_off_paddle(ball, hit_x_e, e.x, e_half.x, false)
+				ball["hitter"] = "enemy"
+				_on_ball_bounced(ball, pos)
+		elif _circle_hits_paddle(pos, e, e_half):
+			if pos.y >= e.y:
+				# Coin/flanc bas : rebond sans correction de position.
+				ball["vel"] = vel
+				vel = _bounce_off_paddle(ball, pos.x, e.x, e_half.x, false)
+				ball["hitter"] = "enemy"
+				_on_ball_bounced(ball, pos)
+			else:
+				# Flanc haut : repousse laterale minimale, la balle file au but.
+				var push_sign_e: float = 1.0 if pos.x >= e.x else -1.0
+				pos.x = e.x + push_sign_e * (e_half.x + _ball_radius)
+				if (vel.x > 0.0) != (push_sign_e > 0.0):
+					vel.x = -vel.x
 
 	ball["vel"] = vel
 	# Mur de briques central : rebond + dégât de brique.
@@ -683,6 +725,18 @@ func _paddle_width_mult(side: String) -> float:
 func _paddle_half_extents(side: String) -> Vector2:
 	var base: Vector2 = _player_half_extents if side == "player" else _enemy_half_extents
 	return Vector2(base.x * _paddle_width_mult(side), base.y)
+
+## Anti-blocage : une trajectoire quasi horizontale (75-105° vs la verticale)
+## rebondit indéfiniment entre les murs gauche/droite. Au rebond de mur, la
+## composante verticale est ramenée au minimum (ball_min_vy_ratio de la vitesse,
+## 0.26 = sin(15°)) en conservant la vitesse scalaire et les signes.
+func _enforce_min_vertical(vel: Vector2, speed: float) -> Vector2:
+	var min_vy: float = speed * _min_vy_ratio
+	if absf(vel.y) >= min_vy:
+		return vel
+	var sign_y: float = -1.0 if vel.y <= 0.0 else 1.0
+	var vx_mag: float = sqrt(maxf(0.0, speed * speed - min_vy * min_vy))
+	return Vector2(vx_mag * (1.0 if vel.x >= 0.0 else -1.0), sign_y * min_vy)
 
 func _circle_hits_paddle(ball_pos: Vector2, paddle_center: Vector2, half_extents: Vector2) -> bool:
 	var dx: float = absf(ball_pos.x - paddle_center.x)
@@ -776,12 +830,13 @@ func _on_enemy_scored() -> void:
 	# Multiplicateur d'enjeux lu AVANT _register_goal (qui coupe le tie-break).
 	var reward_mult: float = _goal_reward_mult()
 	_register_goal()
+	# But encaissé = pénalité (pas d'esquive possible : ignore_dodge).
 	if _player and is_instance_valid(_player) and _player.has_method("take_damage"):
 		var max_hp_v: Variant = _player.get("max_hp")
 		var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
 		# Standard damage path: shield absorbs first, then HP; die() below 0.
 		var dmg: int = maxi(1, int(ceil(float(max_hp) * _damage_percent * reward_mult)))
-		_player.call("take_damage", dmg)
+		_player.call("take_damage", dmg, true)
 
 func _on_player_scored() -> void:
 	_serve_dir = 1
@@ -1183,7 +1238,7 @@ func _build_hitbox_overlay(width_mult: float, color: Color) -> Polygon2D:
 
 ## L'entrée (orange) apparaît dans la moitié de l'ACTIVATEUR : joueur -> bas,
 ## CPU -> haut (les deux ratios Y sont simplement échangés).
-func _spawn_portal_pair(duration: float, owner: String = "player") -> void:
+func _spawn_portal_pair(duration: float, owner_side: String = "player") -> void:
 	_clear_portal()
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var portal_size := Vector2(
@@ -1195,7 +1250,7 @@ func _spawn_portal_pair(duration: float, owner: String = "player") -> void:
 		Color(str(_get_conf("portal_exit_color", "#4AA8FF"))), portal_size)
 	var entry_ratio: float = clampf(float(_get_conf("portal_entry_y_ratio", 0.62)), 0.05, 0.95)
 	var exit_ratio: float = clampf(float(_get_conf("portal_exit_y_ratio", 0.36)), 0.05, 0.95)
-	if owner == "enemy":
+	if owner_side == "enemy":
 		var swap: float = entry_ratio
 		entry_ratio = exit_ratio
 		exit_ratio = swap
@@ -1685,12 +1740,13 @@ func _free_shrink_wall_lines() -> void:
 
 func _update_wind(delta: float) -> void:
 	if _wind_time <= 0.0:
-		if not _wind_streaks.is_empty() or not _wind_debris.is_empty():
-			_free_wind_visuals()
+		if _wind_fx != null and _wind_fx.is_active():
+			_wind_fx.clear()
 		return
 	_wind_time -= delta
 	if _wind_time <= 0.0:
-		_free_wind_visuals()
+		if _wind_fx != null:
+			_wind_fx.clear()
 		return
 	_wind_flip_timer -= delta
 	var telegraphing: bool = _wind_flip_timer <= _wind_telegraph_sec
@@ -1698,123 +1754,18 @@ func _update_wind(delta: float) -> void:
 		_wind_dir = -_wind_dir
 		_wind_flip_timer = _wind_flip_interval
 		telegraphing = false
-	_ensure_wind_visuals()
-	_update_wind_arrow(telegraphing)
-	_animate_wind(delta)
-
-## Flèches de télégraphe : direction du PROCHAIN flip, pulse d'alpha.
-func _update_wind_arrow(telegraphing: bool) -> void:
-	if _wind_arrow == null or not is_instance_valid(_wind_arrow):
-		return
-	if not telegraphing:
-		_wind_arrow.visible = false
-		return
-	_wind_arrow.text = ">>>" if -_wind_dir > 0 else "<<<"
-	_wind_arrow.visible = true
-	_wind_arrow.modulate.a = 0.5 + 0.5 * absf(sin(_elapsed * 9.0))
-
-func _ensure_wind_visuals() -> void:
-	if not _wind_streaks.is_empty():
-		return
-	var viewport_size: Vector2 = get_viewport_rect().size
-	if _shield_material == null:
-		_shield_material = CanvasItemMaterial.new()
-		_shield_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	var streak_color := Color(str(_get_conf("wind_streak_color", "#9AD8FF66")))
-	for i in range(clampi(int(_get_conf("wind_streak_count", 14)), 0, 40)):
-		var line := Line2D.new()
-		line.width = randf_range(1.5, 3.0)
-		line.default_color = streak_color
-		line.material = _shield_material
-		line.z_as_relative = false
-		line.z_index = 7
-		add_child(line)
-		_wind_streaks.append({
-			"node": line,
-			"x": randf_range(0.0, viewport_size.x),
-			"y": randf_range(viewport_size.y * 0.05, viewport_size.y * 0.95),
-			"speed": randf_range(420.0, 900.0),
-			"len": randf_range(40.0, 110.0)
+	if _wind_fx == null:
+		_wind_fx = WindFX.new(self, {
+			"streak_count": int(_get_conf("wind_streak_count", 14)),
+			"streak_color": str(_get_conf("wind_streak_color", "#9AD8FF66")),
+			"debris_count": int(_get_conf("wind_debris_count", 6)),
+			"debris_color": str(_get_conf("wind_debris_color", "#C8E8FFAA")),
 		})
-	var debris_color := Color(str(_get_conf("wind_debris_color", "#C8E8FFAA")))
-	for i in range(clampi(int(_get_conf("wind_debris_count", 6)), 0, 20)):
-		var dot := Polygon2D.new()
-		var s: float = randf_range(3.0, 6.0)
-		dot.polygon = PackedVector2Array([Vector2(-s, 0), Vector2(0, -s), Vector2(s, 0), Vector2(0, s)])
-		dot.color = debris_color
-		dot.z_as_relative = false
-		dot.z_index = 7
-		add_child(dot)
-		_wind_debris.append({
-			"node": dot,
-			"x": randf_range(0.0, viewport_size.x),
-			"base_y": randf_range(viewport_size.y * 0.1, viewport_size.y * 0.9),
-			"speed": randf_range(140.0, 260.0),
-			"amp": randf_range(10.0, 30.0),
-			"phase": randf() * TAU
-		})
-	var arrow := Label.new()
-	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	arrow.add_theme_font_size_override("font_size", 40)
-	arrow.add_theme_color_override("font_color", Color("#9AD8FF"))
-	arrow.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	arrow.add_theme_constant_override("outline_size", 5)
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	arrow.z_as_relative = false
-	arrow.z_index = 55
-	arrow.size = Vector2(viewport_size.x, 44.0)
-	arrow.position = Vector2(0.0, viewport_size.y * 0.24)
-	arrow.visible = false
-	add_child(arrow)
-	_wind_arrow = arrow
-
-## Traits horizontaux qui filent dans le sens du vent + petits débris qui
-## dérivent en oscillant (sinus vertical) — wrap d'un bord à l'autre.
-func _animate_wind(delta: float) -> void:
-	var viewport_size: Vector2 = get_viewport_rect().size
-	for streak_v in _wind_streaks:
-		var streak: Dictionary = streak_v as Dictionary
-		var x: float = float(streak.get("x", 0.0)) + float(_wind_dir) * float(streak.get("speed", 500.0)) * delta
-		var len_px: float = float(streak.get("len", 60.0))
-		if _wind_dir > 0 and x - len_px > viewport_size.x:
-			x = -len_px
-			streak["y"] = randf_range(viewport_size.y * 0.05, viewport_size.y * 0.95)
-		elif _wind_dir < 0 and x + len_px < 0.0:
-			x = viewport_size.x + len_px
-			streak["y"] = randf_range(viewport_size.y * 0.05, viewport_size.y * 0.95)
-		streak["x"] = x
-		var line: Line2D = streak.get("node") as Line2D
-		if line and is_instance_valid(line):
-			var y: float = float(streak.get("y", 0.0))
-			line.points = PackedVector2Array([Vector2(x - len_px * float(_wind_dir), y), Vector2(x, y)])
-	for debris_v in _wind_debris:
-		var debris: Dictionary = debris_v as Dictionary
-		var dx: float = float(debris.get("x", 0.0)) + float(_wind_dir) * float(debris.get("speed", 200.0)) * delta
-		if _wind_dir > 0 and dx > viewport_size.x + 12.0:
-			dx = -12.0
-		elif _wind_dir < 0 and dx < -12.0:
-			dx = viewport_size.x + 12.0
-		debris["x"] = dx
-		debris["phase"] = float(debris.get("phase", 0.0)) + delta * 3.0
-		var dot: Polygon2D = debris.get("node") as Polygon2D
-		if dot and is_instance_valid(dot):
-			dot.global_position = Vector2(dx,
-				float(debris.get("base_y", 0.0)) + sin(float(debris["phase"])) * float(debris.get("amp", 20.0)))
-
-func _free_wind_visuals() -> void:
-	for streak_v in _wind_streaks:
-		var node_v: Variant = (streak_v as Dictionary).get("node", null)
-		if node_v is Node and is_instance_valid(node_v):
-			(node_v as Node).queue_free()
-	_wind_streaks.clear()
-	for debris_v in _wind_debris:
-		var node_v: Variant = (debris_v as Dictionary).get("node", null)
-		if node_v is Node and is_instance_valid(node_v):
-			(node_v as Node).queue_free()
-	_wind_debris.clear()
-	if _wind_arrow and is_instance_valid(_wind_arrow):
-		_wind_arrow.queue_free()
-	_wind_arrow = null
+	_wind_fx.ensure_visuals()
+	# Flèche de télégraphe : direction du PROCHAIN flip, visible seulement
+	# pendant le telegraph — le vent actif est montré par les traits.
+	_wind_fx.update_arrow(telegraphing, Vector2(float(-_wind_dir), 0.0), _elapsed)
+	_wind_fx.animate(delta, Vector2(float(_wind_dir), 0.0))
 
 # --- blackout : pénombre à trous de lumière ---
 

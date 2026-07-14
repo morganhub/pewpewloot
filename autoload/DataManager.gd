@@ -324,12 +324,22 @@ func get_wave_type_config(wave_type: String) -> Dictionary:
 		return (legacy as Dictionary).duplicate(true)
 	return {}
 
+## Clé GLOBALE à la racine de wave_types.json (hors blocs par type) — ex.
+## effect_labels_enabled : labels texte des effets sur les objets, béquille
+## lisibilité tant que les assets ne sont pas explicites (applicable à tous
+## les types, surchargeable par bloc/vague).
+func get_wave_types_global(key: String, fallback: Variant = null) -> Variant:
+	var value: Variant = _wave_types_config.get(key, fallback)
+	return fallback if value is Dictionary else value
+
 ## Tous les types de vagues déclarés dans wave_types.json (clés de config).
+## Un type = un bloc Dictionary — les clés globales scalaires de la racine
+## (effect_labels_enabled...) ne sont pas des types.
 func get_wave_type_ids() -> Array:
 	var ids: Array = []
 	for key in _wave_types_config.keys():
 		var id: String = str(key)
-		if not id.begins_with("_"):
+		if not id.begins_with("_") and _wave_types_config.get(key) is Dictionary:
 			ids.append(id)
 	return ids
 

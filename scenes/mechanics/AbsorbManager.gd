@@ -225,7 +225,6 @@ func _spawn_next_prey() -> void:
 ## errent dans l'arène.
 func _spawn_prey(value: float, is_final: bool, kind: String = "", spawn_at: Vector2 = Vector2.INF, vel: Vector2 = Vector2.ZERO) -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
-	var margin: float = maxf(30.0, float(_cfg.get("prey_side_margin_px", 60.0)))
 
 	var node := Node2D.new()
 	node.name = "AbsorbFinal" if is_final else "AbsorbPrey"

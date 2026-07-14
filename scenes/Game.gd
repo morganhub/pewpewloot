@@ -22,7 +22,7 @@ const KILLSTREAK_MANAGER_SCRIPT: Script = preload("res://autoload/KillstreakMana
 const BONUS_CRYSTAL_SCENE: PackedScene = preload("res://scenes/pickups/BonusCrystal.tscn")
 const FIRE_PATTERN_DROP_SCENE: PackedScene = preload("res://scenes/pickups/FirePatternDrop.tscn")
 const LOOT_DROP_SCENE: PackedScene = preload("res://scenes/LootDrop.tscn")
-const PATH_TRIAL_SCENE: PackedScene = preload("res://scenes/mechanics/PathTrial.tscn")
+const SNAKE_SCENE: PackedScene = preload("res://scenes/mechanics/SnakeManager.tscn")
 const GATE_RUNNER_SCENE: PackedScene = preload("res://scenes/mechanics/GateRunnerManager.tscn")
 const PONG_SCENE: PackedScene = preload("res://scenes/mechanics/PongManager.tscn")
 const BREAKOUT_SCENE: PackedScene = preload("res://scenes/mechanics/BreakoutManager.tscn")
@@ -35,7 +35,9 @@ const MATCH3_SCENE: PackedScene = preload("res://scenes/mechanics/Match3Manager.
 const GRAVITY_HOLE_SCENE: PackedScene = preload("res://scenes/mechanics/GravityHoleManager.tscn")
 const STAR_DRIFT_SCENE: PackedScene = preload("res://scenes/mechanics/StarDriftManager.tscn")
 const SUIKA_UP_SCENE: PackedScene = preload("res://scenes/mechanics/SuikaUpManager.tscn")
+const SURVIVOR_SCENE: PackedScene = preload("res://scenes/mechanics/SurvivorManager.tscn")
 const RUNTIME_WARMUP_PATHS: PackedStringArray = [
+	"res://scenes/mechanics/SurvivorManager.tscn",
 	"res://scenes/obstacles/ObstacleExplosive.tscn",
 	"res://scenes/obstacles/ObstaclePusher.tscn",
 	"res://scenes/objects/Mine.tscn",
@@ -51,6 +53,7 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/pickups/BonusCrystal.tscn",
 	"res://scenes/pickups/FirePatternDrop.tscn",
 	"res://scenes/mechanics/PathTrial.tscn",
+	"res://scenes/mechanics/SnakeManager.tscn",
 	"res://scenes/mechanics/GateRunnerManager.tscn",
 	"res://scenes/mechanics/MathGate.tscn",
 	"res://scenes/mechanics/PongManager.tscn",
@@ -105,6 +108,7 @@ var _boss_sequence_ids: Array[String] = []
 var _boss_sequence_index: int = -1
 var _boss_sequence_active: bool = false
 var session_score: int = 0 # Single source of truth for run score.
+var session_crystals_gained: int = 0 # Cristaux MONNAIE gagnés cette session (pickups, chest, overrides) — affiché en fin de run.
 var session_xp: int = 0  # Kept in sync with session_score for XP/crystal formulas.
 var _end_screen_delay_seconds: float = 1.5
 var _boss_spawn_top_margin_px: float = 28.0
@@ -198,7 +202,8 @@ var _active_bonus_crystals: Array[Node] = []
 var _fire_pattern_drops_cfg: Dictionary = {}
 var _active_fire_pattern_drops: Array[Node] = []
 var _fire_pattern_drop_count: int = 0
-var _active_path_trials: Array[Node] = []
+var _active_snake_managers: Array[Node] = []
+var _snake_wave_active: bool = false
 var _active_gate_runners: Array[Node] = []
 # True while a gate_runner wave is running: the player does not fire, so fire
 # pattern drops and power-ups (shield/rapid fire) are suppressed.
@@ -236,6 +241,10 @@ var _star_drift_wave_active: bool = false
 var _active_suika_up_managers: Array[Node] = []
 # True while a suika_up wave is running: same drop suppression.
 var _suika_up_wave_active: bool = false
+var _active_survivor_managers: Array[Node] = []
+# True while a survivor wave is running: same drop suppression (les récompenses
+# passent par gemmes XP + coffres du manager).
+var _survivor_wave_active: bool = false
 # Asteroid_split wave state: config cached at wave start (split handling reads
 # it on every asteroid kill), plus a hard cap counter (mobile perf).
 var _asteroid_field_cfg: Dictionary = {}
@@ -368,14 +377,19 @@ func _update_free_mode_level_label(level: int) -> void:
 
 func _on_free_mode_level_changed(level: int) -> void:
 	_update_free_mode_level_label(level)
-	# Récompense de palier (mode libre uniquement, jamais en story) : PV
-	# restaurés à 100 % à chaque montée de level (freemode.json > leveling >
-	# full_heal_on_level_up). Set direct : le full heal ignore volontairement
-	# le multiplicateur de soin.
+	# Récompense de palier (mode libre uniquement, jamais en story) : soin de
+	# level_up_heal_percent des HP max (0.4 = 40 %) à chaque montée de level
+	# (freemode.json > leveling). Fallback legacy : full_heal_on_level_up
+	# (bool) = 100 %. Set direct : ignore volontairement le multiplicateur de
+	# soin.
 	var leveling_v: Variant = DataManager.get_freemode_config().get("leveling", {})
-	if leveling_v is Dictionary and bool((leveling_v as Dictionary).get("full_heal_on_level_up", true)):
-		if is_instance_valid(player) and player.current_hp < player.max_hp:
-			player.current_hp = player.max_hp
+	if leveling_v is Dictionary:
+		var leveling: Dictionary = leveling_v as Dictionary
+		var heal_pct: float = clampf(float(leveling.get("level_up_heal_percent",
+			1.0 if bool(leveling.get("full_heal_on_level_up", true)) else 0.0)), 0.0, 1.0)
+		if heal_pct > 0.0 and is_instance_valid(player) and player.current_hp < player.max_hp:
+			player.current_hp = mini(player.max_hp,
+				player.current_hp + maxi(1, int(ceil(float(player.max_hp) * heal_pct))))
 			# Gate runner : le set direct ne rafraîchit ni le gros label HP ni
 			# l'essaim de clones — opération arithmétique no-op pour resynchroniser
 			# (early-return dans Player si le mode gate_runner n'est pas actif).
@@ -430,6 +444,7 @@ func _clean_start_of_run_state() -> void:
 	_clear_match3_managers()
 	_clear_gravity_hole_managers()
 	_clear_suika_up_managers()
+	_clear_survivor_managers()
 
 func _play_level_story_if_needed() -> bool:
 	var stories: Array = DataManager.get_stories_for_trigger_start(current_world_id, current_level_index)
@@ -716,6 +731,12 @@ func add_wave_bonus_score(points: int, at_pos: Vector2) -> void:
 	VFXManager.spawn_floating_text(at_pos, "+%d" % delta, Color(1.0, 0.87, 0.45), hud_container)
 
 func _on_bonus_crystal_collected(data: Dictionary) -> void:
+	# Chaque cristal ramassé crédite aussi la MONNAIE (currency_per_pickup,
+	# surchargeable par type via currency_value) — total affiché en fin de run.
+	var currency: int = maxi(0, int(data.get("currency_value", _bonus_crystals_cfg.get("currency_per_pickup", 1))))
+	if currency > 0 and ProfileManager:
+		ProfileManager.add_crystals(currency)
+		session_crystals_gained += currency
 	var crystal_type: String = str(data.get("type", ""))
 	if crystal_type == "score_crystal":
 		var score_value: int = maxi(0, int(data.get("score_value", 0)))
@@ -747,7 +768,8 @@ func _try_spawn_fire_pattern_drop(at_pos: Vector2) -> void:
 		or _ball_launcher_wave_active \
 		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
 		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
-		or _star_drift_wave_active or _suika_up_wave_active:
+		or _star_drift_wave_active or _suika_up_wave_active or _snake_wave_active \
+		or _survivor_wave_active:
 		return
 	if _fire_pattern_drops_cfg.is_empty() or not bool(_fire_pattern_drops_cfg.get("enabled", false)):
 		return
@@ -821,16 +843,21 @@ func _clear_fire_pattern_drops() -> void:
 		node.queue_free()
 	_active_fire_pattern_drops.clear()
 
-func _clear_path_trials() -> void:
-	for i in range(_active_path_trials.size() - 1, -1, -1):
-		var node: Node = _active_path_trials[i]
+func _clear_snake_managers() -> void:
+	_snake_wave_active = false
+	for i in range(_active_snake_managers.size() - 1, -1, -1):
+		var node: Node = _active_snake_managers[i]
 		if node == null or not is_instance_valid(node):
-			_active_path_trials.remove_at(i)
+			_active_snake_managers.remove_at(i)
 			continue
-		if node.has_method("finish_with_fade"):
-			node.call("finish_with_fade")
+		if node.has_method("finish_now"):
+			node.call("finish_now")
 		else:
 			node.queue_free()
+	_active_snake_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_snake"):
+		player.call("end_snake")
 
 func _build_default_loot_drop_rules() -> Dictionary:
 	return {
@@ -1565,8 +1592,8 @@ func _start_enemy_spawner() -> void:
 	
 	wave_manager.spawn_enemy.connect(_on_wave_enemy_spawn)
 	wave_manager.spawn_obstacle.connect(_on_wave_obstacle_spawn)
-	if wave_manager.has_signal("spawn_path_trial"):
-		wave_manager.spawn_path_trial.connect(_on_wave_path_trial_spawn)
+	if wave_manager.has_signal("spawn_snake"):
+		wave_manager.spawn_snake.connect(_on_wave_snake_spawn)
 	if wave_manager.has_signal("spawn_gate_runner"):
 		wave_manager.spawn_gate_runner.connect(_on_wave_gate_runner_spawn)
 	if wave_manager.has_signal("spawn_pong"):
@@ -1591,6 +1618,7 @@ func _start_enemy_spawner() -> void:
 		wave_manager.spawn_star_drift.connect(_on_wave_star_drift_spawn)
 	if wave_manager.has_signal("spawn_suika_up"):
 		wave_manager.spawn_suika_up.connect(_on_wave_suika_up_spawn)
+		wave_manager.spawn_survivor.connect(_on_wave_survivor_spawn)
 	if wave_manager.has_signal("spawn_asteroid_field"):
 		wave_manager.spawn_asteroid_field.connect(_on_wave_asteroid_field_spawn)
 	wave_manager.level_completed.connect(_on_level_completed)
@@ -1773,65 +1801,7 @@ func _prewarm_runtime_support_assets() -> void:
 	if _warmup_runtime_nodes_enabled:
 		_warmup_runtime_support_nodes(runtime_paths)
 		_prewarm_runtime_pickup_nodes()
-		_prewarm_runtime_path_trial_nodes()
 		_prewarm_runtime_explosion_nodes()
-
-func _prewarm_runtime_path_trial_nodes() -> void:
-	if PATH_TRIAL_SCENE == null:
-		return
-
-	var host := Node2D.new()
-	host.name = "RuntimePathTrialWarmupHost"
-	host.visible = true
-	game_layer.add_child(host)
-
-	var defaults: Dictionary = DataManager.get_path_trial_defaults() if DataManager else {}
-	var configs: Array[Dictionary] = []
-
-	# Baseline defaults warmup.
-	configs.append({
-		"duration": 1.0,
-		"start_delay_sec": float(defaults.get("start_delay_sec", defaults.get("warmup_sec", 1.5))),
-		"speed": 140.0,
-		"path_width": float(defaults.get("path_width", 120.0)),
-		"tick_damage": int(defaults.get("default_tick_damage", 10)),
-		"tick_interval_sec": float(defaults.get("default_tick_interval_sec", 0.5)),
-		"hazard_start_asset_override": str(defaults.get("default_hazard_start_asset", "")),
-		"hazard_asset_override": str(defaults.get("default_hazard_asset", "")),
-		"path_asset_override": str(defaults.get("default_path_asset", ""))
-	})
-
-	# Current level path_trial overrides warmup.
-	var level_id: String = current_world_id + "_lvl_" + str(current_level_index)
-	var level_data: Dictionary = DataManager.get_level_data(level_id)
-	var waves_v: Variant = level_data.get("waves", [])
-	if waves_v is Array:
-		for wave_v in (waves_v as Array):
-			if not (wave_v is Dictionary):
-				continue
-			var wave: Dictionary = wave_v as Dictionary
-			if str(wave.get("type", "enemy")) != "path_trial":
-				continue
-			var cfg: Dictionary = wave.duplicate(true)
-			cfg["duration"] = maxf(0.2, float(cfg.get("duration", 1.0)))
-			configs.append(cfg)
-
-	for cfg in configs:
-		var node: Node = PATH_TRIAL_SCENE.instantiate()
-		if not (node is Node2D):
-			continue
-		var trial: Node2D = node as Node2D
-		trial.process_mode = Node.PROCESS_MODE_DISABLED
-		trial.z_as_relative = false
-		trial.z_index = -40
-		host.add_child(trial)
-		if trial.has_method("setup"):
-			trial.call("setup", cfg)
-		if trial.has_method("stop"):
-			trial.call("stop")
-		trial.queue_free()
-
-	host.queue_free()
 
 func _warmup_runtime_support_nodes(runtime_paths: Dictionary) -> void:
 	if runtime_paths.is_empty():
@@ -2200,7 +2170,7 @@ func _skip_to_next_debug_boss() -> void:
 
 func _on_wave_started(wave_index: int) -> void:
 	_reset_wave_powerup_drop_counters()
-	_clear_path_trials()
+	_clear_snake_managers()
 	# Clearing gate runners also restores the ship (HP clamp + scale reset) when
 	# leaving a gate_runner wave for the next one.
 	_clear_gate_runners()
@@ -2217,6 +2187,7 @@ func _on_wave_started(wave_index: int) -> void:
 	_clear_gravity_hole_managers()
 	_clear_star_drift_managers()
 	_clear_suika_up_managers()
+	_clear_survivor_managers()
 	var wave_type: String = _get_wave_type_at_index(wave_index)
 	# Mode libre : le niveau synthétique ne porte qu'un placeholder — le type
 	# réel du round vient du WaveManager (indispensable en fiesta, où le
@@ -2230,12 +2201,17 @@ func _on_wave_started(wave_index: int) -> void:
 	# sur le profil (jamais pendant une run libre).
 	if not _free_mode_session and ProfileManager and ProfileManager.has_method("mark_wave_type_encountered"):
 		ProfileManager.mark_wave_type_encountered(wave_type)
-	var disable_shooting: bool = wave_type == "path_trial" or wave_type == "gate_runner" \
+	# Skin de vaisseau par type de vague (ships.json > visual.wave_visuals) :
+	# appliqué AVANT le setup des mécaniques pour que les begin_* mesurent le
+	# bon sprite. Fallback générique + anim de transition gérés côté Player.
+	if is_instance_valid(player) and player.has_method("apply_wave_visual"):
+		player.apply_wave_visual(wave_type)
+	var disable_shooting: bool = wave_type == "snake" or wave_type == "gate_runner" \
 		or wave_type == "pong" or wave_type == "breakout" or wave_type == "ball_launcher" \
 		or wave_type == "vertical_climb" \
 		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
 		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift" \
-		or wave_type == "suika_up"
+		or wave_type == "suika_up" or wave_type == "survivor"
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
 		# Disable shooting for the paddle/pilotage mechanics; re-enable otherwise.
 		player.set_can_shoot(not disable_shooting)
@@ -2294,7 +2270,7 @@ func _ensure_wave_splash_label() -> void:
 # when the "game_wave_<type>" locale key is missing; plain enemy waves
 # (empty/unknown type) show no sub-title at all.
 const WAVE_TYPE_SPLASH_FALLBACKS: Dictionary = {
-	"path_trial": "Danger Zone",
+	"snake": "Snake",
 	"gate_runner": "GATE RUNNER",
 	"pong": "PONG",
 	"breakout": "Breakout",
@@ -2309,12 +2285,13 @@ const WAVE_TYPE_SPLASH_FALLBACKS: Dictionary = {
 	"suika_up": "Suika Reactor",
 	"obstacle": "Asteroid Field",
 	"asteroid_split": "Splitting Asteroids",
+	"survivor": "Survivor",
 	"swarm": "Swarm",
 	"tank": "Heavy Armor",
 	"artillery": "Artillery Barrage"
 }
 const WAVE_TYPE_SPLASH_COLORS: Dictionary = {
-	"path_trial": "#FF3B3B",
+	"snake": "#7FE58C",
 	"gate_runner": "#3FBF6A",
 	"pong": "#8FD3FF",
 	"breakout": "#FFB56B",
@@ -2327,7 +2304,8 @@ const WAVE_TYPE_SPLASH_COLORS: Dictionary = {
 	"gravity_hole": "#9A7BFF",
 	"star_drift": "#9AF6FF",
 	"suika_up": "#7FE8C8",
-	"asteroid_split": "#C9A66B"
+	"asteroid_split": "#C9A66B",
+	"survivor": "#B4FF6B"
 }
 const WAVE_TYPE_SPLASH_DEFAULT_COLOR: String = "#FFD56B"
 
@@ -2522,7 +2500,8 @@ func can_spawn_powerup_drop(effect: String) -> bool:
 		or _ball_launcher_wave_active \
 		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
 		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
-		or _star_drift_wave_active or _suika_up_wave_active:
+		or _star_drift_wave_active or _suika_up_wave_active or _snake_wave_active \
+		or _survivor_wave_active:
 		return false
 	var normalized: String = effect.strip_edges().to_lower()
 	if not bool(_loot_drop_rules.get("allow_powerups", true)):
@@ -2657,23 +2636,36 @@ func _on_wave_obstacle_spawn(obstacle_data: Dictionary, positions: Array, speed:
 			if obstacle.has_signal("obstacle_destroyed"):
 				obstacle.obstacle_destroyed.connect(_on_obstacle_destroyed)
 
-func _on_wave_path_trial_spawn(config: Dictionary) -> void:
-	if PATH_TRIAL_SCENE == null:
+func _on_wave_snake_spawn(config: Dictionary) -> void:
+	if SNAKE_SCENE == null:
 		return
-	var node: Node = PATH_TRIAL_SCENE.instantiate()
+	var node: Node = SNAKE_SCENE.instantiate()
 	if not (node is Node2D):
 		return
-	var trial: Node2D = node as Node2D
-	trial.z_as_relative = false
-	trial.z_index = -40
-	trial.add_to_group("runtime_hazards")
-	game_layer.add_child(trial)
-	_active_path_trials.append(trial)
-	trial.tree_exiting.connect(func() -> void:
-		_active_path_trials.erase(trial)
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_snake_wave_active = true
+	game_layer.add_child(manager)
+	_active_snake_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_snake_managers.erase(manager)
 	)
-	if trial.has_method("setup"):
-		trial.call("setup", config)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_snake_finished"):
+				wave_manager.call("notify_snake_finished")
+		)
+	# Les astéroïdes [E] réutilisent les skins d'obstacles explosifs du monde.
+	var payload: Dictionary = config.duplicate(true)
+	var sn_obs_overrides_v: Variant = _world_skin_overrides.get("obstacles", {})
+	if sn_obs_overrides_v is Dictionary:
+		var sn_explosives_v: Variant = (sn_obs_overrides_v as Dictionary).get("explosives", [])
+		if sn_explosives_v is Array and not (sn_explosives_v as Array).is_empty():
+			payload["_obstacle_skins"] = (sn_explosives_v as Array).duplicate()
+	if manager.has_method("setup"):
+		manager.call("setup", payload, player, hud)
 
 func _on_wave_gate_runner_spawn(config: Dictionary) -> void:
 	if GATE_RUNNER_SCENE == null:
@@ -3214,6 +3206,48 @@ func _on_wave_suika_up_spawn(config: Dictionary) -> void:
 	if manager.has_method("setup"):
 		manager.call("setup", config.duplicate(true), player, hud)
 
+func _on_wave_survivor_spawn(config: Dictionary) -> void:
+	if SURVIVOR_SCENE == null:
+		return
+	var node: Node = SURVIVOR_SCENE.instantiate()
+	if not (node is Node2D):
+		return
+	var manager: Node2D = node as Node2D
+	manager.z_as_relative = false
+	manager.z_index = -5
+	manager.add_to_group("runtime_hazards")
+	_survivor_wave_active = true
+	game_layer.add_child(manager)
+	_active_survivor_managers.append(manager)
+	manager.tree_exiting.connect(func() -> void:
+		_active_survivor_managers.erase(manager)
+	)
+	if manager.has_signal("finished"):
+		manager.finished.connect(func() -> void:
+			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_survivor_finished"):
+				wave_manager.call("notify_survivor_finished")
+		)
+	if manager.has_method("setup"):
+		manager.call("setup", config.duplicate(true), player, hud)
+
+func _clear_survivor_managers() -> void:
+	_survivor_wave_active = false
+	for i in range(_active_survivor_managers.size() - 1, -1, -1):
+		var node: Node = _active_survivor_managers[i]
+		if node == null or not is_instance_valid(node):
+			_active_survivor_managers.remove_at(i)
+			continue
+		if node.has_method("finish_now"):
+			node.call("finish_now")
+		else:
+			node.queue_free()
+	_active_survivor_managers.clear()
+	# Defensive restore in case a manager was already gone.
+	if is_instance_valid(player) and player.has_method("end_survivor"):
+		player.call("end_survivor")
+	if hud and is_instance_valid(hud) and hud.has_method("set_survivor_xp_visible"):
+		hud.call("set_survivor_xp_visible", false)
+
 func _clear_suika_up_managers() -> void:
 	_suika_up_wave_active = false
 	for i in range(_active_suika_up_managers.size() - 1, -1, -1):
@@ -3412,8 +3446,9 @@ func _on_level_completed() -> void:
 	_clear_match3_managers()
 	_clear_gravity_hole_managers()
 	_clear_suika_up_managers()
+	_clear_survivor_managers()
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
-		# Ensure boss phase is never blocked by prior path_trial wave gating.
+		# Ensure boss phase is never blocked by prior no-shoot wave gating.
 		player.set_can_shoot(true)
 	var level_data := _get_current_level_data()
 	var boss_sequence: Array[String] = _extract_boss_sequence_ids(level_data)
@@ -3708,7 +3743,7 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 		return
 	_end_session_started = true
 	_clear_bonus_crystals()
-	_clear_path_trials()
+	_clear_snake_managers()
 	if _killstreak_manager and is_instance_valid(_killstreak_manager):
 		_killstreak_manager.call("on_level_end")
 	_set_boss_debug_mode(false)
@@ -3781,6 +3816,7 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 	var crystals_gained: int = _compute_override_crystal_reward(is_victory)
 	if crystals_gained > 0:
 		ProfileManager.add_crystals(crystals_gained)
+		session_crystals_gained += crystals_gained
 		if hud:
 			var reward_pos := player.global_position if is_instance_valid(player) else Vector2(get_viewport_rect().size.x * 0.5, get_viewport_rect().size.y * 0.65)
 			VFXManager.spawn_floating_text(
@@ -3836,6 +3872,8 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 		# Pass XP data for display
 		if loot_screen.has_method("set_xp_data"):
 			loot_screen.set_xp_data(xp_gained, xp_before, xp_after, level_before, level_after)
+		if loot_screen.has_method("set_crystals_data"):
+			loot_screen.set_crystals_data(session_crystals_gained)
 		if (is_victory or _free_mode_session) and loot_screen.has_method("set_score_data"):
 			loot_screen.set_score_data(session_score, score_best_before, score_best_after, score_stars_after, level_score_thresholds)
 		loot_screen.finished.connect(_return_to_home)
@@ -3926,7 +3964,7 @@ func _on_free_mode_select_requested() -> void:
 	App.free_mode_active = false
 	App.free_mode_wave_type = ""
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/FreeModeSelect.tscn")
@@ -3936,7 +3974,7 @@ func _return_to_home() -> void:
 	get_tree().paused = false
 	
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 	
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
@@ -3956,7 +3994,7 @@ func _on_restart_requested() -> void:
 	get_tree().paused = false
 	
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 	
 	# Recharger la scène de jeu avec les paramètres actuels
 	# On passe par le SceneSwitcher s'il est disponible pour faire propre
@@ -3986,7 +4024,7 @@ func _on_level_select_requested() -> void:
 	get_tree().paused = false
 
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 	
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
@@ -3996,7 +4034,7 @@ func _on_skills_menu_requested() -> void:
 	App.play_menu_music()
 	get_tree().paused = false
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/SkillsMenu.tscn")
@@ -4005,7 +4043,7 @@ func _on_next_level_requested() -> void:
 	get_tree().paused = false
 
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 
 	var world_level_count: int = max(1, App.get_world_level_count(current_world_id))
 	var next_level_index: int = min(current_level_index + 1, world_level_count - 1)
@@ -4022,7 +4060,7 @@ func _on_world_select_requested() -> void:
 	get_tree().paused = false
 
 	ProjectileManager.clear_all_projectiles()
-	_clear_path_trials()
+	_clear_snake_managers()
 
 	var switcher := get_tree().current_scene
 	if switcher.has_method("goto_screen"):

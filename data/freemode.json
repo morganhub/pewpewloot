@@ -1,9 +1,9 @@
 {
-	"_readme": "Mode Libre : un seul wave_type joue en boucle infinie. Le level monte au temps : leveling.level_time_steps[] = paliers {until_level, seconds} (le passage au level L coute les 'seconds' du premier palier dont until_level >= L ; fallback seconds_per_level). A chaque iteration N, la vague envoyee au manager = defauts wave_types.json + base_wave + (level-1) * per_level[cle], puis wave.duration = round_duration_sec. loop_style 'continuous' (DEFAUT DE FAIT : tous les modes sans round naturel) : une seule iteration quasi infinie (86400s), AUCUNE coupe au timer, la difficulte est poussee EN PLACE au manager via update_free_mode_config au changement de level (pas de reengagement d'etat, pas de reset de position). Les rampes temporelles *_start->*_end des managers sont pilotees par _free_level_progress (progression 0->1 du level) au lieu du temps. loop_style 'restart' : reserve aux modes a round intrinseque qui self-finish avant le timer (absorb, gravity_hole, path_trial, gate_runner) — la vague est regeneree a chaque fin de round au level courant. Les cles per_level sont TOUJOURS redeclarees dans base_wave sous leur nom de cle de vague (les managers pong/breakout/vertical_climb/absorb/asteroid_split lisent des noms differents des *_default de wave_types.json). Si base_wave contient pattern_ids[], le code pioche un pattern_id au hasard a chaque iteration. Fond du niveau en run : pioche dans wave_types.json > <type> > level_backgrounds[] (fallback tile_background). tile_background = image de la tuile du menu.",
+	"_readme": "Mode Libre : un seul wave_type joue en boucle infinie. Le level monte au temps : leveling.level_time_steps[] = paliers {until_level, seconds} (le passage au level L coute les 'seconds' du premier palier dont until_level >= L ; fallback seconds_per_level). A chaque iteration N, la vague envoyee au manager = defauts wave_types.json + base_wave + (level-1) * per_level[cle], puis wave.duration = round_duration_sec. loop_style 'continuous' (DEFAUT DE FAIT : tous les modes sans round naturel) : une seule iteration quasi infinie (86400s), AUCUNE coupe au timer, la difficulte est poussee EN PLACE au manager via update_free_mode_config au changement de level (pas de reengagement d'etat, pas de reset de position). Les rampes temporelles *_start->*_end des managers sont pilotees par _free_level_progress (progression 0->1 du level) au lieu du temps. loop_style 'restart' : reserve aux modes a round intrinseque qui self-finish avant le timer (absorb, gravity_hole, gate_runner) — la vague est regeneree a chaque fin de round au level courant. Les cles per_level sont TOUJOURS redeclarees dans base_wave sous leur nom de cle de vague (les managers pong/breakout/vertical_climb/absorb/asteroid_split lisent des noms differents des *_default de wave_types.json). Si base_wave contient pattern_ids[], le code pioche un pattern_id au hasard a chaque iteration. Fond du niveau en run : pioche dans wave_types.json > <type> > level_backgrounds[] (fallback tile_background). tile_background = image de la tuile du menu.",
 	"leveling": {
 		"max_level": 20,
 		"seconds_per_level": 45,
-		"full_heal_on_level_up": true,
+		"level_up_heal_percent": 0.4,
 		"level_time_steps": [
 			{ "until_level": 5, "seconds": 20 },
 			{ "until_level": 10, "seconds": 30 },
@@ -14,7 +14,7 @@
 		"round_duration_sec": 40
 	},
 	"fiesta": {
-		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (absorb/gravity_hole/path_trial/gate_runner), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
+		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (absorb/gravity_hole/gate_runner), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
 		"min_unlocked_modes": 2,
 		"round_duration_sec": 40,
 		"tile_background": "res://assets/ui/main_menu_bg.jpg"
@@ -62,6 +62,7 @@
 				"armored_chance": 0.05,
 				"mystery_chance": 0.05,
 				"bomb_chance": 0.03,
+				"quake_chance": 0.02,
 				"boss_brick_chance": 0.0,
 				"debris_chance": 0.1,
 				"golden_chance": 0.5,
@@ -78,6 +79,7 @@
 				"armored_chance": 0.004,
 				"mystery_chance": 0.002,
 				"bomb_chance": 0.002,
+				"quake_chance": 0.002,
 				"boss_brick_chance": 0.012,
 				"debris_chance": 0.005,
 				"storm_chance": 0.01,
@@ -179,7 +181,13 @@
 				"overflow_damage_percent": 0.35,
 				"max_launch_speed_px_sec": 1350.0,
 				"max_shapes_active": 42,
-				"reward_multiplier": 1.0
+				"reward_multiplier": 1.0,
+				"reactor_side_margin_px": 16.0,
+				"dark_chance": 0.06,
+				"square_chance": 0.07,
+				"bomb_magnet_strength": 240.0,
+				"reactor_event_interval_sec_min": 14.0,
+				"reactor_event_interval_sec_max": 22.0
 			},
 			"per_level": {
 				"boss_toughness_mult": 0.12,
@@ -187,7 +195,13 @@
 				"overflow_grace_sec": -0.035,
 				"overflow_damage_percent": 0.004,
 				"max_launch_speed_px_sec": 5.0,
-				"reward_multiplier": 0.06
+				"reward_multiplier": 0.06,
+				"reactor_side_margin_px": 2.0,
+				"dark_chance": 0.0015,
+				"square_chance": 0.0012,
+				"bomb_magnet_strength": 4.0,
+				"reactor_event_interval_sec_min": -0.12,
+				"reactor_event_interval_sec_max": -0.15
 			}
 		},
 		"vertical_climb": {
@@ -347,12 +361,13 @@
 			}
 		},
 		"gravity_hole": {
-			"_note": "Refonte Agar.io : oversize_never_lethal force a false (mode letal). RESTE en restart : chaque round finit par l'OBJECTIF DE TAILLE (target_mass_mult croissant par level — partie complete ~15 min), round_duration_sec 75 = garde-fou. Chasseurs/fuyants/zones/decay actives ici, 0 ou bas en story.",
+			"_note": "Refonte Agar.io + monde seede persistant : oversize_never_lethal force a false (mode letal). RESTE en restart : chaque round finit par l'OBJECTIF DE TAILLE (target_mass_mult croissant par level — partie complete ~15 min), round_duration_sec 75 = garde-fou. Densite via chunk_props_min/max (le spawner en anneau n'existe plus). Chasseurs/fuyants/zones/decay actives ici, 0 ou bas en story.",
 			"round_duration_sec": 75,
 			"tile_background": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_3.jpg",
 			"base_wave": {
 				"oversize_never_lethal": false,
-				"spawn_interval_sec": 0.8,
+				"chunk_props_min": 2,
+				"chunk_props_max": 4,
 				"drift_speed_min_px_sec": 28.0,
 				"drift_speed_max_px_sec": 70.0,
 				"oversize_contact_damage_percent": 0.12,
@@ -368,13 +383,34 @@
 				"flee_chance": 0.005,
 				"electric_zone_count": 0.1,
 				"mass_decay_percent_per_sec": 0.012,
-				"spawn_interval_sec": -0.015,
 				"drift_speed_min_px_sec": 2.0,
 				"drift_speed_max_px_sec": 5.0,
 				"oversize_contact_damage_percent": 0.008
 			}
 		},
+		"survivor": {
+			"_note": "Continuous infini (VS-like). L'etat XP/armes PERSISTE entre les levels ; seuls les knobs de rampe sont re-scales (update_free_mode_config). Le _free_level_progress pilote _ramp_t.",
+			"loop_style": "continuous",
+			"tile_background": "res://assets/backgrounds/far_layer/space.jpg",
+			"base_wave": {
+				"spawn_interval_sec_start": 1.7,
+				"spawn_interval_sec_end": 0.7,
+				"enemies_per_spawn_end": 3,
+				"enemy_hp_mult_start": 0.35,
+				"enemy_hp_mult_end": 0.8,
+				"seek_speed_px_sec_end": 180.0,
+				"chest_max_per_wave": 99
+			},
+			"per_level": {
+				"spawn_interval_sec_start": -0.03,
+				"spawn_interval_sec_end": -0.012,
+				"enemy_hp_mult_start": 0.02,
+				"enemy_hp_mult_end": 0.05,
+				"seek_speed_px_sec_end": 4.0
+			}
+		},
 		"star_drift": {
+			"_note": "Continuous infini. Rampe lvl 1->20 : scroll effectif ~240 (L1) -> ~333 (L5) -> ~488 (L10) -> ~685 (L15) -> ~924 px/s (L20, presque injouable sauf experts) ; hazard_interval L20 ~0.32 s (floor code 0.3).",
 			"loop_style": "continuous",
 			"tile_background": "res://assets/backgrounds/far_layer/space.jpg",
 			"base_wave": {
@@ -382,39 +418,43 @@
 				"scroll_speed_px_sec_end": 430.0,
 				"hazard_interval_sec_start": 1.2,
 				"hazard_interval_sec_end": 0.85,
-				"quasar_interval_sec_end": 8.0
+				"quasar_interval_sec_end": 8.0,
+				"event_interval_sec_min": 18.0,
+				"event_interval_sec_max": 28.0
 			},
 			"per_level": {
-				"scroll_speed_px_sec_start": 9.0,
-				"scroll_speed_px_sec_end": 12.0,
+				"scroll_speed_px_sec_start": 10.0,
+				"scroll_speed_px_sec_end": 26.0,
 				"hazard_interval_sec_start": -0.02,
-				"hazard_interval_sec_end": -0.015,
-				"quasar_interval_sec_end": -0.2
+				"hazard_interval_sec_end": -0.028,
+				"quasar_interval_sec_end": -0.25,
+				"event_interval_sec_min": -0.4,
+				"event_interval_sec_max": -0.6
 			}
 		},
-		"path_trial": {
-			"_note": "RESTE en restart : la courbe est pre-cuite sur speed*duration (continuous = courbe gigantesque) et la rotation de pattern par iteration est le coeur du mode ; la transition se fait en fondu, pas de reset de position joueur.",
-			"round_duration_sec": 30,
+		"snake": {
+			"_note": "Refonte de l'ex path_trial (records migres par ProfileManager). CONTINUOUS : serpent et boss persistent ; au level-up update_free_mode_config re-scale (toughness, vitesse, spawn d'items, morsure). Boss tue => respawn (delay), difficulte relue live. Vecteur de mort = morsures (bite_never_lethal false ici, true en story).",
+			"loop_style": "continuous",
+			"round_duration_sec": 45,
 			"tile_background": "res://assets/backgrounds/worlds/atlantis/tile_atlantis_1.jpg",
 			"base_wave": {
-				"pattern_ids": [
-					"linear_cross_fast",
-					"loop_de_loop_center",
-					"tear_drop_attack",
-					"screen_hugger_left",
-					"cross_screen_dive",
-					"cobra_strike"
-				],
-				"speed": 140.0,
-				"path_width": 120.0,
-				"tick_damage": 10,
-				"tick_interval_sec": 0.5
+				"bite_never_lethal": false,
+				"boss_toughness_mult": 1.0,
+				"base_speed_px_sec": 200.0,
+				"turn_rate_deg_sec": 250.0,
+				"item_spawn_interval_sec": 1.5,
+				"bite_damage_percent": 0.06,
+				"event_interval_sec_min": 16.0,
+				"event_interval_sec_max": 26.0
 			},
 			"per_level": {
-				"speed": 6.0,
-				"path_width": -2.5,
-				"tick_damage": 1.0,
-				"tick_interval_sec": -0.01
+				"boss_toughness_mult": 0.12,
+				"base_speed_px_sec": 7.0,
+				"turn_rate_deg_sec": -2.0,
+				"item_spawn_interval_sec": -0.03,
+				"bite_damage_percent": 0.006,
+				"event_interval_sec_min": -0.35,
+				"event_interval_sec_max": -0.5
 			}
 		},
 		"asteroid_split": {

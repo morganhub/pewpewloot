@@ -152,6 +152,13 @@ var _gate_rush_player: Node2D = null
 # and draws curves instead of stacking in single file on the player's exact x.
 var _gate_rush_target_offset_x: float = 0.0
 var _gate_rush_base_x: float = 0.0
+# seek_player (mode survivor) : poursuite 360° du joueur, position directe.
+var _seek_speed_px_sec: float = 140.0
+var _seek_turn_lerp: float = 3.0
+var _seek_target_offset: Vector2 = Vector2.ZERO
+var _seek_dir: Vector2 = Vector2.ZERO
+var _seek_knockback: Vector2 = Vector2.ZERO
+var _seek_player: Node2D = null
 
 # TODO: Remplacer par Sprite2D
 # @onready var sprite: Sprite2D = $Sprite2D
@@ -209,7 +216,7 @@ func setup(enemy_data: Dictionary, stat_multiplier: float = 1.0, modifier_id: St
 	
 	_start_position = global_position
 	_ensure_path_nodes()
-	if _movement_mode == "swarm" or _movement_mode == "tank" or _movement_mode == "artillery" or _movement_mode == "gate_rush" or _movement_mode == "manual":
+	if _movement_mode == "swarm" or _movement_mode == "tank" or _movement_mode == "artillery" or _movement_mode == "gate_rush" or _movement_mode == "manual" or _movement_mode == "seek_player":
 		_path_is_valid = false
 		_path_reached_end = false
 	else:
@@ -263,6 +270,15 @@ func _setup_special_movement_from_data(enemy_data: Dictionary) -> void:
 		_artillery_recoil_distance_px = maxf(0.0, float(enemy_data.get("_artillery_recoil_distance_px", 16.0)))
 		_artillery_recoil_recover_speed_px_sec = maxf(1.0, float(enemy_data.get("_artillery_recoil_recover_speed_px_sec", 72.0)))
 		_artillery_recoil_offset_y = 0.0
+		return
+
+	if _movement_mode == "seek_player":
+		# Poursuite 360° (survivor) : menace de contact pure, jamais de tir.
+		add_to_group("swarm_enemies")
+		_seek_speed_px_sec = maxf(1.0, float(enemy_data.get("_seek_speed_px_sec", 140.0)))
+		_seek_turn_lerp = maxf(0.1, float(enemy_data.get("_seek_turn_lerp", 3.0)))
+		var offset_px: float = maxf(0.0, float(enemy_data.get("_seek_target_offset_px", 60.0)))
+		_seek_target_offset = Vector2.from_angle(randf() * TAU) * randf_range(0.0, offset_px)
 		return
 
 	if _movement_mode == "gate_rush":
@@ -551,8 +567,10 @@ func _process(delta: float) -> void:
 	
 	# Vérifier si hors écran (4 directions)
 	if not on_screen:
-		# Seulement après un délai pour laisser les ennemis entrer
-		if _move_time > 2.0:
+		# Seulement après un délai pour laisser les ennemis entrer. Les
+		# seekers survivor poursuivent le joueur en permanence : jamais
+		# despawnés hors écran (ils y spawnent et peuvent y repasser).
+		if _move_time > 2.0 and _movement_mode != "seek_player":
 			queue_free()
 			return
 
@@ -605,6 +623,9 @@ func _update_movement(delta: float) -> void:
 		return
 	if _movement_mode == "gate_rush":
 		_update_gate_rush_movement(delta)
+		return
+	if _movement_mode == "seek_player":
+		_update_seek_player_movement(delta)
 		return
 
 	if not _path_is_valid:
@@ -708,6 +729,33 @@ func _update_gate_rush_movement(delta: float) -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	if global_position.y > viewport_size.y + OFFSCREEN_MARGIN:
 		queue_free()
+
+## Poursuite 360° du joueur (mode survivor) : position directe (pas de
+## move_and_slide), direction lissée, offset personnel pour étaler la horde,
+## knockback décroissant (arme nova).
+func _update_seek_player_movement(delta: float) -> void:
+	_move_time += delta
+	var previous_position: Vector2 = global_position
+	if _seek_player == null or not is_instance_valid(_seek_player):
+		_seek_player = get_tree().get_first_node_in_group("player") as Node2D
+	if _seek_player and is_instance_valid(_seek_player):
+		var target: Vector2 = _seek_player.global_position + _seek_target_offset
+		var desired: Vector2 = (target - global_position)
+		if desired.length_squared() > 1.0:
+			desired = desired.normalized()
+			_seek_dir = desired if _seek_dir == Vector2.ZERO \
+				else _seek_dir.lerp(desired, clampf(_seek_turn_lerp * delta, 0.0, 1.0)).normalized()
+	global_position += _seek_dir * _seek_speed_px_sec * delta
+	if _seek_knockback.length_squared() > 1.0:
+		global_position += _seek_knockback * delta
+		_seek_knockback = _seek_knockback.move_toward(Vector2.ZERO, _seek_knockback.length() * 4.0 * delta)
+	if _seek_dir != Vector2.ZERO:
+		rotation = _seek_dir.angle() - PI * 0.5
+	velocity = (global_position - previous_position) / maxf(delta, 0.0001)
+
+## Recul appliqué par une arme (nova survivor) — décroît tout seul.
+func apply_seek_knockback(v: Vector2) -> void:
+	_seek_knockback += v
 
 func _update_tank_wave_movement(delta: float) -> void:
 	_move_time += delta
@@ -1473,8 +1521,8 @@ func _generate_circle_path(radius: float, center_offset: Vector2 = Vector2.ZERO)
 # =============================================================================
 
 func _update_shooting(delta: float) -> void:
-	# Gate-runner drones are a pure avoidance threat: they never fire.
-	if _movement_mode == "gate_rush" or _movement_mode == "manual":
+	# Gate-runner drones and survivor seekers are pure avoidance threats: no fire.
+	if _movement_mode == "gate_rush" or _movement_mode == "manual" or _movement_mode == "seek_player":
 		return
 	if _movement_mode == "artillery" and _artillery_phase != "hold":
 		return

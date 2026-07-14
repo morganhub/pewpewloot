@@ -1287,11 +1287,79 @@ func get_score() -> int:
 # XP / LEVEL DISPLAY
 # =============================================================================
 
+## Barre d'XP du mode SURVIVOR : pleine largeur en bas de l'écran + label de
+## niveau. Cachée par défaut, pilotée par le SurvivorManager via
+## set_survivor_xp / set_survivor_xp_visible. Style : game.json >
+## gameplay.bars.survivor_xp (fallbacks intégrés).
+var _survivor_xp_bar: ProgressBar = null
+var _survivor_level_label: Label = null
+
 func _setup_xp_display() -> void:
-	pass
+	var bars_cfg: Dictionary = {}
+	var gameplay_v: Variant = _game_config.get("gameplay", {})
+	if gameplay_v is Dictionary:
+		var bars_v: Variant = (gameplay_v as Dictionary).get("bars", {})
+		if bars_v is Dictionary:
+			var xp_v: Variant = (bars_v as Dictionary).get("survivor_xp", {})
+			if xp_v is Dictionary:
+				bars_cfg = xp_v as Dictionary
+	var bar := ProgressBar.new()
+	bar.name = "SurvivorXpBar"
+	bar.visible = false
+	bar.show_percentage = false
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	var height: float = maxf(6.0, float(bars_cfg.get("height", 14.0)))
+	var margin_bottom: float = maxf(0.0, float(bars_cfg.get("margin_bottom", 6.0)))
+	bar.offset_left = 8.0
+	bar.offset_right = -8.0
+	bar.offset_top = -(height + margin_bottom)
+	bar.offset_bottom = -margin_bottom
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(str(bars_cfg.get("bg_color", "#10142080")))
+	bg.set_corner_radius_all(5)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(str(bars_cfg.get("fill_color", "#B4FF6B")))
+	fill.set_corner_radius_all(5)
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+	bar.min_value = 0.0
+	bar.max_value = 1.0
+	bar.value = 0.0
+	add_child(bar)
+	_survivor_xp_bar = bar
+	var level_label := Label.new()
+	level_label.name = "SurvivorLevelLabel"
+	level_label.visible = false
+	level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_label.add_theme_font_size_override("font_size", int(bars_cfg.get("level_font_size", 20)))
+	level_label.add_theme_color_override("font_color", Color(str(bars_cfg.get("fill_color", "#B4FF6B"))))
+	level_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	level_label.add_theme_constant_override("outline_size", 4)
+	level_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	level_label.offset_left = -80.0
+	level_label.offset_right = 80.0
+	level_label.offset_top = -(height + margin_bottom + 30.0)
+	level_label.offset_bottom = -(height + margin_bottom + 4.0)
+	add_child(level_label)
+	_survivor_level_label = level_label
 
 func _update_xp_display() -> void:
 	pass
+
+## API SurvivorManager : progression d'XP du niveau courant.
+func set_survivor_xp(current: float, needed: float, level: int) -> void:
+	if _survivor_xp_bar and is_instance_valid(_survivor_xp_bar):
+		_survivor_xp_bar.value = clampf(current / maxf(1.0, needed), 0.0, 1.0)
+	if _survivor_level_label and is_instance_valid(_survivor_level_label):
+		_survivor_level_label.text = "Nv %d" % level
+
+func set_survivor_xp_visible(v: bool) -> void:
+	if _survivor_xp_bar and is_instance_valid(_survivor_xp_bar):
+		_survivor_xp_bar.visible = v
+	if _survivor_level_label and is_instance_valid(_survivor_level_label):
+		_survivor_level_label.visible = v
 
 func _apply_label_text_style_from_config(
 	label: Label,

@@ -805,7 +805,7 @@ func _spawn_star_zone() -> void:
 	add_child(node)
 	_star_zones.append({ "node": node, "x": x, "y": node.position.y, "radius": radius })
 
-func _update_star_zones(dt: float) -> void:
+func _update_star_zones(_dt: float) -> void:
 	if _star_zones.is_empty():
 		return
 	var viewport_size: Vector2 = get_viewport_rect().size

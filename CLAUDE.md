@@ -32,11 +32,12 @@ liens: [slug_doc_lié, ...]   # nom de fichier sans .md
 | [project.md](markdown/project.md) | index | à jour | Index projet : arborescence, managers, points d'entrée data-driven, test Godot CLI |
 | [project_standby.md](markdown/project_standby.md) | backlog | à jour | Chantiers ouverts, TODOs code, priorités (audit mai 2026) |
 | [world_setup.md](markdown/world_setup.md) | spec | à jour | Structure mondes/niveaux/vagues, skin_overrides, backgrounds, checklist d'ajout |
-| [wave_types.md](markdown/wave_types.md) | spec | à jour | Tous les types de vagues (dont lane_runner) + pipeline d'intégration + TODO |
-| [wave_types_improvements.md](markdown/wave_types_improvements.md) | backlog | à jour | Banque d'idées : 20 variantes/bonus/événements par mini-jeu (14 types, 280 propositions) — à trier |
+| [wave_types.md](markdown/wave_types.md) | spec | à jour | Tous les types de vagues — fiches uniformes (Principe / Bonus / Événements / Dangers / Câblage) + pipeline d'intégration + TODO |
+| [wave_types_improvements.md](markdown/wave_types_improvements.md) | backlog | à jour | Banque d'idées : 13 types livrés et retirés ✅ ; reste asteroid_split (20 propositions) + idées transverses |
 | [gateRunner.md](markdown/gateRunner.md) | spec | à jour | Spec dédiée du type de vague gate_runner (portes math, essaim de clones, générateur mode libre) |
+| [snake.md](markdown/snake.md) | spec | à jour | Spec du type de vague snake (serpent contre boss — refonte totale de l'ex path_trial, 13 juillet 2026) |
 | [wave_type_suika_up](markdown/wave_type_suika_up) | spec | livré | Spec d'origine du type suika_up (Suika inversé) — implémenté, source de vérité = wave_types.md |
-| [pathtrial.md](markdown/pathtrial.md) | reference | livré | Mécanique PathTrial (safe path, dégâts par ticks) |
+| [pathtrial.md](markdown/pathtrial.md) | reference | archive partielle | Ex-vague PathTrial — ne survit que comme hazard de boss PowerManager (le type de vague est devenu snake) |
 | [freemode.md](markdown/freemode.md) | spec | à jour | Mode Libre : mini-jeux en boucle infinie, levels 1→20, déblocage/achat, freemode.json |
 | [project_attacks.md](markdown/project_attacks.md) | spec | à jour | Attaques, missiles, projectiles, powers, skills ; incohérences connues |
 | [project_bosses.md](markdown/project_bosses.md) | spec | à jour | Système boss data-driven : phases, powers/hazards, tuning |

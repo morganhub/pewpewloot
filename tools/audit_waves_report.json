@@ -1,0 +1,3545 @@
+{
+  "world_1.json": [
+    {
+      "level_id": "world_1_lvl_0",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "count": 18,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_0",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'gate_runner'",
+      "wave": {
+        "type": "gate_runner",
+        "duration": 40,
+        "gates": [
+          {
+            "time_offset": 2.0,
+            "left": {
+              "operation": "add",
+              "value": 60
+            },
+            "right": {
+              "operation": "multiply",
+              "value": 2
+            }
+          },
+          {
+            "time_offset": 9.0,
+            "left": {
+              "operation": "subtract",
+              "value": 40
+            },
+            "right": {
+              "operation": "multiply",
+              "value": 3
+            }
+          },
+          {
+            "time_offset": 16.0,
+            "left": {
+              "operation": "multiply",
+              "value": 2
+            },
+            "right": {
+              "operation": "add",
+              "value": 100
+            }
+          },
+          {
+            "time_offset": 23.0,
+            "left": {
+              "operation": "divide",
+              "value": 2
+            },
+            "right": {
+              "operation": "add",
+              "value": 80
+            }
+          }
+        ],
+        "swarm": [
+          {
+            "time_offset": 5.0,
+            "total_value": 350,
+            "enemy_id": "swarmer"
+          },
+          {
+            "time_offset": 12.0,
+            "total_value": 450,
+            "enemy_id": "swarmer"
+          },
+          {
+            "time_offset": 19.0,
+            "total_value": 550,
+            "enemy_id": "swarmer"
+          },
+          {
+            "time_offset": 26.0,
+            "total_value": 650,
+            "enemy_id": "swarmer"
+          }
+        ]
+      }
+    },
+    {
+      "level_id": "world_1_lvl_0",
+      "wave_index": 3,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3,
+        "hp_multiplier": 1.85
+      }
+    },
+    {
+      "level_id": "world_1_lvl_0",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 39,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_1",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.25
+      }
+    },
+    {
+      "level_id": "world_1_lvl_1",
+      "wave_index": 3,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 380,
+        "enemy_paddle_speed_px_sec": 280,
+        "enemy_reaction_interval_sec": 0.45,
+        "enemy_aim_error_px": 64,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_1_lvl_2",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.25
+      }
+    },
+    {
+      "level_id": "world_1_lvl_2",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'asteroid_split'",
+      "wave": {
+        "type": "asteroid_split",
+        "duration": 35,
+        "count": 4,
+        "speed": 110,
+        "hp_multiplier": 1
+      }
+    },
+    {
+      "level_id": "world_1_lvl_2",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_3",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.25
+      }
+    },
+    {
+      "level_id": "world_1_lvl_3",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_3",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 380,
+        "enemy_paddle_speed_px_sec": 280,
+        "enemy_reaction_interval_sec": 0.45,
+        "enemy_aim_error_px": 64,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_1_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.25
+      }
+    },
+    {
+      "level_id": "world_1_lvl_4",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_4",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'absorb'",
+      "wave": {
+        "type": "absorb",
+        "duration": 30,
+        "spawn_interval_sec": 1.7,
+        "descent_speed_px_sec": 100,
+        "shuffle_window": 2,
+        "final_mass_margin": 0.65
+      }
+    },
+    {
+      "level_id": "world_1_lvl_4",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'star_drift'",
+      "wave": {
+        "type": "star_drift",
+        "duration": 60,
+        "scroll_speed_px_sec_start": 210,
+        "scroll_speed_px_sec_end": 340,
+        "hazard_interval_sec_start": 1.9,
+        "hazard_interval_sec_end": 1.2,
+        "max_active_hazards": 8,
+        "quasar_enabled": false,
+        "pickup_interval_sec_start": 1.2,
+        "mines_enabled": false,
+        "supernova_weight": 0,
+        "quasar_align_weight": 0,
+        "near_miss_crystal_chance": 0.35,
+        "reward_multiplier": 1.0
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'ball_launcher'",
+      "wave": {
+        "type": "ball_launcher",
+        "duration": 60,
+        "ball_count_start": 3,
+        "row_hp_base": 2,
+        "row_hp_growth_per_turn": 0.8,
+        "token_chance": 0.25,
+        "reward_multiplier": 1.0
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 3,
+      "status": "unknown_type",
+      "reason": "unknown type 'match3'",
+      "wave": {
+        "type": "match3",
+        "duration": 40
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'lane_runner'",
+      "wave": {
+        "type": "lane_runner",
+        "duration": 30,
+        "wall_speed_px_sec_start": 408,
+        "wall_speed_px_sec_end": 624,
+        "row_interval_sec_start": 1.5,
+        "row_interval_sec_end": 1.0,
+        "double_wall_chance": 0.2,
+        "reward_multiplier": 1.0
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'slice_rush'",
+      "wave": {
+        "type": "slice_rush",
+        "duration": 30,
+        "bomb_chance": 0.1,
+        "burst_size_max": 3,
+        "reward_multiplier": 1.0
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'gravity_hole'",
+      "wave": {
+        "type": "gravity_hole",
+        "duration": 60,
+        "max_active_props": 14,
+        "prop_weights": {
+          "debris_small": 60,
+          "wreck_medium": 28,
+          "titan_large": 12
+        },
+        "oversize_contact_damage_percent": 0.08,
+        "final_core_efficiency_ratio": 0.45,
+        "reward_multiplier": 1.0
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 39,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'gate_runner'",
+      "wave": {
+        "type": "gate_runner",
+        "duration": 40,
+        "gates": [
+          {
+            "time_offset": 2,
+            "left": {
+              "operation": "add",
+              "value": 60
+            },
+            "right": {
+              "operation": "multiply",
+              "value": 2
+            }
+          },
+          {
+            "time_offset": 9,
+            "left": {
+              "operation": "subtract",
+              "value": 40
+            },
+            "right": {
+              "operation": "multiply",
+              "value": 3
+            }
+          },
+          {
+            "time_offset": 16,
+            "left": {
+              "operation": "multiply",
+              "value": 2
+            },
+            "right": {
+              "operation": "add",
+              "value": 100
+            }
+          },
+          {
+            "time_offset": 23,
+            "left": {
+              "operation": "divide",
+              "value": 2
+            },
+            "right": {
+              "operation": "add",
+              "value": 80
+            }
+          }
+        ],
+        "swarm": [
+          {
+            "time_offset": 5,
+            "total_value": 350,
+            "enemy_id": "swarmer"
+          },
+          {
+            "time_offset": 12,
+            "total_value": 450,
+            "enemy_id": "swarmer"
+          },
+          {
+            "time_offset": 19,
+            "total_value": 550,
+            "enemy_id": "swarmer"
+          },
+          {
+            "time_offset": 26,
+            "total_value": 650,
+            "enemy_id": "swarmer"
+          }
+        ]
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 380,
+        "enemy_paddle_speed_px_sec": 280,
+        "enemy_reaction_interval_sec": 0.45,
+        "enemy_aim_error_px": 64,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3,
+        "hp_multiplier": 1.85
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 13,
+      "status": "unknown_type",
+      "reason": "unknown type 'breakout'",
+      "wave": {
+        "type": "breakout",
+        "duration": 45,
+        "rows": 4,
+        "cols": 5,
+        "row_hp": [
+          2,
+          1,
+          1,
+          1
+        ],
+        "ball_speed_px_sec": 430,
+        "damage_percent_per_ball_lost": 0.15,
+        "bonus_brick_count": 2
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "count": 18,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 15,
+      "status": "unknown_type",
+      "reason": "unknown type 'vertical_climb'",
+      "wave": {
+        "type": "vertical_climb",
+        "duration": 35,
+        "gravity_px_sec2": 1550,
+        "bounce_speed_px_sec": 760,
+        "platform_gap_y_min_px": 100,
+        "platform_gap_y_max_px": 135,
+        "lava_rise_px_sec": 3
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 16,
+      "status": "unknown_type",
+      "reason": "unknown type 'asteroid_split'",
+      "wave": {
+        "type": "asteroid_split",
+        "duration": 35,
+        "count": 4,
+        "speed": 110,
+        "hp_multiplier": 1
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 17,
+      "status": "unknown_type",
+      "reason": "unknown type 'absorb'",
+      "wave": {
+        "type": "absorb",
+        "duration": 30,
+        "spawn_interval_sec": 1.7,
+        "descent_speed_px_sec": 100,
+        "shuffle_window": 2,
+        "final_mass_margin": 0.65
+      }
+    },
+    {
+      "level_id": "world_1_lvl_5",
+      "wave_index": 18,
+      "status": "unknown_type",
+      "reason": "unknown type 'suika_up'",
+      "wave": {
+        "type": "suika_up",
+        "duration": 60,
+        "boss_id": "suika_core_guardian",
+        "boss_toughness_mult": 1.0,
+        "boss_pattern_interval_sec": 8.0,
+        "overflow_damage_percent": 0.25,
+        "max_launch_speed_px_sec": 1250.0,
+        "reward_multiplier": 1.0
+      }
+    }
+  ],
+  "world_2.json": [
+    {
+      "level_id": "world_2_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_0",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 410,
+        "enemy_paddle_speed_px_sec": 310,
+        "enemy_reaction_interval_sec": 0.4,
+        "enemy_aim_error_px": 56,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_0",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "type": "artillery",
+        "enemy_id": "artillery",
+        "count": 6,
+        "rows": 2,
+        "spawn_interval_sec": 0.08,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_1",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 45,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3.33,
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_1",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'breakout'",
+      "wave": {
+        "type": "breakout",
+        "duration": 45,
+        "rows": 4,
+        "cols": 5,
+        "row_hp": [
+          2,
+          1,
+          1,
+          1
+        ],
+        "ball_speed_px_sec": 430,
+        "damage_percent_per_ball_lost": 0.15,
+        "bonus_brick_count": 2
+      }
+    },
+    {
+      "level_id": "world_2_lvl_1",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "type": "artillery",
+        "enemy_id": "artillery",
+        "count": 6,
+        "rows": 2,
+        "spawn_interval_sec": 0.08,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_2",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_2",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_2",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_3",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'vertical_climb'",
+      "wave": {
+        "type": "vertical_climb",
+        "duration": 35,
+        "gravity_px_sec2": 1550,
+        "bounce_speed_px_sec": 760,
+        "platform_gap_y_min_px": 100,
+        "platform_gap_y_max_px": 135,
+        "lava_rise_px_sec": 3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_3",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_3",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 410,
+        "enemy_paddle_speed_px_sec": 310,
+        "enemy_reaction_interval_sec": 0.4,
+        "enemy_aim_error_px": 56,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 13,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_4",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_2_lvl_5",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_5",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_2_lvl_5",
+      "wave_index": 16,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_3.json": [
+    {
+      "level_id": "world_3_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_3_lvl_0",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_1",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 49,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_3_lvl_1",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 440,
+        "enemy_paddle_speed_px_sec": 340,
+        "enemy_reaction_interval_sec": 0.36,
+        "enemy_aim_error_px": 48,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_3_lvl_1",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3.33,
+        "hp_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'asteroid_split'",
+      "wave": {
+        "type": "asteroid_split",
+        "duration": 35,
+        "count": 5,
+        "speed": 125,
+        "hp_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'star_drift'",
+      "wave": {
+        "type": "star_drift",
+        "duration": 60,
+        "quasar_first_delay_sec": 15,
+        "reward_multiplier": 1.2
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'ball_launcher'",
+      "wave": {
+        "type": "ball_launcher",
+        "duration": 60,
+        "ball_count_start": 3,
+        "row_hp_base": 3,
+        "row_hp_growth_per_turn": 1.0,
+        "token_chance": 0.22,
+        "reward_multiplier": 1.2
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 13,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_2",
+      "wave_index": 15,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_3_lvl_3",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_3",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 440,
+        "enemy_paddle_speed_px_sec": 340,
+        "enemy_reaction_interval_sec": 0.36,
+        "enemy_aim_error_px": 48,
+        "crystals_per_point": 3
+      }
+    },
+    {
+      "level_id": "world_3_lvl_3",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_4",
+      "wave_index": 13,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_5",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_3_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_3_lvl_5",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_4.json": [
+    {
+      "level_id": "world_4_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.4
+      }
+    },
+    {
+      "level_id": "world_4_lvl_0",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_1",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.4
+      }
+    },
+    {
+      "level_id": "world_4_lvl_1",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_1",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'breakout'",
+      "wave": {
+        "type": "breakout",
+        "duration": 45,
+        "rows": 5,
+        "cols": 6,
+        "row_hp": [
+          2,
+          2,
+          1,
+          1,
+          1
+        ],
+        "ball_speed_px_sec": 460,
+        "damage_percent_per_ball_lost": 0.15,
+        "bonus_brick_count": 2,
+        "debris_chance": 0.1,
+        "golden_chance": 0.4,
+        "rescue_enabled": true
+      }
+    },
+    {
+      "level_id": "world_4_lvl_1",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 53,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_2",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.4
+      }
+    },
+    {
+      "level_id": "world_4_lvl_2",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_2",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 470,
+        "enemy_paddle_speed_px_sec": 370,
+        "enemy_reaction_interval_sec": 0.32,
+        "enemy_aim_error_px": 42,
+        "crystals_per_point": 4,
+        "invasion_chance": 0.3
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.4
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'absorb'",
+      "wave": {
+        "type": "absorb",
+        "duration": 30,
+        "spawn_interval_sec": 1.55,
+        "descent_speed_px_sec": 115,
+        "shuffle_window": 3,
+        "final_mass_margin": 0.7
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'lane_runner'",
+      "wave": {
+        "type": "lane_runner",
+        "duration": 35,
+        "wall_speed_px_sec_start": 504,
+        "wall_speed_px_sec_end": 768,
+        "row_interval_sec_start": 1.25,
+        "row_interval_sec_end": 0.79,
+        "double_wall_chance": 0.4,
+        "reward_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'slice_rush'",
+      "wave": {
+        "type": "slice_rush",
+        "duration": 30,
+        "bomb_chance": 0.16,
+        "burst_pause_sec_min": 0.6,
+        "burst_pause_sec_max": 1.3,
+        "reward_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'match3'",
+      "wave": {
+        "type": "match3",
+        "duration": 45,
+        "special_chance": 0.09,
+        "crystal_chance": 0.05
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'gravity_hole'",
+      "wave": {
+        "type": "gravity_hole",
+        "duration": 60,
+        "prop_weights": {
+          "debris_small": 50,
+          "wreck_medium": 30,
+          "titan_large": 20
+        },
+        "reward_multiplier": 1.3
+      }
+    },
+    {
+      "level_id": "world_4_lvl_3",
+      "wave_index": 15,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_4",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.4
+      }
+    },
+    {
+      "level_id": "world_4_lvl_4",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 470,
+        "enemy_paddle_speed_px_sec": 370,
+        "enemy_reaction_interval_sec": 0.32,
+        "enemy_aim_error_px": 42,
+        "crystals_per_point": 4,
+        "invasion_chance": 0.3
+      }
+    },
+    {
+      "level_id": "world_4_lvl_4",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_5",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.4
+      }
+    },
+    {
+      "level_id": "world_4_lvl_5",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_4_lvl_5",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_5.json": [
+    {
+      "level_id": "world_5_lvl_0",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3.33,
+        "hp_multiplier": 1.45
+      }
+    },
+    {
+      "level_id": "world_5_lvl_0",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 500,
+        "enemy_paddle_speed_px_sec": 400,
+        "enemy_reaction_interval_sec": 0.28,
+        "enemy_aim_error_px": 36,
+        "crystals_per_point": 4,
+        "invasion_chance": 0.35
+      }
+    },
+    {
+      "level_id": "world_5_lvl_0",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_0",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_1",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 49,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.45
+      }
+    },
+    {
+      "level_id": "world_5_lvl_1",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.45
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'asteroid_split'",
+      "wave": {
+        "type": "asteroid_split",
+        "duration": 35,
+        "count": 6,
+        "speed": 140,
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_2",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.45
+      }
+    },
+    {
+      "level_id": "world_5_lvl_3",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 500,
+        "enemy_paddle_speed_px_sec": 400,
+        "enemy_reaction_interval_sec": 0.28,
+        "enemy_aim_error_px": 36,
+        "crystals_per_point": 4,
+        "invasion_chance": 0.35
+      }
+    },
+    {
+      "level_id": "world_5_lvl_3",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.45
+      }
+    },
+    {
+      "level_id": "world_5_lvl_4",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'vertical_climb'",
+      "wave": {
+        "type": "vertical_climb",
+        "duration": 40,
+        "gravity_px_sec2": 1650,
+        "bounce_speed_px_sec": 760,
+        "platform_gap_y_min_px": 105,
+        "platform_gap_y_max_px": 145,
+        "lava_rise_px_sec": 4.5
+      }
+    },
+    {
+      "level_id": "world_5_lvl_4",
+      "wave_index": 17,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_5",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.45
+      }
+    },
+    {
+      "level_id": "world_5_lvl_5",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_5",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_5_lvl_5",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_6.json": [
+    {
+      "level_id": "world_6_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_0",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_1",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_1",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 530,
+        "enemy_paddle_speed_px_sec": 435,
+        "enemy_reaction_interval_sec": 0.24,
+        "enemy_aim_error_px": 30,
+        "crystals_per_point": 4,
+        "invasion_chance": 0.4,
+        "meteor_enabled": true,
+        "meteor_hp": 8
+      }
+    },
+    {
+      "level_id": "world_6_lvl_1",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 56,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_1",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'breakout'",
+      "wave": {
+        "type": "breakout",
+        "duration": 45,
+        "rows": 5,
+        "cols": 6,
+        "row_hp": [
+          3,
+          2,
+          2,
+          1,
+          1
+        ],
+        "ball_speed_px_sec": 500,
+        "damage_percent_per_ball_lost": 0.18,
+        "bonus_brick_count": 2,
+        "mystery_chance": 0.05,
+        "debris_chance": 0.12,
+        "golden_chance": 0.4,
+        "storm_chance": 0.35,
+        "surprise_row_chance": 0.5,
+        "rescue_enabled": true
+      }
+    },
+    {
+      "level_id": "world_6_lvl_2",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_3",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'absorb'",
+      "wave": {
+        "type": "absorb",
+        "duration": 30,
+        "spawn_interval_sec": 1.4,
+        "descent_speed_px_sec": 125,
+        "shuffle_window": 3,
+        "final_mass_margin": 0.75
+      }
+    },
+    {
+      "level_id": "world_6_lvl_3",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "type": "artillery",
+        "enemy_id": "artillery",
+        "count": 6,
+        "rows": 2,
+        "spawn_interval_sec": 0.08,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_4",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_4",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'ball_launcher'",
+      "wave": {
+        "type": "ball_launcher",
+        "duration": 60,
+        "ball_count_start": 4,
+        "row_hp_base": 4,
+        "row_hp_growth_per_turn": 1.3,
+        "row_fill_ratio_min": 0.5,
+        "row_fill_ratio_max": 0.8,
+        "token_chance": 0.2,
+        "damage_percent_per_row_crossed": 0.18,
+        "reward_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_4",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 530,
+        "enemy_paddle_speed_px_sec": 435,
+        "enemy_reaction_interval_sec": 0.24,
+        "enemy_aim_error_px": 30,
+        "crystals_per_point": 4,
+        "invasion_chance": 0.4,
+        "meteor_enabled": true,
+        "meteor_hp": 8
+      }
+    },
+    {
+      "level_id": "world_6_lvl_4",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'star_drift'",
+      "wave": {
+        "type": "star_drift",
+        "duration": 60,
+        "scroll_speed_px_sec_start": 260,
+        "scroll_speed_px_sec_end": 470,
+        "hazard_interval_sec_start": 1.5,
+        "hazard_interval_sec_end": 0.8,
+        "hazard_types": [
+          {
+            "id": "meteor",
+            "behavior": "meteor",
+            "assets": [],
+            "use_world_obstacles": true,
+            "weight": 47.0,
+            "size_px_min": 75.0,
+            "size_px_max": 164.0,
+            "tint": "#FFFFFF",
+            "collision_radius_px": 47.0,
+            "speed_multiplier": 1.15,
+            "drift_x_px_sec_max": 85.0,
+            "wobble_amplitude_px": 30.0,
+            "wobble_frequency_hz": 0.55,
+            "spin_deg_sec_max": 90.0,
+            "damage_percent": 0.12,
+            "split_on_edge_chance": 0.3,
+            "split_count_min": 2,
+            "split_count_max": 3,
+            "split_min_size_px": 100.0
+          },
+          {
+            "id": "black_hole",
+            "behavior": "black_hole",
+            "assets": [
+              "res://assets/waves/star_drift/black_hole.png",
+              "res://assets/modifiers/graviton.tres"
+            ],
+            "weight": 35.0,
+            "size_px_min": 125.0,
+            "size_px_max": 195.0,
+            "tint": "#B48CFF",
+            "collision_radius_px": 42.0,
+            "speed_multiplier": 0.8,
+            "pull_radius_px": 200.0,
+            "pull_strength_px_sec": 260.0,
+            "spin_deg_sec_max": 40.0,
+            "damage_percent": 0.15
+          },
+          {
+            "id": "white_hole",
+            "behavior": "white_hole",
+            "assets": [
+              "res://assets/waves/star_drift/white_hole.png"
+            ],
+            "weight": 10.0,
+            "size_px_min": 110.0,
+            "size_px_max": 160.0,
+            "tint": "#CFE8FF",
+            "collision_radius_px": 40.0,
+            "speed_multiplier": 0.85,
+            "pull_radius_px": 200.0,
+            "pull_strength_px_sec": 260.0,
+            "spin_deg_sec_max": 40.0,
+            "damage_percent": 0.13
+          },
+          {
+            "id": "comet",
+            "behavior": "comet",
+            "assets": [
+              "res://assets/waves/star_drift/comet.png"
+            ],
+            "weight": 8.0,
+            "size_px_min": 60.0,
+            "size_px_max": 90.0,
+            "tint": "#BFE9FF",
+            "collision_radius_px": 26.0,
+            "comet_speed_px_sec_min": 520.0,
+            "comet_speed_px_sec_max": 680.0,
+            "comet_fall_px_sec": 120.0,
+            "spin_deg_sec_max": 0.0,
+            "damage_percent": 0.12,
+            "near_miss_mult": 2.0
+          }
+        ],
+        "reward_multiplier": 1.35
+      }
+    },
+    {
+      "level_id": "world_6_lvl_5",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.5
+      }
+    },
+    {
+      "level_id": "world_6_lvl_5",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_6_lvl_5",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_7.json": [
+    {
+      "level_id": "world_7_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.55
+      }
+    },
+    {
+      "level_id": "world_7_lvl_0",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "type": "artillery",
+        "enemy_id": "artillery",
+        "count": 6,
+        "rows": 2,
+        "spawn_interval_sec": 0.08,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.55
+      }
+    },
+    {
+      "level_id": "world_7_lvl_1",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_1",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'vertical_climb'",
+      "wave": {
+        "type": "vertical_climb",
+        "duration": 40,
+        "gravity_px_sec2": 1750,
+        "bounce_speed_px_sec": 780,
+        "platform_gap_y_min_px": 110,
+        "platform_gap_y_max_px": 150,
+        "lava_rise_px_sec": 6
+      }
+    },
+    {
+      "level_id": "world_7_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.55
+      }
+    },
+    {
+      "level_id": "world_7_lvl_2",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 560,
+        "enemy_paddle_speed_px_sec": 470,
+        "enemy_reaction_interval_sec": 0.2,
+        "enemy_aim_error_px": 24,
+        "crystals_per_point": 5,
+        "invasion_chance": 0.45,
+        "meteor_enabled": true,
+        "meteor_hp": 10
+      }
+    },
+    {
+      "level_id": "world_7_lvl_2",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_2",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_2",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 50,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_3",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_3",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.55
+      }
+    },
+    {
+      "level_id": "world_7_lvl_3",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 560,
+        "enemy_paddle_speed_px_sec": 470,
+        "enemy_reaction_interval_sec": 0.2,
+        "enemy_aim_error_px": 24,
+        "crystals_per_point": 5,
+        "invasion_chance": 0.45,
+        "meteor_enabled": true,
+        "meteor_hp": 10
+      }
+    },
+    {
+      "level_id": "world_7_lvl_3",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_4",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.55
+      }
+    },
+    {
+      "level_id": "world_7_lvl_4",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_4",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'asteroid_split'",
+      "wave": {
+        "type": "asteroid_split",
+        "duration": 35,
+        "count": 7,
+        "speed": 155,
+        "hp_multiplier": 2
+      }
+    },
+    {
+      "level_id": "world_7_lvl_4",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_5",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_5",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.55
+      }
+    },
+    {
+      "level_id": "world_7_lvl_5",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_7_lvl_5",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_8.json": [
+    {
+      "level_id": "world_8_lvl_0",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3.33,
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_0",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_0",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 59,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_0",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 600,
+        "enemy_paddle_speed_px_sec": 510,
+        "enemy_reaction_interval_sec": 0.16,
+        "enemy_aim_error_px": 16,
+        "crystals_per_point": 5,
+        "invasion_chance": 0.5,
+        "meteor_enabled": true,
+        "meteor_hp": 12
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3.33,
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'absorb'",
+      "wave": {
+        "type": "absorb",
+        "duration": 30,
+        "spawn_interval_sec": 1.3,
+        "descent_speed_px_sec": 140,
+        "shuffle_window": 4,
+        "final_mass_margin": 0.8
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'lane_runner'",
+      "wave": {
+        "type": "lane_runner",
+        "duration": 38,
+        "wall_speed_px_sec_start": 576,
+        "wall_speed_px_sec_end": 912,
+        "row_interval_sec_start": 1.08,
+        "row_interval_sec_end": 0.67,
+        "double_wall_chance": 0.55,
+        "reward_multiplier": 2.0
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'slice_rush'",
+      "wave": {
+        "type": "slice_rush",
+        "duration": 32,
+        "burst_size_min": 3,
+        "burst_size_max": 5,
+        "bomb_chance": 0.2,
+        "launch_speed_min_px_sec": 1550,
+        "launch_speed_max_px_sec": 1850,
+        "max_active_objects": 14,
+        "reward_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'match3'",
+      "wave": {
+        "type": "match3",
+        "duration": 50,
+        "tile_type_count": 6,
+        "special_chance": 0.13,
+        "cascade_score_multiplier": 0.6,
+        "equipment_drop_chance": 0.014
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'gravity_hole'",
+      "wave": {
+        "type": "gravity_hole",
+        "duration": 60,
+        "max_active_props": 22,
+        "drift_speed_max_px_sec": 90,
+        "prop_weights": {
+          "debris_small": 40,
+          "wreck_medium": 38,
+          "titan_large": 22
+        },
+        "oversize_contact_damage_percent": 0.15,
+        "oversize_mass_loss_flat": 10,
+        "final_core_efficiency_ratio": 0.65,
+        "reward_multiplier": 2.0
+      }
+    },
+    {
+      "level_id": "world_8_lvl_1",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_2",
+      "wave_index": 10,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_3",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_3",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'breakout'",
+      "wave": {
+        "type": "breakout",
+        "duration": 45,
+        "rows": 6,
+        "cols": 7,
+        "row_hp": [
+          3,
+          3,
+          2,
+          2,
+          1,
+          1
+        ],
+        "ball_speed_px_sec": 540,
+        "damage_percent_per_ball_lost": 0.2,
+        "bonus_brick_count": 3,
+        "armored_chance": 0.06,
+        "mystery_chance": 0.05,
+        "bomb_chance": 0.04,
+        "debris_chance": 0.15,
+        "golden_chance": 0.5,
+        "storm_chance": 0.4,
+        "surprise_row_chance": 0.6,
+        "wall_slide_enabled": true,
+        "rescue_enabled": true
+      }
+    },
+    {
+      "level_id": "world_8_lvl_3",
+      "wave_index": 13,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_4",
+      "wave_index": 1,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_4",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_4",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 600,
+        "enemy_paddle_speed_px_sec": 510,
+        "enemy_reaction_interval_sec": 0.16,
+        "enemy_aim_error_px": 16,
+        "crystals_per_point": 5,
+        "invasion_chance": 0.5,
+        "meteor_enabled": true,
+        "meteor_hp": 12
+      }
+    },
+    {
+      "level_id": "world_8_lvl_4",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_5",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_8_lvl_5",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_5",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_5",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_8_lvl_5",
+      "wave_index": 16,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ],
+  "world_9.json": [
+    {
+      "level_id": "world_9_lvl_0",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_0",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_1",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_1",
+      "wave_index": 4,
+      "status": "unknown_type",
+      "reason": "unknown type 'swarm'",
+      "wave": {
+        "type": "swarm",
+        "enemy_id": "swarmer",
+        "count": 49,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_1",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 640,
+        "enemy_paddle_speed_px_sec": 560,
+        "enemy_reaction_interval_sec": 0.12,
+        "enemy_aim_error_px": 10,
+        "crystals_per_point": 5,
+        "invasion_chance": 0.55,
+        "meteor_enabled": true,
+        "meteor_hp": 14
+      }
+    },
+    {
+      "level_id": "world_9_lvl_1",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_2",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_2",
+      "wave_index": 5,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_2",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_2",
+      "wave_index": 8,
+      "status": "unknown_type",
+      "reason": "unknown type 'asteroid_split'",
+      "wave": {
+        "type": "asteroid_split",
+        "duration": 35,
+        "count": 8,
+        "speed": 175,
+        "hp_multiplier": 2.5
+      }
+    },
+    {
+      "level_id": "world_9_lvl_2",
+      "wave_index": 11,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_3",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_3",
+      "wave_index": 6,
+      "status": "unknown_type",
+      "reason": "unknown type 'ball_launcher'",
+      "wave": {
+        "type": "ball_launcher",
+        "duration": 60,
+        "ball_count_start": 5,
+        "row_hp_base": 6,
+        "row_hp_growth_per_turn": 1.8,
+        "row_fill_ratio_min": 0.55,
+        "row_fill_ratio_max": 0.85,
+        "token_chance": 0.18,
+        "damage_percent_per_row_crossed": 0.2,
+        "reward_multiplier": 2.0
+      }
+    },
+    {
+      "level_id": "world_9_lvl_3",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'vertical_climb'",
+      "wave": {
+        "type": "vertical_climb",
+        "duration": 45,
+        "gravity_px_sec2": 1850,
+        "bounce_speed_px_sec": 800,
+        "platform_gap_y_min_px": 115,
+        "platform_gap_y_max_px": 155,
+        "lava_rise_px_sec": 8
+      }
+    },
+    {
+      "level_id": "world_9_lvl_3",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_4",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_4",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'pong'",
+      "wave": {
+        "type": "pong",
+        "duration": 30,
+        "ball_speed_px_sec": 640,
+        "enemy_paddle_speed_px_sec": 560,
+        "enemy_reaction_interval_sec": 0.12,
+        "enemy_aim_error_px": 10,
+        "crystals_per_point": 5,
+        "invasion_chance": 0.55,
+        "meteor_enabled": true,
+        "meteor_hp": 14
+      }
+    },
+    {
+      "level_id": "world_9_lvl_4",
+      "wave_index": 13,
+      "status": "unknown_type",
+      "reason": "unknown type 'star_drift'",
+      "wave": {
+        "type": "star_drift",
+        "duration": 60,
+        "scroll_speed_px_sec_start": 290,
+        "scroll_speed_px_sec_end": 540,
+        "hazard_interval_sec_start": 1.3,
+        "hazard_interval_sec_end": 0.65,
+        "max_active_hazards": 14,
+        "quasar_interval_sec_start": 10,
+        "quasar_interval_sec_end": 6,
+        "quasar_max_active": 2,
+        "pickup_interval_sec_start": 2.0,
+        "reward_multiplier": 1.6
+      }
+    },
+    {
+      "level_id": "world_9_lvl_4",
+      "wave_index": 18,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "type": "artillery",
+        "enemy_id": "artillery",
+        "count": 6,
+        "rows": 2,
+        "spawn_interval_sec": 0.08,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_5",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "interval": 3.33,
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_5",
+      "wave_index": 7,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_5",
+      "wave_index": 9,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_5",
+      "wave_index": 12,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_5",
+      "wave_index": 14,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "enemy_id": "artillery",
+        "type": "artillery",
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    },
+    {
+      "level_id": "world_9_lvl_6",
+      "wave_index": 0,
+      "status": "unknown_type",
+      "reason": "unknown type 'tank'",
+      "wave": {
+        "enemy_id": "tank",
+        "enemy_modifier_id": "",
+        "type": "tank",
+        "interval": 3.33,
+        "hp_multiplier": 1.65
+      }
+    },
+    {
+      "level_id": "world_9_lvl_6",
+      "wave_index": 2,
+      "status": "unknown_type",
+      "reason": "unknown type 'artillery'",
+      "wave": {
+        "type": "artillery",
+        "enemy_id": "artillery",
+        "count": 6,
+        "rows": 2,
+        "spawn_interval_sec": 0.08,
+        "interval": 0.7,
+        "enemy_modifier_id": ""
+      }
+    }
+  ]
+}

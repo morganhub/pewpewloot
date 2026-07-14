@@ -1903,6 +1903,7 @@
 			},
 			"bonus_crystals": {
 				"enabled": true,
+				"currency_per_pickup": 1,
 				"despawn_time_sec": 8.0,
 				"pickup_radius": 28.0,
 				"magnet_speed": 420.0,
@@ -2183,6 +2184,7 @@
 		},
 		"bonus_crystals": {
 			"enabled": true,
+			"currency_per_pickup": 1,
 			"despawn_time_sec": 8.0,
 			"pickup_radius": 28.0,
 			"magnet_speed": 420.0,

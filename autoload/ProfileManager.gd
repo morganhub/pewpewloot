@@ -242,6 +242,32 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		migrated["free_mode_plays"] = {}
 		needs_save = true
 
+	# Migration : refonte path_trial -> snake (juillet 2026). Les records,
+	# compteurs de parties et déblocages indexés par l'ancien wave_type sont
+	# renommés pour que rien ne soit perdu.
+	var encountered_v: Variant = migrated.get("wave_types_encountered", [])
+	if encountered_v is Array and (encountered_v as Array).has("path_trial"):
+		var encountered: Array = encountered_v as Array
+		encountered.erase("path_trial")
+		if not encountered.has("snake"):
+			encountered.append("snake")
+		migrated["wave_types_encountered"] = encountered
+		needs_save = true
+	var scores_v: Variant = migrated.get("free_mode_scores", {})
+	if scores_v is Dictionary and (scores_v as Dictionary).has("path_trial"):
+		var scores: Dictionary = scores_v as Dictionary
+		scores["snake"] = maxi(int(scores.get("snake", 0)), int(scores.get("path_trial", 0)))
+		scores.erase("path_trial")
+		migrated["free_mode_scores"] = scores
+		needs_save = true
+	var plays_v: Variant = migrated.get("free_mode_plays", {})
+	if plays_v is Dictionary and (plays_v as Dictionary).has("path_trial"):
+		var plays: Dictionary = plays_v as Dictionary
+		plays["snake"] = int(plays.get("snake", 0)) + int(plays.get("path_trial", 0))
+		plays.erase("path_trial")
+		migrated["free_mode_plays"] = plays
+		needs_save = true
+
 	# Migration: skill tree system
 	if not migrated.has("player_xp"):
 		migrated["player_xp"] = 0

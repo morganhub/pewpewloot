@@ -23,7 +23,7 @@ extends Node2D
 ##   lightning (prochaine volée perçante), bomb_charge (1re balle de la
 ##   prochaine volée explose au 1er impact), aim_plus (+1 rebond du laser
 ##   prédictif 3 tours), giant_ball (rayon ×2 prochaine volée), healer
-##   (rend healer_heal_percent des HP max).
+##   (rend healer_heal_percent des HP max, cap dur 20%).
 ## - COMPORTEMENT : portal_in/portal_out (paire téléportante — la balle ressort
 ##   du jumeau, aucun dégât ; inoffensifs à la danger line), cursed (sa
 ##   destruction fait descendre la grille d'un cran ; inoffensif à la danger
@@ -138,7 +138,7 @@ var _ball_speed_max_mult: float = 1.6
 var _ball_boost_after: float = 10.0
 var _ball_boost_mult: float = 3.0
 var _ball_boost_ramp: float = 1.0
-var _min_vy_ratio: float = 0.18
+var _min_vy_ratio: float = 0.26
 var _ball_textures: Array = []
 
 # Aim gesture (single gesture: finger follows -> drag up past threshold arms).
@@ -310,7 +310,7 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_ball_boost_after = float(_get_conf("ball_boost_after_sec", 10.0))
 	_ball_boost_mult = maxf(1.0, float(_get_conf("ball_boost_speed_mult", 3.0)))
 	_ball_boost_ramp = maxf(0.05, float(_get_conf("ball_boost_ramp_sec", 1.0)))
-	_min_vy_ratio = clampf(float(_get_conf("ball_min_vy_ratio", 0.18)), 0.02, 0.9)
+	_min_vy_ratio = clampf(float(_get_conf("ball_min_vy_ratio", 0.26)), 0.02, 0.9)
 	_aim_arm_threshold = maxf(12.0, float(_get_conf("aim_arm_threshold_px", 48.0)))
 	_aim_min_angle_deg = clampf(float(_get_conf("aim_min_angle_deg", 14.0)), 2.0, 45.0)
 	_damage_percent_row = clampf(float(_get_conf("damage_percent_per_row_crossed", 0.15)), 0.0, 1.0)
@@ -353,7 +353,8 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_armored_hp = maxi(1, int(_get_conf("armored_hp", 6)))
 	_portal_chance = clampf(float(_get_conf("portal_chance", 0.05)), 0.0, 1.0)
 	_portal_max_pairs = maxi(0, int(_get_conf("portal_max_pairs", 1)))
-	_healer_heal_percent = clampf(float(_get_conf("healer_heal_percent", 0.08)), 0.0, 1.0)
+	# Cap dur 20% : un bloc de soin ne rend jamais plus de 20% des HP max.
+	_healer_heal_percent = clampf(float(_get_conf("healer_heal_percent", 0.08)), 0.0, 0.2)
 	_bonus_block_cooldown_sec = maxf(0.0, float(_get_conf("bonus_block_cooldown_sec", 25.0)))
 	_ball_radius_base = _ball_radius
 
@@ -584,7 +585,9 @@ func _cell_center_x(col: int) -> float:
 func _spawn_row(row_y: float, hp_turn: int, row_index: int = 0, animate_from_top: bool = false) -> void:
 	var free_cols: Array = []
 	for c in range(_grid_cols):
-		if not _boss_blocks_col_row0(c):
+		# Renfort multi-rangées : le boss peut couvrir les rows 0..n, pas
+		# seulement la row 0 — masque par la row logique réellement visée.
+		if not _cell_covered_by_boss(c, row_index) and not (row_index == 0 and _boss_blocks_col_row0(c)):
 			free_cols.append(c)
 	if free_cols.is_empty():
 		return
@@ -2247,11 +2250,24 @@ func _begin_step() -> void:
 	_ball_radius = _ball_radius_base
 	# Blocs mouvants : glissent d'une colonne AVANT la descente et le BFS.
 	_step_movers()
+	# Renfort : grille presque vide (< refill_trigger_rows rangées occupées) ->
+	# descente de refill_rows crans + autant de nouvelles rangées d'un coup.
+	# Clampé pour ne jamais pousser un bloc/boss existant sur la danger line
+	# (dégâts/game over injustes sinon).
+	var shift_rows: int = 1
+	var trigger_rows: int = clampi(int(_get_conf("refill_trigger_rows", 3)), 0, 12)
+	var burst_rows: int = clampi(int(_get_conf("refill_rows", 4)), 1, 8)
+	if trigger_rows > 0 and burst_rows > 1 and _count_occupied_rows() < trigger_rows:
+		shift_rows = burst_rows
+		var lowest_y: float = _lowest_grid_bottom_y()
+		while shift_rows > 1 and lowest_y + _descend_step * float(shift_rows) >= _danger_y:
+			shift_rows -= 1
 	# Logical rects move instantly (no collisions during STEP), visuals tween.
 	# Les rows logiques s'incrémentent en même temps (row 0 = plafond).
-	_shift_grid(_descend_step, 1)
+	_shift_grid(_descend_step * float(shift_rows), shift_rows)
 	_try_spawn_boss()
-	_spawn_row(_grid_top_y, _turn, 0, true) # slide-in depuis le haut hors écran
+	for i in range(shift_rows):
+		_spawn_row(_grid_top_y + float(i) * _descend_step, _turn, i, true) # slide-in depuis le haut
 	# Brouillard en cours : ré-applique le masque (les rows ont changé).
 	if _fog_time > 0.0:
 		_set_fog_enabled(true)
@@ -2328,6 +2344,29 @@ func _step_movers() -> void:
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	if moved_any:
 		_recompute_connectivity([])
+
+## Nombre de rangées logiques distinctes encore occupées (blocs + boss) —
+## condition de déclenchement du renfort de _begin_step.
+func _count_occupied_rows() -> int:
+	var rows: Dictionary = {}
+	for block_v in _blocks:
+		rows[int((block_v as Dictionary).get("row", 0))] = true
+	for boss_v in _bosses:
+		var boss: Dictionary = boss_v as Dictionary
+		var r0: int = int(boss.get("row_top", 0))
+		for r in range(r0, r0 + int(boss.get("rows", 0))):
+			rows[r] = true
+	return rows.size()
+
+## Bord bas (y) le plus bas parmi blocs et boss vivants (les jetons franchissent
+## la danger line sans dégâts : ils ne clampent pas le renfort).
+func _lowest_grid_bottom_y() -> float:
+	var lowest: float = -INF
+	for block_v in _blocks:
+		lowest = maxf(lowest, ((block_v as Dictionary).get("rect", Rect2()) as Rect2).end.y)
+	for boss_v in _bosses:
+		lowest = maxf(lowest, ((boss_v as Dictionary).get("rect", Rect2()) as Rect2).end.y)
+	return lowest
 
 func _cell_covered_by_boss(col: int, row: int) -> bool:
 	for boss_v in _bosses:
@@ -2592,9 +2631,11 @@ func _do_quake() -> void:
 func _spawn_event_bosses() -> void:
 	if _boss_defs.is_empty() or not _bosses.is_empty():
 		return
+	@warning_ignore("integer_division")
 	var cols: int = clampi(int(_get_conf("event_boss_cols", 2)), 1, maxi(1, _grid_cols / 2))
 	var rows: int = clampi(int(_get_conf("event_boss_rows", 2)), 1, 8)
 	var hp_mult: float = clampf(float(_get_conf("event_boss_hp_mult", 0.5)), 0.05, 2.0)
+	@warning_ignore("integer_division")
 	var half: int = _grid_cols / 2
 	var col_a: int = randi_range(0, maxi(0, half - cols))
 	var col_b: int = randi_range(half, maxi(half, _grid_cols - cols))

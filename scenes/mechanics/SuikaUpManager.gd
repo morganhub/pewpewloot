@@ -250,6 +250,55 @@ var _bomb_textures: Dictionary = {} # level(int) -> Texture2D
 var _bomb_frames: Dictionary = {} # level(int) -> SpriteFrames
 var _trajectory_dot_texture: Texture2D = null
 
+# =============================================================================
+# Améliorations 13 juillet 2026 : pickups, décharge, variantes de formes,
+# événements réacteur, boss enragé/support, fusion massive.
+# =============================================================================
+# Pénalité de score (overflow_penalty_mode "score") : Game refuse les points
+# négatifs -> dette interne absorbée par les gains suivants (_award_score).
+var _score_debt: int = 0
+# Pickups : orbes non-physiques collectées par une forme joueur EN MOUVEMENT.
+var _pickups: Array = [] # { "node", "cfg", "pos", "ttl", "phase" }
+var _pickup_timer: float = 0.0
+var _last_pickup_id: String = ""
+# Effets de pickups.
+var _perfect_boost_left: int = 0
+var _perfect_window_mult: float = 2.0
+var _double_shot_armed: bool = false
+var _double_shot_fan_deg: float = 14.0
+var _stasis_timer: float = 0.0
+var _grapple_charges: int = 0
+var _hold_ring: Line2D = null # anneau de progression du tap long (grappin)
+# Décharge du vaisseau : jauge chargée par les fusions, bouton bas-gauche.
+var _discharge_value: float = 0.0
+var _discharge_root: Node2D = null
+var _discharge_fill: ColorRect = null
+var _discharge_halo: Node2D = null
+var _discharge_pos: Vector2 = Vector2.ZERO
+var _discharge_ready_announced: bool = false
+# Variantes de formes.
+var _sticky_material: PhysicsMaterial = null
+# Événements réacteur (un seul actif, anti-répétition).
+var _event_timer: float = 0.0
+var _last_event_id: String = ""
+var _rage_active: bool = false
+var _rage_telegraph: float = 0.0
+var _rage_bombs_left: int = 0
+var _rage_stagger_timer: float = 0.0
+var _gravity_outage_telegraph: float = 0.0
+var _gravity_outage_timer: float = 0.0
+var _gravity_mult: float = 1.0
+var _tilt_timer: float = 0.0
+var _tilt_dir: float = 0.0
+# Boss enragé (< enrage_health_ratio) + fusion massive + boss support.
+var _enraged: bool = false
+var _massive_merge_cooldown: float = 0.0
+var _support_boss_node: Node2D = null
+var _support_spawned: bool = false
+var _support_shot_timer: float = 0.0
+# Icônes de statut bas-droite (au-dessus du NEXT panel).
+var _status_icons: Dictionary = {} # id -> { "root": Node2D, "badge": Label }
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
@@ -365,10 +414,14 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_ensure_countdown_label()
 	_ensure_warning_label()
 
+	_build_discharge_button()
+
 	_elapsed = 0.0
 	_boss_health = 1.0
 	_pattern_timer = _pattern_interval
 	_boss_shot_timer = _boss_shot_interval + randf_range(0.0, _boss_shot_jitter)
+	_pickup_timer = maxf(1.0, float(_get_conf("pickup_first_delay_sec", 6.0)))
+	_event_timer = maxf(2.0, float(_get_conf("reactor_event_first_delay_sec", 10.0)))
 	_next_level = _roll_next_level()
 	_state = State.INTRO
 	_state_timer = maxf(0.05, float(_get_conf("intro_arrival_sec", 1.0)))
@@ -378,6 +431,42 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 ## Per-wave override (world_X.json / freemode) > type defaults (wave_types.json).
 func _get_conf(key: String, fallback: Variant) -> Variant:
 	return _config.get(key, _cfg.get(key, fallback))
+
+## Toast central (pipeline splash « Vague X » du jeu).
+func _toast(key: String, fallback: String, color_html: String = "") -> void:
+	if _game and is_instance_valid(_game) and _game.has_method("show_center_splash"):
+		_game.call("show_center_splash", _translate_or(key, fallback), "", color_html)
+
+## Score centralisé : absorbe la dette (overflow en mode « score ») avant de
+## créditer — Game.add_wave_bonus_score refuse les points négatifs.
+func _award_score(points: int, at: Vector2) -> void:
+	if points <= 0:
+		return
+	if _score_debt > 0:
+		var absorbed: int = mini(_score_debt, points)
+		_score_debt -= absorbed
+		points -= absorbed
+	if points > 0 and _game and is_instance_valid(_game) and _game.has_method("add_wave_bonus_score"):
+		_game.call("add_wave_bonus_score", points, at)
+
+func _effect_labels_enabled() -> bool:
+	var global_default: bool = bool(DataManager.get_wave_types_global("effect_labels_enabled", false)) if DataManager else false
+	return bool(_get_conf("effect_labels_enabled", global_default))
+
+func _attach_effect_label(node: Node2D, text: String, size_px: float, color: Color) -> void:
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text = text
+	label.add_theme_font_size_override("font_size", maxi(10, int(_get_conf("effect_label_font_size", 16))))
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("outline_size", 5)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size = Vector2(160.0, 24.0)
+	label.position = Vector2(-80.0, size_px * 0.5 + 2.0)
+	label.z_index = 2
+	node.add_child(label)
 
 func _level_cfg(level: int) -> Dictionary:
 	var v: Variant = _levels_cfg.get(str(level), {})
@@ -510,6 +599,10 @@ func _build_materials() -> void:
 	_floor_material = PhysicsMaterial.new()
 	_floor_material.bounce = clampf(float(_get_conf("bounce", 0.22)) * 0.5, 0.0, 1.0)
 	_floor_material.friction = clampf(float(_get_conf("floor_friction", 0.86)), 0.0, 2.0)
+	# Bulles collantes [V10] : friction forte + zéro rebond (arches contre les murs).
+	_sticky_material = PhysicsMaterial.new()
+	_sticky_material.bounce = 0.0
+	_sticky_material.friction = clampf(float(_get_conf("sticky_friction", 1.0)), 0.0, 2.0)
 
 ## Réacteur fermé : 4 StaticBody2D épais (32 px) sur la couche 64. GRAVITÉ
 ## INVERSÉE : le plafond est le "sol" d'accumulation (friction de sol), le
@@ -719,41 +812,96 @@ func _build_boss(def: Dictionary) -> void:
 
 ## Crée une forme ronde. kind : "normal" (joueur), "junk" (pattern legacy,
 ## inerte), "bomb" (projectile du boss — fusionne entre bombes, lvl max =
-## countdown + explosion). frozen = forme prête (layers 0, freeze).
-## GRAVITÉ INVERSÉE : gravity_scale négatif — tout "tombe" vers le plafond.
-func _create_shape_body(level: int, pos: Vector2, kind: String, frozen: bool) -> Dictionary:
+## countdown + explosion), "dark" (déchet [V9] — ne fusionne jamais, tap =
+## évacuation). frozen = forme prête (layers 0, freeze).
+## variant [13 juillet 2026] : "" | "prism" (wild [V7]) | "square" ([V8],
+## RectangleShape2D, radius = demi-diagonale) | "sticky" ([V10], friction
+## forte). GRAVITÉ INVERSÉE : gravity_scale négatif — tout "tombe" vers le
+## plafond (× _gravity_mult : 0 pendant la panne de gravité).
+func _create_shape_body(level: int, pos: Vector2, kind: String, frozen: bool, variant: String = "") -> Dictionary:
 	var is_junk: bool = kind == "junk"
 	var is_bomb: bool = kind == "bomb"
+	var is_dark: bool = kind == "dark"
 	var lvl_cfg: Dictionary = _bomb_level_cfg(level) if is_bomb else _level_cfg(level)
 	var radius: float = maxf(6.0, float(lvl_cfg.get("radius_px", 14.0)))
 	if is_junk:
 		radius = _junk_radius
+	elif is_dark:
+		radius = maxf(8.0, float(_get_conf("dark_radius_px", 26.0)))
 	var body := RigidBody2D.new()
 	body.collision_layer = 0 if frozen else SHAPE_LAYER
 	body.collision_mask = 0 if frozen else SHAPE_LAYER
 	body.mass = _junk_mass if is_junk else maxf(0.1, float(lvl_cfg.get("mass", 1.0)))
-	body.gravity_scale = -absf(_gravity_scale) # inversée : la pile colle en haut
+	body.gravity_scale = -absf(_gravity_scale) * _gravity_mult # inversée : la pile colle en haut
 	body.linear_damp = _linear_damp
 	body.angular_damp = _angular_damp
 	body.physics_material_override = _shape_material
+	if variant == "sticky":
+		body.physics_material_override = _sticky_material
+		body.linear_damp = _linear_damp * maxf(1.0, float(_get_conf("sticky_linear_damp_mult", 2.2)))
 	body.can_sleep = true
 	body.continuous_cd = RigidBody2D.CCD_MODE_CAST_SHAPE
 	body.freeze = frozen
+	# Réacteur penché [E18] en cours : les nouveaux corps subissent la même force.
+	if _tilt_timer > 0.0:
+		body.constant_force = Vector2(_tilt_dir * _current_tilt_force(), 0.0) * body.mass
 	var collision := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
-	circle.radius = radius
-	collision.shape = circle
+	if variant == "square":
+		# Carrée [V8] : côté ~ aire équivalente au cercle ; le "radius" logique
+		# devient la DEMI-DIAGONALE (fusion/click/overflow restent corrects).
+		var side: float = radius * 1.6
+		var rect_shape := RectangleShape2D.new()
+		rect_shape.size = Vector2(side, side)
+		collision.shape = rect_shape
+		radius = side * 0.7071
+	else:
+		var circle := CircleShape2D.new()
+		circle.radius = radius
+		collision.shape = circle
 	body.add_child(collision)
 	# Visuel : asset du niveau (.tres animé OU texture) rendu en COVER dans un
 	# cercle (masque shader — images carrées, la hitbox reste le cercle) ;
-	# fallback = cercle coloré procédural.
+	# fallback = cercle coloré procédural. Variantes : prism/dark = assets
+	# dédiés (cover cercle) ; square = texture teintée SANS masque circulaire.
 	var color := Color(str(lvl_cfg.get("color", "#9BB8CC")))
 	if is_junk:
 		color = Color(str(_get_conf("junk_color", "#8A8A8AFF")))
+	elif is_dark:
+		color = Color("#3A2E4A")
 	var frames_pool: Dictionary = _bomb_frames if is_bomb else _level_frames
 	var textures_pool: Dictionary = _bomb_textures if is_bomb else _level_textures
 	var visual: Node2D = null
-	if not is_junk and frames_pool.has(level):
+	if variant == "square":
+		var side: float = radius / 0.7071
+		var square_tex: Texture2D = _texture_from_path(str(_get_conf("square_asset", "")))
+		if square_tex != null and square_tex.get_size().x > 0.0:
+			var sq_sprite := Sprite2D.new()
+			sq_sprite.texture = square_tex
+			sq_sprite.scale = Vector2.ONE * (side / maxf(square_tex.get_size().x, square_tex.get_size().y))
+			sq_sprite.modulate = color # teinte du niveau sur la texture générique
+			visual = sq_sprite
+		else:
+			var sq_poly := Polygon2D.new()
+			var half: float = side * 0.5
+			sq_poly.polygon = PackedVector2Array([
+				Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)])
+			sq_poly.color = color
+			visual = sq_poly
+	elif variant == "prism":
+		var prism_tex: Texture2D = _texture_from_path(str(_get_conf("prism_asset", "")))
+		if prism_tex != null and prism_tex.get_size().x > 0.0:
+			var pr_sprite := Sprite2D.new()
+			pr_sprite.texture = prism_tex
+			_apply_circle_cover(pr_sprite, prism_tex.get_size(), radius)
+			visual = pr_sprite
+	elif is_dark:
+		var dark_tex: Texture2D = _texture_from_path(str(_get_conf("dark_asset", "")))
+		if dark_tex != null and dark_tex.get_size().x > 0.0:
+			var dk_sprite := Sprite2D.new()
+			dk_sprite.texture = dark_tex
+			_apply_circle_cover(dk_sprite, dark_tex.get_size(), radius)
+			visual = dk_sprite
+	if visual == null and not is_junk and not is_dark and variant != "square" and frames_pool.has(level):
 		var frames: SpriteFrames = frames_pool[level]
 		var anim := AnimatedSprite2D.new()
 		anim.sprite_frames = frames
@@ -766,14 +914,14 @@ func _create_shape_body(level: int, pos: Vector2, kind: String, frozen: bool) ->
 		if first != null and first.get_size().x > 0.0:
 			_apply_circle_cover(anim, first.get_size(), radius)
 		visual = anim
-	elif not is_junk and textures_pool.has(level):
+	elif visual == null and not is_junk and not is_dark and variant != "square" and textures_pool.has(level):
 		var sprite := Sprite2D.new()
 		sprite.texture = textures_pool[level]
 		var tex_size: Vector2 = (textures_pool[level] as Texture2D).get_size()
 		if tex_size.x > 0.0:
 			_apply_circle_cover(sprite, tex_size, radius)
 		visual = sprite
-	else:
+	if visual == null:
 		var poly := Polygon2D.new()
 		var pts := PackedVector2Array()
 		for i in range(24):
@@ -788,6 +936,34 @@ func _create_shape_body(level: int, pos: Vector2, kind: String, frozen: bool) ->
 		glow = _make_shape_glow(level, radius)
 		body.add_child(glow)
 	body.add_child(visual)
+	# Marqueurs de variante : liseré collant, anneau prismatique, label d'effet.
+	if variant == "sticky":
+		var ring := Line2D.new()
+		ring.closed = true
+		ring.width = 3.0
+		ring.default_color = Color(str(_get_conf("sticky_ring_color", "#7FE58CFF")))
+		var ring_pts := PackedVector2Array()
+		for k in range(18):
+			var a2: float = TAU * float(k) / 18.0
+			ring_pts.append(Vector2(cos(a2), sin(a2)) * (radius + 3.0))
+		ring.points = ring_pts
+		body.add_child(ring)
+	elif variant == "prism":
+		var prism_ring := Line2D.new()
+		prism_ring.closed = true
+		prism_ring.width = 3.0
+		prism_ring.default_color = Color(1.0, 1.0, 1.0, 0.85)
+		prism_ring.material = _add_material
+		var pr_pts := PackedVector2Array()
+		for k in range(18):
+			var a3: float = TAU * float(k) / 18.0
+			pr_pts.append(Vector2(cos(a3), sin(a3)) * (radius + 3.0))
+		prism_ring.points = pr_pts
+		body.add_child(prism_ring)
+		if _effect_labels_enabled():
+			_attach_effect_label(body, _translate_or("suika_label_prism", "PRISM"), radius * 2.0, Color("#C0F0FF"))
+	if is_dark and _effect_labels_enabled():
+		_attach_effect_label(body, _translate_or("suika_label_dark", "JUNK"), radius * 2.0, Color("#B48CFF"))
 	body.z_as_relative = false
 	body.z_index = 10
 	body.global_position = pos
@@ -797,6 +973,7 @@ func _create_shape_body(level: int, pos: Vector2, kind: String, frozen: bool) ->
 		"level": level,
 		"radius": radius,
 		"kind": kind,
+		"variant": variant,
 		"visual": visual,
 		"glow": glow,
 		"merging": false,
@@ -894,7 +1071,21 @@ func _roll_next_level() -> int:
 func _spawn_ready_projectile() -> void:
 	if not _ready_shape.is_empty():
 		return
-	_ready_shape = _create_shape_body(_next_level, _ready_spawn_pos, "normal", true)
+	# Variantes [V7-10] roulées sur la munition : sombre (kind dédié, lvl 1),
+	# sinon prisme > carrée > collante (exclusives, chances data).
+	var kind: String = "normal"
+	var variant: String = ""
+	var level: int = _next_level
+	if randf() <= clampf(float(_get_conf("dark_chance", 0.0)), 0.0, 0.2):
+		kind = "dark"
+		level = 1
+	elif randf() <= clampf(float(_get_conf("prism_chance", 0.0)), 0.0, 0.2):
+		variant = "prism"
+	elif randf() <= clampf(float(_get_conf("square_chance", 0.0)), 0.0, 0.2):
+		variant = "square"
+	elif randf() <= clampf(float(_get_conf("sticky_chance", 0.0)), 0.0, 0.2):
+		variant = "sticky"
+	_ready_shape = _create_shape_body(level, _ready_spawn_pos, kind, true, variant)
 	_next_level = _roll_next_level()
 	_refresh_next_panel()
 	var visual_v: Variant = _ready_shape.get("visual", null)
@@ -936,6 +1127,20 @@ func _launch_ready_shape(direction: Vector2, power: float) -> void:
 	body.linear_velocity = direction.normalized() * speed
 	_shapes.append(entry)
 	_launch_cooldown = _launch_cooldown_sec
+	# Jauge parfaite étendue [B2] : consommer un lancer du boost.
+	if _perfect_boost_left > 0:
+		_perfect_boost_left -= 1
+		_refresh_status_icons()
+	# Munition double [B3] : le lancer armé tire une 2e forme lvl 1 en éventail.
+	if _double_shot_armed:
+		_double_shot_armed = false
+		_refresh_status_icons()
+		if _shapes.size() < _max_shapes_active:
+			var extra: Dictionary = _create_shape_body(1, body.global_position, "normal", false)
+			var extra_body: RigidBody2D = extra.get("body") as RigidBody2D
+			var fan: float = deg_to_rad(maxf(2.0, _double_shot_fan_deg)) * (1.0 if randf() < 0.5 else -1.0)
+			extra_body.linear_velocity = direction.normalized().rotated(fan) * speed
+			_shapes.append(extra)
 	_dismiss_aim_zone_hint() # le joueur a compris : le hint disparaît
 
 # =============================================================================
@@ -951,7 +1156,10 @@ func _physics_process(delta: float) -> void:
 	if _state == State.PLAY or _state == State.INTRO:
 		_try_merge_pass(delta)
 	if _state == State.PLAY:
-		_check_overflow(delta)
+		if _stasis_timer <= 0.0:
+			_check_overflow(delta)
+		_scan_pickup_collection()
+		_apply_bomb_magnets()
 	_apply_out_of_bounds_guard()
 
 func _purge_invalid_shapes() -> void:
@@ -981,15 +1189,25 @@ func _update_shape_timers(delta: float) -> void:
 ## BOMBES du boss fusionnent entre elles (jamais l'un avec l'autre), le junk
 ## ne fusionne jamais.
 func _try_merge_pass(delta: float) -> void:
+	if _stasis_timer > 0.0:
+		return # stase [B4] : la pile est figée, aucune fusion
 	var by_level: Dictionary = {}
+	var prisms: Array = []
+	var wild_candidates: Array = []
 	for entry_v in _shapes:
 		var entry: Dictionary = entry_v as Dictionary
 		var kind: String = str(entry.get("kind", "normal"))
-		if kind == "junk" or bool(entry.get("merging", false)):
+		if kind == "junk" or kind == "dark" or bool(entry.get("merging", false)):
 			continue
 		if float(entry.get("merge_cooldown", 0.0)) > 0.0:
 			continue
 		var level: int = int(entry.get("level", 1))
+		# Prisme [V7] : wild — hors des groupes (kind, level), passe dédiée.
+		if kind == "normal" and str(entry.get("variant", "")) == "prism":
+			prisms.append(entry)
+			continue
+		if kind == "normal":
+			wild_candidates.append(entry)
 		if kind == "bomb":
 			if level >= _boss_bomb_max_level:
 				continue # bombe max : armée (countdown), ne fusionne plus
@@ -1016,7 +1234,26 @@ func _try_merge_pass(delta: float) -> void:
 				touched_keys[key] = true
 				_merge_pairs[key] = float(_merge_pairs.get(key, 0.0)) + delta
 				if float(_merge_pairs[key]) >= _merge_grace:
-					ready_to_merge.append([entry_a, entry_b, key])
+					ready_to_merge.append([entry_a, entry_b, key, false])
+	# Passe WILD [V7] : chaque prisme contre toute forme normale/prisme —
+	# fusionne avec n'importe quel niveau (résultat = min des deux + 1).
+	for p_idx in range(prisms.size()):
+		var prism: Dictionary = prisms[p_idx]
+		var prism_body: RigidBody2D = prism.get("body") as RigidBody2D
+		var partners: Array = wild_candidates
+		for q_idx in range(p_idx + 1, prisms.size()):
+			partners = partners + [prisms[q_idx]]
+		for partner_v in partners:
+			var partner: Dictionary = partner_v as Dictionary
+			var partner_body: RigidBody2D = partner.get("body") as RigidBody2D
+			var reach2: float = float(prism.get("radius", 14.0)) + float(partner.get("radius", 14.0)) + 2.0
+			if prism_body.global_position.distance_squared_to(partner_body.global_position) > reach2 * reach2:
+				continue
+			var key2: String = _pair_key(prism_body, partner_body)
+			touched_keys[key2] = true
+			_merge_pairs[key2] = float(_merge_pairs.get(key2, 0.0)) + delta
+			if float(_merge_pairs[key2]) >= _merge_grace:
+				ready_to_merge.append([prism, partner, key2, true])
 	# Purge des paires qui ne se touchent plus.
 	for key_v in _merge_pairs.keys():
 		if not touched_keys.has(key_v):
@@ -1031,7 +1268,7 @@ func _try_merge_pass(delta: float) -> void:
 		if bool(entry_a.get("merging", false)) or bool(entry_b.get("merging", false)):
 			continue
 		_merge_pairs.erase(pair[2])
-		_execute_merge(entry_a, entry_b)
+		_execute_merge(entry_a, entry_b, bool(pair[3]))
 		merges_done += 1
 
 func _pair_key(a: RigidBody2D, b: RigidBody2D) -> String:
@@ -1043,7 +1280,7 @@ func _pair_key(a: RigidBody2D, b: RigidBody2D) -> String:
 ## à l'opposé de la gravité inversée, la fusion "saute" hors de la pile).
 ## Deux BOMBES fusionnent en bombe N+1 ; au niveau max, la bombe s'ARME
 ## (compte à rebours -> explosion).
-func _execute_merge(entry_a: Dictionary, entry_b: Dictionary) -> void:
+func _execute_merge(entry_a: Dictionary, entry_b: Dictionary, wild: bool = false) -> void:
 	entry_a["merging"] = true
 	entry_b["merging"] = true
 	var kind: String = str(entry_a.get("kind", "normal"))
@@ -1052,7 +1289,10 @@ func _execute_merge(entry_a: Dictionary, entry_b: Dictionary) -> void:
 	var mass_total: float = maxf(0.01, body_a.mass + body_b.mass)
 	var barycenter: Vector2 = (body_a.global_position * body_a.mass + body_b.global_position * body_b.mass) / mass_total
 	var inherited_vel: Vector2 = (body_a.linear_velocity * body_a.mass + body_b.linear_velocity * body_b.mass) / mass_total
+	# Wild [V7] : le prisme monte le PLUS BAS des deux niveaux d'un cran.
 	var new_level: int = int(entry_a.get("level", 1)) + 1
+	if wild:
+		new_level = clampi(mini(int(entry_a.get("level", 1)), int(entry_b.get("level", 1))) + 1, 2, _max_level)
 	var wake_radius: float = (float(entry_a.get("radius", 14.0)) + float(entry_b.get("radius", 14.0))) * 1.5
 	_shapes.erase(entry_a)
 	_shapes.erase(entry_b)
@@ -1075,8 +1315,14 @@ func _execute_merge(entry_a: Dictionary, entry_b: Dictionary) -> void:
 			Color(str(pop_cfg.get("color", "#FFFFFF"))), self, "", merge_anim, -1.0, 0.2)
 	if kind == "normal":
 		var points: int = int(round(10.0 * float(new_level) * _reward_multiplier))
-		if points > 0 and _game and is_instance_valid(_game) and _game.has_method("add_wave_bonus_score"):
-			_game.call("add_wave_bonus_score", points, barycenter)
+		_award_score(points, barycenter)
+		# Décharge [B6] : chaque fusion charge la jauge du vaisseau.
+		_gain_discharge(new_level)
+		# Fusion massive [E19] : une fusion haut niveau compacte la pile vers le
+		# PLAFOND (sens de la gravité inversée) + cristaux — célébration mécanique.
+		if new_level >= maxi(2, int(_get_conf("massive_merge_min_level", 5))) and _massive_merge_cooldown <= 0.0:
+			_massive_merge_cooldown = 2.0
+			_trigger_massive_merge(barycenter)
 
 ## Overflow : gravité inversée -> la pile colle en haut et DESCEND en se
 ## remplissant. Une forme qui reste SOUS la redline (bas du réacteur) > grace
@@ -1116,25 +1362,44 @@ func _trigger_overflow_penalty() -> void:
 	_overflow_cooldown = _overflow_cooldown_sec
 	for entry_v in _shapes:
 		(entry_v as Dictionary)["beyond_redline_sec"] = 0.0
-	if _player and is_instance_valid(_player) and _player.has_method("take_damage"):
+	# Overflow indulgent [V14] : mode "score" = pas de dégâts, la purge coûte
+	# une DETTE de score (absorbée par les gains suivants — Game refuse les
+	# points négatifs) ; mode "damage" (défaut) = comportement historique.
+	if str(_get_conf("overflow_penalty_mode", "damage")) == "score":
+		var penalty: int = maxi(0, int(_get_conf("overflow_score_penalty", 400)))
+		_score_debt += penalty
+		if VFXManager and penalty > 0:
+			VFXManager.spawn_floating_text(
+				Vector2(_reactor_rect.get_center().x, _redline_y - 40.0),
+				"-%d" % penalty, Color("#FF4444"), self)
+	elif _player and is_instance_valid(_player) and _player.has_method("take_damage"):
 		var max_hp_v: Variant = _player.get("max_hp")
 		var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
 		_player.call("take_damage", maxi(1, int(ceil(float(max_hp) * _overflow_damage_pct))))
 	if _overflow_purge_enabled and _overflow_purge_max > 0:
-		# Purge des formes les plus BASSES (la pile remonte).
-		var sorted: Array = _shapes.duplicate()
-		sorted.sort_custom(func(a, b) -> bool:
-			return ((a as Dictionary).get("body") as RigidBody2D).global_position.y \
-				> ((b as Dictionary).get("body") as RigidBody2D).global_position.y)
-		for i in range(mini(_overflow_purge_max, sorted.size())):
-			var entry: Dictionary = sorted[i]
-			_shapes.erase(entry)
-			_free_shape(entry, true)
+		_purge_lowest_shapes(_overflow_purge_max, true)
 	_show_warning(_translate_or("suika_up_overflow_warning", "OVERFLOW!"), Color("#FF4444"))
 	if VFXManager and bool(ProfileManager.get_setting("screenshake_enabled", true)):
 		VFXManager.screen_shake(10, 0.4)
 	if _overflow_ends_wave:
 		_start_boss_escape()
+
+## Purge des N formes les plus BASSES (la pile remonte) — overflow ET pickup
+## purge [B1]. Retourne le nombre réellement purgé.
+func _purge_lowest_shapes(count: int, with_vfx: bool) -> int:
+	if count <= 0 or _shapes.is_empty():
+		return 0
+	var sorted: Array = _shapes.duplicate()
+	sorted.sort_custom(func(a, b) -> bool:
+		return ((a as Dictionary).get("body") as RigidBody2D).global_position.y \
+			> ((b as Dictionary).get("body") as RigidBody2D).global_position.y)
+	var purged: int = 0
+	for i in range(mini(count, sorted.size())):
+		var entry: Dictionary = sorted[i]
+		_shapes.erase(entry)
+		_free_shape(entry, with_vfx)
+		purged += 1
+	return purged
 
 ## Garde-fou : un corps éjecté hors du réacteur (explosion de solveur) est
 ## reposé au centre-HAUT (la pile vit contre le plafond), vélocité nulle.
@@ -1212,13 +1477,18 @@ func _find_clickable_at(world: Vector2) -> Dictionary:
 	var best_dist: float = INF
 	for entry_v in _shapes:
 		var entry: Dictionary = entry_v as Dictionary
-		if str(entry.get("kind", "normal")) != "normal" or bool(entry.get("merging", false)):
+		var kind: String = str(entry.get("kind", "normal"))
+		if bool(entry.get("merging", false)):
 			continue
-		if int(entry.get("level", 1)) < _min_clickable_level:
-			continue
-		var lvl_cfg: Dictionary = _level_cfg(int(entry.get("level", 1)))
-		if not bool(lvl_cfg.get("clickable", true)):
-			continue
+		# Forme sombre [V9] : évacuable par tap à TOUT niveau.
+		if kind != "dark":
+			if kind != "normal":
+				continue
+			if int(entry.get("level", 1)) < _min_clickable_level:
+				continue
+			var lvl_cfg: Dictionary = _level_cfg(int(entry.get("level", 1)))
+			if not bool(lvl_cfg.get("clickable", true)):
+				continue
 		var body: RigidBody2D = entry.get("body") as RigidBody2D
 		var dist: float = world.distance_to(body.global_position)
 		if dist <= float(entry.get("radius", 14.0)) * _click_hit_mult and dist < best_dist:
@@ -1244,8 +1514,20 @@ func _gesture_end() -> void:
 	_gesture = Gesture.IDLE
 	_hide_aim_visuals()
 	if gesture == Gesture.PRESSED:
+		var press_sec: float = float(elapsed_ms) / 1000.0
+		# Bouton DÉCHARGE [B6] (bas-gauche) : tap court sur l'icône, jauge pleine.
+		if press_sec <= _tap_max_duration_sec and _press_max_move <= _tap_max_move \
+			and _discharge_hit(world):
+			_tap_candidate = {}
+			return
+		# Grappin [B5] : tap LONG immobile sur une forme = impulsion vers le bas.
+		if press_sec >= maxf(0.1, float(_get_conf("grapple_hold_min_sec", 0.45))) \
+			and _press_max_move <= _tap_max_move and _grapple_charges > 0:
+			_try_grapple(world)
+			_tap_candidate = {}
+			return
 		# Tap court sur une forme cliquable = consommation + tir sur le boss.
-		if float(elapsed_ms) / 1000.0 <= _tap_max_duration_sec and _press_max_move <= _tap_max_move \
+		if press_sec <= _tap_max_duration_sec and _press_max_move <= _tap_max_move \
 			and not _tap_candidate.is_empty() and _shapes.has(_tap_candidate):
 			_consume_clickable_shape(_tap_candidate)
 		_tap_candidate = {}
@@ -1290,8 +1572,8 @@ func _evaluate_launch(world: Vector2) -> Dictionary:
 			maxf(0.1, float(_gauge_cfg.get("max_power_multiplier", 1.25))), gauge_t)
 		var influence: float = clampf(float(_gauge_cfg.get("gauge_influence", 0.45)), 0.0, 1.0)
 		power = base_power * lerpf(1.0, gauge_value, influence)
-		# Fenêtre "perfect" en haut de la jauge.
-		if gauge_t >= 1.0 - clampf(float(_gauge_cfg.get("perfect_window_ratio", 0.12)), 0.0, 1.0):
+		# Fenêtre "perfect" en haut de la jauge — ×window_mult pendant le boost [B2].
+		if gauge_t >= 1.0 - _effective_perfect_ratio():
 			power *= maxf(1.0, float(_gauge_cfg.get("perfect_power_multiplier", 1.1)))
 	result["valid"] = true
 	result["direction"] = Vector2(sin(ang), -cos(ang))
@@ -1311,12 +1593,17 @@ func _consume_clickable_shape(entry: Dictionary) -> void:
 	var level: int = int(entry.get("level", 1))
 	var body: RigidBody2D = entry.get("body") as RigidBody2D
 	var at_pos: Vector2 = body.global_position
+	# Forme sombre [V9] : évacuation simple — score, pas de tir ni de contre.
+	if str(entry.get("kind", "normal")) == "dark":
+		_shapes.erase(entry)
+		_free_shape(entry, true)
+		_award_score(int(round(float(int(_get_conf("dark_evacuate_score", 40))) * _reward_multiplier)), at_pos)
+		return
 	_shapes.erase(entry)
 	_free_shape(entry, true) # trou physique -> effondrement naturel + réveil
 	var lvl_cfg: Dictionary = _level_cfg(level)
 	var points: int = int(round(float(lvl_cfg.get("score_on_fire", 0)) * _reward_multiplier))
-	if points > 0 and _game and is_instance_valid(_game) and _game.has_method("add_wave_bonus_score"):
-		_game.call("add_wave_bonus_score", points, at_pos)
+	_award_score(points, at_pos)
 	var crystal_chance: float = clampf(float(_crystal_chance_by_level.get(str(level), 0.0)), 0.0, 1.0)
 	if randf() <= crystal_chance and _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystal_at"):
 		_game.call("spawn_reward_crystal_at", at_pos, {"force_magnet_below_y": _ship_lock_pos.y - 60.0})
@@ -1328,7 +1615,8 @@ func _consume_clickable_shape(entry: Dictionary) -> void:
 	_fire_ship_shot(level)
 
 ## Projectile visuel maison : impact garanti sur le boss (décoratif).
-func _fire_ship_shot(level: int) -> void:
+## damage_override [B6] : dégâts BRUTS fixés (décharge — sans toughness).
+func _fire_ship_shot(level: int, damage_override: float = -1.0) -> void:
 	var lvl_cfg: Dictionary = _level_cfg(level)
 	var shot := Node2D.new()
 	shot.z_as_relative = false
@@ -1356,7 +1644,8 @@ func _fire_ship_shot(level: int) -> void:
 		"to": target,
 		"t": 0.0,
 		"duration": _attack_shot_duration * (1.0 + float(level) * 0.06),
-		"level": level
+		"level": level,
+		"damage_override": damage_override
 	})
 
 func _update_shots(delta: float) -> void:
@@ -1371,7 +1660,7 @@ func _update_shots(delta: float) -> void:
 			if node_v is Node2D and is_instance_valid(node_v):
 				(node_v as Node2D).queue_free()
 			_shots.remove_at(i)
-			_on_shot_impact(int(shot.get("level", 2)), to)
+			_on_shot_impact(int(shot.get("level", 2)), to, float(shot.get("damage_override", -1.0)))
 			continue
 		var eased: float = ease(clampf(t, 0.0, 1.0), 0.6)
 		var pos: Vector2 = from.lerp(to, eased)
@@ -1380,7 +1669,7 @@ func _update_shots(delta: float) -> void:
 		if node_v is Node2D and is_instance_valid(node_v):
 			(node_v as Node2D).global_position = pos
 
-func _on_shot_impact(level: int, at_pos: Vector2) -> void:
+func _on_shot_impact(level: int, at_pos: Vector2, damage_override: float = -1.0) -> void:
 	var impact_cfg_v: Variant = _get_conf("boss_hit_explosion", {})
 	var impact_cfg: Dictionary = impact_cfg_v if impact_cfg_v is Dictionary else {}
 	if VFXManager:
@@ -1396,7 +1685,14 @@ func _on_shot_impact(level: int, at_pos: Vector2) -> void:
 		if bool(ProfileManager.get_setting("screenshake_enabled", true)):
 			VFXManager.screen_shake(2 + mini(level, 6), 0.2)
 	# Dégâts % du niveau, divisés par le knob de difficulté boss_toughness_mult.
+	# Décharge [B6] : dégâts BRUTS fixés (sans toughness — récompense fixe).
+	# Boss enragé [E16] : dégâts de tap amplifiés (contrepartie du sprint final).
+	if damage_override > 0.0:
+		_damage_boss(clampf(damage_override, 0.0, 1.0))
+		return
 	var pct: float = clampf(float(_level_cfg(level).get("boss_damage_percent", 0.0)), 0.0, 1.0)
+	if _enraged:
+		pct *= maxf(1.0, float(_get_conf("enrage_tap_damage_mult", 1.25)))
 	_damage_boss(pct / _boss_toughness)
 
 func _damage_boss(pct: float) -> void:
@@ -1405,6 +1701,16 @@ func _damage_boss(pct: float) -> void:
 	_boss_health = clampf(_boss_health - pct, 0.0, 1.0)
 	if _hud and is_instance_valid(_hud) and _hud.has_method("update_boss_health"):
 		_hud.call("update_boss_health", int(round(_boss_health * 1000.0)), 1000)
+	# Boss enragé [E16] : sous le seuil, patterns/tirs ×2 mais tap ×1.25.
+	if not _enraged and bool(_get_conf("enrage_enabled", true)) and _boss_health > 0.0 \
+		and _boss_health <= clampf(float(_get_conf("enrage_health_ratio", 0.25)), 0.0, 1.0):
+		_enraged = true
+		var interval_mult: float = clampf(float(_get_conf("enrage_pattern_interval_mult", 0.5)), 0.2, 1.0)
+		_pattern_interval = maxf(2.0, _pattern_interval * interval_mult)
+		_boss_shot_interval = maxf(1.5, _boss_shot_interval * interval_mult)
+		_toast("suika_enraged", "BOSS ENRAGED!", "#FF6666")
+		if _boss_sprite and is_instance_valid(_boss_sprite):
+			_boss_sprite.modulate = Color(str(_get_conf("enrage_boss_tint", "#FF6666")))
 	if _boss_health <= 0.0:
 		_start_boss_death()
 
@@ -1478,6 +1784,8 @@ func _pattern_drop_junk(cfg: Dictionary) -> void:
 ## le tir ; sinon le boss largue UNE bombe niveau 1 qui entre par le haut et
 ## "retombe" vers le HAUT (gravité inversée) dans la pile.
 func _boss_shot_update(delta: float) -> void:
+	if _rage_active or _rage_bombs_left > 0:
+		return # colère du boss [E15] : le burst remplace le tir normal
 	if _shot_telegraph_active:
 		_update_shot_telegraph(delta)
 		return
@@ -1511,7 +1819,16 @@ func _hide_boss_shot_label() -> void:
 		_boss_shot_label.visible = false
 
 ## Contre réussi : un tir de niveau suffisant (uniformisé 2+) annule le largage.
+## Colère du boss [E15] : UN contre pendant le télégraphe annule TOUT le burst.
 func _try_counter_boss_shot(fired_level: int) -> void:
+	if _rage_active and fired_level >= _shot_required_level:
+		_rage_active = false
+		_rage_bombs_left = 0
+		_hide_boss_shot_label()
+		if _boss_shot_label and is_instance_valid(_boss_shot_label):
+			_boss_shot_label.modulate = Color.WHITE
+		_show_warning(_translate_or("suika_up_beam_countered", "COUNTERED!"), Color("#7FE58C"), 1.0)
+		return
 	if not _shot_telegraph_active or fired_level < _shot_required_level:
 		return
 	_shot_telegraph_active = false
@@ -1601,6 +1918,19 @@ func _clear_reactor() -> void:
 		_shapes.remove_at(i)
 		_free_shape(entry, true)
 	_merge_pairs.clear()
+	# Pickups et états d'événements purgés avec la zone.
+	for p_v in _pickups:
+		var node_v: Variant = (p_v as Dictionary).get("node", null)
+		if node_v is Node2D and is_instance_valid(node_v):
+			(node_v as Node2D).queue_free()
+	_pickups.clear()
+	_stasis_timer = 0.0
+	_rage_active = false
+	_rage_bombs_left = 0
+	_gravity_outage_telegraph = 0.0
+	_gravity_outage_timer = 0.0
+	_gravity_mult = 1.0
+	_tilt_timer = 0.0
 	if _danger_warning_rect and is_instance_valid(_danger_warning_rect):
 		_danger_warning_rect.visible = false
 
@@ -1664,6 +1994,672 @@ func _cancel_beam(countered: bool) -> void:
 		_show_warning(_translate_or("suika_up_beam_countered", "COUNTERED!"), Color("#7FE58C"), 1.0)
 
 # =============================================================================
+# PICKUPS [B1-5] — orbes non-physiques dans la bande médiane du réacteur,
+# collectées au contact d'une forme joueur EN MOUVEMENT (le joueur les VISE).
+# =============================================================================
+
+func _tick_pickups(delta: float) -> void:
+	if not bool(_get_conf("pickups_enabled", true)):
+		return
+	# TTL + bob sinusoïdal.
+	for i in range(_pickups.size() - 1, -1, -1):
+		var p: Dictionary = _pickups[i]
+		p["ttl"] = float(p.get("ttl", 0.0)) - delta
+		var node_v: Variant = p.get("node", null)
+		if not (node_v is Node2D) or not is_instance_valid(node_v):
+			_pickups.remove_at(i)
+			continue
+		var node: Node2D = node_v as Node2D
+		node.position = (p.get("pos", Vector2.ZERO) as Vector2) \
+			+ Vector2(0.0, sin(_elapsed * TAU * 0.6 + float(p.get("phase", 0.0))) * 6.0)
+		if float(p["ttl"]) <= 1.0:
+			node.modulate.a = clampf(float(p["ttl"]), 0.0, 1.0)
+		if float(p["ttl"]) <= 0.0:
+			node.queue_free()
+			_pickups.remove_at(i)
+	# Scheduler (anti-répétition).
+	_pickup_timer -= delta
+	if _pickup_timer > 0.0:
+		return
+	_pickup_timer = randf_range(
+		maxf(2.0, float(_get_conf("pickup_interval_sec_min", 9.0))),
+		maxf(2.0, float(_get_conf("pickup_interval_sec_max", 15.0))))
+	if _pickups.size() >= maxi(1, int(_get_conf("pickup_max_active", 1))):
+		return
+	var types_v: Variant = _get_conf("pickup_types", [])
+	var types: Array = (types_v as Array) if types_v is Array else []
+	if types.is_empty():
+		return
+	var total: float = 0.0
+	for t_v in types:
+		if t_v is Dictionary and str((t_v as Dictionary).get("id", "")) != _last_pickup_id:
+			total += maxf(0.0, float((t_v as Dictionary).get("weight", 0.0)))
+	if total <= 0.0:
+		_last_pickup_id = "" # un seul type configuré : lever l'anti-répétition
+		return
+	var roll: float = randf() * total
+	for t_v in types:
+		if not (t_v is Dictionary) or str((t_v as Dictionary).get("id", "")) == _last_pickup_id:
+			continue
+		roll -= maxf(0.0, float((t_v as Dictionary).get("weight", 0.0)))
+		if roll <= 0.0:
+			_spawn_pickup(t_v as Dictionary)
+			return
+
+func _spawn_pickup(cfg: Dictionary) -> void:
+	_last_pickup_id = str(cfg.get("id", ""))
+	var radius: float = maxf(10.0, float(_get_conf("pickup_radius_px", 18.0)))
+	var node := Node2D.new()
+	node.name = "SuikaPickup"
+	node.z_as_relative = false
+	node.z_index = 12
+	var color := Color(str(cfg.get("color", "#FFFFFFFF")))
+	var tex: Texture2D = _texture_from_path(str(cfg.get("asset", "")))
+	if tex != null and tex.get_size().x > 0.0:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.scale = Vector2.ONE * (radius * 2.0 / maxf(tex.get_size().x, tex.get_size().y))
+		node.add_child(sprite)
+	else:
+		var poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for k in range(16):
+			var a: float = TAU * float(k) / 16.0
+			pts.append(Vector2(cos(a), sin(a)) * radius)
+		poly.polygon = pts
+		poly.color = color
+		node.add_child(poly)
+		var glyph := Label.new()
+		glyph.text = str(cfg.get("id", "?")).substr(0, 1).to_upper()
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		glyph.add_theme_font_size_override("font_size", int(radius * 1.1))
+		glyph.add_theme_color_override("font_color", Color(0.08, 0.08, 0.14))
+		glyph.size = Vector2(radius, radius) * 2.0
+		glyph.position = -Vector2(radius, radius)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.add_child(glyph)
+	# Halo additif + label d'effet (béquille lisibilité).
+	var halo := Line2D.new()
+	halo.closed = true
+	halo.width = 3.0
+	halo.default_color = Color(color.r, color.g, color.b, 0.7)
+	halo.material = _add_material
+	var halo_pts := PackedVector2Array()
+	for k in range(16):
+		var a2: float = TAU * float(k) / 16.0
+		halo_pts.append(Vector2(cos(a2), sin(a2)) * (radius + 4.0))
+	halo.points = halo_pts
+	node.add_child(halo)
+	if _effect_labels_enabled():
+		_attach_effect_label(node, _translate_or(str(cfg.get("label_key", "")), str(cfg.get("id", "")).to_upper()), radius * 2.0, color)
+	# Bande médiane : traversée par les lancers, au-dessus de la redline.
+	var pos := Vector2(
+		randf_range(_reactor_rect.position.x + 60.0, _reactor_rect.end.x - 60.0),
+		randf_range(_reactor_rect.position.y + _reactor_rect.size.y * 0.35, _redline_y - 80.0))
+	node.position = pos
+	add_child(node)
+	_pickups.append({
+		"node": node,
+		"cfg": cfg,
+		"pos": pos,
+		"ttl": maxf(3.0, float(_get_conf("pickup_lifetime_sec", 8.0))),
+		"phase": randf() * TAU
+	})
+
+## Collecte : une forme joueur EN MOUVEMENT touche l'orbe (scan physique —
+## l'orbe n'est pas un body, le free est sûr).
+func _scan_pickup_collection() -> void:
+	if _pickups.is_empty():
+		return
+	var min_speed_sq: float = pow(maxf(20.0, float(_get_conf("pickup_collect_min_speed", 140.0))), 2.0)
+	var pickup_radius: float = maxf(10.0, float(_get_conf("pickup_radius_px", 18.0)))
+	for i in range(_pickups.size() - 1, -1, -1):
+		var p: Dictionary = _pickups[i]
+		var node_v: Variant = p.get("node", null)
+		if not (node_v is Node2D) or not is_instance_valid(node_v):
+			_pickups.remove_at(i)
+			continue
+		var node_pos: Vector2 = (node_v as Node2D).global_position
+		for entry_v in _shapes:
+			var entry: Dictionary = entry_v as Dictionary
+			if str(entry.get("kind", "normal")) != "normal" or bool(entry.get("merging", false)):
+				continue
+			var body: RigidBody2D = entry.get("body") as RigidBody2D
+			if body.freeze or body.linear_velocity.length_squared() < min_speed_sq:
+				continue
+			if body.global_position.distance_squared_to(node_pos) \
+				<= pow(pickup_radius + float(entry.get("radius", 14.0)), 2.0):
+				(node_v as Node2D).queue_free()
+				_pickups.remove_at(i)
+				_apply_pickup(p.get("cfg", {}) as Dictionary, node_pos)
+				break
+
+func _apply_pickup(cfg: Dictionary, at: Vector2) -> void:
+	var id: String = str(cfg.get("id", ""))
+	match id:
+		"purge":
+			_purge_lowest_shapes(maxi(1, int(cfg.get("purge_count", 3))), true)
+		"perfect_boost":
+			_perfect_boost_left = maxi(_perfect_boost_left, maxi(1, int(cfg.get("launches", 3))))
+			_perfect_window_mult = maxf(1.0, float(cfg.get("window_mult", 2.0)))
+		"double_shot":
+			_double_shot_armed = true
+			_double_shot_fan_deg = maxf(2.0, float(cfg.get("fan_deg", 14.0)))
+		"stasis":
+			_begin_stasis(maxf(0.5, float(cfg.get("duration_sec", 3.0))))
+		"grapple":
+			_grapple_charges += maxi(1, int(cfg.get("charges", 2)))
+	_show_warning(_translate_or(str(cfg.get("label_key", "")), id.to_upper()),
+		Color(str(cfg.get("color", "#FFFFFFFF"))), 1.4)
+	if VFXManager:
+		VFXManager.spawn_impact(at, 22.0, self)
+	_refresh_status_icons()
+
+## Stase [B4] : gèle toute la pile (freeze STATIC = toujours collidable — les
+## lancers pendant la stase rebondissent dessus), réveil global à la fin.
+func _begin_stasis(duration: float) -> void:
+	_stasis_timer = duration
+	for entry_v in _shapes:
+		var body: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+		if is_instance_valid(body):
+			body.freeze = true
+
+func _end_stasis() -> void:
+	for entry_v in _shapes:
+		var body: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+		if is_instance_valid(body):
+			body.freeze = false
+			body.sleeping = false
+
+## Grappin [B5] : tire la forme visée d'un cran vers le BAS (réarrangement).
+func _try_grapple(world: Vector2) -> void:
+	var best: Dictionary = {}
+	var best_dist: float = INF
+	for entry_v in _shapes:
+		var entry: Dictionary = entry_v as Dictionary
+		if bool(entry.get("merging", false)):
+			continue
+		var kind: String = str(entry.get("kind", "normal"))
+		if kind != "normal" and kind != "dark":
+			continue
+		var body: RigidBody2D = entry.get("body") as RigidBody2D
+		var dist: float = world.distance_to(body.global_position)
+		if dist <= float(entry.get("radius", 14.0)) * _click_hit_mult and dist < best_dist:
+			best = entry
+			best_dist = dist
+	if best.is_empty():
+		return
+	_grapple_charges -= 1
+	var target_body: RigidBody2D = best.get("body") as RigidBody2D
+	target_body.freeze = false
+	target_body.sleeping = false
+	target_body.apply_central_impulse(Vector2(0.0, maxf(100.0, float(_get_conf("grapple_impulse", 620.0)))) * target_body.mass)
+	_wake_shapes_near(target_body.global_position, float(best.get("radius", 14.0)) * 4.0)
+	if VFXManager:
+		VFXManager.spawn_impact(target_body.global_position, 18.0, self)
+	_refresh_status_icons()
+
+## Anneau de progression du tap long (grappin) — dessiné pendant PRESSED.
+func _update_hold_ring() -> void:
+	var hold_min: float = maxf(0.1, float(_get_conf("grapple_hold_min_sec", 0.45)))
+	var want: bool = _gesture == Gesture.PRESSED and _grapple_charges > 0 \
+		and _press_max_move <= _tap_max_move \
+		and float(Time.get_ticks_msec() - _press_time_ms) / 1000.0 > 0.15
+	if not want:
+		if _hold_ring and is_instance_valid(_hold_ring):
+			_hold_ring.visible = false
+		return
+	if _hold_ring == null or not is_instance_valid(_hold_ring):
+		_hold_ring = Line2D.new()
+		_hold_ring.width = 4.0
+		_hold_ring.default_color = Color("#B48CFFDD")
+		_hold_ring.material = _add_material
+		_hold_ring.z_as_relative = false
+		_hold_ring.z_index = 14
+		add_child(_hold_ring)
+	var progress: float = clampf((float(Time.get_ticks_msec() - _press_time_ms) / 1000.0) / hold_min, 0.0, 1.0)
+	var pts := PackedVector2Array()
+	var segs: int = maxi(3, int(round(20.0 * progress)))
+	for k in range(segs + 1):
+		var a: float = -PI * 0.5 + TAU * progress * float(k) / float(segs)
+		pts.append(_aim_origin + Vector2(cos(a), sin(a)) * 34.0)
+	_hold_ring.points = pts
+	_hold_ring.visible = true
+
+# =============================================================================
+# DÉCHARGE DU VAISSEAU [B6] — jauge chargée par les fusions, bouton bas-gauche.
+# =============================================================================
+
+func _build_discharge_button() -> void:
+	if not bool(_get_conf("discharge_enabled", true)):
+		return
+	var icon_px: float = maxf(30.0, float(_get_conf("discharge_icon_px", 56.0)))
+	_discharge_pos = Vector2(_reactor_rect.position.x + icon_px * 0.5 + 10.0, _viewport_size.y - icon_px * 0.5 - 12.0)
+	_discharge_root = Node2D.new()
+	_discharge_root.name = "DischargeButton"
+	_discharge_root.z_as_relative = false
+	_discharge_root.z_index = 58
+	_discharge_root.position = _discharge_pos
+	var tex: Texture2D = _texture_from_path(str(_get_conf("discharge_icon_asset", "")))
+	if tex != null and tex.get_size().x > 0.0:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.scale = Vector2.ONE * (icon_px / maxf(tex.get_size().x, tex.get_size().y))
+		_discharge_root.add_child(sprite)
+	else:
+		var poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for k in range(18):
+			var a: float = TAU * float(k) / 18.0
+			pts.append(Vector2(cos(a), sin(a)) * icon_px * 0.5)
+		poly.polygon = pts
+		poly.color = Color(0.1, 0.14, 0.22, 0.9)
+		_discharge_root.add_child(poly)
+		var bolt := Label.new()
+		bolt.text = "⚡"
+		bolt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		bolt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		bolt.add_theme_font_size_override("font_size", int(icon_px * 0.55))
+		bolt.size = Vector2(icon_px, icon_px)
+		bolt.position = -Vector2(icon_px, icon_px) * 0.5
+		bolt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_discharge_root.add_child(bolt)
+	# Remplissage vertical (0 -> 1) par-dessus l'icône, semi-transparent.
+	_discharge_fill = ColorRect.new()
+	_discharge_fill.color = Color(0.5, 0.9, 1.0, 0.35)
+	_discharge_fill.size = Vector2(icon_px, 0.0)
+	_discharge_fill.position = Vector2(-icon_px * 0.5, icon_px * 0.5)
+	_discharge_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_discharge_root.add_child(_discharge_fill)
+	# Halo « prêt » pulsant.
+	var halo := Line2D.new()
+	halo.closed = true
+	halo.width = 4.0
+	halo.default_color = Color("#66E0FFCC")
+	halo.material = _add_material
+	var halo_pts := PackedVector2Array()
+	for k in range(20):
+		var a2: float = TAU * float(k) / 20.0
+		halo_pts.append(Vector2(cos(a2), sin(a2)) * (icon_px * 0.5 + 5.0))
+	halo.points = halo_pts
+	halo.visible = false
+	_discharge_root.add_child(halo)
+	_discharge_halo = halo
+	add_child(_discharge_root)
+
+func _gain_discharge(merge_level: int) -> void:
+	if _discharge_root == null:
+		return
+	var gain: float = maxf(0.0, float(_get_conf("discharge_gain_per_merge", 0.05))) \
+		+ maxf(0.0, float(_get_conf("discharge_gain_per_level_bonus", 0.02))) * maxf(0.0, float(merge_level - 2))
+	var before: float = _discharge_value
+	_discharge_value = clampf(_discharge_value + gain, 0.0, 1.0)
+	if before < 1.0 and _discharge_value >= 1.0 and not _discharge_ready_announced:
+		_discharge_ready_announced = true
+		_show_warning(_translate_or("suika_discharge_ready", "DISCHARGE READY!"), Color("#66E0FF"), 1.6)
+
+func _update_discharge_button() -> void:
+	if _discharge_root == null or not is_instance_valid(_discharge_root):
+		return
+	var icon_px: float = maxf(30.0, float(_get_conf("discharge_icon_px", 56.0)))
+	if _discharge_fill and is_instance_valid(_discharge_fill):
+		var h: float = icon_px * _discharge_value
+		_discharge_fill.size = Vector2(icon_px, h)
+		_discharge_fill.position = Vector2(-icon_px * 0.5, icon_px * 0.5 - h)
+	if _discharge_halo and is_instance_valid(_discharge_halo):
+		_discharge_halo.visible = _discharge_value >= 1.0
+		if _discharge_halo.visible:
+			_discharge_halo.modulate.a = 0.55 + 0.45 * sin(_elapsed * TAU * 1.4)
+
+## Tap sur le bouton (jauge pleine) : tir spécial à dégâts BRUTS (sans
+## toughness — récompense fixe, cf. _readme du bloc suika_up).
+func _discharge_hit(world: Vector2) -> bool:
+	if _discharge_root == null or not is_instance_valid(_discharge_root) or _discharge_value < 1.0:
+		return false
+	var icon_px: float = maxf(30.0, float(_get_conf("discharge_icon_px", 56.0)))
+	if world.distance_to(_discharge_pos) > icon_px * 0.7:
+		return false
+	_discharge_value = 0.0
+	_discharge_ready_announced = false
+	_show_warning(_translate_or("suika_discharge_fired", "DISCHARGE!"), Color("#66E0FF"), 1.2)
+	_fire_ship_shot(_max_level, clampf(float(_get_conf("discharge_damage_percent", 0.10)), 0.0, 1.0))
+	return true
+
+# =============================================================================
+# ICÔNES DE STATUT bas-droite (au-dessus du NEXT panel) : effets de pickups.
+# =============================================================================
+
+func _refresh_status_icons() -> void:
+	var active: Dictionary = {} # id -> badge
+	if _perfect_boost_left > 0:
+		active["perfect_boost"] = "×%d" % _perfect_boost_left
+	if _double_shot_armed:
+		active["double_shot"] = "1"
+	if _grapple_charges > 0:
+		active["grapple"] = "×%d" % _grapple_charges
+	if _stasis_timer > 0.0:
+		active["stasis"] = str(int(ceil(_stasis_timer)))
+	for id in _status_icons.keys().duplicate():
+		if not active.has(id):
+			var icon: Dictionary = _status_icons[id]
+			var root_v: Variant = icon.get("root", null)
+			if root_v is Node2D and is_instance_valid(root_v):
+				(root_v as Node2D).queue_free()
+			_status_icons.erase(id)
+	var slot: int = 0
+	for id in active:
+		if not _status_icons.has(id):
+			_status_icons[id] = _build_status_icon(str(id))
+		var icon2: Dictionary = _status_icons[id]
+		var root2_v: Variant = icon2.get("root", null)
+		if root2_v is Node2D and is_instance_valid(root2_v):
+			(root2_v as Node2D).position = Vector2(_viewport_size.x - 54.0, _viewport_size.y - 108.0 - 62.0 * float(slot))
+		var badge_v: Variant = icon2.get("badge", null)
+		if badge_v is Label and is_instance_valid(badge_v):
+			(badge_v as Label).text = str(active[id])
+		slot += 1
+
+func _build_status_icon(id: String) -> Dictionary:
+	var cfg: Dictionary = {}
+	var types_v: Variant = _get_conf("pickup_types", [])
+	if types_v is Array:
+		for t_v in (types_v as Array):
+			if t_v is Dictionary and str((t_v as Dictionary).get("id", "")) == id:
+				cfg = t_v as Dictionary
+				break
+	var radius: float = 22.0
+	var color := Color(str(cfg.get("color", "#FFFFFFFF")))
+	var root := Node2D.new()
+	root.z_as_relative = false
+	root.z_index = 61
+	var tex: Texture2D = _texture_from_path(str(cfg.get("asset", "")))
+	if tex != null and tex.get_size().x > 0.0:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.scale = Vector2.ONE * (radius * 2.0 / maxf(tex.get_size().x, tex.get_size().y))
+		root.add_child(sprite)
+	else:
+		var poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for k in range(16):
+			var a: float = TAU * float(k) / 16.0
+			pts.append(Vector2(cos(a), sin(a)) * radius)
+		poly.polygon = pts
+		poly.color = Color(color.r, color.g, color.b, 0.85)
+		root.add_child(poly)
+		var glyph := Label.new()
+		glyph.text = id.substr(0, 1).to_upper()
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		glyph.add_theme_font_size_override("font_size", int(radius))
+		glyph.add_theme_color_override("font_color", Color(0.08, 0.08, 0.14))
+		glyph.size = Vector2(radius, radius) * 2.0
+		glyph.position = -Vector2(radius, radius)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(glyph)
+	var badge := Label.new()
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.add_theme_font_size_override("font_size", 16)
+	badge.add_theme_color_override("font_color", Color.WHITE)
+	badge.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	badge.add_theme_constant_override("outline_size", 4)
+	badge.size = Vector2(radius * 2.0, 18.0)
+	badge.position = Vector2(-radius, radius + 1.0)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(badge)
+	add_child(root)
+	return {"root": root, "badge": badge}
+
+# =============================================================================
+# ÉVÉNEMENTS RÉACTEUR [E15/17/18] + BOSS SUPPORT [E20] + MAGNÉTISME [V12]
+# =============================================================================
+
+func _any_reactor_event_active() -> bool:
+	return _rage_active or _rage_bombs_left > 0 or _gravity_outage_telegraph > 0.0 \
+		or _gravity_outage_timer > 0.0 or _tilt_timer > 0.0
+
+func _tick_reactor_events(delta: float) -> void:
+	# Rage [E15] : télégraphe puis burst échelonné (un contre annule tout).
+	if _rage_active:
+		_rage_telegraph -= delta
+		if _boss_shot_label and is_instance_valid(_boss_shot_label):
+			_boss_shot_label.text = "×%d %d" % [maxi(1, int(_rage_cfg_value("bomb_count", 3.0))), int(ceil(maxf(0.0, _rage_telegraph)))]
+			_boss_shot_label.visible = true
+			_boss_shot_label.modulate = Color("#FF5555")
+		if _rage_telegraph <= 0.0:
+			_rage_active = false
+			_hide_boss_shot_label()
+			if _boss_shot_label and is_instance_valid(_boss_shot_label):
+				_boss_shot_label.modulate = Color.WHITE
+			_rage_bombs_left = maxi(1, int(_rage_cfg_value("bomb_count", 3.0)))
+			_rage_stagger_timer = 0.0
+	elif _rage_bombs_left > 0:
+		_rage_stagger_timer -= delta
+		if _rage_stagger_timer <= 0.0:
+			_rage_stagger_timer = maxf(0.1, _rage_cfg_value("bomb_stagger_sec", 0.4))
+			_rage_bombs_left -= 1
+			_fire_boss_bomb()
+	# Panne de gravité [E17].
+	if _gravity_outage_telegraph > 0.0:
+		_gravity_outage_telegraph -= delta
+		if _gravity_outage_telegraph <= 0.0:
+			_gravity_mult = 0.0
+			_gravity_outage_timer = maxf(0.5, _event_cfg_value("gravity_outage", "duration_sec", 2.0))
+			for entry_v in _shapes:
+				var body: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+				if is_instance_valid(body) and not body.freeze:
+					body.gravity_scale = 0.0
+					body.sleeping = false
+	elif _gravity_outage_timer > 0.0:
+		_gravity_outage_timer -= delta
+		if _gravity_outage_timer <= 0.0:
+			_gravity_mult = 1.0
+			for entry_v in _shapes:
+				var body2: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+				if is_instance_valid(body2):
+					body2.gravity_scale = -absf(_gravity_scale)
+					body2.sleeping = false
+	# Réacteur penché [E18] : constant_force posée une fois, retirée à la fin.
+	if _tilt_timer > 0.0:
+		_tilt_timer -= delta
+		if _tilt_timer <= 0.0:
+			for entry_v in _shapes:
+				var body3: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+				if is_instance_valid(body3):
+					body3.constant_force = Vector2.ZERO
+					body3.sleeping = false
+	# Scheduler : un seul événement actif, jamais pendant un télégraphe en cours.
+	_event_timer -= delta
+	if _event_timer > 0.0:
+		return
+	_event_timer = randf_range(
+		maxf(6.0, float(_get_conf("reactor_event_interval_sec_min", 14.0))),
+		maxf(6.0, float(_get_conf("reactor_event_interval_sec_max", 22.0))))
+	if not bool(_get_conf("reactor_events_enabled", true)) or _any_reactor_event_active() \
+		or _shot_telegraph_active or _beam_active:
+		return
+	var events_v: Variant = _get_conf("reactor_events", [])
+	var events: Array = (events_v as Array) if events_v is Array else []
+	var total: float = 0.0
+	for e_v in events:
+		if e_v is Dictionary and str((e_v as Dictionary).get("id", "")) != _last_event_id:
+			total += maxf(0.0, float((e_v as Dictionary).get("weight", 0.0)))
+	if total <= 0.0:
+		_last_event_id = ""
+		return
+	var roll: float = randf() * total
+	for e_v in events:
+		if not (e_v is Dictionary) or str((e_v as Dictionary).get("id", "")) == _last_event_id:
+			continue
+		roll -= maxf(0.0, float((e_v as Dictionary).get("weight", 0.0)))
+		if roll <= 0.0:
+			_start_reactor_event(e_v as Dictionary)
+			return
+
+func _event_cfg_value(event_id: String, key: String, fallback: float) -> float:
+	var events_v: Variant = _get_conf("reactor_events", [])
+	if events_v is Array:
+		for e_v in (events_v as Array):
+			if e_v is Dictionary and str((e_v as Dictionary).get("id", "")) == event_id:
+				return float((e_v as Dictionary).get(key, fallback))
+	return fallback
+
+func _rage_cfg_value(key: String, fallback: float) -> float:
+	return _event_cfg_value("boss_rage", key, fallback)
+
+func _start_reactor_event(cfg: Dictionary) -> void:
+	var id: String = str(cfg.get("id", ""))
+	_last_event_id = id
+	match id:
+		"boss_rage":
+			_toast("suika_event_rage", "BOSS RAGE!", "#FF5555")
+			_rage_active = true
+			_rage_telegraph = maxf(1.0, float(cfg.get("telegraph_sec", 4.0)))
+			var high_cap: int = _shot_counter_max_level if _elapsed >= _shot_counter_high_after_sec \
+				else maxi(_shot_counter_min_level, _shot_counter_max_level - 1)
+			_shot_required_level = randi_range(_shot_counter_min_level, high_cap)
+		"gravity_outage":
+			_toast("suika_event_gravity_outage", "ZERO GRAVITY!", "#9BE8FF")
+			_gravity_outage_telegraph = maxf(0.3, float(cfg.get("telegraph_sec", 1.5)))
+		"tilted_reactor":
+			_toast("suika_event_tilt", "TILTED REACTOR!", "#FF8844")
+			_tilt_dir = 1.0 if randf() < 0.5 else -1.0
+			_tilt_timer = maxf(2.0, float(cfg.get("duration_sec", 8.0)))
+			var force: float = _current_tilt_force()
+			for entry_v in _shapes:
+				var body: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+				if is_instance_valid(body) and not body.freeze:
+					body.constant_force = Vector2(_tilt_dir * force, 0.0) * body.mass
+					body.sleeping = false
+
+func _current_tilt_force() -> float:
+	return maxf(0.0, _event_cfg_value("tilted_reactor", "tilt_force", 260.0))
+
+## Bombes magnétiques [V12] : les bombes ARMÉES (countdown) attirent les formes
+## voisines — appelé en _physics_process (forces côté physique), borné aux
+## bombes armées (≤ 1-2 simultanées).
+func _apply_bomb_magnets() -> void:
+	if not bool(_get_conf("bomb_magnet_enabled", true)):
+		return
+	var radius: float = maxf(20.0, float(_get_conf("bomb_magnet_radius_px", 150.0)))
+	var strength: float = maxf(0.0, float(_get_conf("bomb_magnet_strength", 240.0)))
+	if strength <= 0.0:
+		return
+	for entry_v in _shapes:
+		var entry: Dictionary = entry_v as Dictionary
+		if float(entry.get("bomb_timer", -1.0)) < 0.0:
+			continue # seules les bombes ARMÉES sont magnétiques
+		var bomb_body: RigidBody2D = entry.get("body") as RigidBody2D
+		if not is_instance_valid(bomb_body):
+			continue
+		var center: Vector2 = bomb_body.global_position
+		for other_v in _shapes:
+			var other: Dictionary = other_v as Dictionary
+			if other == entry or str(other.get("kind", "normal")) == "bomb":
+				continue
+			var other_body: RigidBody2D = other.get("body") as RigidBody2D
+			if not is_instance_valid(other_body) or other_body.freeze:
+				continue
+			var d: Vector2 = center - other_body.global_position
+			var dist: float = d.length()
+			if dist > radius or dist < 2.0:
+				continue
+			other_body.sleeping = false
+			other_body.apply_central_force(d / dist * strength * (1.0 - dist / radius) * other_body.mass)
+
+## Boss support [E20] : à mi-round (Libre hauts levels), un second boss mineur
+## arrive et largue ses propres bombes SANS télégraphe. Décoratif (pas de HP).
+func _tick_support_boss(delta: float) -> void:
+	if not _support_spawned:
+		if not bool(_get_conf("support_boss_enabled", true)):
+			return
+		var free_progress: float = clampf(float(_config.get("_free_level_progress", 0.0)), 0.0, 1.0)
+		if free_progress < clampf(float(_get_conf("support_boss_min_free_progress", 0.45)), 0.0, 1.0):
+			return
+		if _elapsed < _duration * clampf(float(_get_conf("support_boss_at_round_ratio", 0.5)), 0.05, 0.95):
+			return
+		_spawn_support_boss()
+		return
+	if _support_boss_node == null or not is_instance_valid(_support_boss_node):
+		return
+	_support_shot_timer -= delta
+	if _support_shot_timer <= 0.0:
+		_support_shot_timer = maxf(3.0, float(_get_conf("support_boss_shot_interval_sec", 9.0)))
+		if _shapes.size() < _max_shapes_active:
+			var radius: float = maxf(6.0, float(_bomb_level_cfg(1).get("radius_px", 16.0)))
+			var x: float = clampf(_support_boss_node.position.x + randf_range(-60.0, 60.0),
+				_reactor_rect.position.x + radius, _reactor_rect.end.x - radius)
+			var bomb: Dictionary = _create_shape_body(1, Vector2(x, _reactor_rect.position.y + radius + 4.0), "bomb", false)
+			(bomb.get("body") as RigidBody2D).linear_velocity = Vector2(randf_range(-40.0, 40.0), randf_range(200.0, 300.0))
+			_shapes.append(bomb)
+			if VFXManager:
+				VFXManager.spawn_impact(_support_boss_node.position + Vector2(0.0, 40.0), 10.0, self)
+
+func _spawn_support_boss() -> void:
+	_support_spawned = true
+	_toast("suika_event_support", "ENEMY REINFORCEMENT!", "#FF8844")
+	_support_boss_node = Node2D.new()
+	_support_boss_node.name = "SuikaSupportBoss"
+	_support_boss_node.z_as_relative = false
+	_support_boss_node.z_index = 9
+	var fit: float = maxf(40.0, float(_get_conf("support_boss_fit_px", 120.0)))
+	var frames: SpriteFrames = _frames_from_path(str(_get_conf("support_boss_asset_anim", "")))
+	if frames != null:
+		var sprite := AnimatedSprite2D.new()
+		sprite.sprite_frames = frames
+		if VFXManager:
+			VFXManager.play_sprite_frames(sprite, frames, &"default", true, 0.0)
+		var names: PackedStringArray = frames.get_animation_names()
+		if names.size() > 0 and frames.get_frame_count(names[0]) > 0:
+			var first: Texture2D = frames.get_frame_texture(names[0], 0)
+			if first != null and first.get_size().x > 0.0:
+				sprite.scale = Vector2.ONE * minf(fit / first.get_size().x, fit / first.get_size().y)
+		_support_boss_node.add_child(sprite)
+	else:
+		var poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for i in range(6):
+			var a: float = TAU * float(i) / 6.0 - PI * 0.5
+			pts.append(Vector2(cos(a), sin(a)) * fit * 0.5)
+		poly.polygon = pts
+		poly.color = Color("#9C4A4A")
+		_support_boss_node.add_child(poly)
+	add_child(_support_boss_node)
+	var side: float = _viewport_size.x * clampf(float(_get_conf("support_boss_side_offset_x_ratio", 0.28)), 0.1, 0.45)
+	var target := Vector2(_boss_center.x + side, _boss_center.y + 20.0)
+	_support_boss_node.position = Vector2(target.x, -fit)
+	var tween: Tween = create_tween()
+	tween.tween_property(_support_boss_node, "position", target, 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_support_shot_timer = maxf(3.0, float(_get_conf("support_boss_shot_interval_sec", 9.0)))
+
+func _dismiss_support_boss() -> void:
+	if _support_boss_node and is_instance_valid(_support_boss_node):
+		var tween: Tween = create_tween()
+		tween.tween_property(_support_boss_node, "position:y", -160.0, 0.6) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tween.tween_callback(_support_boss_node.queue_free)
+	_support_boss_node = null
+
+## Fusion massive [E19] : onde qui compacte la pile vers le PLAFOND + cristaux.
+func _trigger_massive_merge(center: Vector2) -> void:
+	var impulse: float = maxf(0.0, float(_get_conf("massive_merge_impulse", 320.0)))
+	for entry_v in _shapes:
+		var body: RigidBody2D = (entry_v as Dictionary).get("body") as RigidBody2D
+		if not is_instance_valid(body) or body.freeze:
+			continue
+		body.sleeping = false
+		var falloff: float = clampf(1.0 - body.global_position.distance_to(center) / (_reactor_rect.size.y * 0.9), 0.2, 1.0)
+		body.apply_central_impulse(Vector2(0.0, -impulse * falloff) * body.mass)
+	_toast("suika_massive_merge", "MASSIVE MERGE!", "#FFD866")
+	if _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystal_at"):
+		for _i in range(maxi(1, int(_get_conf("massive_merge_crystals", 3)))):
+			_game.call("spawn_reward_crystal_at", center, {"force_magnet_below_y": _ship_lock_pos.y - 60.0})
+	if VFXManager and bool(ProfileManager.get_setting("screenshake_enabled", true)):
+		VFXManager.screen_shake(7, 0.3)
+
+# =============================================================================
 # FINS (mort / fuite du boss) + RÉCOMPENSES
 # =============================================================================
 
@@ -1676,6 +2672,7 @@ func _start_boss_death() -> void:
 	_shot_telegraph_active = false
 	_hide_boss_shot_label()
 	_hide_aim_visuals()
+	_dismiss_support_boss()
 	_clear_reactor() # tout est vidé, bombes du boss comprises
 	_grant_kill_rewards()
 	var death_cfg_v: Variant = _get_conf("boss_death_explosion", {})
@@ -1704,6 +2701,7 @@ func _start_boss_escape() -> void:
 	_shot_telegraph_active = false
 	_hide_boss_shot_label()
 	_hide_aim_visuals()
+	_dismiss_support_boss()
 	if _boss_node and is_instance_valid(_boss_node):
 		var tween: Tween = create_tween()
 		tween.tween_property(_boss_node, "position:y", -_boss_visual_size.y, _boss_escape_anim_sec) \
@@ -1716,9 +2714,7 @@ func _grant_kill_rewards() -> void:
 	if _game == null or not is_instance_valid(_game):
 		return
 	var center: Vector2 = _boss_node.position if (_boss_node and is_instance_valid(_boss_node)) else _boss_center
-	var points: int = int(round(float(_kill_score) * _reward_multiplier))
-	if points > 0 and _game.has_method("add_wave_bonus_score"):
-		_game.call("add_wave_bonus_score", points, center)
+	_award_score(int(round(float(_kill_score) * _reward_multiplier)), center)
 	if _game.has_method("spawn_reward_crystal_at"):
 		for _i in range(_kill_crystals):
 			_game.call("spawn_reward_crystal_at", center, {"force_magnet_below_y": _ship_lock_pos.y - 60.0})
@@ -1879,6 +2875,13 @@ func _build_power_gauge() -> void:
 	_gauge_root.visible = false
 	add_child(_gauge_root)
 
+## Ratio effectif de la fenêtre "perfect" (×window_mult pendant le boost [B2]).
+func _effective_perfect_ratio() -> float:
+	var ratio: float = clampf(float(_gauge_cfg.get("perfect_window_ratio", 0.12)), 0.0, 1.0)
+	if _perfect_boost_left > 0:
+		ratio = clampf(ratio * maxf(1.0, _perfect_window_mult), 0.0, 1.0)
+	return ratio
+
 func _update_power_gauge() -> void:
 	if _gauge_root == null or not is_instance_valid(_gauge_root):
 		return
@@ -1890,6 +2893,9 @@ func _update_power_gauge() -> void:
 	var height: float = _gauge_root.size.y - 6.0
 	_gauge_marker.position.y = 3.0 + (1.0 - t) * (height - 3.0)
 	_gauge_fill.color = Color(0.4, 0.9, 0.4, 0.5).lerp(Color(1.0, 0.3, 0.2, 0.55), t)
+	# Zone perfect recalculée chaque frame (le boost [B2] l'élargit ×2).
+	if _gauge_perfect and is_instance_valid(_gauge_perfect):
+		_gauge_perfect.size.y = height * _effective_perfect_ratio()
 
 func _hide_aim_visuals() -> void:
 	_hide_trajectory()
@@ -2101,9 +3107,22 @@ func _process(delta: float) -> void:
 				var launch: Dictionary = _evaluate_launch(_aim_current)
 				_update_trajectory(launch)
 				_update_power_gauge()
-			_boss_shot_update(delta)
-			_update_bombs(delta)
-			_update_boss_patterns(delta)
+			# Stase [B4] : le boss et les bombes sont en pause pendant le gel.
+			if _stasis_timer > 0.0:
+				_stasis_timer -= delta
+				_refresh_status_icons()
+				if _stasis_timer <= 0.0:
+					_end_stasis()
+			else:
+				_boss_shot_update(delta)
+				_update_bombs(delta)
+				_update_boss_patterns(delta)
+			_massive_merge_cooldown = maxf(0.0, _massive_merge_cooldown - delta)
+			_tick_pickups(delta)
+			_tick_reactor_events(delta)
+			_tick_support_boss(delta)
+			_update_discharge_button()
+			_update_hold_ring()
 			if _elapsed >= _duration:
 				_start_boss_escape()
 		State.BOSS_DEATH:
