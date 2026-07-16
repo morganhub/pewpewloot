@@ -95,7 +95,7 @@
 		},
 		{
 		  "type": "snake",
-		  "duration": 50,
+		  "duration": 60,
 		  "boss_toughness_mult": 1.65,
 		  "base_speed_px_sec": 260,
 		  "item_spawn_interval_sec": 1.7,
@@ -130,7 +130,7 @@
 		},
 		{
 		  "type": "pong",
-		  "duration": 30,
+		  "duration": 60,
 		  "ball_speed_px_sec": 600,
 		  "enemy_paddle_speed_px_sec": 510,
 		  "enemy_reaction_interval_sec": 0.16,
@@ -201,7 +201,7 @@
 		},
 		{
 		  "type": "snake",
-		  "duration": 50,
+		  "duration": 60,
 		  "boss_toughness_mult": 1.65,
 		  "base_speed_px_sec": 260,
 		  "item_spawn_interval_sec": 1.7,
@@ -226,16 +226,16 @@
 		  "enemy_modifier_id": ""
 		},
 		{
-		  "type": "absorb",
-		  "duration": 30,
-		  "spawn_interval_sec": 1.3,
-		  "descent_speed_px_sec": 140,
-		  "shuffle_window": 4,
-		  "final_mass_margin": 0.8
+		  "type": "gravity_hole",
+		  "duration": 60,
+		  "boss_chunk_chance": 0.12,
+		  "max_active_props": 24,
+		  "drift_speed_max_px_sec": 90,
+		  "reward_multiplier": 2.0
 		},
 		{
 		  "type": "lane_runner",
-		  "duration": 38,
+		  "duration": 60,
 		  "wall_speed_px_sec_start": 576,
 		  "wall_speed_px_sec_end": 912,
 		  "row_interval_sec_start": 1.08,
@@ -245,7 +245,7 @@
 		},
 		{
 		  "type": "slice_rush",
-		  "duration": 32,
+		  "duration": 60,
 		  "burst_size_min": 3,
 		  "burst_size_max": 5,
 		  "bomb_chance": 0.2,
@@ -256,7 +256,7 @@
 		},
 		{
 		  "type": "match3",
-		  "duration": 50,
+		  "duration": 60,
 		  "tile_type_count": 6,
 		  "special_chance": 0.13,
 		  "cascade_score_multiplier": 0.6,
@@ -272,9 +272,7 @@
 			"wreck_medium": 38,
 			"titan_large": 22
 		  },
-		  "oversize_contact_damage_percent": 0.15,
-		  "oversize_mass_loss_flat": 10,
-		  "final_core_efficiency_ratio": 0.65,
+		  "oversize_drain_mass_percent_per_sec": 8.0,
 		  "reward_multiplier": 2.0
 		},
 		{
@@ -339,7 +337,7 @@
 		},
 		{
 		  "type": "snake",
-		  "duration": 50,
+		  "duration": 60,
 		  "boss_toughness_mult": 1.65,
 		  "base_speed_px_sec": 260,
 		  "item_spawn_interval_sec": 1.7,
@@ -450,7 +448,7 @@
 		},
 		{
 		  "type": "snake",
-		  "duration": 50,
+		  "duration": 60,
 		  "boss_toughness_mult": 1.65,
 		  "base_speed_px_sec": 260,
 		  "item_spawn_interval_sec": 1.7,
@@ -487,7 +485,7 @@
 		},
 		{
 		  "type": "breakout",
-		  "duration": 45,
+		  "duration": 60,
 		  "rows": 6,
 		  "cols": 7,
 		  "row_hp": [
@@ -573,7 +571,7 @@
 		},
 		{
 		  "type": "snake",
-		  "duration": 50,
+		  "duration": 60,
 		  "boss_toughness_mult": 1.65,
 		  "base_speed_px_sec": 260,
 		  "item_spawn_interval_sec": 1.7,
@@ -606,7 +604,7 @@
 		},
 		{
 		  "type": "pong",
-		  "duration": 30,
+		  "duration": 60,
 		  "ball_speed_px_sec": 600,
 		  "enemy_paddle_speed_px_sec": 510,
 		  "enemy_reaction_interval_sec": 0.16,
@@ -704,7 +702,7 @@
 		},
 		{
 		  "type": "snake",
-		  "duration": 50,
+		  "duration": 60,
 		  "boss_toughness_mult": 1.65,
 		  "base_speed_px_sec": 260,
 		  "item_spawn_interval_sec": 1.7,

@@ -97,7 +97,7 @@
         },
         {
           "type": "snake",
-          "duration": 45,
+          "duration": 60,
           "boss_toughness_mult": 1.35,
           "base_speed_px_sec": 240,
           "item_spawn_interval_sec": 1.6,
@@ -148,7 +148,7 @@
         },
         {
           "type": "snake",
-          "duration": 45,
+          "duration": 60,
           "boss_toughness_mult": 1.35,
           "base_speed_px_sec": 240,
           "item_spawn_interval_sec": 1.6,
@@ -181,7 +181,7 @@
         },
         {
           "type": "pong",
-          "duration": 30,
+          "duration": 60,
           "ball_speed_px_sec": 530,
           "enemy_paddle_speed_px_sec": 435,
           "enemy_reaction_interval_sec": 0.24,
@@ -260,7 +260,7 @@
         },
         {
           "type": "snake",
-          "duration": 45,
+          "duration": 60,
           "boss_toughness_mult": 1.35,
           "base_speed_px_sec": 240,
           "item_spawn_interval_sec": 1.6,
@@ -300,7 +300,7 @@
         },
         {
           "type": "breakout",
-          "duration": 45,
+          "duration": 60,
           "rows": 5,
           "cols": 6,
           "row_hp": [
@@ -399,7 +399,7 @@
         },
         {
           "type": "snake",
-          "duration": 45,
+          "duration": 60,
           "boss_toughness_mult": 1.35,
           "base_speed_px_sec": 240,
           "item_spawn_interval_sec": 1.6,
@@ -430,12 +430,11 @@
           "enemy_modifier_id": ""
         },
         {
-          "type": "absorb",
-          "duration": 30,
-          "spawn_interval_sec": 1.4,
-          "descent_speed_px_sec": 125,
-          "shuffle_window": 3,
-          "final_mass_margin": 0.75
+          "type": "gravity_hole",
+          "duration": 60,
+          "boss_chunk_chance": 0.1,
+          "oversize_drain_mass_percent_per_sec": 7.0,
+          "reward_multiplier": 1.5
         },
         {
           "type": "obstacle",
@@ -504,7 +503,7 @@
         },
         {
           "type": "snake",
-          "duration": 45,
+          "duration": 60,
           "boss_toughness_mult": 1.35,
           "base_speed_px_sec": 240,
           "item_spawn_interval_sec": 1.6,
@@ -563,7 +562,7 @@
         },
         {
           "type": "pong",
-          "duration": 30,
+          "duration": 60,
           "ball_speed_px_sec": 530,
           "enemy_paddle_speed_px_sec": 435,
           "enemy_reaction_interval_sec": 0.24,
@@ -714,7 +713,7 @@
         },
         {
           "type": "snake",
-          "duration": 45,
+          "duration": 60,
           "boss_toughness_mult": 1.35,
           "base_speed_px_sec": 240,
           "item_spawn_interval_sec": 1.6,

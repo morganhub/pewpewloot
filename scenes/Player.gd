@@ -99,14 +99,6 @@ var _climb_y: float = 0.0
 # l'autre — activé par la vague via begin_climb cfg (wrap_horizontal).
 var _climb_wrap_x: bool = false
 
-# Absorb wave state: the ship carries a mass shown on the big label; its size
-# follows the mass (sqrt curve, capped).
-var _absorb_active: bool = false
-var _absorb_start_mass: float = 10.0
-var _absorb_scale_base: float = 1.0
-var _absorb_scale_min: float = 0.8
-var _absorb_scale_max: float = 2.4
-
 # Lane runner wave state: X snaps to a fixed set of lanes (Subway Surfers-like).
 # One touch/click gesture = ONE lane shift max: the first horizontal move past
 # the swipe threshold shifts, then the gesture is consumed until release.
@@ -1144,44 +1136,6 @@ func is_climb_active() -> bool:
 	return _climb_active
 
 # =============================================================================
-# ABSORB WAVE
-# =============================================================================
-
-## Enters absorb mode: the AbsorbManager owns the mass value and pushes it
-## through set_absorb_mass(); the ship grows with the mass (reuses the big
-## gate-runner label and _apply_ship_scale). Movement stays fully free.
-func begin_absorb(cfg: Dictionary) -> void:
-	_absorb_active = true
-	_absorb_start_mass = maxf(1.0, float(cfg.get("start_mass", 10.0)))
-	_absorb_scale_base = maxf(0.1, float(cfg.get("ship_scale_base", 1.0)))
-	_absorb_scale_min = maxf(0.05, float(cfg.get("ship_scale_min", 0.8)))
-	_absorb_scale_max = maxf(_absorb_scale_min, float(cfg.get("ship_scale_max", 2.4)))
-	_ensure_big_hp_label()
-	if _big_hp_label and is_instance_valid(_big_hp_label):
-		_big_hp_label.visible = true
-	set_absorb_mass(_absorb_start_mass)
-
-func set_absorb_mass(mass: float) -> void:
-	if not _absorb_active:
-		return
-	if _big_hp_label and is_instance_valid(_big_hp_label):
-		_big_hp_label.text = str(int(round(mass)))
-	# Sqrt growth: the ship gets visibly bigger without ever exploding.
-	var mult: float = clampf(_absorb_scale_base * sqrt(maxf(1.0, mass) / _absorb_start_mass), _absorb_scale_min, _absorb_scale_max)
-	_apply_ship_scale(mult)
-
-func end_absorb() -> void:
-	if not _absorb_active:
-		return
-	_absorb_active = false
-	_apply_ship_scale(1.0)
-	if _big_hp_label and is_instance_valid(_big_hp_label):
-		_big_hp_label.visible = false
-
-func is_absorb_active() -> bool:
-	return _absorb_active
-
-# =============================================================================
 # LANE RUNNER WAVE
 # =============================================================================
 
@@ -1517,8 +1471,6 @@ func _remove_match3_glow() -> void:
 ## absorption radius stays owned by the manager (set_gravity_hole_radius).
 func begin_gravity_hole(cfg: Dictionary) -> void:
 	# Defensive: no other special mode may leak into this one.
-	if _absorb_active:
-		end_absorb()
 	if _slice_rush_active:
 		end_slice_rush()
 	if _match3_active:
@@ -1676,8 +1628,6 @@ var _sd_deadzone_px: float = 4.0
 
 func begin_star_drift(cfg: Dictionary) -> void:
 	# Defensive: no other special mode may leak into this one.
-	if _absorb_active:
-		end_absorb()
 	if _slice_rush_active:
 		end_slice_rush()
 	if _match3_active:
@@ -1717,8 +1667,6 @@ var _survivor_active: bool = false
 func begin_survivor(cfg: Dictionary) -> void:
 	if not _survivor_active:
 		# Defensive: no other special mode may leak into this one.
-		if _absorb_active:
-			end_absorb()
 		if _slice_rush_active:
 			end_slice_rush()
 		if _match3_active:
@@ -2153,10 +2101,10 @@ func _get_follow_finger_config() -> Dictionary:
 ## Hauteur (en pixels) de la zone interdite en haut de l'ecran. Le joueur ne peut pas
 ## y entrer (ni via stick virtuel, ni via follow finger). Pilote par game.json -> mobile_controls.player_top_safe_zone_ratio.
 func _get_player_top_limit_y(viewport_height: float) -> float:
-	# Gravity hole / absorb (arène statique) : free movement in ALL directions —
+	# Gravity hole : free movement in ALL directions —
 	# only the hard screen margin remains (same 20 px used for the X/bottom
 	# clamps).
-	if _gravity_hole_active or _absorb_active:
+	if _gravity_hole_active:
 		return 20.0
 	var ratio: float = 0.25
 	if DataManager:

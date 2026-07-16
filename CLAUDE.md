@@ -1,6 +1,6 @@
 # PewPewLoot — Guide projet (CLAUDE.md)
 
-Shoot'em up vertical 2D solo avec boucle ARPG/loot. Cible : Android portrait, Godot 4.6, 60 FPS. Sa signature : **certaines vagues changent à 100 % la façon de jouer** (mini-jeux : lane runner, pong, casse-briques, absorption…), sur un fil conducteur commun (vaisseau, HP/shield, cristaux/score).
+Shoot'em up vertical 2D solo avec boucle ARPG/loot. Cible : Android portrait, Godot 4.6, 60 FPS. Sa signature : **certaines vagues changent à 100 % la façon de jouer** (mini-jeux : lane runner, pong, casse-briques, champ gravitationnel…), sur un fil conducteur commun (vaisseau, HP/shield, cristaux/score).
 
 ## Documentation : dossier `markdown/`
 

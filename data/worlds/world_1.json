@@ -248,7 +248,7 @@
 				},
 				{
 					"type": "pong",
-					"duration": 30,
+					"duration": 60,
 					"ball_speed_px_sec": 380,
 					"enemy_paddle_speed_px_sec": 280,
 					"enemy_reaction_interval_sec": 0.45,
@@ -446,7 +446,7 @@
 				},
 				{
 					"type": "pong",
-					"duration": 30,
+					"duration": 60,
 					"ball_speed_px_sec": 380,
 					"enemy_paddle_speed_px_sec": 280,
 					"enemy_reaction_interval_sec": 0.45,
@@ -543,12 +543,16 @@
 					"enemy_modifier_id": ""
 				},
 				{
-					"type": "absorb",
-					"duration": 30,
-					"spawn_interval_sec": 1.7,
-					"descent_speed_px_sec": 100,
-					"shuffle_window": 2,
-					"final_mass_margin": 0.65
+					"type": "gravity_hole",
+					"duration": 60,
+					"max_active_props": 16,
+					"boss_chunk_chance": 0.04,
+					"prop_weights": {
+						"debris_small": 60,
+						"wreck_medium": 28,
+						"titan_large": 12
+					},
+					"reward_multiplier": 1.0
 				},
 				{
 					"type": "obstacle",
@@ -652,11 +656,11 @@
 				},
 				{
 					"type": "match3",
-					"duration": 40
+					"duration": 60
 				},
 				{
 					"type": "lane_runner",
-					"duration": 30,
+					"duration": 60,
 					"wall_speed_px_sec_start": 408,
 					"wall_speed_px_sec_end": 624,
 					"row_interval_sec_start": 1.5,
@@ -666,7 +670,7 @@
 				},
 				{
 					"type": "slice_rush",
-					"duration": 30,
+					"duration": 60,
 					"bomb_chance": 0.1,
 					"burst_size_max": 3,
 					"reward_multiplier": 1.0
@@ -680,13 +684,11 @@
 						"wreck_medium": 28,
 						"titan_large": 12
 					},
-					"oversize_contact_damage_percent": 0.08,
-					"final_core_efficiency_ratio": 0.45,
 					"reward_multiplier": 1.0
 				},
 				{
 					"type": "snake",
-					"duration": 40,
+					"duration": 60,
 					"boss_toughness_mult": 0.7,
 					"base_speed_px_sec": 190,
 					"item_spawn_interval_sec": 1.4,
@@ -787,7 +789,7 @@
 				},
 				{
 					"type": "pong",
-					"duration": 30,
+					"duration": 60,
 					"ball_speed_px_sec": 380,
 					"enemy_paddle_speed_px_sec": 280,
 					"enemy_reaction_interval_sec": 0.45,
@@ -803,7 +805,7 @@
 				},
 				{
 					"type": "breakout",
-					"duration": 45,
+					"duration": 60,
 					"rows": 4,
 					"cols": 5,
 					"row_hp": [
@@ -825,7 +827,7 @@
 				},
 				{
 					"type": "vertical_climb",
-					"duration": 35,
+					"duration": 60,
 					"gravity_px_sec2": 1550,
 					"bounce_speed_px_sec": 760,
 					"platform_gap_y_min_px": 100,
@@ -840,12 +842,16 @@
 					"hp_multiplier": 1
 				},
 				{
-					"type": "absorb",
-					"duration": 30,
-					"spawn_interval_sec": 1.7,
-					"descent_speed_px_sec": 100,
-					"shuffle_window": 2,
-					"final_mass_margin": 0.65
+					"type": "gravity_hole",
+					"duration": 60,
+					"max_active_props": 18,
+					"boss_chunk_chance": 0.06,
+					"prop_weights": {
+						"debris_small": 50,
+						"wreck_medium": 32,
+						"titan_large": 18
+					},
+					"reward_multiplier": 1.1
 				},
 				{
 					"type": "suika_up",

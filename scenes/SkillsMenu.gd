@@ -736,8 +736,10 @@ func _build_skill_node(
 	hbox.add_theme_constant_override("separation", 12)
 	node_panel.add_child(hbox)
 
+	# Icone par skill (skills.json > levels[].icon) avec fallback branche tant
+	# que l'asset dedie n'est pas encore genere (cf. missing_assets.md section SK).
 	var skill_icon_asset := str(node_data.get("icon", ""))
-	if skill_icon_asset == "":
+	if skill_icon_asset == "" or not ResourceLoader.exists(_normalize_resource_path(skill_icon_asset)):
 		skill_icon_asset = str(branch_data.get("icon", ""))
 	if skill_icon_asset == "":
 		skill_icon_asset = str(block_cfg.get("title", {}).get("icon_asset", ""))
@@ -750,7 +752,12 @@ func _build_skill_node(
 	hbox.add_child(text_col)
 
 	var title_label := Label.new()
-	title_label.text = skill_title
+	# Rang directement dans le titre pour les skills multi-rangs ("Tir direct (2/5)",
+	# "Puissance brute (12/999)") — remplace l'ancien label de rang colonne droite.
+	if max_rank > 1:
+		title_label.text = skill_title + " (" + str(current_rank) + "/" + str(max_rank) + ")"
+	else:
+		title_label.text = skill_title
 	title_label.add_theme_font_size_override("font_size", title_size)
 	if is_unlocked:
 		title_label.add_theme_color_override("font_color", Color.WHITE)
@@ -767,21 +774,14 @@ func _build_skill_node(
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_col.add_child(desc_label)
 
-	# Colonne droite: rank (optionnel) + bouton d'etat (lock/unlock/purchased) + cout
-	# Le cout est rendu SOUS le bouton d'etat pour liberer de la place au titre + description.
+	# Colonne droite: bouton d'etat (lock/unlock/purchased) seul.
+	# Le rang est integre au titre ; le cout s'affiche en badge SUR le bouton
+	# uniquement quand il depasse 1 (rank_costs des fire_patterns rang 2+).
 	var right_col := VBoxContainer.new()
 	right_col.alignment = BoxContainer.ALIGNMENT_CENTER
 	right_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	right_col.add_theme_constant_override("separation", 4)
 	hbox.add_child(right_col)
-
-	if max_rank > 1:
-		var rank_label := Label.new()
-		rank_label.text = str(current_rank) + "/" + str(max_rank)
-		rank_label.add_theme_font_size_override("font_size", _secondary_font_size("rank_font_size", 15))
-		rank_label.add_theme_color_override("font_color", branch_color)
-		rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		right_col.add_child(rank_label)
 
 	var unlock_btn := Button.new()
 	unlock_btn.name = "UnlockBtn_" + skill_id
@@ -821,25 +821,21 @@ func _build_skill_node(
 		UIStyle.apply_button_shadow(unlock_btn, "small")
 	_skill_nodes[skill_id] = unlock_btn
 
-	var cost_label := Label.new()
-	if has_next_rank:
-		cost_label.text = _translate(
-			"skills.menu.cost.next",
-			{"cost": upgrade_cost},
-			"Cout: " + str(upgrade_cost)
-		)
+	# Badge de cout superpose au bouton, uniquement si le prochain rang coute > 1
+	# (l'ecrasante majorite des skills coute 1 : pas de badge, la fleche suffit).
+	if button_state == "unlocked" and has_next_rank and upgrade_cost > 1:
+		var cost_badge := Label.new()
+		cost_badge.text = str(upgrade_cost)
+		cost_badge.add_theme_font_size_override("font_size", _secondary_font_size("cost_badge_font_size", 22))
 		var has_enough_points := ProfileManager.get_skill_points() >= upgrade_cost
-		if has_enough_points:
-			cost_label.add_theme_color_override("font_color", branch_color.lerp(Color.WHITE, 0.28))
-		else:
-			cost_label.add_theme_color_override("font_color", Color("#FF6A5E"))
-	else:
-		cost_label.text = _translate("skills.menu.cost.max", {}, "MAX")
-		cost_label.add_theme_color_override("font_color", Color("#FFD700"))
-	cost_label.add_theme_font_size_override("font_size", _secondary_font_size("cost_font_size", 13))
-	cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cost_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_col.add_child(cost_label)
+		cost_badge.add_theme_color_override("font_color", Color.WHITE if has_enough_points else Color("#FF6A5E"))
+		cost_badge.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+		cost_badge.add_theme_constant_override("outline_size", 6)
+		cost_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cost_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cost_badge.set_anchors_preset(Control.PRESET_FULL_RECT)
+		cost_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		unlock_btn.add_child(cost_badge)
 
 func _add_icon_texture(parent: Control, asset_path: String, width: int, height: int) -> bool:
 	var texture := _load_texture_from_path(asset_path)

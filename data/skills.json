@@ -10,6 +10,7 @@
 		  "levels": [
 			{
 			  "id": "frozen_1",
+			  "icon": "res://assets/ui/skills/skill_frozen_1.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -23,6 +24,7 @@
 			},
 			{
 			  "id": "frozen_2",
+			  "icon": "res://assets/ui/skills/skill_frozen_2.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -39,6 +41,7 @@
 			},
 			{
 			  "id": "frozen_3",
+			  "icon": "res://assets/ui/skills/skill_frozen_3.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -55,6 +58,7 @@
 			},
 			{
 			  "id": "frozen_4",
+			  "icon": "res://assets/ui/skills/skill_frozen_4.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -69,6 +73,7 @@
 			},
 			{
 			  "id": "frozen_5",
+			  "icon": "res://assets/ui/skills/skill_frozen_5.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -86,6 +91,7 @@
 		  "levels": [
 			{
 			  "id": "poison_1",
+			  "icon": "res://assets/ui/skills/skill_poison_1.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -99,6 +105,7 @@
 			},
 			{
 			  "id": "poison_2",
+			  "icon": "res://assets/ui/skills/skill_poison_2.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -116,6 +123,7 @@
 			},
 			{
 			  "id": "poison_3",
+			  "icon": "res://assets/ui/skills/skill_poison_3.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -130,6 +138,7 @@
 			},
 			{
 			  "id": "poison_4",
+			  "icon": "res://assets/ui/skills/skill_poison_4.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -140,6 +149,7 @@
 			},
 			{
 			  "id": "poison_5",
+			  "icon": "res://assets/ui/skills/skill_poison_5.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -157,6 +167,7 @@
 		  "levels": [
 			{
 			  "id": "void_1",
+			  "icon": "res://assets/ui/skills/skill_void_1.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -169,6 +180,7 @@
 			},
 			{
 			  "id": "void_2",
+			  "icon": "res://assets/ui/skills/skill_void_2.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -185,6 +197,7 @@
 			},
 			{
 			  "id": "void_3",
+			  "icon": "res://assets/ui/skills/skill_void_3.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -195,6 +208,7 @@
 			},
 			{
 			  "id": "void_4",
+			  "icon": "res://assets/ui/skills/skill_void_4.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -206,6 +220,7 @@
 			},
 			{
 			  "id": "void_5",
+			  "icon": "res://assets/ui/skills/skill_void_5.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -232,6 +247,7 @@
 		  "levels": [
 			{
 			  "id": "loot_1",
+			  "icon": "res://assets/ui/skills/skill_loot_1.png",
 			  "type": "loot_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -242,6 +258,7 @@
 			},
 			{
 			  "id": "loot_2",
+			  "icon": "res://assets/ui/skills/skill_loot_2.png",
 			  "type": "loot_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -252,6 +269,7 @@
 			},
 			{
 			  "id": "loot_3",
+			  "icon": "res://assets/ui/skills/skill_loot_3.png",
 			  "type": "loot_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -262,6 +280,7 @@
 			},
 			{
 			  "id": "loot_4",
+			  "icon": "res://assets/ui/skills/skill_loot_4.png",
 			  "type": "loot_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -272,6 +291,7 @@
 			},
 			{
 			  "id": "loot_5",
+			  "icon": "res://assets/ui/skills/skill_loot_5.png",
 			  "type": "loot_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -288,6 +308,7 @@
 		  "levels": [
 			{
 			  "id": "powers_1",
+			  "icon": "res://assets/ui/skills/skill_powers_1.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -298,6 +319,7 @@
 			},
 			{
 			  "id": "powers_2",
+			  "icon": "res://assets/ui/skills/skill_powers_2.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -308,6 +330,7 @@
 			},
 			{
 			  "id": "powers_3",
+			  "icon": "res://assets/ui/skills/skill_powers_3.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -318,6 +341,7 @@
 			},
 			{
 			  "id": "powers_4",
+			  "icon": "res://assets/ui/skills/skill_powers_4.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -328,6 +352,7 @@
 			},
 			{
 			  "id": "powers_5",
+			  "icon": "res://assets/ui/skills/skill_powers_5.png",
 			  "type": "gameplay_modifier",
 			  "cost": 1,
 			  "max_rank": 1,
@@ -359,6 +384,7 @@
 		  "levels": [
 			{
 			  "id": "fire_straight",
+			  "icon": "res://assets/ui/skills/skill_fire_straight.png",
 			  "type": "fire_pattern",
 			  "cost": 1,
 			  "rank_costs": [1, 2, 3, 4, 5],
@@ -372,6 +398,7 @@
 			},
 			{
 			  "id": "fire_cone",
+			  "icon": "res://assets/ui/skills/skill_fire_cone.png",
 			  "type": "fire_pattern",
 			  "cost": 1,
 			  "rank_costs": [1, 2, 3, 4, 5],
@@ -386,6 +413,7 @@
 			},
 			{
 			  "id": "fire_360",
+			  "icon": "res://assets/ui/skills/skill_fire_360.png",
 			  "type": "fire_pattern",
 			  "cost": 1,
 			  "rank_costs": [1, 2, 3, 4, 5],
@@ -400,6 +428,7 @@
 			},
 			{
 			  "id": "fire_aura",
+			  "icon": "res://assets/ui/skills/skill_fire_aura.png",
 			  "type": "fire_pattern",
 			  "cost": 1,
 			  "rank_costs": [1, 2, 3, 4, 5],
@@ -420,6 +449,7 @@
 		  "levels": [
 			{
 			  "id": "paragon_damage",
+			  "icon": "res://assets/ui/skills/skill_paragon_damage.png",
 			  "type": "stat_modifier",
 			  "cost": 1,
 			  "max_rank": 999,
@@ -431,6 +461,7 @@
 			},
 			{
 			  "id": "paragon_hp",
+			  "icon": "res://assets/ui/skills/skill_paragon_hp.png",
 			  "type": "stat_modifier",
 			  "cost": 1,
 			  "max_rank": 999,
@@ -442,6 +473,7 @@
 			},
 			{
 			  "id": "paragon_shield",
+			  "icon": "res://assets/ui/skills/skill_paragon_shield.png",
 			  "type": "stat_modifier",
 			  "cost": 1,
 			  "max_rank": 999,
@@ -453,6 +485,7 @@
 			},
 			{
 			  "id": "paragon_crit",
+			  "icon": "res://assets/ui/skills/skill_paragon_crit.png",
 			  "type": "stat_modifier",
 			  "cost": 1,
 			  "max_rank": 999,
@@ -464,6 +497,7 @@
 			},
 			{
 			  "id": "paragon_fire_rate",
+			  "icon": "res://assets/ui/skills/skill_paragon_fire_rate.png",
 			  "type": "stat_modifier",
 			  "cost": 1,
 			  "max_rank": 999,

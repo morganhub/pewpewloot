@@ -14,7 +14,7 @@
 		"round_duration_sec": 40
 	},
 	"fiesta": {
-		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (absorb/gravity_hole/gate_runner), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
+		"_note": "Mode Fiesta : enchaine des rounds de TOUS les mini-jeux debloques du profil (type different a chaque round, jamais deux fois de suite le meme). Le level du mode libre PERSISTE entre les rounds (difficulte croissante via les per_level de chaque mode). Chaque round dure round_duration_sec du MODE s'il en a un (gravity_hole/gate_runner), sinon le round_duration_sec fiesta (les modes continuous sont forces en rounds reels, timer visible). Grise dans le menu tant que le profil n'a pas min_unlocked_modes mini-jeux debloques.",
 		"min_unlocked_modes": 2,
 		"round_duration_sec": 40,
 		"tile_background": "res://assets/ui/main_menu_bg.jpg"
@@ -229,36 +229,6 @@
 				"event_cd_max_sec": -0.4
 			}
 		},
-		"absorb": {
-			"_note": "Mort possible uniquement via contacts oversize (15% fixe, cle _cfg-only) : lente mais reelle. Le scaling descente/spawn multiplie les contacts forces. RESTE en restart : le round est intrinseque (schedule de proies dimensionne par la duree, climax Devourer) — le manager self-finish avant le timer, la 'coupe' est le climax, pas une interruption.",
-			"round_duration_sec": 40,
-			"tile_background": "res://assets/backgrounds/worlds/alien/tile_alien_1.jpg",
-			"base_wave": {
-				"spawn_interval_sec": 1.5,
-				"prey_drift_speed_max": 45.0,
-				"final_mass_margin": 0.75,
-				"shuffle_window": 3,
-				"camo_chance": 0.08,
-				"flee_chance": 0.1,
-				"predator_chance": 0.06,
-				"toxic_chance": 0.07,
-				"split_chance": 0.1,
-				"fasting_mass_loss_ratio_per_sec": 0.0,
-				"absorb_event_cd_max_sec": 24.0
-			},
-			"per_level": {
-				"spawn_interval_sec": -0.03,
-				"prey_drift_speed_max": 2.0,
-				"final_mass_margin": 0.012,
-				"shuffle_window": 0.12,
-				"camo_chance": 0.004,
-				"flee_chance": 0.004,
-				"predator_chance": 0.003,
-				"toxic_chance": 0.003,
-				"fasting_mass_loss_ratio_per_sec": 0.0004,
-				"absorb_event_cd_max_sec": -0.3
-			}
-		},
 		"lane_runner": {
 			"_note": "Tourelles (motifs de tir diagonaux) et tourelles au sol : LIBRE uniquement — chances 0 en story, montent avec le level ET gate turret_min_level_progress (0.45, wave_types.json). Variantes (chicanes/train/demi-murs) et evenements (tunnel/heure de pointe) actives ici, 0 en story. Toutes ces chances sont dans la whitelist update_free_mode_config du manager.",
 			"loop_style": "continuous",
@@ -361,31 +331,33 @@
 			}
 		},
 		"gravity_hole": {
-			"_note": "Refonte Agar.io + monde seede persistant : oversize_never_lethal force a false (mode letal). RESTE en restart : chaque round finit par l'OBJECTIF DE TAILLE (target_mass_mult croissant par level — partie complete ~15 min), round_duration_sec 75 = garde-fou. Densite via chunk_props_min/max (le spawner en anneau n'existe plus). Chasseurs/fuyants/zones/decay actives ici, 0 ou bas en story.",
-			"round_duration_sec": 75,
+			"_note": "SESSION UNIQUE one-shot (2026-07-16) : cible absolue 10000 OU 600 s -> fin de RUN via le modal de fin standard (Game intercepte le finished du manager en libre — le loop_style restart ne re-boucle jamais). per_level vide : mode hors leveling (le level continue de ticker pour le full heal). mass_decay 0.0 OBLIGATOIRE (x1000 impossible sinon). Ne JAMAIS mettre duration dans base_wave. fiesta_overrides = round court pour la Fiesta (mergees en dernier dans build_free_mode_wave).",
+			"loop_style": "restart",
+			"round_duration_sec": 600,
 			"tile_background": "res://assets/backgrounds/worlds/necropolis/tile_necropolis_3.jpg",
 			"base_wave": {
-				"oversize_never_lethal": false,
+				"countdown_hidden": false,
+				"target_mass": 10000.0,
+				"timeout_penalty_enabled": false,
+				"surplus_crystals_cap": 0,
+				"oversize_never_lethal": true,
 				"chunk_props_min": 2,
 				"chunk_props_max": 4,
+				"max_active_props": 24,
 				"drift_speed_min_px_sec": 28.0,
 				"drift_speed_max_px_sec": 70.0,
-				"oversize_contact_damage_percent": 0.12,
-				"target_mass_mult": 4.0,
-				"chaser_chance": 0.35,
+				"mass_decay_percent_per_sec": 0.0,
+				"boss_chunk_chance": 0.12,
 				"flee_chance": 0.25,
 				"electric_zone_count": 2.0,
-				"mass_decay_percent_per_sec": 0.05
+				"zoom_min": 0.22
 			},
-			"per_level": {
-				"target_mass_mult": 0.6,
-				"chaser_chance": 0.01,
-				"flee_chance": 0.005,
-				"electric_zone_count": 0.1,
-				"mass_decay_percent_per_sec": 0.012,
-				"drift_speed_min_px_sec": 2.0,
-				"drift_speed_max_px_sec": 5.0,
-				"oversize_contact_damage_percent": 0.008
+			"per_level": {},
+			"fiesta_overrides": {
+				"duration": 75,
+				"target_mass": 40.0,
+				"countdown_hidden": false,
+				"surplus_crystals_cap": 10
 			}
 		},
 		"survivor": {

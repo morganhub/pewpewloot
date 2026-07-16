@@ -268,6 +268,27 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		migrated["free_mode_plays"] = plays
 		needs_save = true
 
+	# Migration : suppression du wave type absorb (juillet 2026, fusionné dans
+	# gravity_hole). Purge simple des entrées de profil indexées par ce type.
+	var abs_encountered_v: Variant = migrated.get("wave_types_encountered", [])
+	if abs_encountered_v is Array and (abs_encountered_v as Array).has("absorb"):
+		var abs_encountered: Array = abs_encountered_v as Array
+		abs_encountered.erase("absorb")
+		migrated["wave_types_encountered"] = abs_encountered
+		needs_save = true
+	var abs_scores_v: Variant = migrated.get("free_mode_scores", {})
+	if abs_scores_v is Dictionary and (abs_scores_v as Dictionary).has("absorb"):
+		var abs_scores: Dictionary = abs_scores_v as Dictionary
+		abs_scores.erase("absorb")
+		migrated["free_mode_scores"] = abs_scores
+		needs_save = true
+	var abs_plays_v: Variant = migrated.get("free_mode_plays", {})
+	if abs_plays_v is Dictionary and (abs_plays_v as Dictionary).has("absorb"):
+		var abs_plays: Dictionary = abs_plays_v as Dictionary
+		abs_plays.erase("absorb")
+		migrated["free_mode_plays"] = abs_plays
+		needs_save = true
+
 	# Migration: skill tree system
 	if not migrated.has("player_xp"):
 		migrated["player_xp"] = 0

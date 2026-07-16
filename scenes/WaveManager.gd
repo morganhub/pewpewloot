@@ -11,7 +11,6 @@ signal spawn_pong(config: Dictionary)
 signal spawn_breakout(config: Dictionary)
 signal spawn_ball_launcher(config: Dictionary)
 signal spawn_vertical_climb(config: Dictionary)
-signal spawn_absorb(config: Dictionary)
 signal spawn_lane_runner(config: Dictionary)
 signal spawn_slice_rush(config: Dictionary)
 signal spawn_match3(config: Dictionary)
@@ -197,7 +196,7 @@ func build_free_mode_wave(level: int) -> Dictionary:
 		else maxf(10.0, float(_free_mode_cfg.get("round_duration_sec", _free_round_duration_default)))
 	if _free_mode_fiesta:
 		# Durée du round : celle du MODE s'il en déclare une (rounds
-		# intrinsèques : absorb, gravity_hole, snake, gate_runner), sinon la
+		# intrinsèques : gravity_hole, snake, gate_runner), sinon la
 		# durée fiesta.
 		round_duration = maxf(10.0, float(_free_mode_cfg.get("round_duration_sec",
 			_fiesta_cfg.get("round_duration_sec", _free_round_duration_default))))
@@ -222,6 +221,14 @@ func build_free_mode_wave(level: int) -> Dictionary:
 			var base_val_v: Variant = wave.get(key, 0.0)
 			if (delta_v is float or delta_v is int) and (base_val_v is float or base_val_v is int):
 				wave[key] = float(base_val_v) + float(delta_v) * float(level - 1)
+	# Fiesta : le mode peut surcharger ses clés pour les rounds fiesta
+	# (fiesta_overrides — ex. gravity_hole one-shot 600 s / cible 10000 redevient
+	# un round court à cible modeste). Mergé EN DERNIER, duration comprise.
+	if _free_mode_fiesta:
+		var fiesta_over_v: Variant = _free_mode_cfg.get("fiesta_overrides", {})
+		if fiesta_over_v is Dictionary:
+			for key in (fiesta_over_v as Dictionary).keys():
+				wave[key] = (fiesta_over_v as Dictionary)[key]
 	var pattern_ids_v: Variant = wave.get("pattern_ids", null)
 	if pattern_ids_v is Array and not (pattern_ids_v as Array).is_empty():
 		var pool: Array = pattern_ids_v as Array
@@ -444,14 +451,6 @@ func notify_vertical_climb_finished() -> void:
 		return
 	_complete_current_wave()
 
-## Called by Game when the AbsorbManager reports the hunt is over.
-func notify_absorb_finished() -> void:
-	if not _is_wave_running:
-		return
-	if _current_wave_type != "absorb":
-		return
-	_complete_current_wave()
-
 ## Called by Game when the LaneRunnerManager reports the run is over.
 func notify_lane_runner_finished() -> void:
 	if not _is_wave_running:
@@ -512,7 +511,7 @@ func _should_advance_cleared_wave(delta: float) -> bool:
 	if _current_wave_type == "snake" or _current_wave_type == "gate_runner" \
 		or _current_wave_type == "pong" or _current_wave_type == "breakout" \
 		or _current_wave_type == "ball_launcher" \
-		or _current_wave_type == "vertical_climb" or _current_wave_type == "absorb" \
+		or _current_wave_type == "vertical_climb" \
 		or _current_wave_type == "lane_runner" or _current_wave_type == "slice_rush" \
 		or _current_wave_type == "match3" or _current_wave_type == "gravity_hole" \
 		or _current_wave_type == "star_drift" or _current_wave_type == "suika_up" \
@@ -603,8 +602,6 @@ func _start_wave(wave: Dictionary) -> void:
 			_start_ball_launcher_wave(wave)
 		"vertical_climb":
 			_start_vertical_climb_wave(wave)
-		"absorb":
-			_start_absorb_wave(wave)
 		"lane_runner":
 			_start_lane_runner_wave(wave)
 		"slice_rush":
@@ -642,12 +639,12 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 	# Gate runner / asteroid waves are time-boxed by design, so an explicit
 	# per-wave "duration" must take precedence over the world force_duration_sec.
 	var honor_explicit_duration: bool = (wave_type == "gate_runner" or wave_type == "asteroid_split") and wave.has("duration")
-	# Pong/breakout/ball_launcher/climb/absorb/lane_runner/slice_rush/match3/
+	# Pong/breakout/ball_launcher/climb/lane_runner/slice_rush/match3/
 	# gravity_hole waves are self-timed by their manager: keep both clocks
 	# identical and never let force_duration_sec truncate them.
 	if wave_type == "pong" or wave_type == "breakout" or wave_type == "ball_launcher" \
 		or wave_type == "vertical_climb" \
-		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
+		or wave_type == "lane_runner" or wave_type == "slice_rush" \
 		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift" \
 		or wave_type == "suika_up" or wave_type == "snake" or wave_type == "survivor":
 		honor_explicit_duration = true
@@ -678,7 +675,7 @@ func _resolve_wave_duration(wave: Dictionary) -> float:
 				"suika_up":
 					duration = _resolve_suika_up_default_duration()
 				_:
-					duration = _resolve_absorb_default_duration()
+					pass
 	if forced_duration > 0.0 and not honor_explicit_duration:
 		duration = forced_duration
 	if wave_type == "suika_up" or wave_type == "match3" or wave_type == "snake":
@@ -1087,17 +1084,6 @@ func _start_vertical_climb_wave(wave: Dictionary) -> void:
 func _resolve_vertical_climb_default_duration() -> float:
 	var cfg: Dictionary = DataManager.get_wave_type_config("vertical_climb") if DataManager else {}
 	return maxf(5.0, float(cfg.get("duration_sec_default", 40.0)))
-
-func _start_absorb_wave(wave: Dictionary) -> void:
-	var payload: Dictionary = wave.duplicate(true)
-	if not payload.has("duration"):
-		payload["duration"] = _resolve_absorb_default_duration()
-	payload["wave_index"] = _current_wave_index
-	spawn_absorb.emit(payload)
-
-func _resolve_absorb_default_duration() -> float:
-	var cfg: Dictionary = DataManager.get_wave_type_config("absorb") if DataManager else {}
-	return maxf(10.0, float(cfg.get("duration_sec_default", 30.0)))
 
 func _start_lane_runner_wave(wave: Dictionary) -> void:
 	var payload: Dictionary = wave.duplicate(true)
@@ -1752,6 +1738,12 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 			if gh_comet_assets_v is Array:
 				for gh_ca_v in (gh_comet_assets_v as Array):
 					_add_warmup_path(target, str(gh_ca_v))
+			# Boss rôdeurs (2026-07-16) : .tres de boss du jeu, comme match3.
+			var gh_bosses_v: Variant = wave.get("bosses", gh_cfg.get("bosses", []))
+			if gh_bosses_v is Array:
+				for gh_boss_v in (gh_bosses_v as Array):
+					if gh_boss_v is Dictionary:
+						_add_warmup_path(target, str((gh_boss_v as Dictionary).get("asset_anim", "")))
 			for gh_key in ["target_arrow_asset", "magnet_pickup_asset", "compass_pickup_asset", "overdrive_pickup_asset", "companion_pickup_asset", "stabilizer_pickup_asset", "companion_asset", "electric_zone_asset", "rival_vortex_asset", "bonus_bg_asset"]:
 				_add_warmup_path(target, str(wave.get(gh_key, gh_cfg.get(gh_key, ""))))
 			# World obstacle skins can replace prop textures at runtime.
@@ -1802,31 +1794,6 @@ func _collect_wave_visual_resources(target: Dictionary) -> void:
 					for sd_skin_v in (sd_explosives_v as Array):
 						_add_warmup_path(target, str(sd_skin_v))
 			continue
-		if wave_type == "absorb":
-			var ab_cfg: Dictionary = DataManager.get_wave_type_config("absorb") if DataManager else {}
-			var ab_assets_v: Variant = wave.get("prey_assets", ab_cfg.get("prey_assets", []))
-			if ab_assets_v is Array:
-				for ab_asset_v in (ab_assets_v as Array):
-					_add_warmup_path(target, str(ab_asset_v))
-			var ab_enemy_id: String = str(ab_cfg.get("enemy_visual_enemy_id", "fighter"))
-			var ab_enemy: Dictionary = DataManager.get_enemy(ab_enemy_id)
-			if not ab_enemy.is_empty():
-				var ab_visual_v: Variant = ab_enemy.get("visual", {})
-				if ab_visual_v is Dictionary:
-					_add_warmup_path(target, str((ab_visual_v as Dictionary).get("asset", "")))
-					_add_warmup_path(target, str((ab_visual_v as Dictionary).get("asset_anim", "")))
-			var ab_skin: String = str(enemy_overrides.get(ab_enemy_id, ""))
-			if ab_skin != "":
-				_add_warmup_path(target, ab_skin)
-			# Arène + pickups + types spéciaux (2026-07-12).
-			var ab_arena_v: Variant = wave.get("arena_backgrounds", ab_cfg.get("arena_backgrounds", []))
-			if ab_arena_v is Array:
-				for ab_arena_bg_v in (ab_arena_v as Array):
-					_add_warmup_path(target, str(ab_arena_bg_v))
-			for ab_asset_key in ["decoy_pickup_asset", "freeze_pickup_asset", "overcharge_pickup_asset", "crystallize_pickup_asset", "repulse_pickup_asset", "toxic_prey_asset", "predator_asset", "golden_prey_asset", "devourer_asset"]:
-				_add_warmup_path(target, str(wave.get(ab_asset_key, ab_cfg.get(ab_asset_key, ""))))
-			continue
-
 		var enemy_id: String = str(wave.get("enemy_id", ""))
 		if enemy_id == "":
 			continue

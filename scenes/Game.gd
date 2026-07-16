@@ -28,7 +28,6 @@ const PONG_SCENE: PackedScene = preload("res://scenes/mechanics/PongManager.tscn
 const BREAKOUT_SCENE: PackedScene = preload("res://scenes/mechanics/BreakoutManager.tscn")
 const BALL_LAUNCHER_SCENE: PackedScene = preload("res://scenes/mechanics/BallLauncherManager.tscn")
 const VERTICAL_CLIMB_SCENE: PackedScene = preload("res://scenes/mechanics/VerticalClimbManager.tscn")
-const ABSORB_SCENE: PackedScene = preload("res://scenes/mechanics/AbsorbManager.tscn")
 const LANE_RUNNER_SCENE: PackedScene = preload("res://scenes/mechanics/LaneRunnerManager.tscn")
 const SLICE_RUSH_SCENE: PackedScene = preload("res://scenes/mechanics/SliceRushManager.tscn")
 const MATCH3_SCENE: PackedScene = preload("res://scenes/mechanics/Match3Manager.tscn")
@@ -60,7 +59,6 @@ const RUNTIME_WARMUP_PATHS: PackedStringArray = [
 	"res://scenes/mechanics/BreakoutManager.tscn",
 	"res://scenes/mechanics/BallLauncherManager.tscn",
 	"res://scenes/mechanics/VerticalClimbManager.tscn",
-	"res://scenes/mechanics/AbsorbManager.tscn",
 	"res://scenes/mechanics/LaneRunnerManager.tscn",
 	"res://scenes/mechanics/SliceRushManager.tscn",
 	"res://scenes/mechanics/Match3Manager.tscn",
@@ -220,9 +218,6 @@ var _ball_launcher_wave_active: bool = false
 var _active_climb_managers: Array[Node] = []
 # True while a vertical_climb wave is running: same drop suppression.
 var _climb_wave_active: bool = false
-var _active_absorb_managers: Array[Node] = []
-# True while an absorb wave is running: same drop suppression.
-var _absorb_wave_active: bool = false
 var _active_lane_runner_managers: Array[Node] = []
 # True while a lane_runner wave is running: same drop suppression.
 var _lane_runner_wave_active: bool = false
@@ -438,7 +433,6 @@ func _clean_start_of_run_state() -> void:
 	_clear_breakout_managers()
 	_clear_ball_launcher_managers()
 	_clear_climb_managers()
-	_clear_absorb_managers()
 	_clear_lane_runner_managers()
 	_clear_slice_rush_managers()
 	_clear_match3_managers()
@@ -766,7 +760,7 @@ func _try_spawn_fire_pattern_drop(at_pos: Vector2) -> void:
 	# No shooting during the mechanic waves: a fire-pattern drop would be useless.
 	if _gate_runner_wave_active or _pong_wave_active or _breakout_wave_active \
 		or _ball_launcher_wave_active \
-		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
+		or _climb_wave_active or _lane_runner_wave_active \
 		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
 		or _star_drift_wave_active or _suika_up_wave_active or _snake_wave_active \
 		or _survivor_wave_active:
@@ -1604,8 +1598,6 @@ func _start_enemy_spawner() -> void:
 		wave_manager.spawn_ball_launcher.connect(_on_wave_ball_launcher_spawn)
 	if wave_manager.has_signal("spawn_vertical_climb"):
 		wave_manager.spawn_vertical_climb.connect(_on_wave_vertical_climb_spawn)
-	if wave_manager.has_signal("spawn_absorb"):
-		wave_manager.spawn_absorb.connect(_on_wave_absorb_spawn)
 	if wave_manager.has_signal("spawn_lane_runner"):
 		wave_manager.spawn_lane_runner.connect(_on_wave_lane_runner_spawn)
 	if wave_manager.has_signal("spawn_slice_rush"):
@@ -2174,13 +2166,12 @@ func _on_wave_started(wave_index: int) -> void:
 	# Clearing gate runners also restores the ship (HP clamp + scale reset) when
 	# leaving a gate_runner wave for the next one.
 	_clear_gate_runners()
-	# Same for pong/breakout/ball_launcher/climb/absorb/lane_runner/slice_rush:
+	# Same for pong/breakout/ball_launcher/climb/lane_runner/slice_rush:
 	# restores the ship (shape + free X/Y).
 	_clear_pong_managers()
 	_clear_breakout_managers()
 	_clear_ball_launcher_managers()
 	_clear_climb_managers()
-	_clear_absorb_managers()
 	_clear_lane_runner_managers()
 	_clear_slice_rush_managers()
 	_clear_match3_managers()
@@ -2209,7 +2200,7 @@ func _on_wave_started(wave_index: int) -> void:
 	var disable_shooting: bool = wave_type == "snake" or wave_type == "gate_runner" \
 		or wave_type == "pong" or wave_type == "breakout" or wave_type == "ball_launcher" \
 		or wave_type == "vertical_climb" \
-		or wave_type == "absorb" or wave_type == "lane_runner" or wave_type == "slice_rush" \
+		or wave_type == "lane_runner" or wave_type == "slice_rush" \
 		or wave_type == "match3" or wave_type == "gravity_hole" or wave_type == "star_drift" \
 		or wave_type == "suika_up" or wave_type == "survivor"
 	if is_instance_valid(player) and player.has_method("set_can_shoot"):
@@ -2276,7 +2267,6 @@ const WAVE_TYPE_SPLASH_FALLBACKS: Dictionary = {
 	"breakout": "Breakout",
 	"ball_launcher": "Ball Launcher",
 	"vertical_climb": "Engine Failure",
-	"absorb": "Absorption",
 	"lane_runner": "Lane Runner",
 	"slice_rush": "Slice Rush",
 	"match3": "Match 3",
@@ -2297,7 +2287,6 @@ const WAVE_TYPE_SPLASH_COLORS: Dictionary = {
 	"breakout": "#FFB56B",
 	"ball_launcher": "#5BB8FF",
 	"vertical_climb": "#FF8C42",
-	"absorb": "#7BE0A3",
 	"lane_runner": "#F2E45B",
 	"slice_rush": "#FF6BD5",
 	"match3": "#C77DFF",
@@ -2498,7 +2487,7 @@ func can_spawn_powerup_drop(effect: String) -> bool:
 	# no sense and are suppressed.
 	if _gate_runner_wave_active or _pong_wave_active or _breakout_wave_active \
 		or _ball_launcher_wave_active \
-		or _climb_wave_active or _absorb_wave_active or _lane_runner_wave_active \
+		or _climb_wave_active or _lane_runner_wave_active \
 		or _slice_rush_wave_active or _match3_wave_active or _gravity_hole_wave_active \
 		or _star_drift_wave_active or _suika_up_wave_active or _snake_wave_active \
 		or _survivor_wave_active:
@@ -2886,51 +2875,6 @@ func _clear_climb_managers() -> void:
 	if is_instance_valid(player) and player.has_method("end_climb"):
 		player.call("end_climb")
 
-func _on_wave_absorb_spawn(config: Dictionary) -> void:
-	if ABSORB_SCENE == null:
-		return
-	var node: Node = ABSORB_SCENE.instantiate()
-	if not (node is Node2D):
-		return
-	var manager: Node2D = node as Node2D
-	manager.z_as_relative = false
-	manager.z_index = -5
-	manager.add_to_group("runtime_hazards")
-	_absorb_wave_active = true
-	game_layer.add_child(manager)
-	_active_absorb_managers.append(manager)
-	manager.tree_exiting.connect(func() -> void:
-		_active_absorb_managers.erase(manager)
-	)
-	if manager.has_signal("finished"):
-		manager.finished.connect(func() -> void:
-			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_absorb_finished"):
-				wave_manager.call("notify_absorb_finished")
-		)
-	# Inject the world-level enemy skin overrides so prey ships use the
-	# correct world visual.
-	var payload: Dictionary = config.duplicate(true)
-	var enemy_skins_v: Variant = _world_skin_overrides.get("enemies", {})
-	payload["_enemy_skins"] = (enemy_skins_v as Dictionary).duplicate(true) if enemy_skins_v is Dictionary else {}
-	if manager.has_method("setup"):
-		manager.call("setup", payload, player, hud)
-
-func _clear_absorb_managers() -> void:
-	_absorb_wave_active = false
-	for i in range(_active_absorb_managers.size() - 1, -1, -1):
-		var node: Node = _active_absorb_managers[i]
-		if node == null or not is_instance_valid(node):
-			_active_absorb_managers.remove_at(i)
-			continue
-		if node.has_method("finish_now"):
-			node.call("finish_now")
-		else:
-			node.queue_free()
-	_active_absorb_managers.clear()
-	# Defensive restore in case a manager was already gone.
-	if is_instance_valid(player) and player.has_method("end_absorb"):
-		player.call("end_absorb")
-
 func _on_wave_lane_runner_spawn(config: Dictionary) -> void:
 	if LANE_RUNNER_SCENE == null:
 		return
@@ -3099,6 +3043,13 @@ func _on_wave_gravity_hole_spawn(config: Dictionary) -> void:
 	)
 	if manager.has_signal("finished"):
 		manager.finished.connect(func() -> void:
+			# Mode libre gravity_hole = SESSION UNIQUE (cible 10000 ou 10 min) :
+			# la fin du round termine la run avec le modal de fin standard —
+			# pas de notify => pas de restart. La Fiesta (type "fiesta") garde
+			# le chemin normal (round court via fiesta_overrides).
+			if _free_mode_session and _free_mode_wave_type == "gravity_hole":
+				_show_end_session_screen(true, false)
+				return
 			if is_instance_valid(wave_manager) and wave_manager.has_method("notify_gravity_hole_finished"):
 				wave_manager.call("notify_gravity_hole_finished")
 		)
@@ -3440,7 +3391,6 @@ func _on_level_completed() -> void:
 	_clear_breakout_managers()
 	_clear_ball_launcher_managers()
 	_clear_climb_managers()
-	_clear_absorb_managers()
 	_clear_lane_runner_managers()
 	_clear_slice_rush_managers()
 	_clear_match3_managers()
@@ -3826,9 +3776,11 @@ func _show_end_session_screen(is_victory: bool = true, skip_delay: bool = false)
 				hud_container
 			)
 	
-	# 2. Main Reward (Boss Loot) - Only on Victory
+	# 2. Main Reward (Boss Loot) - Only on Victory. Jamais en mode libre : une
+	# fin de run libre "victorieuse" (gravity_hole à la cible) ne doit accorder
+	# ni complete_level fantôme ni item de boss.
 	var item := {}
-	if is_victory:
+	if is_victory and not _free_mode_session:
 		_apply_victory_progress()
 
 		# Use universal boss loot pipeline:

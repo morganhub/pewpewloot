@@ -104,7 +104,7 @@
         },
         {
           "type": "snake",
-          "duration": 50,
+          "duration": 60,
           "boss_toughness_mult": 1.5,
           "base_speed_px_sec": 250,
           "item_spawn_interval_sec": 1.65,
@@ -171,7 +171,7 @@
         },
         {
           "type": "snake",
-          "duration": 50,
+          "duration": 60,
           "boss_toughness_mult": 1.5,
           "base_speed_px_sec": 250,
           "item_spawn_interval_sec": 1.65,
@@ -196,7 +196,7 @@
         },
         {
           "type": "vertical_climb",
-          "duration": 40,
+          "duration": 60,
           "gravity_px_sec2": 1750,
           "bounce_speed_px_sec": 780,
           "platform_gap_y_min_px": 110,
@@ -253,7 +253,7 @@
         },
         {
           "type": "snake",
-          "duration": 50,
+          "duration": 60,
           "boss_toughness_mult": 1.5,
           "base_speed_px_sec": 250,
           "item_spawn_interval_sec": 1.65,
@@ -289,7 +289,7 @@
         },
         {
           "type": "pong",
-          "duration": 30,
+          "duration": 60,
           "ball_speed_px_sec": 560,
           "enemy_paddle_speed_px_sec": 470,
           "enemy_reaction_interval_sec": 0.2,
@@ -369,7 +369,7 @@
         },
         {
           "type": "snake",
-          "duration": 50,
+          "duration": 60,
           "boss_toughness_mult": 1.5,
           "base_speed_px_sec": 250,
           "item_spawn_interval_sec": 1.65,
@@ -416,7 +416,7 @@
         },
         {
           "type": "pong",
-          "duration": 30,
+          "duration": 60,
           "ball_speed_px_sec": 560,
           "enemy_paddle_speed_px_sec": 470,
           "enemy_reaction_interval_sec": 0.2,
@@ -489,7 +489,7 @@
         },
         {
           "type": "snake",
-          "duration": 50,
+          "duration": 60,
           "boss_toughness_mult": 1.5,
           "base_speed_px_sec": 250,
           "item_spawn_interval_sec": 1.65,
@@ -623,7 +623,7 @@
         },
         {
           "type": "snake",
-          "duration": 50,
+          "duration": 60,
           "boss_toughness_mult": 1.5,
           "base_speed_px_sec": 250,
           "item_spawn_interval_sec": 1.65,

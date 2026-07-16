@@ -16,15 +16,20 @@ extends Node2D
 ## depuis un seed roulé au chargement (hash(cx, cy, seed)) : quitter une zone et
 ## y revenir = retrouver les mêmes objets (les absorbés restent absorbés, les
 ## positions dérivées sont écrites dans le record au despawn). Props
-## mangeables/oversize (couleurs par taille relative), CHASSEURS (les gros
-## poursuivent le joueur 6-12 s random puis abandonnent), GÉANTS aux hautes
-## masses, garde-fou de solvabilité (toujours un mangeable à portée, spawns
-## éphémères hors seed) + FLÈCHE omnidirectionnelle vers le mangeable le plus
-## proche quand l'écran est vide. Labels d'effets optionnels sur les objets
-## (toggle racine wave_types.json > effect_labels_enabled — béquille lisibilité
-## tant que les assets ne sont pas explicites). Fin par OBJECTIF DE TAILLE (story : cible
-## facile en ~60 s ; Libre restart : cible par round croissante) — avec chance
-## de finale en NOYAU FRAGMENTÉ (3 fragments à absorber en ordre).
+## mangeables/oversize à VALEUR AFFICHÉE (label numérique vert = mangeable /
+## rouge = trop gros, recette ex-absorb) et TAILLE dérivée de la valeur ;
+## BOSS RÔDEURS (un vrai boss du jeu par chunk chanceux — .tres tiré au sort,
+## valeur affichée, steering doux vers le joueur puis décélération progressive,
+## avalable dès que la masse dépasse sa valeur, contact = DRAIN graduel de
+## masse), GÉANTS aux hautes masses, garde-fou de solvabilité (toujours un
+## mangeable à portée, spawns éphémères hors seed) + FLÈCHE omnidirectionnelle
+## vers le mangeable le plus proche quand l'écran est vide. Labels d'effets
+## optionnels (toggle racine wave_types.json > effect_labels_enabled).
+## Fin par OBJECTIF DE MASSE ABSOLU (target_mass — story 100 en 60 s, Libre
+## 10000 en 600 s) : timeout sous la cible = pénalité % HP (jamais létale si
+## oversize_never_lethal), au-dessus = le SURPLUS part en pluie de cristaux
+## DIFFÉRÉE (payée dans _finish, au retour au shmup) — avec chance de finale
+## en NOYAU FRAGMENTÉ (3 fragments à absorber en ordre, jackpot x1.5).
 ## Pickups (magnet, compass, surcharge, mini-trou compagnon, stabilisateur),
 ## variantes (props fuyants, zones électrifiées, props explosifs, gigognes,
 ## masse fondante) et événements en TOASTS centraux (champ d'astéroïdes, trou
@@ -78,11 +83,15 @@ const BG_TILE_POOL_MAX: int = 30
 # "velocity": Vector2, "rot_speed": float, "state": PropState,
 # "absorb_t": float, "absorb_sec": float, "start_scale": Vector2,
 # "type_tint": Color, "score_base": int, "crystal_chance": float,
-# "near": bool } + optionnels : "chaser"/"chasing"/"chase_until"/
-# "chase_cd_until"/"chase_speed_ratio", "giant", "flee", "nested",
+# "near": bool } + optionnels : "boss"/"boss_def"/"chasing"/"chase_until"/
+# "chase_cd_until", "giant", "flee", "nested",
 # "explosive", "comet", "fragment_index", "record" (props seedés).
 var _props: Array = []
-var _oversize_cooldown: float = 0.0
+var _oversize_fx_timer: float = 0.0
+var _drain_retint_accum: float = 0.0
+var _drain_damage_accum: float = 0.0
+var _stabilizer_immunity_left: float = 0.0
+var _last_mass_int: int = 0
 var _solvability_timer: float = 0.0
 var _no_target_timer: float = 0.0
 var _explosive_check_timer: float = 0.0
@@ -97,12 +106,14 @@ var _chunk_stream_timer: float = 0.0
 var _zone_chunk_chance: float = 0.0
 var _storm_spawn_timer: float = 0.0
 
-# Objectif de taille + noyau fragmenté.
+# Objectif de taille + noyau fragmenté + règlement de fin (pénalité/surplus).
 var _target_mass: float = 50.0
 var _fragment_roll_done: bool = false
 var _next_fragment: int = 0
 var _fragments_total: int = 0
 var _target_reached: bool = false
+var _timeout_resolved: bool = false
+var _pending_end_crystals: int = 0
 
 # Pickups (orbes monde, seedés par chunk) + effets temporels.
 var _pickups: Array = [] # { "node", "id", "pulse", "record" }
@@ -166,8 +177,15 @@ func setup(config: Dictionary, player_ref: Node2D, hud_ref: Node) -> void:
 	_run_duration = maxf(10.0, float(_get_conf("duration", _get_conf("duration_sec_default", 60.0))))
 	_start_mass = maxf(1.0, float(_get_conf("start_mass", 10.0)))
 	_mass = _start_mass
+	_last_mass_int = int(round(_mass))
 	_radius = _compute_radius()
-	_target_mass = maxf(_start_mass * 1.5, round(_start_mass * maxf(1.2, float(_get_conf("target_mass_mult", 5.0)))))
+	# Cible ABSOLUE (target_mass, prioritaire — story 100 / Libre 10000) ;
+	# fallback : l'ancienne formule multiplicative target_mass_mult.
+	var abs_target: float = maxf(0.0, float(_get_conf("target_mass", 0.0)))
+	if abs_target > 0.0:
+		_target_mass = maxf(_start_mass + 1.0, round(abs_target))
+	else:
+		_target_mass = maxf(_start_mass * 1.5, round(_start_mass * maxf(1.2, float(_get_conf("target_mass_mult", 5.0)))))
 	_reward_mult = maxf(0.05, float(_config.get("reward_multiplier", _cfg.get("reward_multiplier_default", 1.0))))
 
 	var bgs_v: Variant = _get_conf("bg_assets", [])
@@ -277,7 +295,15 @@ func _gain_mass(amount: float) -> void:
 	_mass += maxf(0.0, amount)
 	_radius = _compute_radius()
 	_push_player_state()
+	_last_mass_int = int(round(_mass))
 	_retint_all_props()
+
+## Retint throttlé (drain / decay) : seulement quand la masse ENTIÈRE change.
+func _retint_if_mass_int_changed() -> void:
+	var mass_int: int = int(round(_mass))
+	if mass_int != _last_mass_int:
+		_last_mass_int = mass_int
+		_retint_all_props()
 
 func _translate_or(key: String, fallback: String) -> String:
 	if key != "" and typeof(LocaleManager) != TYPE_NIL and LocaleManager:
@@ -634,6 +660,42 @@ func _pick_prop_type(rng: RandomNumberGenerator = null) -> Dictionary:
 			return types[i] as Dictionary
 	return types[types.size() - 1] as Dictionary
 
+## Boss rôdeur : def tirée au poids dans bosses[] (mêmes .tres que match3).
+func _pick_boss_def(rng: RandomNumberGenerator) -> Dictionary:
+	var defs_v: Variant = _get_conf("bosses", [])
+	if not (defs_v is Array) or (defs_v as Array).is_empty():
+		return {}
+	var defs: Array = defs_v as Array
+	var total: float = 0.0
+	for d_v in defs:
+		total += maxf(0.0, float((d_v as Dictionary).get("weight", 1.0)))
+	if total <= 0.0:
+		return defs[0] as Dictionary
+	var roll: float = rng.randf() * total
+	for d_v in defs:
+		roll -= maxf(0.0, float((d_v as Dictionary).get("weight", 1.0)))
+		if roll <= 0.0:
+			return d_v as Dictionary
+	return defs[defs.size() - 1] as Dictionary
+
+func _count_active_bosses() -> int:
+	var count: int = 0
+	for entry in _props:
+		if entry.has("boss"):
+			count += 1
+	return count
+
+## Taille visuelle ∝ valeur (courbe douce, bornée) : plus la valeur est grosse,
+## plus le prop est gros — stable au revisit (valeur figée au seed), le zoom
+## Agar.io fait le reste à l'écran.
+func _size_for_value(required: float, size_mult: float = 1.0) -> float:
+	var ref_px: float = maxf(8.0, float(_get_conf("prop_size_value_ref_px", 72.0)))
+	var exp_v: float = clampf(float(_get_conf("prop_size_value_exponent", 0.5)), 0.1, 1.0)
+	var size_px: float = ref_px * pow(maxf(0.1, required) / maxf(1.0, _start_mass), exp_v) * maxf(0.1, size_mult)
+	return clampf(size_px,
+		maxf(8.0, float(_get_conf("prop_size_min_px", 40.0))),
+		maxf(16.0, float(_get_conf("prop_size_max_px", 340.0))))
+
 ## Position de spawn sur un anneau autour du joueur (hors écran, monde).
 func _ring_spawn_pos(ratio: float = -1.0, forced_angle: float = NAN) -> Vector2:
 	var ring: float = _view_radius() * (maxf(0.4, float(_get_conf("spawn_ring_ratio", 1.15))) if ratio <= 0.0 else ratio)
@@ -673,14 +735,9 @@ func _ensure_chunk(coords: Vector2i) -> Dictionary:
 			"consumed": false,
 			"live": false
 		}
-		# Variantes par prop : chasseur (oversize), fuyant (mangeable), gigogne
-		# (moyen), explosif (marqué au seed — labelable).
-		if required > _mass and rng.randf() <= clampf(float(_get_conf("chaser_chance", 0.0)), 0.0, 1.0):
-			record["chaser"] = true
-			record["chase_speed_ratio"] = rng.randf_range(
-				maxf(0.3, float(_get_conf("chase_speed_ratio_min", 0.92))),
-				maxf(0.4, float(_get_conf("chase_speed_ratio_max", 1.06))))
-		elif required <= _mass and rng.randf() <= clampf(float(_get_conf("flee_chance", 0.0)), 0.0, 1.0):
+		# Variantes par prop : fuyant (mangeable), gigogne (moyen), explosif
+		# (marqué au seed — labelable).
+		if required <= _mass and rng.randf() <= clampf(float(_get_conf("flee_chance", 0.0)), 0.0, 1.0):
 			record["flee"] = true
 		if str(type.get("id", "")) == "wreck_medium" \
 			and rng.randf() <= clampf(float(_get_conf("nested_chance", 0.0)), 0.0, 1.0):
@@ -688,6 +745,29 @@ func _ensure_chunk(coords: Vector2i) -> Dictionary:
 		if rng.randf() <= clampf(float(_get_conf("explosive_pair_chance", 0.0)), 0.0, 1.0):
 			record["explosive"] = true
 		(chunk["props"] as Array).append(record)
+	# Boss rôdeur (remplace l'ex-chasseur) : un vrai boss du jeu, valeur figée
+	# en absolu comme les props, seedé/persistant — poursuit le joueur en
+	# steering doux, avalable dès que la masse dépasse sa valeur.
+	if rng.randf() <= clampf(float(_get_conf("boss_chunk_chance", 0.0)), 0.0, 1.0):
+		var boss_def: Dictionary = _pick_boss_def(rng)
+		if not boss_def.is_empty():
+			var boss_required: float = maxf(1.0, round(_mass * rng.randf_range(
+				maxf(1.05, float(_get_conf("boss_mass_ratio_min", 1.6))),
+				maxf(1.1, float(_get_conf("boss_mass_ratio_max", 3.0))))))
+			(chunk["props"] as Array).append({
+				"pos": origin + Vector2(rng.randf(), rng.randf()) * chunk_size,
+				"type": {},
+				"boss": true,
+				"boss_def": boss_def,
+				"required_mass": boss_required,
+				"mass_gain": maxf(1.0, round(boss_required * maxf(0.05, float(_get_conf("boss_mass_gain_ratio", 0.35))))),
+				"velocity": Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(
+					maxf(5.0, float(_get_conf("drift_speed_min_px_sec", 28.0))),
+					maxf(6.0, float(_get_conf("drift_speed_max_px_sec", 70.0)))),
+				"rot_speed": 0.0,
+				"consumed": false,
+				"live": false
+			})
 	# Pickup seedé (0-1 par chunk) : type pondéré par les <id>_pickup_chance.
 	if rng.randf() <= clampf(float(_get_conf("chunk_pickup_chance", 0.22)), 0.0, 1.0):
 		var total: float = 0.0
@@ -746,6 +826,10 @@ func _tick_chunk_stream(dt: float) -> void:
 				var rec: Dictionary = rec_v as Dictionary
 				if bool(rec.get("consumed", false)) or bool(rec.get("live", false)) or _props.size() >= cap:
 					continue
+				# Cap dédié aux boss rôdeurs (indépendant du cap de props).
+				if bool(rec.get("boss", false)) \
+					and _count_active_bosses() >= maxi(0, int(_get_conf("max_active_bosses", 2))):
+					continue
 				if (rec.get("pos", Vector2.ZERO) as Vector2).distance_to(_world_pos) <= stream_r:
 					_instantiate_prop_record(rec)
 			for prec_v in (chunk["pickups"] as Array):
@@ -761,25 +845,38 @@ func _tick_chunk_stream(dt: float) -> void:
 				if (zrec.get("pos", Vector2.ZERO) as Vector2).distance_to(_world_pos) <= stream_r + float(zrec.get("radius", 150.0)):
 					_instantiate_zone_record(zrec)
 
-## Instancie un record de prop (seedé ou éphémère) en node + entry runtime.
+## Instancie un record de prop OU de boss (seedé ou éphémère) en node + entry.
 func _instantiate_prop_record(record: Dictionary) -> void:
 	if _world_root == null or not is_instance_valid(_world_root):
 		return
+	var is_boss: bool = bool(record.get("boss", false))
 	var type: Dictionary = record.get("type", {})
-	var size_px: float = maxf(16.0, float(type.get("size_px", 56.0)))
+	var required: float = float(record.get("required_mass", 1.0))
+	# Taille dérivée de la valeur (plus de size_px fixe par def).
+	var size_mult: float = maxf(0.1, float(_get_conf("boss_size_mult", 1.2))) if is_boss \
+		else maxf(0.1, float(type.get("size_mult", 1.0)))
+	var size_px: float = _size_for_value(required, size_mult)
 	var node := Node2D.new()
-	node.name = "GravityProp"
+	node.name = "GravityBoss" if is_boss else "GravityProp"
 	node.z_as_relative = false
-	node.z_index = 10
+	node.z_index = 12 if is_boss else 10
 	node.position = record.get("pos", Vector2.ZERO)
 	var type_tint := Color(str(type.get("tint", "#FFFFFF")))
-	node.add_child(_build_prop_visual(type, size_px))
+	if is_boss:
+		# Visuel = le .tres du boss tiré au seed (fallback polygone standard).
+		var boss_def: Dictionary = record.get("boss_def", {})
+		var boss_visual: Node2D = _build_sprite_fit(str(boss_def.get("asset_anim", "")), size_px)
+		if boss_visual == null:
+			boss_visual = _build_prop_visual({}, size_px)
+		node.add_child(boss_visual)
+	else:
+		node.add_child(_build_prop_visual(type, size_px))
 	_world_root.add_child(node)
 	var entry: Dictionary = {
 		"node": node,
 		"label": null,
 		"record": record,
-		"required_mass": float(record.get("required_mass", 1.0)),
+		"required_mass": required,
 		"mass_gain": float(record.get("mass_gain", 1.0)),
 		"radius_px": size_px * 0.5,
 		"velocity": record.get("velocity", Vector2.ZERO),
@@ -789,22 +886,22 @@ func _instantiate_prop_record(record: Dictionary) -> void:
 		"absorb_sec": 0.2,
 		"start_scale": node.scale,
 		"type_tint": type_tint,
-		"score_base": int(type.get("score_base", 15)),
-		"crystal_chance": clampf(float(type.get("crystal_chance", 0.1)), 0.0, 1.0),
+		"score_base": maxi(0, int(_get_conf("boss_score_base", 250))) if is_boss else int(type.get("score_base", 15)),
+		"crystal_chance": 0.0 if is_boss else clampf(float(type.get("crystal_chance", 0.1)), 0.0, 1.0),
 		"near": false
 	}
+	if is_boss:
+		entry["boss"] = true
+		entry["chase_cd_until"] = 0.0
 	if bool(type.get("giant", false)):
 		entry["giant"] = true
-	for flag in ["chaser", "flee", "nested", "explosive"]:
+	for flag in ["flee", "nested", "explosive"]:
 		if bool(record.get(flag, false)):
 			entry[flag] = true
-	if entry.has("chaser"):
-		entry["chase_speed_ratio"] = float(record.get("chase_speed_ratio", 1.0))
-		entry["chase_cd_until"] = 0.0
 	if entry.has("nested"):
 		_attach_nested_rim(node, size_px)
-	if bool(_get_conf("prop_labels_enabled", false)):
-		entry["label"] = _attach_value_label(node, float(entry["required_mass"]), size_px, int(_get_conf("value_label_font_size", 20)))
+	if is_boss or bool(_get_conf("prop_labels_enabled", true)):
+		entry["label"] = _attach_value_label(node, required, size_px, int(_get_conf("value_label_font_size", 20)))
 	_attach_effect_labels(entry, node, size_px)
 	record["live"] = true
 	_props.append(entry)
@@ -910,7 +1007,7 @@ func _spawn_fragments() -> void:
 		_props.append({
 			"node": node, "label": null,
 			"required_mass": 1.0 if i == 0 else 1e12, # seul le premier est mangeable
-			"mass_gain": maxf(2.0, round(_mass * 0.12)),
+			"mass_gain": maxf(2.0, round(_mass * maxf(0.01, float(_get_conf("fragment_mass_gain_ratio", 0.12))))),
 			"radius_px": size_px * 0.5,
 			"velocity": Vector2.from_angle(randf() * TAU) * 22.0,
 			"rot_speed": deg_to_rad(10.0),
@@ -932,6 +1029,10 @@ func _attach_value_label(node: Node2D, value: float, size_px: float, font_size: 
 	label.text = str(int(round(value)))
 	label.size = Vector2(160.0, 40.0)
 	label.position = Vector2(-80.0, -size_px * 0.5 - 40.0)
+	# Recette ex-absorb : z absolu élevé, sinon les chiffres passent sous les
+	# autres éléments du monde.
+	label.z_as_relative = false
+	label.z_index = 40
 	node.add_child(label)
 	return label
 
@@ -972,8 +1073,8 @@ func _attach_effect_labels(entry: Dictionary, node: Node2D, size_px: float) -> v
 		texts.append(_translate_or("gh_effect_flee", "FLEEING"))
 	if bool(entry.get("nested", false)):
 		texts.append(_translate_or("gh_effect_nested", "NESTED"))
-	if entry.has("chaser"):
-		texts.append(_translate_or("gh_effect_chaser", "CHASER"))
+	if entry.has("boss"):
+		texts.append(_translate_or("gh_effect_boss", "BOSS"))
 	if texts.is_empty():
 		return
 	_attach_effect_label(node, " · ".join(texts), size_px, Color("#FFFFFF"))
@@ -1048,7 +1149,7 @@ func _apply_prop_tint(entry: Dictionary) -> void:
 	var type_tint: Color = entry.get("type_tint", Color.WHITE)
 	var state_color: Color
 	if absorbable:
-		state_color = Color(str(_get_conf("color_absorbable", "#4FD8C8")))
+		state_color = Color(str(_get_conf("color_absorbable", "#3FBF6A")))
 	elif near:
 		state_color = Color(str(_get_conf("color_near", "#F2E45B")))
 	else:
@@ -1075,7 +1176,8 @@ func _process(delta: float) -> void:
 		return
 	var dt: float = minf(delta, 0.1)
 	_time += dt
-	_oversize_cooldown = maxf(0.0, _oversize_cooldown - dt)
+	_oversize_fx_timer = maxf(0.0, _oversize_fx_timer - dt)
+	_stabilizer_immunity_left = maxf(0.0, _stabilizer_immunity_left - dt)
 	_tick_effect_timers(dt)
 
 	if _transition_follow and _transition_sprite and is_instance_valid(_transition_sprite):
@@ -1094,6 +1196,7 @@ func _process(delta: float) -> void:
 			_tick_event_scheduler(dt)
 			_tick_objective()
 			if _run_elapsed >= _run_duration:
+				_resolve_timeout()
 				_begin_outro()
 		State.FINAL:
 			_run_elapsed += minf(delta, 0.25)
@@ -1101,6 +1204,7 @@ func _process(delta: float) -> void:
 			_tick_chunk_stream(dt)
 			_tick_solvability(dt)
 			if _run_elapsed >= _run_duration:
+				_resolve_timeout()
 				_begin_outro()
 
 	_update_world_transform()
@@ -1114,7 +1218,7 @@ func _process(delta: float) -> void:
 	_update_companion(dt)
 	_update_stabilizer_visual(dt)
 	if _state == State.RUN or _state == State.FINAL:
-		_check_contacts()
+		_check_contacts(dt)
 		_check_explosive_pairs(dt)
 	_update_arrow()
 
@@ -1150,6 +1254,7 @@ func _tick_mass_decay(dt: float) -> void:
 	_mass = maxf(_start_mass, _mass * (1.0 - decay * 0.01 * dt))
 	_radius = _compute_radius()
 	_push_player_state()
+	_retint_if_mass_int_changed()
 
 ## Tempête dérivante [E20] : en plus du drift x2, saupoudre des props éphémères
 ## (le monde seedé n'a pas de spawner continu — la tempête en réintroduit un
@@ -1192,7 +1297,8 @@ func _tick_solvability(dt: float) -> void:
 		if required <= _mass:
 			has_target = true
 			continue
-		if required < smallest_required:
+		# Les boss rôdeurs ne sont jamais rétrécis par le rescue.
+		if required < smallest_required and not entry.has("boss"):
 			smallest_required = required
 			smallest = entry
 	_clear_screen_peak = maxi(_clear_screen_peak, visible_count)
@@ -1213,8 +1319,10 @@ func _tick_solvability(dt: float) -> void:
 		var rescued: float = maxf(1.0, round(_mass * clampf(float(_get_conf("eatable_rescue_ratio", 0.55)), 0.1, 0.9)))
 		smallest["required_mass"] = rescued
 		smallest["mass_gain"] = maxf(1.0, round(rescued * maxf(0.05, float(_get_conf("eatable_rescue_gain_ratio", 0.25)))))
-		smallest.erase("chaser")
-		smallest["chasing"] = false
+		# La valeur affichée doit suivre la valeur rescue.
+		var rescue_label_v: Variant = smallest.get("label", null)
+		if rescue_label_v is Label and is_instance_valid(rescue_label_v):
+			(rescue_label_v as Label).text = str(int(round(rescued)))
 		_apply_prop_tint(smallest)
 		var node_v: Variant = smallest.get("node", null)
 		if VFXManager and node_v is Node2D and is_instance_valid(node_v):
@@ -1237,16 +1345,58 @@ func _on_target_reached(jackpot_mult: float) -> void:
 		return
 	_target_reached = true
 	_toast("gh_target_reached", "TARGET REACHED!", "#7CFC9A")
+	# La récompense = le SURPLUS au-delà de la cible (différé, payé au retour au
+	# shmup dans _finish) ; le score bonus reste immédiat.
+	_queue_surplus_crystals(jackpot_mult)
 	if _game and is_instance_valid(_game):
-		if _game.has_method("spawn_reward_crystals_from_top"):
-			_game.call("spawn_reward_crystals_from_top",
-				maxi(1, int(round(float(_get_conf("target_crystals", 8)) * jackpot_mult))))
 		var score: int = int(round(float(_get_conf("target_score", 1500)) * _reward_mult * jackpot_mult))
 		if score > 0 and _game.has_method("add_wave_bonus_score"):
 			_game.call("add_wave_bonus_score", score, _screen_center())
 	if VFXManager:
 		VFXManager.screen_shake(7.0, 0.3)
 	_begin_outro()
+
+## Timeout au timer : sous la cible = pénalité X % des HP max (X = points de %
+## manquants, ex. masse 70/100 -> 30 %), JAMAIS létale si oversize_never_lethal ;
+## au-dessus = le surplus part en pluie différée.
+func _resolve_timeout() -> void:
+	if _timeout_resolved or _target_reached:
+		return
+	_timeout_resolved = true
+	if _mass >= _target_mass:
+		_queue_surplus_crystals(1.0)
+		return
+	if not bool(_get_conf("timeout_penalty_enabled", true)):
+		return
+	if _player == null or not is_instance_valid(_player) or not _player.has_method("take_damage"):
+		return
+	var missing_pct: float = clampf((1.0 - _mass / maxf(1.0, _target_mass)) * 100.0, 0.0, 100.0)
+	if missing_pct <= 0.0:
+		return
+	var max_hp_v: Variant = _player.get("max_hp")
+	var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
+	var dmg: int = maxi(1, int(ceil(float(max_hp) * missing_pct * 0.01)))
+	if bool(_get_conf("oversize_never_lethal", true)):
+		var hp_v: Variant = _player.get("current_hp")
+		var current_hp: int = int(hp_v) if (hp_v is int or hp_v is float) else max_hp
+		dmg = mini(dmg, maxi(0, current_hp - 1))
+	if dmg > 0:
+		_player.call("take_damage", dmg)
+	_toast("gh_timeout_penalty", "MASS DEFICIT!", "#E8553B")
+	if VFXManager:
+		VFXManager.flash_sprite(_player, Color(1.0, 0.3, 0.25), 0.3)
+		VFXManager.screen_shake(7.0, 0.3)
+
+## Surplus au-delà de la cible -> cristaux en attente (1 cristal / point de
+## masse, cap data), payés dans _finish après l'outro. cap 0 = désactivé.
+func _queue_surplus_crystals(jackpot_mult: float) -> void:
+	var cap: int = maxi(0, int(_get_conf("surplus_crystals_cap", 60)))
+	if cap <= 0:
+		return
+	_pending_end_crystals = clampi(
+		int(round(maxf(0.0, _mass - _target_mass) * maxf(0.1, jackpot_mult))), 0, cap)
+	if _pending_end_crystals > 0:
+		_toast("gh_surplus_rain", "CRYSTAL RAIN!", "#7CFC9A")
 
 func _update_props(dt: float) -> void:
 	var pull: float = maxf(0.0, float(_get_conf("attract_pull_px_sec", 150.0)))
@@ -1257,14 +1407,9 @@ func _update_props(dt: float) -> void:
 	var spin: float = deg_to_rad(maxf(0.0, float(_get_conf("absorb_spin_deg_sec", 320.0))))
 	var storm_mult: float = maxf(1.0, float(_get_conf("storm_drift_mult", 2.0))) if _storm_left > 0.0 else 1.0
 	var despawn_dist: float = _view_radius() * maxf(1.3, float(_get_conf("despawn_ring_ratio", 2.2)))
-	var chase_detect: float = maxf(50.0, float(_get_conf("chase_detect_radius_px", 520.0)))
+	var chase_detect: float = maxf(50.0, float(_get_conf("boss_chase_detect_radius_px", 640.0)))
 	var flee_detect: float = maxf(30.0, float(_get_conf("flee_detect_radius_px", 300.0)))
 	var player_speed: float = _current_speed()
-	var chasers_active: int = 0
-	for entry in _props:
-		if bool(entry.get("chasing", false)):
-			chasers_active += 1
-	var max_chasers: int = maxi(0, int(_get_conf("max_concurrent_chasers", 2)))
 	for i in range(_props.size() - 1, -1, -1):
 		var entry: Dictionary = _props[i]
 		var node_v: Variant = entry.get("node", null)
@@ -1290,27 +1435,34 @@ func _update_props(dt: float) -> void:
 		var dist: float = node.position.distance_to(_world_pos)
 		var absorbable: bool = required <= _mass or _dimension_left > 0.0
 
-		# Chasseur : les gros poursuivent 6-12 s puis lâchent l'affaire.
-		if entry.has("chaser") and not absorbable and _inversion_left <= 0.0 and _dimension_left <= 0.0:
+		# Boss rôdeur : steering DOUX vers le joueur (rotation + accélération
+		# bornées, toujours plus lent que lui), fin de poursuite en décélération
+		# progressive — plus de homing rectiligne ni d'inversion sèche.
+		if entry.has("boss") and not absorbable and _inversion_left <= 0.0 and _dimension_left <= 0.0:
+			var boss_vel: Vector2 = entry.get("velocity", Vector2.ZERO)
 			if bool(entry.get("chasing", false)):
 				if _time >= float(entry.get("chase_until", 0.0)):
 					entry["chasing"] = false
-					entry["chase_cd_until"] = _time + maxf(1.0, float(_get_conf("chase_cooldown_sec", 8.0)))
-					entry["velocity"] = (node.position - _world_pos).normalized() \
-						* maxf(20.0, float(_get_conf("drift_speed_min_px_sec", 28.0)))
+					entry["chase_cd_until"] = _time + maxf(1.0, float(_get_conf("boss_chase_cooldown_sec", 8.0)))
 				else:
-					entry["velocity"] = (_world_pos - node.position).normalized() \
-						* player_speed * float(entry.get("chase_speed_ratio", 1.0))
-			elif chasers_active < max_chasers and dist < chase_detect \
-				and _time >= float(entry.get("chase_cd_until", 0.0)):
-				entry["chasing"] = true
-				chasers_active += 1
-				entry["chase_until"] = _time + randf_range(
-					maxf(1.0, float(_get_conf("chase_min_sec", 6.0))),
-					maxf(2.0, float(_get_conf("chase_max_sec", 12.0))))
-				if VFXManager:
-					VFXManager.spawn_floating_text(_world_to_screen(node.position) + Vector2(0.0, -40.0),
-						_translate_or("gh_chase", "CHASE!"), Color("#E8553B"), self)
+					var desired: Vector2 = (_world_pos - node.position).normalized() \
+						* player_speed * clampf(float(_get_conf("boss_speed_ratio", 0.8)), 0.1, 1.0)
+					entry["velocity"] = _steer_velocity(boss_vel, desired, dt)
+			else:
+				# Retour au drift : la vitesse fond doucement, cap conservé.
+				var boss_drift: float = maxf(5.0, float(_get_conf("drift_speed_min_px_sec", 28.0)))
+				if boss_vel.length() > boss_drift:
+					entry["velocity"] = boss_vel.move_toward(
+						boss_vel.normalized() * boss_drift,
+						maxf(10.0, float(_get_conf("boss_decel_px_sec2", 130.0))) * dt)
+				if dist < chase_detect and _time >= float(entry.get("chase_cd_until", 0.0)):
+					entry["chasing"] = true
+					entry["chase_until"] = _time + randf_range(
+						maxf(1.0, float(_get_conf("boss_chase_min_sec", 6.0))),
+						maxf(2.0, float(_get_conf("boss_chase_max_sec", 12.0))))
+					if VFXManager:
+						VFXManager.spawn_floating_text(_world_to_screen(node.position) + Vector2(0.0, -40.0),
+							_translate_or("gh_chase", "CHASE!"), Color("#E8553B"), self)
 		# Fuyant : le mangeable accélère en s'éloignant du vaisseau proche.
 		elif bool(entry.get("flee", false)) and absorbable and dist < flee_detect and dist > 1.0:
 			var away: Vector2 = (node.position - _world_pos).normalized()
@@ -1347,7 +1499,21 @@ func _update_props(dt: float) -> void:
 			node.queue_free()
 			_props.remove_at(i)
 
-func _check_contacts() -> void:
+## Steering doux : tourne la vélocité vers la cible à turn_rate max et ajuste
+## la norme par accélération bornée — jamais d'écrasement par frame.
+func _steer_velocity(vel: Vector2, desired: Vector2, dt: float) -> Vector2:
+	var turn_rate: float = deg_to_rad(maxf(10.0, float(_get_conf("boss_turn_rate_deg_sec", 140.0))))
+	var accel: float = maxf(10.0, float(_get_conf("boss_accel_px_sec2", 240.0)))
+	var cur_speed: float = vel.length()
+	var dir: Vector2
+	if cur_speed < 1.0:
+		dir = desired.normalized()
+	else:
+		var angle_diff: float = vel.angle_to(desired)
+		dir = vel.normalized().rotated(clampf(angle_diff, -turn_rate * dt, turn_rate * dt))
+	return dir * move_toward(cur_speed, desired.length(), accel * dt)
+
+func _check_contacts(dt: float) -> void:
 	var capture_ratio: float = clampf(float(_get_conf("capture_ratio", 0.82)), 0.3, 1.0)
 	for i in range(_props.size() - 1, -1, -1):
 		var entry: Dictionary = _props[i]
@@ -1370,7 +1536,7 @@ func _check_contacts() -> void:
 				_begin_absorb_prop(entry)
 		else:
 			if dist <= _radius * capture_ratio + float(entry.get("radius_px", 30.0)) * 0.4:
-				_oversize_contact(entry, node_v as Node2D)
+				_oversize_drain(entry, node_v as Node2D, dt)
 
 ## Props explosifs [V9] : marqués au SEED (labelables) — un prop explosif qui
 ## touche un autre oversize part en grappe de petits mangeables (scan espacé).
@@ -1382,7 +1548,8 @@ func _check_explosive_pairs(dt: float) -> void:
 	var oversize: Array = []
 	var any_explosive: bool = false
 	for entry in _props:
-		if int(entry.get("state", PropState.DRIFT)) != PropState.DRIFT or entry.has("fragment_index"):
+		if int(entry.get("state", PropState.DRIFT)) != PropState.DRIFT or entry.has("fragment_index") \
+			or entry.has("boss"):
 			continue
 		if float(entry.get("required_mass", 0.0)) > _mass:
 			var node_v: Variant = entry.get("node", null)
@@ -1425,8 +1592,8 @@ func _remove_prop_entry(entry: Dictionary) -> void:
 func _spawn_shard(world_pos: Vector2) -> void:
 	if _world_root == null or not is_instance_valid(_world_root):
 		return
-	var size_px: float = 40.0
 	var required: float = maxf(1.0, round(_mass * randf_range(0.25, 0.5)))
+	var size_px: float = _size_for_value(required)
 	var node := Node2D.new()
 	node.name = "GravityShard"
 	node.z_as_relative = false
@@ -1451,6 +1618,8 @@ func _spawn_shard(world_pos: Vector2) -> void:
 		"crystal_chance": clampf(float(shard_type.get("crystal_chance", 0.08)), 0.0, 1.0),
 		"near": false
 	}
+	if bool(_get_conf("prop_labels_enabled", true)):
+		entry["label"] = _attach_value_label(node, required, size_px, int(_get_conf("value_label_font_size", 20)))
 	_props.append(entry)
 	_apply_prop_tint(entry)
 
@@ -1488,6 +1657,11 @@ func _begin_absorb_prop(entry: Dictionary) -> void:
 	_gain_mass(gain)
 	if _player.has_method("pulse_gravity_hole_aura"):
 		_player.call("pulse_gravity_hole_aura")
+	# Boss avalé = gros événement : toast + éventail de cristaux garantis.
+	if bool(entry.get("boss", false)):
+		_toast("gh_boss_devoured", "BOSS DEVOURED!", "#FFD866")
+		if VFXManager:
+			VFXManager.screen_shake(6.0, 0.3)
 
 	if _game and is_instance_valid(_game):
 		var score: int = int(round(float(entry.get("score_base", 0)) * _reward_mult))
@@ -1498,6 +1672,12 @@ func _begin_absorb_prop(entry: Dictionary) -> void:
 				for c in range(maxi(1, int(_get_conf("comet_crystals", 4)))):
 					_game.call("spawn_reward_crystal_at",
 						at_screen + Vector2(randf_range(-30.0, 30.0), randf_range(-20.0, 20.0)),
+						{"force_magnet_after_sec": 1.0})
+		elif bool(entry.get("boss", false)):
+			if _game.has_method("spawn_reward_crystal_at"):
+				for c in range(maxi(1, int(_get_conf("boss_crystals", 5)))):
+					_game.call("spawn_reward_crystal_at",
+						at_screen + Vector2(randf_range(-40.0, 40.0), randf_range(-25.0, 25.0)),
 						{"force_magnet_after_sec": 1.0})
 		elif randf() <= float(entry.get("crystal_chance", 0.0)) and _game.has_method("spawn_reward_crystal_at"):
 			_game.call("spawn_reward_crystal_at", at_screen,
@@ -1537,52 +1717,63 @@ func _check_clear_screen() -> void:
 	if _game and is_instance_valid(_game) and _game.has_method("spawn_reward_crystals_from_top"):
 		_game.call("spawn_reward_crystals_from_top", maxi(1, int(_get_conf("clear_screen_crystals", 4))))
 
-## Touching a too-big structure hurts (shield first, never lethal by default),
-## sheds flat mass, knocks the WORLD position back and deflects the prop away.
-## Le stabilisateur (pickup) annule un contact.
-func _oversize_contact(entry: Dictionary, node: Node2D) -> void:
-	if _oversize_cooldown > 0.0:
+## Contact avec plus gros = ASPIRATION GRADUELLE : la masse fond à un rythme
+## en %/s tant que le contact dure, avec un repoussement continu doux du MONDE
+## (le vaisseau reste centré) — plus de hit ponctuel ni de knockback sec. Les
+## dégâts HP sont optionnels (0 par défaut) et jamais létaux si
+## oversize_never_lethal. Le stabilisateur (pickup) donne une immunité brève.
+func _oversize_drain(entry: Dictionary, node: Node2D, dt: float) -> void:
+	if _stabilizer_immunity_left > 0.0:
 		return
-	_oversize_cooldown = maxf(0.2, float(_get_conf("oversize_contact_cooldown_sec", 1.0)))
 	var dir_away: Vector2 = (_world_pos - node.position).normalized()
 	if dir_away == Vector2.ZERO:
 		dir_away = Vector2.DOWN
-	# Stabilisateur : annule ce contact (dégâts + perte de masse), défléchit.
+	# Stabilisateur : consommé à l'entrée en drain -> immunité temporaire.
 	if _stabilizer_charges > 0:
 		_stabilizer_charges -= 1
 		_update_stabilizer_node()
-		entry["velocity"] = -dir_away * maxf((entry.get("velocity", Vector2.ZERO) as Vector2).length(), 40.0)
+		_stabilizer_immunity_left = maxf(0.5, float(_get_conf("stabilizer_immunity_sec", 2.5)))
 		if VFXManager:
 			VFXManager.spawn_impact(_screen_center(), 30.0, self)
 			VFXManager.spawn_floating_text(_screen_center() + Vector2(0.0, -70.0),
 				_translate_or("gh_stabilizer_used", "STABILIZED!"), Color("#7FE58C"), self)
 		return
-	var dmg_mult: float = maxf(1.0, float(_get_conf("giant_damage_mult", 2.0))) if bool(entry.get("giant", false)) else 1.0
-	if _player.has_method("take_damage"):
+	var drain_mult: float = maxf(1.0, float(_get_conf("giant_drain_mult", 2.0))) if bool(entry.get("giant", false)) else 1.0
+	# Perte de masse graduelle (%/s + flat/s), plancher start_mass.
+	var loss: float = (_mass * maxf(0.0, float(_get_conf("oversize_drain_mass_percent_per_sec", 6.0))) * 0.01 \
+		+ maxf(0.0, float(_get_conf("oversize_drain_mass_flat_per_sec", 0.0)))) * drain_mult * dt
+	if loss > 0.0:
+		_mass = maxf(_start_mass, _mass - loss)
+		_radius = _compute_radius()
+		_push_player_state()
+		_drain_retint_accum += loss
+	# Dégâts HP optionnels (%/s des HP max, accumulés en float).
+	var dmg_pct_sec: float = maxf(0.0, float(_get_conf("oversize_drain_damage_percent_per_sec", 0.0))) * drain_mult
+	if dmg_pct_sec > 0.0 and _player.has_method("take_damage"):
 		var max_hp_v: Variant = _player.get("max_hp")
 		var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
-		var pct: float = clampf(float(_get_conf("oversize_contact_damage_percent", 0.12)) * dmg_mult, 0.0, 1.0)
-		var dmg: int = maxi(1, int(ceil(float(max_hp) * pct)))
-		if bool(_get_conf("oversize_never_lethal", true)):
-			var hp_v: Variant = _player.get("current_hp")
-			var current_hp: int = int(hp_v) if (hp_v is int or hp_v is float) else max_hp
-			dmg = mini(dmg, maxi(0, current_hp - 1))
+		_drain_damage_accum += float(max_hp) * clampf(dmg_pct_sec, 0.0, 100.0) * 0.01 * dt
+		var dmg: int = int(floor(_drain_damage_accum))
 		if dmg > 0:
-			_player.call("take_damage", dmg)
-	_mass = maxf(_start_mass, _mass - maxf(0.0, float(_get_conf("oversize_mass_loss_flat", 6.0))))
-	_radius = _compute_radius()
-	_push_player_state()
-	# Knockback : c'est le MONDE qui encaisse (le vaisseau reste au centre).
-	_world_pos += dir_away * maxf(0.0, float(_get_conf("oversize_knockback_px", 80.0)))
-	# Deflect the prop so it leaves the contact zone instead of grinding.
-	var vel: Vector2 = entry.get("velocity", Vector2.ZERO)
-	entry["velocity"] = -dir_away * maxf(vel.length(), 20.0)
-	entry["chasing"] = false
-	entry["chase_cd_until"] = _time + maxf(1.0, float(_get_conf("chase_cooldown_sec", 8.0)))
-	if VFXManager:
-		VFXManager.flash_sprite(_player, Color(1.0, 0.35, 0.3), 0.25)
-		VFXManager.screen_shake(6.0, 0.25)
-	_retint_all_props()
+			_drain_damage_accum -= float(dmg)
+			if bool(_get_conf("oversize_never_lethal", true)):
+				var hp_v: Variant = _player.get("current_hp")
+				var current_hp: int = int(hp_v) if (hp_v is int or hp_v is float) else max_hp
+				dmg = mini(dmg, maxi(0, current_hp - 1))
+			if dmg > 0:
+				_player.call("take_damage", dmg)
+	# Repoussement continu doux : c'est le MONDE qui encaisse.
+	_world_pos += dir_away * maxf(0.0, float(_get_conf("oversize_push_px_sec", 90.0))) * dt
+	# VFX + retint throttlés (le drain tourne chaque frame de contact).
+	if _oversize_fx_timer <= 0.0:
+		_oversize_fx_timer = 0.25
+		if VFXManager:
+			VFXManager.flash_sprite(_player, Color(1.0, 0.35, 0.3), 0.2)
+			VFXManager.spawn_floating_text(_screen_center() + Vector2(0.0, -70.0),
+				_translate_or("gh_drain", "DRAINED!"), Color("#E8553B"), self)
+		if _drain_retint_accum >= 1.0:
+			_drain_retint_accum = 0.0
+			_retint_if_mass_int_changed()
 
 # =============================================================================
 # PICKUPS (magnet / compass / surcharge / compagnon / stabilisateur) — seedés
@@ -1987,7 +2178,8 @@ func _update_rival(dt: float) -> void:
 	var best: Dictionary = {}
 	var best_dist: float = INF
 	for entry in _props:
-		if int(entry.get("state", PropState.DRIFT)) != PropState.DRIFT or entry.has("fragment_index"):
+		if int(entry.get("state", PropState.DRIFT)) != PropState.DRIFT or entry.has("fragment_index") \
+			or entry.has("boss"):
 			continue
 		var node_v: Variant = entry.get("node", null)
 		if not (node_v is Node2D) or not is_instance_valid(node_v):
@@ -2132,7 +2324,12 @@ func _update_countdown_label() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	_countdown_label.size = Vector2(viewport_size.x, 60.0)
 	_countdown_label.position = Vector2(0.0, viewport_size.y * clampf(float(_get_conf("countdown_y_ratio", 0.16)), 0.02, 0.9))
-	_countdown_label.text = str(int(ceil(maxf(0.0, _run_duration - _run_elapsed))))
+	# Format m:ss au-delà de 99 s (mode libre : 10 minutes), secondes brutes sinon.
+	var remaining: int = int(ceil(maxf(0.0, _run_duration - _run_elapsed)))
+	if remaining >= 100:
+		_countdown_label.text = "%d:%02d" % [int(float(remaining) / 60.0), remaining % 60]
+	else:
+		_countdown_label.text = str(remaining)
 
 ## Progression vers l'objectif de taille : « masse / cible » (story ET Libre).
 func _update_progress_label() -> void:
@@ -2175,6 +2372,12 @@ func _finish() -> void:
 	if _game and is_instance_valid(_game) and _game.has_method("end_wave_background_override"):
 		_game.call("end_wave_background_override", maxf(0.0, float(_get_conf("bg_fallback_fade_sec", 0.25))))
 	_restore_player_mode()
+	# Pluie de cristaux DIFFÉRÉE (surplus au-delà de la cible) : payée ici, au
+	# retour au shmup — posée uniquement par _resolve_timeout/_on_target_reached.
+	if _pending_end_crystals > 0 and _game and is_instance_valid(_game) \
+		and _game.has_method("spawn_reward_crystals_from_top"):
+		_game.call("spawn_reward_crystals_from_top", _pending_end_crystals)
+	_pending_end_crystals = 0
 	finished.emit()
 	queue_free() # monde, props, labels et transition sprite sont enfants -> freed together
 
