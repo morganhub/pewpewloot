@@ -1977,8 +1977,29 @@
 			"message_font_size": 18,
 			"button_font_size": 16
 		},
+		"info_popup": {
+			"width": 460,
+			"background": "#1F1F2E",
+			"title_font_size": 30,
+			"message_font_size": 20,
+			"button_font_size": 16
+		},
 		"skills": {
 			"vertical_margin": 35,
+			"block_bg": {
+				"asset": "res://assets/ui/skills/skills_bg.png",
+				"slice_margin_px": 70,
+				"slice_margin_top_px": 90,
+				"content_margin_side_px": 76,
+				"content_margin_top_px": 96,
+				"content_margin_bottom_px": 80
+			},
+			"help_button": {
+				"asset": "res://assets/ui/skills/btn_help.png",
+				"width": 44,
+				"height": 44,
+				"font_size": 24
+			},
 			"global_skill_icon_width": 65,
 			"global_skill_icon_height": 65,
 			"global_state_button_width": 60,
@@ -2597,6 +2618,11 @@
 		"home": {
 			"background": "res://assets/ui/main_menu_bg.jpg",
 			"music": "res://assets/music/neon.ogg",
+			"idle_factory": {
+				"enabled": true,
+				"ship_scale": 0.75,
+				"strip_gap_px": 8.0
+			},
 			"logo": {
 				"logo": "res://assets/logo/pewpewloot_final.png",
 				"logo_anim": "",

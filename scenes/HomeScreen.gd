@@ -45,6 +45,7 @@ func _ready() -> void:
 	_setup_background()
 	_apply_home_button_styles()
 	_apply_home_grid_layout()
+	_setup_idle_factory()
 	_setup_alert_icons()
 	_apply_translations()
 	_setup_ship_preview()
@@ -86,6 +87,8 @@ func _notification(what: int) -> void:
 		# Réévalué à chaque retour sur l'accueil : l'histoire peut se terminer
 		# (bouton retiré) ou être reset (bouton de retour).
 		_update_continue_story_visibility()
+		if _idle_factory_root and is_instance_valid(_idle_factory_root) and _idle_factory_root.has_method("refresh_gating"):
+			_idle_factory_root.call("refresh_gating")
 	if what == NOTIFICATION_RESIZED and is_node_ready():
 		_apply_home_grid_layout()
 		_refresh_alert_icons()
@@ -378,6 +381,8 @@ func _hydrate_ship_preview(ship_data: Dictionary) -> void:
 	var preview_size: Vector2 = ship_preview_button.size
 	if preview_size.x <= 0.0 or preview_size.y <= 0.0:
 		preview_size = Vector2(360, 360)
+	# Reduction du vaisseau quand le bloc idle occupe les coins (config idle_factory).
+	var idle_ship_scale: float = _idle_factory_ship_scale()
 
 	if ship_preview_icon:
 		ship_preview_icon.visible = true
@@ -412,7 +417,7 @@ func _hydrate_ship_preview(ship_data: Dictionary) -> void:
 			if first_tex:
 				var f_size: Vector2 = first_tex.get_size()
 				if f_size.x > 0 and f_size.y > 0:
-					var fit_scale: float = minf(preview_size.x / f_size.x, preview_size.y / f_size.y) * 0.85
+					var fit_scale: float = minf(preview_size.x / f_size.x, preview_size.y / f_size.y) * 0.85 * idle_ship_scale
 					ship_preview_anim.scale = Vector2(fit_scale, fit_scale)
 			ship_preview_anim.visible = true
 			if ship_preview_icon:
@@ -424,6 +429,8 @@ func _hydrate_ship_preview(ship_data: Dictionary) -> void:
 	if static_tex and ship_preview_icon:
 		ship_preview_icon.texture = static_tex
 		ship_preview_icon.visible = true
+		ship_preview_icon.pivot_offset = ship_preview_icon.size / 2.0
+		ship_preview_icon.scale = Vector2(idle_ship_scale, idle_ship_scale)
 
 func _first_anim_name(frames: SpriteFrames) -> StringName:
 	if frames == null:
@@ -477,9 +484,90 @@ func _request_menu_prewarm() -> void:
 		switcher.call_deferred("request_menu_prewarm")
 
 func _goto_from_home(scene_path: String) -> void:
+	# Flush idle avant de quitter la home (spec homeScreenGame.md §7.3/§10).
+	if IdleFactoryManager and IdleFactoryManager.is_ready():
+		IdleFactoryManager.flush_to_profile()
 	var switcher := get_tree().current_scene
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen(scene_path)
+
+# =============================================================================
+# IDLE FACTORY (chaine de production — spec markdown/homeScreenGame.md)
+# =============================================================================
+
+var _idle_factory_root: Control = null
+var _idle_hint_timer: Timer = null
+
+func _idle_factory_home_cfg() -> Dictionary:
+	var v: Variant = _get_home_screen_config().get("idle_factory", {})
+	return v if v is Dictionary else {}
+
+func _idle_factory_ship_scale() -> float:
+	if _idle_factory_root == null:
+		return 1.0
+	return clampf(float(_idle_factory_home_cfg().get("ship_scale", 0.75)), 0.2, 1.0)
+
+## Instancie la zone idle EDITABLE (scenes/ui/idle_factory/IdleFactoryZone.tscn) :
+## 4 triangles aux coins du vaisseau, strip des 5 ressources sous les triangles
+## bas, bouton final. Positions editables au pixel via les reperes de la .tscn.
+func _setup_idle_factory() -> void:
+	if not IdleFactoryManager or not DataManager:
+		return
+	if DataManager.get_idle_factory_config().is_empty():
+		return
+	if not bool(_idle_factory_home_cfg().get("enabled", true)):
+		return
+	if _idle_factory_root == null or not is_instance_valid(_idle_factory_root):
+		var packed := load("res://scenes/ui/idle_factory/IdleFactoryZone.tscn") as PackedScene
+		if packed == null:
+			return
+		_idle_factory_root = packed.instantiate() as Control
+		_idle_factory_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(_idle_factory_root)
+		# Juste au-dessus du fond : le vaisseau et la barre du bas (JOUER) restent
+		# devant (vaisseau visible par-dessus les triangles, boutons cliquables).
+		move_child(_idle_factory_root, 1)
+	_setup_idle_ship_hint()
+
+## Hint "Touchez pour changer" : invisible par defaut, apparait par intermittence
+## (toutes les ship_hint_interval_seconds) UNIQUEMENT si le joueur n'interagit pas
+## avec la chaine de production. Toute interaction idle masque le hint et relance
+## le delai (spec — demande utilisateur).
+func _setup_idle_ship_hint() -> void:
+	if change_ship_label == null:
+		return
+	change_ship_label.modulate.a = 0.0
+	var ui_cfg: Dictionary = DataManager.get_idle_factory_config().get("ui", {}) if DataManager else {}
+	var interval := maxf(1.0, float(ui_cfg.get("ship_hint_interval_seconds", 8.0)))
+	if _idle_hint_timer == null:
+		_idle_hint_timer = Timer.new()
+		_idle_hint_timer.one_shot = false
+		add_child(_idle_hint_timer)
+		_idle_hint_timer.timeout.connect(_blink_ship_hint)
+	_idle_hint_timer.wait_time = interval
+	_idle_hint_timer.start()
+	if IdleFactoryManager and IdleFactoryManager.has_signal("user_interacted") \
+			and not IdleFactoryManager.user_interacted.is_connected(_on_idle_interaction):
+		IdleFactoryManager.user_interacted.connect(_on_idle_interaction)
+
+func _on_idle_interaction() -> void:
+	# Le joueur manipule la chaine idle : on ne l'ennuie pas avec le hint.
+	if change_ship_label and is_instance_valid(change_ship_label):
+		change_ship_label.modulate.a = 0.0
+	if _idle_hint_timer:
+		_idle_hint_timer.start() # relance le delai complet
+
+func _blink_ship_hint() -> void:
+	if change_ship_label == null or not is_instance_valid(change_ship_label):
+		return
+	if not is_visible_in_tree():
+		return
+	var ui_cfg: Dictionary = DataManager.get_idle_factory_config().get("ui", {}) if DataManager else {}
+	var hold := maxf(0.3, float(ui_cfg.get("ship_hint_visible_seconds", 2.5)))
+	var tween := create_tween()
+	tween.tween_property(change_ship_label, "modulate:a", 1.0, 0.35)
+	tween.tween_interval(hold)
+	tween.tween_property(change_ship_label, "modulate:a", 0.0, 0.5)
 
 func _on_play_pressed() -> void:
 	_goto_from_home("res://scenes/GameModeSelect.tscn")

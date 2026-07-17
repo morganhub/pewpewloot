@@ -563,10 +563,7 @@ func _build_branch(branch_id: String, branch_data: Dictionary) -> void:
 	var branch_color := _to_color(branch_data.get("color", "#FFFFFF"), Color.WHITE)
 
 	var branch_panel := PanelContainer.new()
-	branch_panel.add_theme_stylebox_override(
-		"panel",
-		_make_background_style(block_cfg.get("background", "#1A1F31"), Color(0.1, 0.12, 0.19), 10, 8)
-	)
+	branch_panel.add_theme_stylebox_override("panel", _make_block_panel_style(block_cfg))
 	_skill_grid.add_child(branch_panel)
 
 	var branch_vbox := VBoxContainer.new()
@@ -691,7 +688,6 @@ func _build_skill_node(
 	var icon_w := int(skills_cfg.get("skill_icon_width", skills_cfg.get("skill_icon_size", def_icon_w)))
 	var icon_h := int(skills_cfg.get("skill_icon_height", skills_cfg.get("skill_icon_size", def_icon_h)))
 	var title_size := int(skills_cfg.get("title_text_size", global_cfg.get("global_title_text_size", 22)))
-	var desc_size := int(skills_cfg.get("description_text_size", global_cfg.get("global_description_text_size", 17)))
 
 	var node_panel := PanelContainer.new()
 	node_panel.custom_minimum_size = Vector2(0, 74)
@@ -746,8 +742,10 @@ func _build_skill_node(
 	_add_icon_texture(hbox, skill_icon_asset, icon_w, icon_h)
 
 
+	# Titre seul (la description vit dans le modal ouvert par le bouton "?").
 	var text_col := VBoxContainer.new()
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.alignment = BoxContainer.ALIGNMENT_CENTER
 	text_col.add_theme_constant_override("separation", 2)
 	hbox.add_child(text_col)
 
@@ -759,6 +757,7 @@ func _build_skill_node(
 	else:
 		title_label.text = skill_title
 	title_label.add_theme_font_size_override("font_size", title_size)
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if is_unlocked:
 		title_label.add_theme_color_override("font_color", Color.WHITE)
 	elif can_unlock:
@@ -767,12 +766,22 @@ func _build_skill_node(
 		title_label.add_theme_color_override("font_color", base_text_color.lerp(Color(0.45, 0.45, 0.5), 0.45))
 	text_col.add_child(title_label)
 
-	var desc_label := Label.new()
-	desc_label.text = skill_desc
-	desc_label.add_theme_font_size_override("font_size", desc_size)
-	desc_label.add_theme_color_override("font_color", base_text_color.lerp(Color(0.58, 0.58, 0.62), 0.35))
-	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text_col.add_child(desc_label)
+	# Bouton "?" -> modal generique titre + description (config skills.help_button).
+	var help_cfg := _get_config_dict(["skills", "help_button"], {})
+	var help_btn := Button.new()
+	help_btn.custom_minimum_size = Vector2(int(help_cfg.get("width", 44)), int(help_cfg.get("height", 44)))
+	help_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var help_texture := _load_texture_from_path(str(help_cfg.get("asset", "")))
+	if help_texture != null:
+		var help_style := StyleBoxTexture.new()
+		help_style.texture = help_texture
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			help_btn.add_theme_stylebox_override(state, help_style)
+	else:
+		help_btn.text = "?"
+		help_btn.add_theme_font_size_override("font_size", int(help_cfg.get("font_size", 24)))
+	help_btn.pressed.connect(_show_skill_info.bind(title_label.text, skill_desc, branch_color))
+	hbox.add_child(help_btn)
 
 	# Colonne droite: bouton d'etat (lock/unlock/purchased) seul.
 	# Le rang est integre au titre ; le cout s'affiche en badge SUR le bouton
@@ -1067,6 +1076,83 @@ func _show_respec_confirm(cost: int) -> void:
 	btn_row.add_child(cancel)
 	UIStyle.apply_button_shadow(cancel, "medium")
 
+# Modal generique d'information de skill (titre + description), refermable
+# par le bouton FERMER ou un tap sur le fond assombri.
+func _show_skill_info(skill_title: String, skill_desc: String, accent_color: Color) -> void:
+	if _popup:
+		_popup.queue_free()
+
+	_popup = Control.new()
+	_popup.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_popup)
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.pressed:
+			_close_popup()
+	)
+	_popup.add_child(dim)
+
+	var info_cfg := _get_config_dict(["info_popup"], {})
+	var panel := PanelContainer.new()
+	var panel_w := int(info_cfg.get("width", 460))
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(panel_w, 0)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = _to_color(info_cfg.get("background", "#1F1F2E"), Color(0.12, 0.12, 0.18))
+	panel_style.corner_radius_top_left = 12
+	panel_style.corner_radius_top_right = 12
+	panel_style.corner_radius_bottom_left = 12
+	panel_style.corner_radius_bottom_right = 12
+	panel_style.border_color = accent_color
+	panel_style.border_width_left = 2
+	panel_style.border_width_right = 2
+	panel_style.border_width_top = 2
+	panel_style.border_width_bottom = 2
+	panel_style.content_margin_left = 24
+	panel_style.content_margin_right = 24
+	panel_style.content_margin_top = 20
+	panel_style.content_margin_bottom = 20
+	panel.add_theme_stylebox_override("panel", panel_style)
+	_popup.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 14)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = skill_title
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_size_override("font_size", int(info_cfg.get("title_font_size", 30)))
+	title.add_theme_color_override("font_color", accent_color.lerp(Color.WHITE, 0.35))
+	vbox.add_child(title)
+
+	var desc := Label.new()
+	desc.text = skill_desc
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_font_size_override("font_size", int(info_cfg.get("message_font_size", 20)))
+	vbox.add_child(desc)
+
+	var close := Button.new()
+	close.text = _translate("skills.menu.info.close", {}, "FERMER")
+	close.custom_minimum_size = Vector2(160, 45)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	close.add_theme_font_size_override("font_size", int(info_cfg.get("button_font_size", 16)))
+	close.pressed.connect(_close_popup)
+	vbox.add_child(close)
+	UIStyle.apply_button_shadow(close, "medium")
+
+func _close_popup() -> void:
+	if _popup:
+		_popup.queue_free()
+		_popup = null
+
 func _on_back_pressed() -> void:
 	back_requested.emit()
 	var switcher := get_tree().current_scene
@@ -1145,6 +1231,29 @@ func _to_color(value: Variant, fallback: Color) -> Color:
 		if color_string != "":
 			return Color.from_string(color_string, fallback)
 	return fallback
+
+## Fond des blocs de skills : 9-slice global (skills.block_bg de game.json,
+## cadre epais -> marges de contenu plus grandes en haut) ; fallback = couleur
+## du bloc (comportement historique) si l'asset est absent.
+func _make_block_panel_style(block_cfg: Dictionary) -> StyleBox:
+	var bg_cfg := _get_config_dict(["skills", "block_bg"], {})
+	var texture := _load_texture_from_path(str(bg_cfg.get("asset", "")))
+	if texture != null:
+		var style := StyleBoxTexture.new()
+		style.texture = texture
+		var slice := int(bg_cfg.get("slice_margin_px", 70))
+		var slice_top := int(bg_cfg.get("slice_margin_top_px", slice))
+		style.texture_margin_left = slice
+		style.texture_margin_right = slice
+		style.texture_margin_top = slice_top
+		style.texture_margin_bottom = slice
+		var margin_side := float(bg_cfg.get("content_margin_side_px", 76.0))
+		style.content_margin_left = margin_side
+		style.content_margin_right = margin_side
+		style.content_margin_top = float(bg_cfg.get("content_margin_top_px", 96.0))
+		style.content_margin_bottom = float(bg_cfg.get("content_margin_bottom_px", 80.0))
+		return style
+	return _make_background_style(block_cfg.get("background", "#1A1F31"), Color(0.1, 0.12, 0.19), 10, 8)
 
 func _make_background_style(bg_value: Variant, fallback_color: Color, radius: int, content_margin: int) -> StyleBox:
 	var texture := _background_texture(bg_value)

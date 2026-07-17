@@ -1,0 +1,110 @@
+{
+	"_readme": "Chaine de production idle du HomeScreen (spec: markdown/homeScreenGame.md). Crystal sink: cristaux -> zelerium -> neorite -> ionium -> tritanium -> unlock final. AUCUNE production de cristaux ici. Toutes les valeurs economiques sont equilibrables sans toucher aux scripts. generators[].levels[] (optionnel) : table explicite prioritaire sur les formules (chaque entree {production_per_second, upgrade_cost}). generators[].crystal_flat_cost : surcout FIXE en cristaux ajoute a CHAQUE unlock/upgrade (en plus du cout croissant dans cost_resource_id) — 0 pour zelerium dont le cout croissant est deja en cristaux.",
+	"unlock_player_level": 10,
+	"boost": {
+		"tap_percent": 10.0,
+		"temporary_duration_seconds": 5.0,
+		"steps_to_overdrive": 20,
+		"overdrive_duration_seconds": 14400
+	},
+	"offline_cap_seconds": 0,
+	"save_interval_seconds": 30.0,
+	"resource_order": ["crystals", "zelerium", "neorite", "ionium", "tritanium"],
+	"resources": {
+		"crystals": { "name_key": "idle_resource_crystals", "color": "#4FB8FF", "icon": "" },
+		"zelerium": { "name_key": "idle_resource_zelerium", "color": "#F5C542", "icon": "res://assets/ui/idle_factory/resource_zelerium.png", "initial": "Z" },
+		"neorite": { "name_key": "idle_resource_neorite", "color": "#7CD24A", "icon": "res://assets/ui/idle_factory/resource_neorite.png", "initial": "N" },
+		"ionium": { "name_key": "idle_resource_ionium", "color": "#B76DF5", "icon": "res://assets/ui/idle_factory/resource_ionium.png", "initial": "I" },
+		"tritanium": { "name_key": "idle_resource_tritanium", "color": "#F58A2A", "icon": "res://assets/ui/idle_factory/resource_tritanium.png", "initial": "T" }
+	},
+	"final_unlock": {
+		"resource_id": "tritanium",
+		"cost": 1000000,
+		"reward_id": ""
+	},
+	"generators": [
+		{
+			"id": "zelerium_generator",
+			"resource_id": "zelerium",
+			"cost_resource_id": "crystals",
+			"crystal_flat_cost": 0,
+			"unlock_cost": 50,
+			"base_production_per_second": 1.0,
+			"production_growth": 1.15,
+			"base_upgrade_cost": 25,
+			"upgrade_cost_growth": 1.18,
+			"max_level": 0
+		},
+		{
+			"id": "neorite_generator",
+			"resource_id": "neorite",
+			"cost_resource_id": "zelerium",
+			"crystal_flat_cost": 50,
+			"unlock_cost": 60,
+			"base_production_per_second": 0.5,
+			"production_growth": 1.15,
+			"base_upgrade_cost": 30,
+			"upgrade_cost_growth": 1.18,
+			"max_level": 0
+		},
+		{
+			"id": "ionium_generator",
+			"resource_id": "ionium",
+			"cost_resource_id": "neorite",
+			"crystal_flat_cost": 100,
+			"unlock_cost": 75,
+			"base_production_per_second": 0.25,
+			"production_growth": 1.15,
+			"base_upgrade_cost": 40,
+			"upgrade_cost_growth": 1.18,
+			"max_level": 0
+		},
+		{
+			"id": "tritanium_generator",
+			"resource_id": "tritanium",
+			"cost_resource_id": "ionium",
+			"crystal_flat_cost": 200,
+			"unlock_cost": 100,
+			"base_production_per_second": 0.1,
+			"production_growth": 1.15,
+			"base_upgrade_cost": 50,
+			"upgrade_cost_growth": 1.18,
+			"max_level": 0
+		}
+	],
+	"ui": {
+		"_readme_ui": "Positions/tailles des elements idle = editables au pixel dans scenes/ui/idle_factory/IdleFactoryZone.tscn (noeuds-reperes draggables : TriTopLeft/TriTopRight/TriBotLeft/TriBotRight, StripHost, FinalHost). Ces cles ne pilotent QUE le style (couleurs, polices, epaisseurs), plus le layout.",
+		"refresh_hz": 8.0,
+		"triangle_base_color": "#10141F",
+		"triangle_fill_alpha": 0.92,
+		"triangle_tint_ratio": 0.35,
+		"triangle_border_width_px": 3.0,
+		"triangle_content_inset_px": 12.0,
+		"panel_bg_color": "#10141FE6",
+		"panel_corner_radius_px": 10,
+		"gauge_height_px": 14.0,
+		"gauge_segments": 20,
+		"gauge_bg_color": "#1A2030",
+		"tap_button_size_px": 40.0,
+		"icon_size_px": 60.0,
+		"title_font_size": 15,
+		"name_font_size": 18,
+		"value_font_size": 21,
+		"rate_font_size": 12,
+		"strip_bg_asset": "res://assets/ui/idle_factory/strip_bg.png",
+		"strip_cell_spacing_px": 6.0,
+		"strip_name_font_size": 12,
+		"strip_value_font_size": 23,
+		"strip_rate_font_size": 16,
+		"strip_gauge_height_px": 7.0,
+		"strip_gauge_climb_seconds": 0.15,
+		"strip_boost_height_px": 30.0,
+		"strip_boost_font_size": 17,
+		"final_button_font_size": 16,
+		"overdrive_glow_color_alpha": 0.85,
+		"locked_overlay_bg_color": "#0A0E18B4",
+		"locked_overlay_font_size": 22,
+		"ship_hint_interval_seconds": 8.0,
+		"ship_hint_visible_seconds": 2.5
+	}
+}

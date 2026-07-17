@@ -39,6 +39,7 @@ liens: [slug_doc_lié, ...]   # nom de fichier sans .md
 | [wave_type_suika_up](markdown/wave_type_suika_up) | spec | livré | Spec d'origine du type suika_up (Suika inversé) — implémenté, source de vérité = wave_types.md |
 | [pathtrial.md](markdown/pathtrial.md) | reference | archive partielle | Ex-vague PathTrial — ne survit que comme hazard de boss PowerManager (le type de vague est devenu snake) |
 | [freemode.md](markdown/freemode.md) | spec | à jour | Mode Libre : mini-jeux en boucle infinie, levels 1→20, déblocage/achat, freemode.json |
+| [homeScreenGame.md](markdown/homeScreenGame.md) | spec | livré | Chaîne de production idle du HomeScreen (crystal sink) : 5 ressources, 4 générateurs, Overdrive, offline, unlock final 1M Tritanium |
 | [project_attacks.md](markdown/project_attacks.md) | spec | à jour | Attaques, missiles, projectiles, powers, skills ; incohérences connues |
 | [project_bosses.md](markdown/project_bosses.md) | spec | à jour | Système boss data-driven : phases, powers/hazards, tuning |
 | [boss_powers_summary.md](markdown/boss_powers_summary.md) | reference | à jour | Assets missiles & powers des boss (arène debug) |

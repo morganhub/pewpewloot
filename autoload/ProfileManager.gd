@@ -4,6 +4,9 @@ extends Node
 ## Supporte: progression mondes, vaisseaux débloqués, inventaire, loadouts, skill tree.
 
 signal level_up(new_level: int, skill_points_earned: int)
+## Emis a chaque variation du solde de cristaux (gain gameplay, achat idle/shop).
+## Sert aux UI persistantes (MenuHeader top bar) a se rafraichir sans polling.
+signal crystals_changed(amount: int)
 
 var active_profile_id: String = ""
 var profiles: Array[Dictionary] = []
@@ -287,6 +290,12 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		var abs_plays: Dictionary = abs_plays_v as Dictionary
 		abs_plays.erase("absorb")
 		migrated["free_mode_plays"] = abs_plays
+		needs_save = true
+
+	# Migration : chaine de production idle du HomeScreen (juillet 2026,
+	# spec markdown/homeScreenGame.md). Cristaux hors du bloc (stockage existant).
+	if not migrated.has("idle_factory"):
+		migrated["idle_factory"] = create_default_idle_factory_state()
 		needs_save = true
 
 	# Migration: skill tree system
@@ -614,8 +623,23 @@ func get_active_profile_name() -> String:
 	return str(profile.get("name", "Unknown"))
 
 func set_active_profile(profile_id: String) -> void:
+	_notify_idle_factory_before_switch()
 	active_profile_id = profile_id
 	save_to_disk()
+	_notify_idle_factory_after_switch()
+
+## Hooks idle factory (spec homeScreenGame.md §10) : flush du profil sortant
+## avant le switch, application du temps hors ligne du profil entrant apres.
+## get_node_or_null : IdleFactoryManager est enregistre apres ProfileManager.
+func _notify_idle_factory_before_switch() -> void:
+	var idle := get_node_or_null("/root/IdleFactoryManager")
+	if idle:
+		idle.call("prepare_profile_switch")
+
+func _notify_idle_factory_after_switch() -> void:
+	var idle := get_node_or_null("/root/IdleFactoryManager")
+	if idle:
+		idle.call("initialize_for_active_profile")
 
 ## Default name for first-time profile creation (editable). Store/App display names need Play Games / Game Center plugins.
 func get_suggested_player_display_name() -> String:
@@ -663,15 +687,24 @@ func create_profile(profile_name: String) -> String:
 		"wave_types_encountered": [],
 		"free_mode_all_unlocked": false,
 		"free_mode_scores": {},
-		"free_mode_plays": {}
+		"free_mode_plays": {},
+		"idle_factory": create_default_idle_factory_state()
 	}
 
 	profiles.append(profile)
+	_notify_idle_factory_before_switch()
 	active_profile_id = id
 	save_to_disk()
+	_notify_idle_factory_after_switch()
 	return id
 
 func delete_profile(profile_id: String) -> void:
+	var was_active := active_profile_id == profile_id
+	if was_active:
+		# Ne pas flusher un profil en cours de suppression : stoppe juste l'idle.
+		var idle := get_node_or_null("/root/IdleFactoryManager")
+		if idle:
+			idle.call("halt_without_flush")
 	for i in range(profiles.size()):
 		if profiles[i].get("id", "") == profile_id:
 			profiles.remove_at(i)
@@ -681,6 +714,8 @@ func delete_profile(profile_id: String) -> void:
 		active_profile_id = str(profiles[0].get("id", "")) if profiles.size() > 0 else ""
 
 	save_to_disk()
+	if was_active:
+		_notify_idle_factory_after_switch()
 
 ## Calcule la valeur de recyclage d'un item
 func calculate_recycle_value(item: Dictionary) -> int:
@@ -755,6 +790,33 @@ func reset_player_level_progress() -> void:
 			break
 	save_to_disk()
 	print("[ProfileManager] Player level progression reset to level 1.")
+
+## Debug : ajoute `count` niveaux joueur (+1 point de competence par niveau gagne),
+## capped au niveau max. N'affecte pas l'XP courant. Emet level_up une fois.
+func debug_add_levels(count: int) -> void:
+	if count <= 0:
+		return
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+	var old_level := int(profile.get("player_level", 1))
+	var max_level := DataManager.get_max_player_level()
+	var new_level := old_level + count
+	if max_level > 0:
+		new_level = min(new_level, max_level)
+	var gained := new_level - old_level
+	if gained <= 0:
+		return
+	var updated := profile.duplicate(true)
+	updated["player_level"] = new_level
+	updated["skill_points"] = int(profile.get("skill_points", 0)) + gained
+	for i in range(profiles.size()):
+		if str(profiles[i].get("id", "")) == active_profile_id:
+			profiles[i] = updated
+			break
+	save_to_disk()
+	level_up.emit(new_level, gained)
+	print("[ProfileManager] Debug: +", gained, " levels -> ", new_level, " (+", gained, " skill points).")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PROGRESSION MONDES/NIVEAUX
@@ -1569,17 +1631,58 @@ func get_crystals() -> int:
 func add_crystals(amount: int) -> void:
 	var current := get_crystals()
 	_update_active_profile("crystals", current + amount)
+	crystals_changed.emit(current + amount)
 
 func spend_crystals(amount: int) -> bool:
 	var current := get_crystals()
 	if current >= amount:
 		_update_active_profile("crystals", current - amount)
+		crystals_changed.emit(current - amount)
 		return true
 	return false
 
 func remove_crystals(amount: int) -> void:
 	var current := get_crystals()
-	_update_active_profile("crystals", max(0, current - amount))
+	var new_amount := maxi(0, current - amount)
+	_update_active_profile("crystals", new_amount)
+	crystals_changed.emit(new_amount)
+
+
+# =============================================================================
+# IDLE FACTORY (chaine de production HomeScreen — spec markdown/homeScreenGame.md)
+# =============================================================================
+
+## Etat par defaut du bloc idle_factory d'un profil. Les cristaux restent dans
+## profile.crystals (jamais dupliques ici).
+func create_default_idle_factory_state() -> Dictionary:
+	return {
+		"resources": {
+			"zelerium": 0.0,
+			"neorite": 0.0,
+			"ionium": 0.0,
+			"tritanium": 0.0
+		},
+		"generators": {
+			"zelerium_generator": { "level": 0, "overdrive_end_unix": 0 },
+			"neorite_generator": { "level": 0, "overdrive_end_unix": 0 },
+			"ionium_generator": { "level": 0, "overdrive_end_unix": 0 },
+			"tritanium_generator": { "level": 0, "overdrive_end_unix": 0 }
+		},
+		"last_update_unix": 0,
+		"final_unlock_purchased": false
+	}
+
+func get_idle_factory_state() -> Dictionary:
+	var profile := get_active_profile()
+	var state_v: Variant = profile.get("idle_factory", {})
+	if state_v is Dictionary and not (state_v as Dictionary).is_empty():
+		return (state_v as Dictionary).duplicate(true)
+	return create_default_idle_factory_state()
+
+## Ecrit l'etat complet (un seul save_to_disk). L'appelant (IdleFactoryManager)
+## throttle ses appels — ne jamais appeler par tick.
+func set_idle_factory_state(state: Dictionary) -> void:
+	_update_active_profile("idle_factory", state.duplicate(true))
 
 
 ## Déséquipe un item d'un slot

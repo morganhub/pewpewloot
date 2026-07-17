@@ -290,6 +290,10 @@ func _perform_bootstrap_loading() -> void:
 
 	# 2. ProfileManager
 	ProfileManager.load_from_disk()
+	# Idle factory : applique la production hors ligne du profil actif et
+	# demarre la production runtime (tourne pendant les runs et les menus).
+	if IdleFactoryManager:
+		IdleFactoryManager.initialize_for_active_profile()
 	done_steps += 1
 	_update_progress(done_steps, TOTAL_STEPS, "Profiles")
 	await get_tree().process_frame
@@ -358,18 +362,35 @@ func _perform_bootstrap_loading() -> void:
 	await get_tree().process_frame
 	bootstrap_completed.emit(target_screen_path)
 
+## Progression par TRANCHES de barre reservees par phase (au lieu d'un
+## total_steps qui grandit en cours de route et gelait la barre a ~98 % pendant
+## tout le warmup). Chaque phase remplit graduellement sa tranche ; une phase
+## vide est creditee d'un coup -> la barre accelere au lieu de geler.
 func _perform_loading() -> void:
 	_set_loading_label_text("LOADING...")
 	_displayed_progress_pct = 0.0
 	if progress_bar:
 		progress_bar.value = _displayed_progress_pct
 
+	var is_game_scene: bool = _target_scene_path.to_lower().contains("game.tscn")
+	# Tranches (somme < 100, le solde est comble a la toute fin). Poids calibres
+	# sur la duree reelle observee : assets ~2/3, warmups ~1/3.
+	var span_assets: float = 60.0 if is_game_scene else 85.0
+	var span_textures: float = 18.0 if is_game_scene else 13.0
+	var span_enemies: float = 14.0 if is_game_scene else 0.0
+	var span_runtime: float = 7.0 if is_game_scene else 0.0
+	var base_pct: float = 0.0
+
 	var plan: Array = _build_loading_plan(_target_scene_path)
 	var loaded_resources: Dictionary = {}
 
-	var total_steps: int = max(1, plan.size() + 1)
-	var done_steps: int = 0
+	var total_assets: int = 0
+	for path_variant in plan:
+		var p: String = str(path_variant)
+		if p != "" and ResourceLoader.exists(p):
+			total_assets += 1
 
+	var done_assets: int = 0
 	for path_variant in plan:
 		var path: String = str(path_variant)
 		if path == "" or not ResourceLoader.exists(path):
@@ -380,31 +401,31 @@ func _perform_loading() -> void:
 			loaded_resources[path] = resource
 			if DEBUG_LOADING_RESOURCES_LOG:
 				print("[Loading] ", ("reused " if was_cached else "loaded "), path)
-		done_steps += 1
-		_update_progress(done_steps, total_steps, "Loading assets")
-		if (done_steps % 4) == 0:
+		done_assets += 1
+		_update_progress_range(base_pct, span_assets, done_assets, total_assets)
+		if (done_assets % 4) == 0:
 			await get_tree().process_frame
+	base_pct += span_assets
+	_set_displayed_pct(base_pct)
 
 	var warmup_textures: Array[Texture2D] = _collect_warmup_textures(loaded_resources)
-	total_steps = max(total_steps, done_steps + warmup_textures.size() + 1)
 	if not warmup_textures.is_empty():
-		_set_loading_label_text("LOADING...")
-		await _warmup_textures(warmup_textures, done_steps, total_steps)
-		done_steps += warmup_textures.size()
+		await _warmup_textures(warmup_textures, base_pct, span_textures)
+	base_pct += span_textures
+	_set_displayed_pct(base_pct)
 
-	var is_game_scene: bool = _target_scene_path.to_lower().contains("game.tscn")
 	if is_game_scene:
 		var enemy_warmup_payloads: Array = _collect_enemy_warmup_payloads()
-		total_steps = max(total_steps, done_steps + enemy_warmup_payloads.size() + 1)
 		if not enemy_warmup_payloads.is_empty():
-			_set_loading_label_text("LOADING...")
-			done_steps = await _warmup_enemy_instances(enemy_warmup_payloads, done_steps, total_steps)
+			await _warmup_enemy_instances(enemy_warmup_payloads, base_pct, span_enemies)
+		base_pct += span_enemies
+		_set_displayed_pct(base_pct)
 
 		var runtime_node_paths: Array = _collect_runtime_node_paths_for_warmup(loaded_resources)
-		total_steps = max(total_steps, done_steps + runtime_node_paths.size() + 1)
 		if not runtime_node_paths.is_empty():
-			_set_loading_label_text("LOADING...")
-			done_steps = await _warmup_runtime_nodes(runtime_node_paths, loaded_resources, done_steps, total_steps)
+			await _warmup_runtime_nodes(runtime_node_paths, loaded_resources, base_pct, span_runtime)
+		base_pct += span_runtime
+		_set_displayed_pct(base_pct)
 
 	var loaded_scene: Variant = loaded_resources.get(_target_scene_path, null)
 	if loaded_scene is PackedScene:
@@ -416,8 +437,7 @@ func _perform_loading() -> void:
 	else:
 		push_error("Scene not found: " + _target_scene_path)
 
-	done_steps = total_steps
-	_update_progress(done_steps, total_steps, "Done")
+	_set_displayed_pct(100.0)
 	await get_tree().process_frame
 	loading_completed.emit(_packed_scene)
 
@@ -427,16 +447,23 @@ func fade_out() -> void:
 	await tw.finished
 	queue_free()
 
+## Progression lineaire simple (bootstrap : nombre d'etapes connu d'avance).
 func _update_progress(done_steps: int, total_steps: int, _phase: String) -> void:
 	var clamped_total: int = max(1, total_steps)
-	var raw_pct: float = clampf((float(done_steps) / float(clamped_total)) * 100.0, 0.0, 100.0)
-	# Never move the loading bar backwards even if total_steps increases mid-load.
-	_displayed_progress_pct = maxf(_displayed_progress_pct, raw_pct)
-	var pct: float = _displayed_progress_pct
+	_set_displayed_pct((float(done_steps) / float(clamped_total)) * 100.0)
+
+## Remplit la tranche [base_pct, base_pct + span_pct] au prorata done/total.
+func _update_progress_range(base_pct: float, span_pct: float, done: int, total: int) -> void:
+	var frac: float = clampf(float(done) / float(maxi(1, total)), 0.0, 1.0)
+	_set_displayed_pct(base_pct + span_pct * frac)
+
+## Point d'ecriture unique de la barre — jamais de retour en arriere.
+func _set_displayed_pct(pct: float) -> void:
+	_displayed_progress_pct = maxf(_displayed_progress_pct, clampf(pct, 0.0, 100.0))
 	if progress_bar:
-		progress_bar.value = pct
+		progress_bar.value = _displayed_progress_pct
 	if loading_label and _show_loading_label:
-		loading_label.text = str(int(round(pct))) + "%"
+		loading_label.text = str(int(round(_displayed_progress_pct))) + "%"
 
 func _build_loading_plan(scene_path: String) -> Array:
 	var ordered_paths: Array = []
@@ -686,7 +713,7 @@ func _add_warmup_texture(result: Array[Texture2D], seen: Dictionary, texture: Te
 	seen[key] = true
 	result.append(texture)
 
-func _warmup_textures(textures: Array[Texture2D], done_steps_start: int, total_steps: int) -> void:
+func _warmup_textures(textures: Array[Texture2D], base_pct: float, span_pct: float) -> void:
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(64, 64)
 	viewport.transparent_bg = true
@@ -702,7 +729,7 @@ func _warmup_textures(textures: Array[Texture2D], done_steps_start: int, total_s
 	sprite.position = Vector2(32.0, 32.0)
 	root.add_child(sprite)
 
-	var done_steps: int = done_steps_start
+	var done: int = 0
 	for tex in textures:
 		if tex == null:
 			continue
@@ -716,8 +743,8 @@ func _warmup_textures(textures: Array[Texture2D], done_steps_start: int, total_s
 
 		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		await get_tree().process_frame
-		done_steps += 1
-		_update_progress(done_steps, total_steps, "Warming textures")
+		done += 1
+		_update_progress_range(base_pct, span_pct, done, textures.size())
 
 	viewport.queue_free()
 
@@ -795,15 +822,15 @@ func _apply_enemy_skin_override(enemy_data: Dictionary, enemy_skin: String) -> v
 
 	enemy_data["visual"] = visual
 
-func _warmup_enemy_instances(payloads: Array, done_steps_start: int, total_steps: int) -> int:
+func _warmup_enemy_instances(payloads: Array, base_pct: float, span_pct: float) -> void:
 	if payloads.is_empty() or ENEMY_SCENE == null:
-		return done_steps_start
+		return
 
 	var host := Node2D.new()
 	host.visible = false
 	add_child(host)
 
-	var done_steps: int = done_steps_start
+	var done: int = 0
 	var patterns_warmed: bool = false
 	for payload_variant in payloads:
 		if not (payload_variant is Dictionary):
@@ -824,12 +851,11 @@ func _warmup_enemy_instances(payloads: Array, done_steps_start: int, total_steps
 			patterns_warmed = true
 		enemy.queue_free()
 
-		done_steps += 1
-		_update_progress(done_steps, total_steps, "Warming enemies")
+		done += 1
+		_update_progress_range(base_pct, span_pct, done, payloads.size())
 		await get_tree().process_frame
 
 	host.queue_free()
-	return done_steps
 
 func _collect_runtime_node_paths_for_warmup(loaded_resources: Dictionary) -> Array:
 	var result: Array = []
@@ -858,17 +884,17 @@ func _is_runtime_warmup_path(path: String) -> bool:
 func _warmup_runtime_nodes(
 	node_paths: Array,
 	loaded_resources: Dictionary,
-	done_steps_start: int,
-	total_steps: int
-) -> int:
+	base_pct: float,
+	span_pct: float
+) -> void:
 	if node_paths.is_empty():
-		return done_steps_start
+		return
 
 	var host := Node2D.new()
 	host.visible = false
 	add_child(host)
 
-	var done_steps: int = done_steps_start
+	var done: int = 0
 	for path_variant in node_paths:
 		var path: String = str(path_variant)
 		var resource: Variant = loaded_resources.get(path, null)
@@ -892,9 +918,8 @@ func _warmup_runtime_nodes(
 			await get_tree().process_frame
 			instance.queue_free()
 
-		done_steps += 1
-		_update_progress(done_steps, total_steps, "Warming runtime")
+		done += 1
+		_update_progress_range(base_pct, span_pct, done, node_paths.size())
 		await get_tree().process_frame
 
 	host.queue_free()
-	return done_steps

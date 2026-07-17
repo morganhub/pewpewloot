@@ -39,6 +39,8 @@ var _debug_reset_level_button: Button = null
 var _debug_start_story_button: Button = null
 var _debug_reset_equipment_button: Button = null
 var _debug_reset_profile_button: Button = null
+var _debug_add_levels_button: Button = null
+var _debug_add_crystals_button: Button = null
 
 # =============================================================================
 # LIFECYCLE
@@ -252,13 +254,17 @@ func _setup_debug_actions_section() -> void:
 	_debug_start_story_button = _create_debug_button("StartStoryButton", _on_debug_start_story_pressed)
 	_debug_reset_equipment_button = _create_debug_button("ResetEquipmentButton", _on_debug_reset_equipment_pressed)
 	_debug_reset_profile_button = _create_debug_button("ResetProfileButton", _on_debug_reset_profile_pressed)
+	_debug_add_levels_button = _create_debug_button("AddLevelsButton", _on_debug_add_levels_pressed)
+	_debug_add_crystals_button = _create_debug_button("AddCrystalsButton", _on_debug_add_crystals_pressed)
 	for btn in [
 		_debug_unlock_all_button,
 		_debug_reset_stories_button,
 		_debug_reset_level_button,
 		_debug_start_story_button,
 		_debug_reset_equipment_button,
-		_debug_reset_profile_button
+		_debug_reset_profile_button,
+		_debug_add_levels_button,
+		_debug_add_crystals_button
 	]:
 		grid.add_child(btn)
 	_refresh_debug_actions_visibility()
@@ -338,6 +344,8 @@ func _apply_debug_action_translations() -> void:
 	_set_button_text(_debug_start_story_button, "options_debug_start_story")
 	_set_button_text(_debug_reset_equipment_button, "options_debug_reset_equipment")
 	_set_button_text(_debug_reset_profile_button, "options_debug_reset_profile")
+	_set_button_text(_debug_add_levels_button, "options_debug_add_levels")
+	_set_button_text(_debug_add_crystals_button, "options_debug_add_crystals")
 
 func _set_button_text(button: Button, locale_key: String) -> void:
 	if button == null:
@@ -454,6 +462,18 @@ func _on_debug_reset_profile_pressed() -> void:
 	var switcher := get_tree().current_scene
 	if switcher and switcher.has_method("goto_screen"):
 		switcher.goto_screen("res://scenes/HomeScreen.tscn")
+
+func _on_debug_add_levels_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	ProfileManager.debug_add_levels(5)
+	_show_debug_button_done(_debug_add_levels_button, "options_debug_add_levels_done", "options_debug_add_levels")
+
+func _on_debug_add_crystals_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	ProfileManager.add_crystals(10000) # add_crystals persiste via _update_active_profile
+	_show_debug_button_done(_debug_add_crystals_button, "options_debug_add_crystals_done", "options_debug_add_crystals")
 
 func _show_debug_button_done(button: Button, done_key: String, reset_key: String) -> void:
 	if button == null:

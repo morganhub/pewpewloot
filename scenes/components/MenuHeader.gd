@@ -767,6 +767,10 @@ func _notification(what: int) -> void:
 		if ProfileManager:
 			if not ProfileManager.level_up.is_connected(_on_profile_updated):
 				ProfileManager.level_up.connect(_on_profile_updated)
+			# MAJ live du compteur de cristaux (achats idle factory, shop, gains).
+			if ProfileManager.has_signal("crystals_changed") \
+					and not ProfileManager.crystals_changed.is_connected(_on_crystals_changed):
+				ProfileManager.crystals_changed.connect(_on_crystals_changed)
 	elif what == NOTIFICATION_RESIZED:
 		_clamp_width_to_viewport()
 
@@ -777,6 +781,11 @@ func _process(delta: float) -> void:
 
 func _on_profile_updated(_new_level: int, _points: int) -> void:
 	_update_values()
+
+func _on_crystals_changed(amount: int) -> void:
+	if is_instance_valid(_crystal_label):
+		var locale: String = LocaleManager.get_locale() if LocaleManager else "en"
+		_crystal_label.text = _format_compact_number(amount, locale)
 
 func _clamp_width_to_viewport() -> void:
 	var vp_rect: Rect2 = get_viewport_rect()

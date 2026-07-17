@@ -24,6 +24,7 @@ var _boss_powers: Dictionary = {} # power_id -> data
 var _effects: Dictionary = {} # effect_id -> data
 var _game_config: Dictionary = {} # game.json data
 var _wave_types_config: Dictionary = {} # wave_types.json data (config par type de vague)
+var _idle_factory_config: Dictionary = {} # idle_factory.json data (chaine de production HomeScreen)
 var _override_protocols: Dictionary = {} # override_protocols.json data
 var _skills: Dictionary = {} # skills.json data
 var _obstacles: Dictionary = {} # obstacle_id -> data
@@ -41,6 +42,7 @@ func _ready() -> void:
 	_load_game_config()
 	_load_wave_types_config()
 	_load_override_protocols()
+	_load_idle_factory_config()
 	pass
 
 ## Call this during bootstrap loading (e.g. from LoadingScreen). Loads all remaining JSON data.
@@ -179,6 +181,12 @@ func _load_wave_types_config() -> void:
 
 func _load_override_protocols() -> void:
 	_override_protocols = _load_json("res://data/override_protocols.json")
+
+func _load_idle_factory_config() -> void:
+	_idle_factory_config = _load_json("res://data/idle_factory.json")
+
+func get_idle_factory_config() -> Dictionary:
+	return _idle_factory_config
 
 func get_override_protocols_config() -> Dictionary:
 	return _override_protocols.duplicate(true)

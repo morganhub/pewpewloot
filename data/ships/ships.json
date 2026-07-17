@@ -24,7 +24,26 @@
 				"asset_anim": "res://assets/ships/furnace.tres",
 				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true,
-				"wave_visuals": {}
+				"wave_visuals": {
+					"pong": {
+						"asset": "res://assets/ships/wave_skins/furnace_pong.png"
+					},
+					"breakout": {
+						"asset": "res://assets/ships/wave_skins/furnace_breakout.png"
+					},
+					"snake": {
+						"asset": "res://assets/ships/wave_skins/furnace_snake.png"
+					},
+					"match3": {
+						"asset": "res://assets/ships/wave_skins/furnace_match3.png"
+					},
+					"gravity_hole": {
+						"asset": "res://assets/ships/wave_skins/furnace_gravity_hole.png"
+					},
+					"suika_up": {
+						"asset": "res://assets/ships/wave_skins/furnace_suika_up.png"
+					}
+				}
 			},
 			"missile_id": "missile_default",
 			"missile_pattern_id": "single_straight",
@@ -55,7 +74,26 @@
 				"asset_anim": "res://assets/ships/greyhound.tres",
 				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true,
-				"wave_visuals": {}
+				"wave_visuals": {
+					"pong": {
+						"asset": "res://assets/ships/wave_skins/greyhound_pong.png"
+					},
+					"breakout": {
+						"asset": "res://assets/ships/wave_skins/greyhound_breakout.png"
+					},
+					"snake": {
+						"asset": "res://assets/ships/wave_skins/greyhound_snake.png"
+					},
+					"match3": {
+						"asset": "res://assets/ships/wave_skins/greyhound_match3.png"
+					},
+					"gravity_hole": {
+						"asset": "res://assets/ships/wave_skins/greyhound_gravity_hole.png"
+					},
+					"suika_up": {
+						"asset": "res://assets/ships/wave_skins/greyhound_suika_up.png"
+					}
+				}
 			},
 			"missile_id": "missile_homing",
 			"missile_pattern_id": "double_straight",
@@ -86,7 +124,26 @@
 				"asset_anim": "res://assets/ships/sting.tres",
 				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true,
-				"wave_visuals": {}
+				"wave_visuals": {
+					"pong": {
+						"asset": "res://assets/ships/wave_skins/sting_pong.png"
+					},
+					"breakout": {
+						"asset": "res://assets/ships/wave_skins/sting_breakout.png"
+					},
+					"snake": {
+						"asset": "res://assets/ships/wave_skins/sting_snake.png"
+					},
+					"match3": {
+						"asset": "res://assets/ships/wave_skins/sting_match3.png"
+					},
+					"gravity_hole": {
+						"asset": "res://assets/ships/wave_skins/sting_gravity_hole.png"
+					},
+					"suika_up": {
+						"asset": "res://assets/ships/wave_skins/sting_suika_up.png"
+					}
+				}
 			},
 			"missile_id": "missile_wave",
 			"missile_pattern_id": "triple_spread",
@@ -117,7 +174,26 @@
 				"asset_anim": "res://assets/ships/tossy.tres",
 				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true,
-				"wave_visuals": {}
+				"wave_visuals": {
+					"pong": {
+						"asset": "res://assets/ships/wave_skins/tossy_pong.png"
+					},
+					"breakout": {
+						"asset": "res://assets/ships/wave_skins/tossy_breakout.png"
+					},
+					"snake": {
+						"asset": "res://assets/ships/wave_skins/tossy_snake.png"
+					},
+					"match3": {
+						"asset": "res://assets/ships/wave_skins/tossy_match3.png"
+					},
+					"gravity_hole": {
+						"asset": "res://assets/ships/wave_skins/tossy_gravity_hole.png"
+					},
+					"suika_up": {
+						"asset": "res://assets/ships/wave_skins/tossy_suika_up.png"
+					}
+				}
 			},
 			"missile_id": "missile_poison",
 			"missile_pattern_id": "burst_5",
@@ -148,7 +224,26 @@
 				"asset_anim": "res://assets/ships/wave.tres",
 				"asset_anim_duration": 4.0,
 				"asset_anim_loop": true,
-				"wave_visuals": {}
+				"wave_visuals": {
+					"pong": {
+						"asset": "res://assets/ships/wave_skins/wave_pong.png"
+					},
+					"breakout": {
+						"asset": "res://assets/ships/wave_skins/wave_breakout.png"
+					},
+					"snake": {
+						"asset": "res://assets/ships/wave_skins/wave_snake.png"
+					},
+					"match3": {
+						"asset": "res://assets/ships/wave_skins/wave_match3.png"
+					},
+					"gravity_hole": {
+						"asset": "res://assets/ships/wave_skins/wave_gravity_hole.png"
+					},
+					"suika_up": {
+						"asset": "res://assets/ships/wave_skins/wave_suika_up.png"
+					}
+				}
 			},
 			"missile_id": "missile_ice",
 			"missile_pattern_id": "wave_shot",

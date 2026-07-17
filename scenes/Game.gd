@@ -3381,7 +3381,10 @@ func _on_asteroid_destroyed(asteroid: Node2D) -> void:
 			var angle: float = t_norm * cone + randf_range(-0.08, 0.08)
 			var child_speed: float = child_base_speed * (1.0 + randf_range(-speed_jitter, speed_jitter))
 			var offset: Vector2 = Vector2(sin(angle), 0.0) * 14.0
-			_spawn_asteroid(next_idx, origin + offset, child_speed * cos(angle), child_speed * sin(angle))
+			# Deferred : on est dans un callback de collision (area_entered ->
+			# die -> obstacle_destroyed) — le setup() du fragment touche des
+			# shapes/monitorable, interdit pendant le flush des queries physiques.
+			call_deferred("_spawn_asteroid", next_idx, origin + offset, child_speed * cos(angle), child_speed * sin(angle))
 	elif randf() <= clampf(float(_asteroid_field_cfg.get("crystal_chance_final_tier", 0.25)), 0.0, 1.0):
 		_spawn_bonus_crystal_at(asteroid.global_position)
 
