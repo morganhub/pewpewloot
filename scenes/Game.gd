@@ -22,6 +22,7 @@ const KILLSTREAK_MANAGER_SCRIPT: Script = preload("res://autoload/KillstreakMana
 const BONUS_CRYSTAL_SCENE: PackedScene = preload("res://scenes/pickups/BonusCrystal.tscn")
 const FIRE_PATTERN_DROP_SCENE: PackedScene = preload("res://scenes/pickups/FirePatternDrop.tscn")
 const LOOT_DROP_SCENE: PackedScene = preload("res://scenes/LootDrop.tscn")
+const ASTEROID_PICKUP_SCRIPT: Script = preload("res://scenes/pickups/AsteroidPickup.gd")
 const SNAKE_SCENE: PackedScene = preload("res://scenes/mechanics/SnakeManager.tscn")
 const GATE_RUNNER_SCENE: PackedScene = preload("res://scenes/mechanics/GateRunnerManager.tscn")
 const PONG_SCENE: PackedScene = preload("res://scenes/mechanics/PongManager.tscn")
@@ -246,6 +247,11 @@ var _asteroid_field_cfg: Dictionary = {}
 var _asteroid_field_wave: Dictionary = {}
 var _asteroid_field_base_speed: float = 120.0
 var _active_asteroid_count: int = 0
+# Lot 1 asteroid_split : pickups tombants + effets temporisés (gel / perforant).
+var _asteroid_pickups: Array = []
+var _asteroid_freeze_timer: float = 0.0
+var _asteroid_pierce_timer: float = 0.0
+var _asteroid_pierce_saved_mult: float = -1.0
 var _wave_splash_cfg: Dictionary = {
 	"enabled": true,
 	"color": "#FFFFFF",
@@ -1320,6 +1326,7 @@ func _process(delta: float) -> void:
 	if _killstreak_manager and is_instance_valid(_killstreak_manager):
 		_killstreak_manager.call("update", delta)
 		_update_killstreak_hud()
+	_tick_asteroid_effects(delta)
 	_debug_log_frame_hitch(delta)
 	_update_hud()
 	_update_boss_debug_hud()
@@ -2162,6 +2169,7 @@ func _skip_to_next_debug_boss() -> void:
 
 func _on_wave_started(wave_index: int) -> void:
 	_reset_wave_powerup_drop_counters()
+	_reset_asteroid_effects()
 	_clear_snake_managers()
 	# Clearing gate runners also restores the ship (HP clamp + scale reset) when
 	# leaving a gate_runner wave for the next one.
@@ -3279,6 +3287,7 @@ func _on_obstacle_destroyed(obstacle: Node2D) -> void:
 func _on_wave_asteroid_field_spawn(config: Dictionary) -> void:
 	_asteroid_field_cfg = DataManager.get_wave_type_config("asteroid_split") if DataManager else {}
 	_asteroid_field_wave = config.duplicate(true)
+	_reset_asteroid_effects()
 	_asteroid_field_base_speed = maxf(20.0, float(config.get("speed", _asteroid_field_cfg.get("fall_speed_px_sec_default", 120.0))))
 	var count: int = maxi(1, int(config.get("count", _asteroid_field_cfg.get("initial_count_default", 5))))
 	var stagger: float = maxf(60.0, float(config.get("spawn_stagger_px", _asteroid_field_cfg.get("spawn_stagger_px_default", 240.0))))
@@ -3290,7 +3299,7 @@ func _on_wave_asteroid_field_spawn(config: Dictionary) -> void:
 
 ## Spawns one asteroid of the given tier through the standard destructible
 ## obstacle pipeline (projectile damage, wave-clear tracking, cached visuals).
-func _spawn_asteroid(tier_idx: int, pos: Vector2, vertical_speed: float, drift_x: float) -> void:
+func _spawn_asteroid(tier_idx: int, pos: Vector2, vertical_speed: float, drift_x: float, is_golden: bool = false) -> void:
 	var tiers_v: Variant = _asteroid_field_cfg.get("tiers", [])
 	if not (tiers_v is Array):
 		return
@@ -3323,6 +3332,12 @@ func _spawn_asteroid(tier_idx: int, pos: Vector2, vertical_speed: float, drift_x
 	if asteroid.has_method("setup"):
 		asteroid.call("setup", data, maxf(20.0, vertical_speed))
 	asteroid.set_meta("asteroid_tier", tier_idx)
+	if is_golden:
+		asteroid.set_meta("asteroid_golden", true)
+		asteroid.modulate = Color.from_string(str(_asteroid_field_cfg.get("golden_fragment_tint", "#FFD24A")), Color(1.0, 0.82, 0.29))
+	# Un fragment né pendant un GEL actif démarre figé (cohérence avec l'effet).
+	if _asteroid_freeze_timer > 0.0:
+		asteroid.set_physics_process(false)
 	_active_asteroid_count += 1
 	asteroid.tree_exiting.connect(_on_asteroid_tree_exiting, CONNECT_ONE_SHOT)
 	if wave_manager and wave_manager.has_method("track_obstacle_node"):
@@ -3360,12 +3375,20 @@ func _pick_asteroid_sprite() -> String:
 ## on divergent cone trajectories; the final tier can drop a bonus crystal.
 func _on_asteroid_destroyed(asteroid: Node2D) -> void:
 	var tier_idx: int = int(asteroid.get_meta("asteroid_tier"))
+	var is_golden: bool = bool(asteroid.get_meta("asteroid_golden", false))
 	var tiers_v: Variant = _asteroid_field_cfg.get("tiers", [])
 	var tiers: Array = (tiers_v as Array) if tiers_v is Array else []
 	var tier: Dictionary = {}
 	if tier_idx >= 0 and tier_idx < tiers.size() and tiers[tier_idx] is Dictionary:
 		tier = tiers[tier_idx] as Dictionary
-	_add_run_score(maxi(1, int(tier.get("score", 5))))
+	var base_score: int = maxi(1, int(tier.get("score", 5)))
+	if is_golden:
+		base_score = int(round(float(base_score) * maxf(1.0, float(_asteroid_field_cfg.get("golden_fragment_score_mult", 3.0)))))
+	_add_run_score(base_score)
+	var origin: Vector2 = asteroid.global_position
+	# Fragment doré : cristal garanti à sa mort (en plus du score ×N).
+	if is_golden:
+		_spawn_bonus_crystal_at(origin)
 	var split_count: int = maxi(0, int(tier.get("split_count", 0)))
 	var next_idx: int = tier_idx + 1
 	if split_count > 0 and next_idx < tiers.size() and tiers[next_idx] is Dictionary:
@@ -3373,7 +3396,12 @@ func _on_asteroid_destroyed(asteroid: Node2D) -> void:
 		var cone: float = deg_to_rad(clampf(float(_asteroid_field_cfg.get("split_cone_deg", 70.0)), 10.0, 160.0))
 		var speed_jitter: float = clampf(float(_asteroid_field_cfg.get("child_speed_jitter", 0.15)), 0.0, 0.6)
 		var child_base_speed: float = _asteroid_field_base_speed * maxf(0.1, float(next_tier.get("speed_multiplier", 1.0)))
-		var origin: Vector2 = asteroid.global_position
+		# Un SEUL enfant peut devenir doré, et seulement en scindant vers le dernier
+		# palier (fragment S précieux) ; jamais si le parent l'était déjà.
+		var golden_child_idx: int = -1
+		if not is_golden and int(next_tier.get("split_count", 0)) <= 0 \
+			and randf() <= clampf(float(_asteroid_field_cfg.get("golden_fragment_chance", 0.0)), 0.0, 1.0):
+			golden_child_idx = randi() % split_count
 		for i in range(split_count):
 			# Children spread evenly across the cone (centered on straight down);
 			# the speed splits into scroll (vertical) + free drift (horizontal).
@@ -3384,9 +3412,135 @@ func _on_asteroid_destroyed(asteroid: Node2D) -> void:
 			# Deferred : on est dans un callback de collision (area_entered ->
 			# die -> obstacle_destroyed) — le setup() du fragment touche des
 			# shapes/monitorable, interdit pendant le flush des queries physiques.
-			call_deferred("_spawn_asteroid", next_idx, origin + offset, child_speed * cos(angle), child_speed * sin(angle))
+			call_deferred("_spawn_asteroid", next_idx, origin + offset, child_speed * cos(angle), child_speed * sin(angle), i == golden_child_idx)
 	elif randf() <= clampf(float(_asteroid_field_cfg.get("crystal_chance_final_tier", 0.25)), 0.0, 1.0):
-		_spawn_bonus_crystal_at(asteroid.global_position)
+		_spawn_bonus_crystal_at(origin)
+	# Lot 1 : chance qu'un fragment détruit lâche un pickup tombant.
+	if randf() <= clampf(float(_asteroid_field_cfg.get("pickup_drop_chance", 0.0)), 0.0, 1.0):
+		_spawn_asteroid_pickup(origin)
+
+## Lot 1 — spawn un pickup tombant tiré du pool pondéré `pickup_pool[]`.
+func _spawn_asteroid_pickup(pos: Vector2) -> void:
+	var pool_v: Variant = _asteroid_field_cfg.get("pickup_pool", [])
+	if not (pool_v is Array):
+		return
+	var pool: Array = pool_v as Array
+	if pool.is_empty():
+		return
+	var total_w: float = 0.0
+	for entry in pool:
+		if entry is Dictionary:
+			total_w += maxf(0.0, float((entry as Dictionary).get("weight", 1.0)))
+	if total_w <= 0.0:
+		return
+	var roll: float = randf() * total_w
+	var chosen: Dictionary = {}
+	for entry in pool:
+		if not (entry is Dictionary):
+			continue
+		roll -= maxf(0.0, float((entry as Dictionary).get("weight", 1.0)))
+		if roll <= 0.0:
+			chosen = entry as Dictionary
+			break
+	if chosen.is_empty():
+		return
+	var node: Object = ASTEROID_PICKUP_SCRIPT.new()
+	if not (node is Node2D):
+		return
+	var pickup: Node2D = node as Node2D
+	pickup.global_position = pos
+	game_layer.add_child(pickup)
+	var data: Dictionary = {
+		"id": str(chosen.get("id", "")),
+		"asset": str(chosen.get("asset", "")),
+		"tint": str(chosen.get("tint", "#FFFFFF")),
+		"fall_speed_px_sec": float(_asteroid_field_cfg.get("pickup_fall_speed_px_sec", 300.0)),
+		"size_px": float(_asteroid_field_cfg.get("pickup_size_px", 48.0)),
+		"magnet_radius_px": float(_asteroid_field_cfg.get("pickup_magnet_radius_px", 44.0)),
+		"magnet_speed_px_sec": float(_asteroid_field_cfg.get("pickup_magnet_speed_px_sec", 470.0)),
+		"ttl_sec": float(_asteroid_field_cfg.get("pickup_ttl_sec", 9.0))
+	}
+	if pickup.has_method("setup"):
+		pickup.call("setup", data, player)
+	if pickup.has_signal("collected"):
+		pickup.connect("collected", Callable(self, "_on_asteroid_pickup_collected").bind(chosen))
+	_asteroid_pickups.append(pickup)
+
+## Applique l'effet d'un pickup ramassé (`entry` = son def du pool).
+func _on_asteroid_pickup_collected(pickup_id: String, entry: Dictionary) -> void:
+	var dur: float = maxf(0.1, float(entry.get("duration_sec", 5.0)))
+	match pickup_id:
+		"overdrive":
+			if player and is_instance_valid(player) and player.has_method("add_fire_rate_boost"):
+				player.call("add_fire_rate_boost", dur)
+		"nuke":
+			_asteroid_nuke()
+		"freeze":
+			_asteroid_freeze_timer = dur
+			_apply_asteroid_freeze(true)
+		"pierce":
+			if player and is_instance_valid(player):
+				if _asteroid_pierce_timer <= 0.0:
+					_asteroid_pierce_saved_mult = float(player.get("damage_multiplier"))
+				_asteroid_pierce_timer = dur
+				var mult: float = maxf(1.0, float(_asteroid_field_cfg.get("pierce_damage_mult", 8.0)))
+				player.set("damage_multiplier", _asteroid_pierce_saved_mult * mult)
+	if player and is_instance_valid(player):
+		VFXManager.spawn_floating_text(player.global_position, str(entry.get("label", pickup_id)).to_upper(), Color(1.0, 0.9, 0.4), game_layer)
+
+## Détruit tous les fragments du DERNIER palier à l'écran (récompenses normales
+## via leur die() -> obstacle_destroyed -> _on_asteroid_destroyed).
+func _asteroid_nuke() -> void:
+	var tiers_v: Variant = _asteroid_field_cfg.get("tiers", [])
+	var tiers: Array = (tiers_v as Array) if tiers_v is Array else []
+	var last_idx: int = tiers.size() - 1
+	if last_idx < 0 or game_layer == null:
+		return
+	for child in game_layer.get_children():
+		if child is Node2D and (child as Node2D).has_meta("asteroid_tier") \
+			and int((child as Node2D).get_meta("asteroid_tier")) == last_idx \
+			and (child as Node2D).has_method("die"):
+			(child as Node2D).call_deferred("die")
+
+## Gèle / dégèle les astéroïdes actifs (scroll + dérive sont tous dans
+## ObstacleExplosive._physics_process).
+func _apply_asteroid_freeze(frozen: bool) -> void:
+	if game_layer == null:
+		return
+	for child in game_layer.get_children():
+		if child is Node2D and (child as Node2D).has_meta("asteroid_tier"):
+			(child as Node2D).set_physics_process(not frozen)
+
+## Tick des effets temporisés (gel, perforant) — appelé depuis _process.
+func _tick_asteroid_effects(delta: float) -> void:
+	if _asteroid_freeze_timer > 0.0:
+		_asteroid_freeze_timer -= delta
+		if _asteroid_freeze_timer <= 0.0:
+			_asteroid_freeze_timer = 0.0
+			_apply_asteroid_freeze(false)
+	if _asteroid_pierce_timer > 0.0:
+		_asteroid_pierce_timer -= delta
+		if _asteroid_pierce_timer <= 0.0:
+			_asteroid_pierce_timer = 0.0
+			_restore_asteroid_pierce()
+
+func _restore_asteroid_pierce() -> void:
+	if _asteroid_pierce_saved_mult >= 0.0 and player and is_instance_valid(player):
+		player.set("damage_multiplier", _asteroid_pierce_saved_mult)
+	_asteroid_pierce_saved_mult = -1.0
+
+## Reset complet de l'état Lot 1 (nouvelle vague / (re)spawn d'un champ).
+func _reset_asteroid_effects() -> void:
+	if _asteroid_freeze_timer > 0.0:
+		_apply_asteroid_freeze(false)
+	_asteroid_freeze_timer = 0.0
+	if _asteroid_pierce_timer > 0.0:
+		_restore_asteroid_pierce()
+	_asteroid_pierce_timer = 0.0
+	for p in _asteroid_pickups:
+		if p is Node and is_instance_valid(p):
+			(p as Node).queue_free()
+	_asteroid_pickups.clear()
 
 func _on_level_completed() -> void:
 	_clear_gate_runners()

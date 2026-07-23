@@ -49,7 +49,11 @@ liens: [slug_doc_lié, ...]   # nom de fichier sans .md
 | [score_evolution.md](markdown/score_evolution.md) | spec | partiel | Killstreak / multiplicateur / cristaux (logique livrée ; polish standby) |
 | [performance_improvements.md](markdown/performance_improvements.md) | reference | à jour | Guide d'optimisation : caching, prewarming, budgets par frame, assets, debug perf, checklist |
 | [skillsAssets.md](markdown/skillsAssets.md) | reference | à jour | Assets SkillsMenu + prompts Ludo.ai |
-| [missing_assets.md](markdown/missing_assets.md) | reference | à jour | Rapport assets manquants + prompts Ludo.ai |
+| [missing_assets.md](markdown/missing_assets.md) | reference | à jour | Assets GRAPHIQUES manquants (audit 23/07) : statique livré, reste animés phase 2 ; prompts Ludo.ai |
+| [missing_wave.md](markdown/missing_wave.md) | reference | à jour | Audio manquant : SFX (3 refs absentes + 14 mini-jeux muets) & musiques (4 pistes / 9 mondes) |
+| [missing_assets_3D.md](markdown/missing_assets_3D.md) | reference | à jour | Assets 3D manquants (FINAL BOSS) : pipeline Ludo image→GLB vérifié (POST /api/assets/3d-model, 3 cr), fiches boss/fragments/ships + pièges Godot |
+| [ultimate_game_ideas.md](markdown/ultimate_game_ideas.md) | backlog | à jour | Jeu ultime 3D (récompense 1M Tritanium) : 20 propositions low-poly mobile + comparatif — idée #20 RETENUE → final_boss.md |
+| [final_boss.md](markdown/final_boss.md) | spec | à jour | FINAL BOSS : mode 3D ultime (idée #20) — Final Form du HomeScreen + 8 phases citant les mini-jeux ; **Lots 0-1 livrés 23/07** (gel usine, gateway, coquille 3D + barrage), Lots 2-4 à venir |
 | [ludoAI_ImageGeneration.md](markdown/ludoAI_ImageGeneration.md) | reference | à jour | Pipeline local génération d'assets Ludo.ai : tools/ludo_generate.py, conversion/trim, table de câblage JSON — contient la clé API |
 | [worldlevel_select.md](markdown/worldlevel_select.md) | archive | archive | Refonte carrousel World/Level select — ABANDONNÉE, ne pas suivre |
 

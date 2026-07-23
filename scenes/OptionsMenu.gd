@@ -41,6 +41,7 @@ var _debug_reset_equipment_button: Button = null
 var _debug_reset_profile_button: Button = null
 var _debug_add_levels_button: Button = null
 var _debug_add_crystals_button: Button = null
+var _debug_final_boss_button: Button = null # toggle final_unlock_purchased (final_boss.md)
 
 # =============================================================================
 # LIFECYCLE
@@ -256,6 +257,7 @@ func _setup_debug_actions_section() -> void:
 	_debug_reset_profile_button = _create_debug_button("ResetProfileButton", _on_debug_reset_profile_pressed)
 	_debug_add_levels_button = _create_debug_button("AddLevelsButton", _on_debug_add_levels_pressed)
 	_debug_add_crystals_button = _create_debug_button("AddCrystalsButton", _on_debug_add_crystals_pressed)
+	_debug_final_boss_button = _create_debug_button("FinalBossToggleButton", _on_debug_final_boss_pressed)
 	for btn in [
 		_debug_unlock_all_button,
 		_debug_reset_stories_button,
@@ -264,7 +266,8 @@ func _setup_debug_actions_section() -> void:
 		_debug_reset_equipment_button,
 		_debug_reset_profile_button,
 		_debug_add_levels_button,
-		_debug_add_crystals_button
+		_debug_add_crystals_button,
+		_debug_final_boss_button
 	]:
 		grid.add_child(btn)
 	_refresh_debug_actions_visibility()
@@ -346,6 +349,7 @@ func _apply_debug_action_translations() -> void:
 	_set_button_text(_debug_reset_profile_button, "options_debug_reset_profile")
 	_set_button_text(_debug_add_levels_button, "options_debug_add_levels")
 	_set_button_text(_debug_add_crystals_button, "options_debug_add_crystals")
+	_refresh_final_boss_debug_label()
 
 func _set_button_text(button: Button, locale_key: String) -> void:
 	if button == null:
@@ -474,6 +478,28 @@ func _on_debug_add_crystals_pressed() -> void:
 		return
 	ProfileManager.add_crystals(10000) # add_crystals persiste via _update_active_profile
 	_show_debug_button_done(_debug_add_crystals_button, "options_debug_add_crystals_done", "options_debug_add_crystals")
+
+## Toggle debug FINAL BOSS (final_boss.md) : force/annule final_unlock_purchased
+## sans cout. Le HomeScreen reconstruit l'etat Final Form au retour. NB : le
+## reset profil (bouton ci-dessus) remet AUSSI cet etat a zero (profil recree
+## aux defauts + re-init IdleFactoryManager via les hooks de switch).
+func _on_debug_final_boss_pressed() -> void:
+	if not ProfileManager.is_debug_mode_enabled():
+		return
+	if not IdleFactoryManager or not IdleFactoryManager.is_ready():
+		return
+	var target := not IdleFactoryManager.is_final_unlock_purchased()
+	IdleFactoryManager.debug_set_final_unlock(target)
+	_refresh_final_boss_debug_label()
+
+## Label = la PROCHAINE action (ON quand l'etat est off, OFF quand il est on).
+func _refresh_final_boss_debug_label() -> void:
+	if _debug_final_boss_button == null or not is_instance_valid(_debug_final_boss_button):
+		return
+	var purchased := IdleFactoryManager != null and IdleFactoryManager.is_ready() \
+		and IdleFactoryManager.is_final_unlock_purchased()
+	_set_button_text(_debug_final_boss_button,
+		"options_debug_final_boss_off" if purchased else "options_debug_final_boss_on")
 
 func _show_debug_button_done(button: Button, done_key: String, reset_key: String) -> void:
 	if button == null:

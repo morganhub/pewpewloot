@@ -31,6 +31,9 @@ var _strip: Node = null
 var _final_btn: Button
 var _locked_overlay: Label
 var _refresh_timer: Timer
+# FINAL FORM (final_boss.md §3.3) : usine remplacee par 5 decos animees inactives.
+var _final_form_built: bool = false
+var _final_pulse_tween: Tween = null
 
 func _ready() -> void:
 	# Editeur : preview seule (les autoloads/managers ne tournent pas).
@@ -47,11 +50,18 @@ func _ready() -> void:
 	if _cfg.is_empty():
 		visible = false
 		return
-	_build_panels()
-	_build_strip()
-	_build_final_button()
-	_build_locked_overlay()
-	_apply_gating()
+	if _is_final_form():
+		# Retour sur la home apres l'achat : reconstruction statique, aucune
+		# choregraphie (final_boss.md §2).
+		_final_form_built = true
+		_build_final_form(false)
+		_build_final_button()
+	else:
+		_build_panels()
+		_build_strip()
+		_build_final_button()
+		_build_locked_overlay()
+		_apply_gating()
 
 	_refresh_timer = Timer.new()
 	_refresh_timer.wait_time = 1.0 / maxf(1.0, float(_ui_cfg.get("refresh_hz", 8.0)))
@@ -61,12 +71,17 @@ func _ready() -> void:
 
 	if IdleFactoryManager:
 		IdleFactoryManager.generator_state_changed.connect(func(_id): _refresh_all())
-		IdleFactoryManager.final_unlock_purchased.connect(func(_reward): _refresh_all())
+		# Premier achat : la choregraphie + le lancement vivent EXCLUSIVEMENT ici
+		# (un seul chemin — final_boss.md §3.3.4).
+		IdleFactoryManager.final_unlock_purchased.connect(_on_final_unlock_purchased)
 	if ProfileManager and ProfileManager.has_signal("level_up"):
 		ProfileManager.level_up.connect(func(_lvl, _pts): _apply_gating())
 
 ## Reevaluation du gating + refresh complet (retour sur la home apres un run).
 func refresh_gating() -> void:
+	if _is_final_form():
+		_refresh_final_button()
+		return
 	_apply_gating()
 	_refresh_all()
 
@@ -123,15 +138,32 @@ func _refresh_final_button() -> void:
 		return
 	var final_cfg: Dictionary = _cfg.get("final_unlock", {})
 	if IdleFactoryManager.is_final_unlock_purchased():
-		_final_btn.text = _tr_key("idle_final_activated", "ACTIVÉ")
-		_final_btn.disabled = true
+		# FINAL FORM : le bouton devient la porte d'entree permanente du mode
+		# (final_boss.md §3.3.3) — actif, relabelle, pulse doux.
+		_final_btn.text = _tr_key("final_boss_enter", "BOSS FINAL")
+		_final_btn.disabled = false
+		_start_final_button_pulse()
 		return
 	var cost := float(final_cfg.get("cost", 1000000))
 	var res_id := str(final_cfg.get("resource_id", "tritanium"))
 	_final_btn.text = NumberFormat.compact(cost) + " " + _tr_key("idle_resource_" + res_id, res_id.to_upper())
 	_final_btn.disabled = IdleFactoryManager.get_resource_amount(res_id) < cost
 
+func _start_final_button_pulse() -> void:
+	if _final_pulse_tween and _final_pulse_tween.is_valid():
+		return
+	_final_pulse_tween = create_tween().set_loops()
+	_final_pulse_tween.tween_property(_final_btn, "modulate", Color(1.25, 1.15, 0.85), 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_final_pulse_tween.tween_property(_final_btn, "modulate", Color.WHITE, 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
 func _on_final_pressed() -> void:
+	# Deja achete : le bouton est le gateway — relance le mode, rien d'autre
+	# (final_boss.md §3.3.3, un seul chemin pour la choregraphie).
+	if IdleFactoryManager and IdleFactoryManager.is_ready() and IdleFactoryManager.is_final_unlock_purchased():
+		_launch_final_boss()
+		return
 	var ok := IdleFactoryManager.purchase_final_unlock()
 	if AudioManager:
 		AudioManager.play_sfx("res://assets/sfx/ui_confirm.wav" if ok else "res://assets/sfx/ui_deny.wav", 0.0)
@@ -164,6 +196,8 @@ func _build_locked_overlay() -> void:
 		add_child(_locked_overlay)
 
 func _apply_gating() -> void:
+	if _is_final_form():
+		return # Final form : plus de gating, plus de panneaux (final_boss.md §3.3)
 	var required := int(_cfg.get("unlock_player_level", 10))
 	var level := ProfileManager.get_player_level() if ProfileManager else 1
 	var locked := level < required
@@ -181,11 +215,181 @@ func _apply_gating() -> void:
 func _refresh_all() -> void:
 	if not visible or not IdleFactoryManager or not IdleFactoryManager.is_ready():
 		return
+	if _is_final_form():
+		# Final form : seul le bouton reste vivant (final_boss.md §3.3.5).
+		_refresh_final_button()
+		return
 	for panel in _panels:
 		panel.call("refresh")
 	_refresh_final_button()
 	if _strip and is_instance_valid(_strip):
 		_strip.call("refresh")
+
+# =============================================================================
+# FINAL FORM (final_boss.md §3) — apres l'achat 1M : usine gelee, 4 triangles +
+# strip remplaces par 5 decos animees INACTIVES, bouton = gateway du mode 3D.
+# =============================================================================
+
+## Cle de coin (assets final_form.triangle_assets) dans l'ordre de CORNER_MARKERS.
+const FINALFORM_CORNER_KEYS := ["tl", "tr", "bl", "br"]
+
+func _is_final_form() -> bool:
+	return IdleFactoryManager != null and IdleFactoryManager.is_ready() \
+		and IdleFactoryManager.is_final_unlock_purchased()
+
+func _final_form_cfg() -> Dictionary:
+	var v: Variant = _cfg.get("final_form", {})
+	return v if v is Dictionary else {}
+
+## Construit les 5 decos (4 triangles + strip). `animated_intro` = pop-in
+## sequentiel (premier achat) ; false = reconstruction statique (retour home).
+func _build_final_form(animated_intro: bool) -> void:
+	var ff := _final_form_cfg()
+	var tri_assets_v: Variant = ff.get("triangle_assets", {})
+	var tri_assets: Dictionary = tri_assets_v if tri_assets_v is Dictionary else {}
+	var trans_v: Variant = ff.get("transition", {})
+	var trans: Dictionary = trans_v if trans_v is Dictionary else {}
+	var pop_sec := maxf(0.05, float(trans.get("pop_in_sec", 0.25)))
+	var stagger := maxf(0.0, float(trans.get("pop_stagger_sec", 0.12)))
+	var decos: Array = []
+	for i in range(CORNER_MARKERS.size()):
+		var marker := _marker(str(CORNER_MARKERS[i]["node"]), Control.PRESET_TOP_LEFT)
+		var deco := _make_finalform_deco(str(tri_assets.get(FINALFORM_CORNER_KEYS[i], "")),
+			int(CORNER_MARKERS[i]["corner"]), ff)
+		marker.add_child(deco)
+		decos.append(deco)
+	var strip_host := _marker("StripHost", Control.PRESET_BOTTOM_WIDE)
+	var strip_deco := _make_finalform_deco(str(ff.get("strip_asset", "")), -1, ff)
+	strip_host.add_child(strip_deco)
+	decos.append(strip_deco)
+	if animated_intro:
+		for i in range(decos.size()):
+			var d: Control = decos[i]
+			d.modulate.a = 0.0
+			d.scale = Vector2.ONE * 0.85
+			d.pivot_offset = d.size * 0.5
+			var tw := create_tween()
+			tw.tween_interval(float(i) * stagger)
+			tw.tween_property(d, "modulate:a", 1.0, pop_sec)
+			tw.parallel().tween_property(d, "scale", Vector2.ONE, pop_sec) \
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Une deco : wrapper Control inactif (MOUSE_FILTER_IGNORE) + visuel.
+## Priorite : SpriteFrames anime (pattern ItemCard : AnimatedSprite2D enfant,
+## recentre/rescale sur resized) > Texture2D etiree > fallback procedural
+## (triangle Polygon2D au coin / rectangle) teinte fallback_color.
+func _make_finalform_deco(asset_path: String, corner: int, ff: Dictionary) -> Control:
+	var wrap := Control.new()
+	wrap.name = "FinalFormDeco"
+	wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var res: Resource = null
+	if asset_path != "" and ResourceLoader.exists(asset_path):
+		res = load(asset_path)
+	if res is SpriteFrames:
+		var anim := AnimatedSprite2D.new()
+		anim.name = "AnimSprite"
+		anim.sprite_frames = res as SpriteFrames
+		var names: PackedStringArray = anim.sprite_frames.get_animation_names()
+		var anim_name: StringName = &"default"
+		if not anim.sprite_frames.has_animation(anim_name) and names.size() > 0:
+			anim_name = StringName(names[0])
+		if anim.sprite_frames.has_animation(anim_name):
+			anim.play(anim_name)
+		anim.centered = true
+		wrap.add_child(anim)
+		var fit := func() -> void:
+			var frame_size := _finalform_frame_size(anim)
+			if frame_size.x > 0.0 and frame_size.y > 0.0:
+				anim.scale = wrap.size / frame_size
+			anim.position = wrap.size * 0.5
+		wrap.resized.connect(fit)
+		fit.call_deferred()
+	elif res is Texture2D:
+		var rect := TextureRect.new()
+		rect.texture = res as Texture2D
+		rect.stretch_mode = TextureRect.STRETCH_SCALE
+		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wrap.add_child(rect)
+	else:
+		# Fallback procedural : geometrie du GeneratorPanel (angle droit au coin
+		# ecran) recoloree or, ou rectangle pour la strip (corner -1).
+		var color := Color(str(ff.get("fallback_color", "#E8C347")))
+		var poly := Polygon2D.new()
+		poly.color = Color(color, 0.5)
+		wrap.add_child(poly)
+		var update := func() -> void:
+			poly.polygon = _finalform_fallback_pts(corner, wrap.size)
+		wrap.resized.connect(update)
+		update.call_deferred()
+	# Pulse d'ambiance discret (decoratif, jamais interactif).
+	var pulse_sec := maxf(0.3, float(ff.get("deco_pulse_sec", 2.4)))
+	var pulse := create_tween().set_loops()
+	pulse.tween_property(wrap, "modulate:a", 0.82, pulse_sec * 0.5) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse.tween_property(wrap, "modulate:a", 1.0, pulse_sec * 0.5) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	return wrap
+
+func _finalform_frame_size(anim: AnimatedSprite2D) -> Vector2:
+	if anim == null or anim.sprite_frames == null:
+		return Vector2.ZERO
+	var anim_name := anim.animation
+	if anim.sprite_frames.get_frame_count(anim_name) <= 0:
+		return Vector2.ZERO
+	var tex := anim.sprite_frames.get_frame_texture(anim_name, 0)
+	return tex.get_size() if tex else Vector2.ZERO
+
+## Meme geometrie de triangle que GeneratorPanel/_draw editeur : angle droit au
+## coin ecran (0=HG 1=HD 2=BG 3=BD) ; corner -1 = rectangle plein (strip).
+func _finalform_fallback_pts(corner: int, s: Vector2) -> PackedVector2Array:
+	match corner:
+		0: return PackedVector2Array([Vector2.ZERO, Vector2(s.x, 0), Vector2(0, s.y)])
+		1: return PackedVector2Array([Vector2(s.x, 0), Vector2.ZERO, Vector2(s.x, s.y)])
+		2: return PackedVector2Array([Vector2(0, s.y), Vector2.ZERO, Vector2(s.x, s.y)])
+		3: return PackedVector2Array([Vector2(s.x, s.y), Vector2(s.x, 0), Vector2(0, s.y)])
+		_: return PackedVector2Array([Vector2.ZERO, Vector2(s.x, 0), s, Vector2(0, s.y)])
+
+## PREMIER ACHAT (signal final_unlock_purchased) : choregraphie de
+## transformation puis lancement auto du mode — chemin UNIQUE (§3.3.4).
+func _on_final_unlock_purchased(_reward_id: String) -> void:
+	if _final_form_built:
+		_refresh_all()
+		return
+	_final_form_built = true
+	var trans_v: Variant = _final_form_cfg().get("transition", {})
+	var trans: Dictionary = trans_v if trans_v is Dictionary else {}
+	var fade := maxf(0.05, float(trans.get("fade_out_sec", 0.5)))
+	var tw := create_tween().set_parallel(true)
+	for panel in _panels:
+		if panel is CanvasItem and is_instance_valid(panel):
+			tw.tween_property(panel, "modulate:a", 0.0, fade)
+	if _strip is CanvasItem and is_instance_valid(_strip):
+		tw.tween_property(_strip, "modulate:a", 0.0, fade)
+	if _locked_overlay and is_instance_valid(_locked_overlay):
+		_locked_overlay.visible = false
+	await tw.finished
+	for panel in _panels:
+		if panel is Node and is_instance_valid(panel):
+			(panel as Node).queue_free()
+	_panels.clear()
+	if _strip is Node and is_instance_valid(_strip):
+		(_strip as Node).queue_free()
+	_strip = null
+	_build_final_form(true)
+	_refresh_final_button()
+	_launch_final_boss()
+
+## Porte d'entree du mode : flush usine puis navigation SceneSwitcher standard
+## (pattern HomeScreen._goto_from_home).
+func _launch_final_boss() -> void:
+	if IdleFactoryManager:
+		IdleFactoryManager.flush_to_profile()
+	var scene_path := str(_final_form_cfg().get("scene_path", "res://scenes/ultimate/FinalBossMode.tscn"))
+	var switcher := get_tree().current_scene
+	if switcher and switcher.has_method("goto_screen"):
+		switcher.call("goto_screen", scene_path)
 
 func _tr_key(key: String, fallback: String) -> String:
 	if LocaleManager and LocaleManager.has_method("translate"):

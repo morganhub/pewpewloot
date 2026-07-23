@@ -90,6 +90,9 @@ var _gate_runner_golden_active: bool = false
 var _pong_active: bool = false
 var _pong_lock_y: float = 0.0
 var _pong_lock_tween: Tween = null
+# Gel de la raquette joueur (missile armed_paddle adverse) : X figé, 0 dégât.
+var _pong_stun_timer: float = 0.0
+var _pong_stun_x: float = 0.0
 
 # Vertical climb wave state: Y is fully driven by the climb manager (gravity +
 # bounces), X stays player-controlled.
@@ -1051,7 +1054,19 @@ func end_pong() -> void:
 	if not _pong_active:
 		return
 	_pong_active = false
+	_pong_stun_timer = 0.0
+	modulate = Color.WHITE
 	_apply_ship_scale(1.0)
+
+## Gèle la raquette du joueur pendant `sec` (impact d'un missile armed_paddle
+## adverse) : la position X est figée dans _handle_movement, AUCUN dégât. Teinte
+## bleutée, comme la raquette ennemie stunnée.
+func set_pong_stun(sec: float) -> void:
+	if not _pong_active:
+		return
+	_pong_stun_timer = maxf(_pong_stun_timer, maxf(0.0, sec))
+	_pong_stun_x = global_position.x
+	modulate = Color(0.55, 0.55, 0.95, 1.0)
 
 func is_pong_active() -> bool:
 	return _pong_active
@@ -2313,6 +2328,13 @@ func _handle_movement(delta: float) -> void:
 	# Pong wave: Y stays locked on the paddle line (X remains player-controlled).
 	if _pong_active:
 		global_position.y = _pong_lock_y
+		if _pong_stun_timer > 0.0:
+			# Gelé par un missile armed_paddle adverse : la raquette ne bouge plus.
+			_pong_stun_timer -= delta
+			global_position.x = _pong_stun_x
+			if _pong_stun_timer <= 0.0:
+				_pong_stun_timer = 0.0
+				modulate = Color.WHITE
 
 	# Vertical climb wave: Y is driven by the climb manager (X remains free).
 	if _climb_active:

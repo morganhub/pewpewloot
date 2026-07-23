@@ -17,8 +17,9 @@ extends Node2D
 ##   le match peut dégénérer en nuée de balles ; chaque balle sortie compte
 ##   un but, le service ne repart que quand il n'en reste plus).
 ## - armed_paddle : la raquette du propriétaire tire des missiles pendant
-##   duration_sec — un missile détruit les powerups sur sa route, stun la
-##   raquette ennemie (armed_stun_sec) ou inflige un léger % au joueur.
+##   duration_sec — un missile détruit les powerups sur sa route, GÈLE la raquette
+##   adverse (joueur OU ennemi, armed_stun_sec) sans lui infliger de dégât, et
+##   retire 1 PV au boss/météore par impact (sans le geler).
 ## - giant_paddle : raquette du propriétaire +100 % de largeur (scale_mult)
 ##   pendant duration_sec (hitbox + visuel).
 ## - portals : paire de portails MOUVANTS (rect épais orange = entrée, bleu =
@@ -530,10 +531,25 @@ func _reset_ball(serve_dir: int) -> void:
 	for i in range(_balls.size() - 1, -1, -1):
 		_free_ball(_balls[i])
 	_balls.clear()
-	var viewport_size: Vector2 = get_viewport_rect().size
-	_spawn_ball(Vector2(viewport_size.x * 0.5, viewport_size.y * 0.5), Vector2.ZERO, "")
+	_spawn_ball(_serve_origin(), Vector2.ZERO, "")
 	_state = State.SERVE
 	_state_timer = _serve_delay
+
+## Position de service : DEVANT la raquette du camp qui vient d'ENCAISSER le but.
+## `_serve_dir` pointe vers l'adversaire, donc le concédant est du côté opposé :
+## serve_dir < 0 (balle vers le haut) = le joueur a encaissé -> service depuis SA
+## raquette (bas) ; serve_dir > 0 = l'ennemi a encaissé -> service depuis la sienne
+## (haut). Fallback centre si une raquette manque (1er service au setup).
+func _serve_origin() -> Vector2:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var offset: float = _ball_radius + 34.0
+	if _serve_dir < 0:
+		if _player and is_instance_valid(_player):
+			return Vector2(_player.global_position.x, _player.global_position.y - offset)
+	else:
+		if _enemy_paddle and is_instance_valid(_enemy_paddle):
+			return Vector2(_enemy_paddle.global_position.x, _enemy_paddle.global_position.y + offset)
+	return Vector2(viewport_size.x * 0.5, viewport_size.y * 0.5)
 
 func _serve() -> void:
 	var angle: float = deg_to_rad(randf_range(-_serve_angle_max_deg, _serve_angle_max_deg))
@@ -1167,7 +1183,14 @@ func _update_missiles(delta: float) -> void:
 						_game.call("add_wave_bonus_score", maxi(0, int(_get_conf("invasion_drone_score", 25))), pos)
 					consumed = true
 					break
-		# Impact raquette adverse : stun (ennemi) ou léger % (joueur).
+		# Impact boss/météore : 1 dégât par missile (des DEUX camps), JAMAIS de gel.
+		if not consumed and not _meteor.is_empty():
+			var m_pos: Vector2 = _meteor.get("pos", Vector2.ZERO)
+			var m_reach: float = float(_meteor.get("radius", 70.0)) + 8.0
+			if pos.distance_squared_to(m_pos) <= m_reach * m_reach:
+				_damage_meteor(pos)
+				consumed = true
+		# Impact raquette adverse : GEL (ennemi ET joueur), JAMAIS de dégât.
 		if not consumed and bool(missile.get("from_player", true)):
 			if _enemy_paddle and is_instance_valid(_enemy_paddle):
 				var e_half: Vector2 = _paddle_half_extents("enemy")
@@ -1182,10 +1205,9 @@ func _update_missiles(delta: float) -> void:
 				var p_half: Vector2 = _paddle_half_extents("player")
 				var p: Vector2 = _player.global_position
 				if absf(pos.x - p.x) <= p_half.x and absf(pos.y - p.y) <= p_half.y + 8.0:
-					if _player.has_method("take_damage"):
-						var max_hp_v: Variant = _player.get("max_hp")
-						var max_hp: int = int(max_hp_v) if (max_hp_v is int or max_hp_v is float) else 100
-						_player.call("take_damage", maxi(1, int(ceil(float(max_hp) * _armed_player_damage_pct))))
+					# Gel de la raquette joueur (symétrique à l'ennemi), AUCUN dégât.
+					if _player.has_method("set_pong_stun"):
+						_player.call("set_pong_stun", _armed_stun_sec)
 					if VFXManager:
 						VFXManager.spawn_impact(pos, 16.0, self)
 					consumed = true

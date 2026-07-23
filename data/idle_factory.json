@@ -20,7 +20,21 @@
 	"final_unlock": {
 		"resource_id": "tritanium",
 		"cost": 1000000,
-		"reward_id": ""
+		"reward_id": "final_boss"
+	},
+	"final_form": {
+		"_note": "Apres l'achat final (spec markdown/final_boss.md §3) : usine gelee, les 4 triangles + la strip sont remplaces par 5 elements decoratifs animes INACTIFS et le bouton devient la porte d'entree du mode FINAL BOSS. Assets .tres a produire (missing_assets.md §1.5) — fallbacks runtime : PNG statique si present, sinon forme procedurale fallback_color.",
+		"triangle_assets": {
+			"tl": "res://assets/ui/idle_factory/finalform_triangle_tl.tres",
+			"tr": "res://assets/ui/idle_factory/finalform_triangle_tr.tres",
+			"bl": "res://assets/ui/idle_factory/finalform_triangle_bl.tres",
+			"br": "res://assets/ui/idle_factory/finalform_triangle_br.tres"
+		},
+		"strip_asset": "res://assets/ui/idle_factory/finalform_strip.tres",
+		"fallback_color": "#E8C347",
+		"deco_pulse_sec": 2.4,
+		"transition": { "fade_out_sec": 0.5, "pop_in_sec": 0.25, "pop_stagger_sec": 0.12 },
+		"scene_path": "res://scenes/ultimate/FinalBossMode.tscn"
 	},
 	"generators": [
 		{

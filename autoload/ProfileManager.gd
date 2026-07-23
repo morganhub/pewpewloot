@@ -298,6 +298,11 @@ func _migrate_profile(profile: Dictionary) -> Dictionary:
 		migrated["idle_factory"] = create_default_idle_factory_state()
 		needs_save = true
 
+	# Migration : records du mode FINAL BOSS 3D (spec markdown/final_boss.md §7).
+	if not migrated.has("final_boss"):
+		migrated["final_boss"] = create_default_final_boss_stats()
+		needs_save = true
+
 	# Migration: skill tree system
 	if not migrated.has("player_xp"):
 		migrated["player_xp"] = 0
@@ -1215,6 +1220,32 @@ func get_free_mode_play_count(wave_type: String) -> int:
 	if plays_v is Dictionary:
 		return maxi(0, int((plays_v as Dictionary).get(wave_type, 0)))
 	return 0
+
+# =============================================================================
+# FINAL BOSS (records du mode 3D ultime — spec markdown/final_boss.md §7)
+# =============================================================================
+
+func create_default_final_boss_stats() -> Dictionary:
+	return { "attempts": 0, "kills": 0, "best_time_sec": 0.0, "best_phase_reached": 0 }
+
+func get_final_boss_stats() -> Dictionary:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return create_default_final_boss_stats()
+	var v: Variant = profile.get("final_boss", {})
+	if v is Dictionary and not (v as Dictionary).is_empty():
+		return (v as Dictionary).duplicate(true)
+	return create_default_final_boss_stats()
+
+## Patch partiel (merge cle a cle) — ecrit le profil via _update_active_profile.
+func update_final_boss_stats(patch: Dictionary) -> void:
+	var profile := get_active_profile()
+	if profile.is_empty():
+		return
+	var stats := get_final_boss_stats()
+	for key in patch.keys():
+		stats[key] = patch[key]
+	_update_active_profile("final_boss", stats)
 
 # =============================================================================
 # VAISSEAUX

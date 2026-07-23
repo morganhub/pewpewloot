@@ -119,6 +119,12 @@ func flush_to_profile() -> void:
 func apply_elapsed_time(current_unix: int) -> void:
 	if _state.is_empty():
 		return
+	# FINAL FORM (final_boss.md §3.4) : usine terminee — plus AUCUNE production
+	# (runtime, offline, resume). last_update_unix est quand meme avance pour
+	# interdire tout rattrapage retroactif si l'etat devait etre de-gele un jour.
+	if bool(_state.get("final_unlock_purchased", false)):
+		_state["last_update_unix"] = current_unix
+		return
 	var last_update := int(_state.get("last_update_unix", 0))
 	if last_update <= 0:
 		_state["last_update_unix"] = current_unix
@@ -215,6 +221,8 @@ func production_multiplier(gen_id: String) -> float:
 # =============================================================================
 
 func unlock_generator(generator_id: String) -> bool:
+	if bool(_state.get("final_unlock_purchased", false)):
+		return false # Final form : usine gelee (final_boss.md §3.4)
 	var gen_cfg := get_generator_config(generator_id)
 	if gen_cfg.is_empty():
 		return false
@@ -238,6 +246,8 @@ func unlock_generator(generator_id: String) -> bool:
 	return true
 
 func upgrade_generator(generator_id: String) -> bool:
+	if bool(_state.get("final_unlock_purchased", false)):
+		return false # Final form : usine gelee (final_boss.md §3.4)
 	var gen_cfg := get_generator_config(generator_id)
 	if gen_cfg.is_empty():
 		return false
@@ -263,6 +273,8 @@ func upgrade_generator(generator_id: String) -> bool:
 
 ## Tap de surcadence. Retourne le nombre de pas de charge courant (0 = refuse).
 func tap_generator(generator_id: String) -> int:
+	if bool(_state.get("final_unlock_purchased", false)):
+		return 0 # Final form : usine gelee (final_boss.md §3.4)
 	var gen_state := _generator_state(generator_id)
 	if int(gen_state.get("level", 0)) <= 0:
 		return 0
@@ -291,6 +303,18 @@ func tap_generator(generator_id: String) -> int:
 	_tap_charges[generator_id] = charge
 	generator_state_changed.emit(generator_id)
 	return steps
+
+## DEBUG (OptionsMenu, manual_debug_mode) : force l'etat final_unlock sans cout.
+## ON n'emet PAS le signal final_unlock_purchased (pas de choregraphie/lancement
+## auto depuis les options) — le HomeScreen reconstruit l'etat au retour.
+## OFF : l'usine repart sans rattrapage (last_update_unix a continue d'avancer
+## pendant le gel, cf. apply_elapsed_time).
+func debug_set_final_unlock(purchased: bool) -> void:
+	if _state.is_empty():
+		return
+	_state["final_unlock_purchased"] = purchased
+	_dirty = true
+	flush_to_profile()
 
 func purchase_final_unlock() -> bool:
 	if bool(_state.get("final_unlock_purchased", false)):
