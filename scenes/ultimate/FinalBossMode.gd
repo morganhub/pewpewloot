@@ -16,6 +16,7 @@ const PhaseBarrageScript = preload("res://scenes/ultimate/phases/PhaseBarrage.gd
 const PhasePongDuelScript = preload("res://scenes/ultimate/phases/PhasePongDuel.gd")
 const PhaseSuikaPurgeScript = preload("res://scenes/ultimate/phases/PhaseSuikaPurge.gd")
 const PhaseGateGauntletScript = preload("res://scenes/ultimate/phases/PhaseGateGauntlet.gd")
+const PhaseSnakeCoilScript = preload("res://scenes/ultimate/phases/PhaseSnakeCoil.gd")
 const UIStyle = preload("res://scripts/ui/UIStyle.gd")
 
 const HOME_SCENE_PATH := "res://scenes/HomeScreen.tscn"
@@ -558,8 +559,11 @@ func _build_ship() -> void:
 				if inst is Node3D:
 					var node := inst as Node3D
 					_force_unshaded(node)
+					# add_child AVANT la normalisation : _combined_aabb lit des
+					# global_transform, qui exigent d'être DANS l'arbre (erreur
+					# "!is_inside_tree()" constatée au test 24/07).
+					_ship_root.add_child(node)
 					if _normalize_node_to_size(node, maxf(0.2, float(player_cfg.get("ship_mesh_width", 0.72)))):
-						_ship_root.add_child(node)
 						_ship_visual = node
 						_ship_is_mesh = true
 						return
@@ -1062,6 +1066,8 @@ func _start_phase(index: int) -> void:
 			_phase = PhaseSuikaPurgeScript.new()
 		"gate_gauntlet":
 			_phase = PhaseGateGauntletScript.new()
+		"snake_coil":
+			_phase = PhaseSnakeCoilScript.new()
 		_:
 			# Phase pas encore codée : FALLBACK BARRAGE (params escaladés par
 			# index) — toute la barre de boss se vide avant la victoire (retour
@@ -1200,9 +1206,21 @@ func _update_ambient(delta: float) -> void:
 			# ROTATION AXE Y : le mesh montre son profil pendant l'esquive —
 			# la 3D du GLB se lit (retour test 23/07 : « rotation 3D, pas tilt »).
 			dodge_yaw = _dodge_dir * deg_to_rad(float(boss.get("dodge_yaw_deg", 45.0))) * k
-		_boss_root.position = _boss_base_pos + Vector3(dodge_x, sin(_ambient_time * bob_speed) * bob, 0)
+		# Mouvements VARIÉS toutes phases (retour test 24/07) : dérive latérale
+		# + respiration en PROFONDEUR + bob, et rotation sur les 3 axes —
+		# X (« il s'allonge » : penché avant/arrière), Y (balancement + esquive),
+		# léger Z. Le tout par sinusoïdes déphasées, amplitudes data.
+		var drift_x := sin(_ambient_time * float(boss.get("drift_x_speed", 0.35))) \
+			* float(boss.get("drift_x_amplitude", 0.8))
+		var depth := sin(_ambient_time * float(boss.get("depth_speed", 0.22)) + 1.3) \
+			* float(boss.get("depth_amplitude", 0.4))
+		_boss_root.position = _boss_base_pos + Vector3(drift_x + dodge_x, sin(_ambient_time * bob_speed) * bob, depth)
+		_boss_root.rotation.x = sin(_ambient_time * float(boss.get("pitch_speed", 0.45)) + 0.7) \
+			* deg_to_rad(float(boss.get("pitch_deg", 8.0)))
 		_boss_root.rotation.y = sin(_ambient_time * float(boss.get("sway_speed", 0.5))) \
 			* deg_to_rad(float(boss.get("sway_deg", 6.0))) + dodge_yaw
+		_boss_root.rotation.z = sin(_ambient_time * 0.31 + 2.4) \
+			* deg_to_rad(float(boss.get("roll_deg", 3.0)))
 	# Caméra : PARALLAXE sur la position du vaisseau — bouger latéralement
 	# déplace le point de vue, les plans (starfield/planète/boss) glissent à
 	# des vitesses différentes = profondeur lisible.
@@ -1309,7 +1327,14 @@ func _update_fire(delta: float) -> void:
 	var player_cfg: Dictionary = player_v if player_v is Dictionary else {}
 	var rate := clampf(float(_stats.get("fire_rate", 1.0)),
 		float(player_cfg.get("fire_rate_min", 0.5)), float(player_cfg.get("fire_rate_max", 6.0)))
+	if _phase != null:
+		rate *= clampf(float(_phase.fire_rate_scale), 0.05, 2.0)
 	_fire_timer = 1.0 / maxf(0.1, rate)
+	# Phase à tir DÉLÉGUÉ (suika_purge : blocs au lieu de missiles) — la
+	# cadence reste celle du build, la phase décide du projectile.
+	if _phase != null and bool(_phase.overrides_player_fire):
+		_phase.player_fire(_ship_root.position)
+		return
 	if _player_shots.size() >= int(player_cfg.get("max_projectiles", 80)):
 		return
 	# TIR DROIT DEVANT par défaut (visée POSITIONNELLE — s'aligner en X/Y,
@@ -1422,6 +1447,27 @@ func is_fighting() -> bool:
 ## Caméra 3D (phases : bornes de visibilité du terrain — pong).
 func camera_node() -> Camera3D:
 	return _camera
+
+## Instancie un GLB décoratif pour une phase : WRAPPER Node3D dans le monde
+## (la phase pilote wrapper.position), enfant normalisé (échelle -> target_size,
+## centré) + matériaux unshaded. null si le GLB est inutilisable.
+func spawn_glb_prop(scene: PackedScene, target_size: float) -> Node3D:
+	if scene == null:
+		return null
+	var inst := scene.instantiate()
+	if not (inst is Node3D):
+		if inst:
+			inst.free()
+		return null
+	var wrapper := Node3D.new()
+	_world.add_child(wrapper)
+	var node := inst as Node3D
+	_force_unshaded(node)
+	wrapper.add_child(node) # dans l'arbre AVANT la normalisation (global_transform)
+	if not _normalize_node_to_size(node, maxf(0.05, target_size)):
+		wrapper.queue_free()
+		return null
+	return wrapper
 
 ## Toast public pour les phases (annonces de buff...).
 func show_phase_toast(title: String, hint: String = "") -> void:

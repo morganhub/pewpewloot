@@ -279,10 +279,10 @@ func _build_final_form(animated_intro: bool) -> void:
 ## recentre/rescale sur resized) > Texture2D etiree > fallback procedural
 ## (triangle Polygon2D au coin / rectangle) teinte fallback_color.
 func _make_finalform_deco(asset_path: String, corner: int, ff: Dictionary) -> Control:
-	var wrap := Control.new()
-	wrap.name = "FinalFormDeco"
-	wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
-	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var deco_wrap := Control.new()
+	deco_wrap.name = "FinalFormDeco"
+	deco_wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
+	deco_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var res: Resource = null
 	if asset_path != "" and ResourceLoader.exists(asset_path):
 		res = load(asset_path)
@@ -297,13 +297,13 @@ func _make_finalform_deco(asset_path: String, corner: int, ff: Dictionary) -> Co
 		if anim.sprite_frames.has_animation(anim_name):
 			anim.play(anim_name)
 		anim.centered = true
-		wrap.add_child(anim)
+		deco_wrap.add_child(anim)
 		var fit := func() -> void:
 			var frame_size := _finalform_frame_size(anim)
 			if frame_size.x > 0.0 and frame_size.y > 0.0:
-				anim.scale = wrap.size / frame_size
-			anim.position = wrap.size * 0.5
-		wrap.resized.connect(fit)
+				anim.scale = deco_wrap.size / frame_size
+			anim.position = deco_wrap.size * 0.5
+		deco_wrap.resized.connect(fit)
 		fit.call_deferred()
 	elif res is Texture2D:
 		var rect := TextureRect.new()
@@ -311,26 +311,26 @@ func _make_finalform_deco(asset_path: String, corner: int, ff: Dictionary) -> Co
 		rect.stretch_mode = TextureRect.STRETCH_SCALE
 		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		wrap.add_child(rect)
+		deco_wrap.add_child(rect)
 	else:
 		# Fallback procedural : geometrie du GeneratorPanel (angle droit au coin
 		# ecran) recoloree or, ou rectangle pour la strip (corner -1).
 		var color := Color(str(ff.get("fallback_color", "#E8C347")))
 		var poly := Polygon2D.new()
 		poly.color = Color(color, 0.5)
-		wrap.add_child(poly)
+		deco_wrap.add_child(poly)
 		var update := func() -> void:
-			poly.polygon = _finalform_fallback_pts(corner, wrap.size)
-		wrap.resized.connect(update)
+			poly.polygon = _finalform_fallback_pts(corner, deco_wrap.size)
+		deco_wrap.resized.connect(update)
 		update.call_deferred()
 	# Pulse d'ambiance discret (decoratif, jamais interactif).
 	var pulse_sec := maxf(0.3, float(ff.get("deco_pulse_sec", 2.4)))
 	var pulse := create_tween().set_loops()
-	pulse.tween_property(wrap, "modulate:a", 0.82, pulse_sec * 0.5) \
+	pulse.tween_property(deco_wrap, "modulate:a", 0.82, pulse_sec * 0.5) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	pulse.tween_property(wrap, "modulate:a", 1.0, pulse_sec * 0.5) \
+	pulse.tween_property(deco_wrap, "modulate:a", 1.0, pulse_sec * 0.5) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	return wrap
+	return deco_wrap
 
 func _finalform_frame_size(anim: AnimatedSprite2D) -> Vector2:
 	if anim == null or anim.sprite_frames == null:

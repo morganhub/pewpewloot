@@ -19,6 +19,14 @@
 		"bob_speed": 1.1,
 		"sway_deg": 6.0,
 		"sway_speed": 0.5,
+		"_note_motion": "Mouvements varies toutes phases (24/07) : derive laterale + respiration en profondeur + rotation 3 axes (X = « il s'allonge »).",
+		"drift_x_amplitude": 0.8,
+		"drift_x_speed": 0.35,
+		"depth_amplitude": 0.4,
+		"depth_speed": 0.22,
+		"pitch_deg": 8.0,
+		"pitch_speed": 0.45,
+		"roll_deg": 3.0,
 		"_note_dodge": "Esquive REELLE : le boss se deplace lateralement (sidestep + tilt) — le tir rate physiquement (collisions par distance sur la position vivante).",
 		"dodge_chance": 0.22,
 		"dodge_cooldown_sec": 4.0,
@@ -105,11 +113,14 @@
 			"bullet_speed": 6.5, "bullet_radius": 0.2, "bullet_color": "#FF9A4A", "bullet_damage_percent": 6
 		} },
 		{ "id": "suika_purge", "hp_share": 0.12, "params": {
-			"drop_interval_sec": 2.6, "max_bombs": 10, "bomb_speed_z": 0.55,
-			"bomb_radius_l1": 0.22, "bomb_radius_l2": 0.32, "bomb_radius_l3": 0.46,
-			"bomb_color_l1": "#C25050", "bomb_color_l2": "#E3703A", "bomb_color_l3": "#FF4C2A",
-			"merge_dist_mult": 1.1, "push_impulse": 1.6, "push_radius": 0.7,
-			"lvl3_arm_sec": 0.6, "lvl3_damage_share": 0.25, "bomb_reach_damage_percent": 10,
+			"_note_v2": "V2 (24/07) : le vaisseau TIRE DES BLOCS (1 ou 2) au lieu de missiles ; fusions IDENTIQUES uniquement (1+1=2...4+4=5) ; explosion au NIVEAU 5 ; seules les fusions PROVOQUEES PAR LE JOUEUR (marquage tainted propage) blessent le boss ; hitbox = somme des rayons reels par niveau.",
+			"drop_interval_sec": 2.4, "max_bombs": 14, "bomb_speed_z": 0.5,
+			"launch_speed": 9.0, "launch_level2_chance": 0.35, "fire_rate_scale": 0.4,
+			"bomb_radius_l1": 0.2, "bomb_radius_l2": 0.28, "bomb_radius_l3": 0.38, "bomb_radius_l4": 0.5, "bomb_radius_l5": 0.65,
+			"bomb_color_l1": "#B84C4C", "bomb_color_l2": "#D96A3A", "bomb_color_l3": "#F58A2A", "bomb_color_l4": "#FF6A4C", "bomb_color_l5": "#FFD24A",
+			"merge_dist_mult": 1.05, "bounce": 0.7, "spin_kick": 3.0,
+			"wander_amp_x": 0.5, "wander_amp_y": 0.35, "wander_speed": 0.8,
+			"lvl5_arm_sec": 0.6, "lvl5_damage_share": 0.34, "bomb_reach_damage_percent": 10,
 			"harass_interval_sec": 3.6, "harass_count": 2,
 			"bullet_speed": 6.5, "bullet_radius": 0.2, "bullet_color": "#FF9A4A", "bullet_damage_percent": 6
 		} },
@@ -120,7 +131,20 @@
 			"harass_interval_sec": 4.0, "harass_count": 2,
 			"bullet_speed": 6.5, "bullet_radius": 0.2, "bullet_color": "#FF9A4A", "bullet_damage_percent": 6
 		} },
-		{ "id": "snake_coil", "hp_share": 0.13, "params": { "segments": 14, "segment_hp": 60, "dive_interval_sec": 7.0, "segment_damage_share_total": 1.0 } },
+		{ "id": "snake_coil", "hp_share": 0.13, "params": {
+			"segments": 16, "segment_hits": 3, "seg_size": 0.5, "seg_spacing": 0.55,
+			"head_speed": 1.6, "hit_radius": 0.55, "segment_damage_share_total": 1.0,
+			"cube_meshes": [
+				"res://assets/ultimate/snake_cube_1.glb",
+				"res://assets/ultimate/snake_cube_2.glb",
+				"res://assets/ultimate/snake_cube_3.glb",
+				"res://assets/ultimate/snake_cube_4.glb",
+				"res://assets/ultimate/snake_cube_5.glb"
+			],
+			"cube_fallback_colors": ["#3A3F52", "#F58A2A", "#8A7A5A", "#4A5068", "#E8C347"],
+			"harass_interval_sec": 4.2, "harass_count": 2,
+			"bullet_speed": 6.5, "bullet_radius": 0.2, "bullet_color": "#FF9A4A", "bullet_damage_percent": 6
+		} },
 		{ "id": "breakout_ring", "hp_share": 0.13, "params": { "sectors": 10, "brick_hp": 3, "armored_every": 4, "rot_deg_sec": 18.0 } },
 		{ "id": "survivor_swarm", "hp_share": 0.12, "params": { "drones": 40, "spawn_interval_sec": 0.8, "contact_damage_percent": 8, "orbitals_pickup_at_ratio": 0.5 } },
 		{ "id": "core_split", "hp_share": 0.14, "params": { "_note_mesh": "meshes GLB Ludo (missing_assets_3D.md fiche B) — lus quand la phase sera codee (Lot 3)", "timer_sec": 75, "tiers": [ { "count": 1, "hp": 400, "mesh": "res://assets/ultimate/fragment_l.glb" }, { "count": 3, "hp": 140, "mesh": "res://assets/ultimate/fragment_m.glb" }, { "count": 9, "hp": 40, "mesh": "res://assets/ultimate/fragment_s.glb" } ] } }
